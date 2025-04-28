@@ -157,6 +157,14 @@ const CreatorProfile = () => {
     });
   };
 
+  const handleEventReminder = () => {
+    toast({
+      title: "Rappel programmé",
+      description: "Vous recevrez une notification avant le début de l'événement.",
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <ProfileNav username="juliesky" onBack={() => console.log('Back clicked')} />
