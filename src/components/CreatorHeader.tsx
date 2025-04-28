@@ -195,7 +195,11 @@ const CreatorHeader = ({
                       height="h-1.5" 
                     />
                     <div className="text-xs text-muted-foreground text-center">
-                      {metrics.nextTierProgress}% vers le niveau {tierProgressMap[tier].next} ({tierProgressMap[tier === 'diamond' ? 'diamond' : tierProgressMap[tier].next.toLowerCase() as keyof typeof tierProgressMap].revShare} de revenus)
+                      {metrics.nextTierProgress}% vers le niveau {tierProgressMap[tier].next} ({tierProgressMap[
+                      // Fix: Safely access the next tier's revShare, handling diamond tier separately
+                      tier === 'diamond' ? 'diamond' : 
+                      (tierProgressMap[tier].next.toLowerCase() as keyof typeof tierProgressMap)
+                      ].revShare} de revenus)
                     </div>
                   </div>
                 )}
