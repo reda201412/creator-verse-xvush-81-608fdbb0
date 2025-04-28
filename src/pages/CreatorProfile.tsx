@@ -7,13 +7,13 @@ import ContentGrid from '@/components/ContentGrid';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
 import { useToast } from '@/components/ui/use-toast';
 
-// Mock content for our demo
+// Mock content for our demo - Ensuring type is strictly "premium", "vip", or "standard"
 const mockContents = [
   {
     id: '1',
     imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
     title: 'Sunset Dance',
-    type: 'premium',
+    type: 'premium' as const,
     metrics: {
       views: 12000,
       likes: 3200,
@@ -25,7 +25,7 @@ const mockContents = [
     id: '2',
     imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21',
     title: 'Ocean Breeze',
-    type: 'standard',
+    type: 'standard' as const,
     metrics: {
       views: 8500,
       likes: 2100,
@@ -36,7 +36,7 @@ const mockContents = [
     id: '3',
     imageUrl: 'https://images.unsplash.com/photo-1482881497185-d4a9ddbe4151',
     title: 'Desert Dreams',
-    type: 'standard',
+    type: 'standard' as const,
     metrics: {
       views: 7200,
       likes: 1800,
@@ -47,7 +47,7 @@ const mockContents = [
     id: '4',
     imageUrl: 'https://images.unsplash.com/photo-1470813740244-df37b8c1edcb',
     title: 'Night Sky',
-    type: 'vip',
+    type: 'vip' as const,
     metrics: {
       views: 15000,
       likes: 4300,
@@ -58,7 +58,8 @@ const mockContents = [
   {
     id: '5',
     imageUrl: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81',
-    type: 'premium',
+    title: 'Mountain Mist',
+    type: 'premium' as const,
     metrics: {
       views: 9700,
       likes: 2800,
@@ -69,7 +70,8 @@ const mockContents = [
   {
     id: '6',
     imageUrl: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7',
-    type: 'standard',
+    title: 'Forest Whispers',
+    type: 'standard' as const,
     metrics: {
       views: 6800,
       likes: 1500,
@@ -79,7 +81,8 @@ const mockContents = [
   {
     id: '7',
     imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158',
-    type: 'premium',
+    title: 'Dawn Light',
+    type: 'premium' as const,
     metrics: {
       views: 11200,
       likes: 3500,
@@ -90,7 +93,8 @@ const mockContents = [
   {
     id: '8',
     imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5',
-    type: 'vip',
+    title: 'Digital Dreams',
+    type: 'vip' as const,
     metrics: {
       views: 18500,
       likes: 5200,
@@ -101,7 +105,8 @@ const mockContents = [
   {
     id: '9',
     imageUrl: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
-    type: 'standard',
+    title: 'Urban Sunset',
+    type: 'standard' as const,
     metrics: {
       views: 7900,
       likes: 1850,
