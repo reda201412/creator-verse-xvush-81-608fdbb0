@@ -196,12 +196,18 @@ const CreatorHeader = ({
                     />
                     <div className="text-xs text-muted-foreground text-center">
                       {metrics.nextTierProgress}% vers le niveau {tierProgressMap[tier].next} ({
-                        // Fix: Use correct type handling by using a type guard 
+                        // Fix: Use a type-safe accessor approach
                         (() => {
-                          if (tier === 'diamond') {
+                          // Create a type guard that ensures we're working with known tier keys
+                          type TierKey = keyof typeof tierProgressMap;
+                          const nextTierName = tierProgressMap[tier].next.toLowerCase();
+                          
+                          // Check if the nextTierName is a valid key in our tierProgressMap
+                          if (nextTierName === 'diamond') {
                             return tierProgressMap.diamond.revShare;
                           } else {
-                            const nextTier = tierProgressMap[tier].next.toLowerCase() as keyof typeof tierProgressMap;
+                            // Type assertion with safety check
+                            const nextTier = nextTierName as TierKey;
                             return tierProgressMap[nextTier].revShare;
                           }
                         })()
