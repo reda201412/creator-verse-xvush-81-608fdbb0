@@ -196,10 +196,15 @@ const CreatorHeader = ({
                     />
                     <div className="text-xs text-muted-foreground text-center">
                       {metrics.nextTierProgress}% vers le niveau {tierProgressMap[tier].next} ({
-                        // Fixed: Properly handle the tier comparison and next tier revenue share
-                        tier === 'diamond' 
-                          ? tierProgressMap.diamond.revShare 
-                          : tierProgressMap[tierProgressMap[tier].next.toLowerCase() as keyof typeof tierProgressMap].revShare
+                        // Fix: Use correct type handling by using a type guard 
+                        (() => {
+                          if (tier === 'diamond') {
+                            return tierProgressMap.diamond.revShare;
+                          } else {
+                            const nextTier = tierProgressMap[tier].next.toLowerCase() as keyof typeof tierProgressMap;
+                            return tierProgressMap[nextTier].revShare;
+                          }
+                        })()
                       } de revenus)
                     </div>
                   </div>
