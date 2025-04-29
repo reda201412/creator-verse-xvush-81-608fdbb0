@@ -9,6 +9,7 @@ import CreatorProfile from "./pages/CreatorProfile";
 import Dashboard from "./pages/Dashboard";
 import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
+import SubscribersManagement from "./pages/SubscribersManagement";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/creator" element={<CreatorProfile />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/subscribers" element={<SubscribersManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

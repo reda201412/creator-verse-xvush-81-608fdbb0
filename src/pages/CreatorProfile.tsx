@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import ProfileNav from '@/components/ProfileNav';
 import CreatorHeader from '@/components/CreatorHeader';
 import TabNav from '@/components/TabNav';
@@ -6,7 +7,7 @@ import ContentGrid from '@/components/ContentGrid';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
 import ProfileSettingsModal from '@/components/modals/ProfileSettingsModal';
 import EngagementDashboard from '@/components/dashboards/EngagementDashboard';
-import { Settings } from 'lucide-react';
+import { Settings, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -226,15 +227,28 @@ const CreatorProfile = () => {
           </button>
           
           {isCreatorView && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex gap-1 items-center"
-            >
-              <Settings size={16} />
-              Paramètres du profil
-            </Button>
+            <div className="flex gap-2">
+              <Link to="/subscribers">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex gap-1 items-center"
+                >
+                  <Users size={16} />
+                  Gérer les abonnés
+                </Button>
+              </Link>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex gap-1 items-center"
+              >
+                <Settings size={16} />
+                Paramètres du profil
+              </Button>
+            </div>
           )}
         </div>
         
