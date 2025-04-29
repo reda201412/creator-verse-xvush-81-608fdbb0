@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, BarChart, Users, ArrowUp, ArrowDown } from 'lucide-react';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
   Line, 
   LineChart, 
@@ -102,9 +103,19 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <ChartTooltip>
-                    <ChartTooltipContent />
-                  </ChartTooltip>
+                  <Tooltip 
+                    content={(props) => {
+                      if (props.active && props.payload && props.payload.length) {
+                        return (
+                          <div className="bg-background border border-border rounded-md p-2 shadow-md text-xs">
+                            <p className="font-medium">{props.label}</p>
+                            <p className="text-primary">Vues: {props.payload[0].value}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="count"
@@ -137,9 +148,20 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <ChartTooltip>
-                    <ChartTooltipContent />
-                  </ChartTooltip>
+                  <Tooltip 
+                    content={(props) => {
+                      if (props.active && props.payload && props.payload.length) {
+                        return (
+                          <div className="bg-background border border-border rounded-md p-2 shadow-md text-xs">
+                            <p className="font-medium">{props.label}</p>
+                            <p className="text-purple-500">Abonnés: {props.payload[0].value}</p>
+                            <p className="text-blue-500">Revenus: ${props.payload[1].value}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Legend />
                   <Area
                     yAxisId="left"
