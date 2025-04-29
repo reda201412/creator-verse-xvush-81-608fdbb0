@@ -5,6 +5,10 @@ import CreatorHeader from '@/components/CreatorHeader';
 import TabNav from '@/components/TabNav';
 import ContentGrid from '@/components/ContentGrid';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
+import ProfileSettingsModal from '@/components/modals/ProfileSettingsModal';
+import EngagementDashboard from '@/components/dashboards/EngagementDashboard';
+import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
 // Mock content for our demo - Ensuring type is strictly "premium", "vip", or "standard"
@@ -119,7 +123,17 @@ const CreatorProfile = () => {
   const [activeTab, setActiveTab] = useState('grid');
   const [filteredContents, setFilteredContents] = useState(mockContents);
   const [isCreatorView, setIsCreatorView] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { toast } = useToast();
+  
+  // Profile data state
+  const [profileData, setProfileData] = useState({
+    name: "Julie Sky",
+    username: "juliesky",
+    avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200",
+    bio: "Passionnée et créative, Julie aime partager des moments intimes et authentiques. Elle se spécialise dans les vidéos solo et les danses sensuelles.",
+    tier: "gold" as const,
+  });
 
   // Filter content based on active tab
   useEffect(() => {
@@ -138,6 +152,7 @@ const CreatorProfile = () => {
         content.type === 'vip'
       ));
     }
+    // L'onglet 'stats' n'affiche pas de contenu, mais le tableau de bord
   }, [activeTab]);
 
   const handleSubscribe = (tier: string) => {
@@ -165,17 +180,30 @@ const CreatorProfile = () => {
     });
   };
 
+  const handleProfileUpdate = (updatedData: any) => {
+    setProfileData(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+    
+    toast({
+      title: "Profil mis à jour",
+      description: "Les modifications de votre profil ont été enregistrées.",
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <ProfileNav username="juliesky" onBack={() => console.log('Back clicked')} />
+      <ProfileNav username={profileData.username} onBack={() => console.log('Back clicked')} />
       
       <div className="max-w-5xl mx-auto px-4 pb-20 space-y-6">
         <CreatorHeader 
-          name="Julie Sky"
-          username="juliesky"
-          avatar="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200"
-          bio="Passionnée et créative, Julie aime partager des moments intimes et authentiques. Elle se spécialise dans les vidéos solo et les danses sensuelles."
-          tier="gold"
+          name={profileData.name}
+          username={profileData.username}
+          avatar={profileData.avatar}
+          bio={profileData.bio}
+          tier={profileData.tier}
           metrics={{
             followers: 64400,
             following: 68,
@@ -190,13 +218,25 @@ const CreatorProfile = () => {
           isOnline={true}
         />
         
-        <div className="flex justify-end">
+        <div className="flex justify-between">
           <button 
             onClick={toggleCreatorView}
             className="text-xs text-muted-foreground hover:text-primary transition-colors"
           >
             {isCreatorView ? "Voir comme visiteur" : "Voir comme créateur"}
           </button>
+          
+          {isCreatorView && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex gap-1 items-center"
+            >
+              <Settings size={16} />
+              Paramètres du profil
+            </Button>
+          )}
         </div>
         
         <TabNav 
@@ -205,7 +245,13 @@ const CreatorProfile = () => {
           isCreator={isCreatorView}
         />
         
-        {activeTab === 'grid' && (
+        {/* Contenu du tableau de bord d'engagement */}
+        {activeTab === 'stats' && isCreatorView && (
+          <EngagementDashboard />
+        )}
+        
+        {/* Grille de contenu standard */}
+        {activeTab === 'grid' && activeTab !== 'stats' && (
           <ContentGrid 
             contents={filteredContents} 
             layout="masonry" 
@@ -213,6 +259,7 @@ const CreatorProfile = () => {
           />
         )}
         
+        {/* Contenu filtré par type */}
         {(activeTab === 'videos' || activeTab === 'premium' || activeTab === 'vip') && (
           <ContentGrid 
             contents={filteredContents} 
@@ -225,6 +272,13 @@ const CreatorProfile = () => {
           <SubscriptionPanel onSubscribe={handleSubscribe} />
         )}
       </div>
+      
+      <ProfileSettingsModal
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        initialData={profileData}
+        onSave={handleProfileUpdate}
+      />
     </div>
   );
 };
