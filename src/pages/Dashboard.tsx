@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, BarChart, Users, ArrowUp, ArrowDown } from 'lucide-react';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
 import { 
   Line, 
   LineChart, 
@@ -104,12 +104,12 @@ const Dashboard = () => {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip 
-                    content={(props) => {
-                      if (props.active && props.payload && props.payload.length) {
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
                         return (
                           <div className="bg-background border border-border rounded-md p-2 shadow-md text-xs">
-                            <p className="font-medium">{props.label}</p>
-                            <p className="text-primary">Vues: {props.payload[0].value}</p>
+                            <p className="font-medium">{label}</p>
+                            <p className="text-primary">Vues: {payload[0].value}</p>
                           </div>
                         );
                       }
@@ -149,13 +149,13 @@ const Dashboard = () => {
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
                   <Tooltip 
-                    content={(props) => {
-                      if (props.active && props.payload && props.payload.length) {
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
                         return (
                           <div className="bg-background border border-border rounded-md p-2 shadow-md text-xs">
-                            <p className="font-medium">{props.label}</p>
-                            <p className="text-purple-500">Abonnés: {props.payload[0].value}</p>
-                            <p className="text-blue-500">Revenus: ${props.payload[1].value}</p>
+                            <p className="font-medium">{label}</p>
+                            <p className="text-purple-500">Abonnés: {payload[0].value}</p>
+                            <p className="text-blue-500">Revenus: ${payload[1].value}</p>
                           </div>
                         );
                       }
