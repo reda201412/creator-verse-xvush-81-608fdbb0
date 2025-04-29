@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ProfileNav from '@/components/ProfileNav';
 import CreatorHeader from '@/components/CreatorHeader';
@@ -251,7 +250,7 @@ const CreatorProfile = () => {
         )}
         
         {/* Grille de contenu standard */}
-        {activeTab === 'grid' && activeTab !== 'stats' && (
+        {activeTab === 'grid' && (
           <ContentGrid 
             contents={filteredContents} 
             layout="masonry" 
