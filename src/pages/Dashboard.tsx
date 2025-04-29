@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, BarChart, Users, ArrowUp, ArrowDown } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -102,7 +103,7 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <ChartTooltip 
+                  <Tooltip 
                     content={(props) => (
                       <ChartTooltipContent {...props} />
                     )}
@@ -139,7 +140,7 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <ChartTooltip 
+                  <Tooltip 
                     content={(props) => (
                       <ChartTooltipContent {...props} />
                     )}
