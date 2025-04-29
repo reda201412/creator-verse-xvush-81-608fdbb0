@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from "@/lib/utils";
@@ -103,11 +102,9 @@ const Dashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip 
-                    content={(props) => (
-                      <ChartTooltipContent {...props} />
-                    )}
-                  />
+                  <ChartTooltip>
+                    <ChartTooltipContent />
+                  </ChartTooltip>
                   <Line
                     type="monotone"
                     dataKey="count"
@@ -140,11 +137,9 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip 
-                    content={(props) => (
-                      <ChartTooltipContent {...props} />
-                    )}
-                  />
+                  <ChartTooltip>
+                    <ChartTooltipContent />
+                  </ChartTooltip>
                   <Legend />
                   <Area
                     yAxisId="left"
