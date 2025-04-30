@@ -41,14 +41,19 @@ const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className
         <ZoomOut size={15} />
       </Button>
       
-      <Slider
-        value={[zoomLevel]}
-        min={0}
-        max={100}
-        step={5}
-        className="w-32"
-        onValueChange={handleSliderChange}
-      />
+      <div className="relative w-32">
+        <Slider
+          value={[zoomLevel]}
+          min={0}
+          max={100}
+          step={5}
+          className="w-32"
+          onValueChange={handleSliderChange}
+        />
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium bg-primary text-primary-foreground px-1.5 py-0.5 rounded-sm opacity-70">
+          {zoomLevel}%
+        </div>
+      </div>
       
       <Button 
         size="icon" 

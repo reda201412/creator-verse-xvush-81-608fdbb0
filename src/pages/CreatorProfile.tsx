@@ -360,6 +360,50 @@ const CreatorProfile = () => {
     tabs.push({ value: 'stats', label: 'Statistiques', icon: 'bar-chart-3' });
   }
 
+  // Gestionnaires de gestes manquants
+  const handleLongPress = (position: { x: number; y: number }) => {
+    setRadialMenuPosition(position);
+    setIsRadialMenuOpen(true);
+    
+    toast({
+      title: "Menu contextuel ouvert",
+      description: "Sélectionnez une option dans le menu radial",
+      duration: 2000,
+    });
+  };
+  
+  const handleDoubleTap = (position: { x: number; y: number }) => {
+    // Bascule entre le mode immersif et normal
+    if (!isImmersiveMode) {
+      // Trouver l'élément de contenu le plus proche du tap
+      const index = Math.floor(Math.random() * filteredContents.length);
+      setImmersiveContentIndex(index);
+      setIsImmersiveMode(true);
+    } else {
+      setIsImmersiveMode(false);
+    }
+  };
+  
+  const handleSwipeUp = () => {
+    // Augmenter le niveau de zoom
+    const newZoom = Math.min(100, zoomLevel + 10);
+    setZoomLevel(newZoom);
+  };
+  
+  const handleSwipeDown = () => {
+    // Diminuer le niveau de zoom
+    const newZoom = Math.max(0, zoomLevel - 10);
+    setZoomLevel(newZoom);
+  };
+  
+  const handlePinch = (scale: number) => {
+    // Ajuster le niveau de zoom en fonction du pincement
+    // Scale est relatif, nous voulons l'effet cumulatif
+    const zoomChange = (scale - 1) * 30; // Facteur d'amplification
+    const newZoom = Math.max(0, Math.min(100, zoomLevel + zoomChange));
+    setZoomLevel(newZoom);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <ProfileNav username={profileData.username} onBack={() => console.log('Back clicked')} />

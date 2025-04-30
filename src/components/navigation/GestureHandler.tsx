@@ -33,13 +33,15 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
   const touchStartRef = useRef<Position | null>(null);
   const touchEndRef = useRef<Position | null>(null);
   const lastTapRef = useRef<number>(0);
-  const touchesRef = useRef<Touch[]>([]);
+  const initialTouchDistanceRef = useRef<number>(0);
+  const touchStartTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Long press detection
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    touchStartTimeRef.current = Date.now();
     
     // Start long press timer
     if (onLongPress) {
@@ -50,9 +52,14 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
       }, 700); // 700ms for long press
     }
     
-    // Store touch points for pinch detection
-    if (e.touches.length === 2) {
-      touchesRef.current = [e.touches[0], e.touches[1]];
+    // Store initial distance for pinch detection
+    if (e.touches.length === 2 && onPinch) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      initialTouchDistanceRef.current = getDistance(
+        touch1.clientX, touch1.clientY,
+        touch2.clientX, touch2.clientY
+      );
     }
   };
 
@@ -70,15 +77,9 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
     }
     
     // Handle pinch gesture
-    if (e.touches.length === 2 && onPinch && touchesRef.current.length === 2) {
+    if (e.touches.length === 2 && onPinch && initialTouchDistanceRef.current > 0) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
-      
-      // Calculate initial and current distances
-      const initialDist = getDistance(
-        touchesRef.current[0].clientX, touchesRef.current[0].clientY,
-        touchesRef.current[1].clientX, touchesRef.current[1].clientY
-      );
       
       const currentDist = getDistance(
         touch1.clientX, touch1.clientY,
@@ -86,7 +87,7 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
       );
       
       // Calculate scale factor
-      const scale = currentDist / initialDist;
+      const scale = currentDist / initialTouchDistanceRef.current;
       
       if (scale !== 1) {
         onPinch(scale);
@@ -121,21 +122,25 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
       // Handle double tap
       const now = Date.now();
       const DOUBLE_TAP_DELAY = 300;
+      const touchTime = now - touchStartTimeRef.current;
       
-      if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-        if (onDoubleTap && touchEndRef.current) {
-          onDoubleTap(touchEndRef.current);
-          // Reset to prevent triple tap being detected as double tap
-          lastTapRef.current = 0;
+      // Only recognize as tap if touch duration was short
+      if (touchTime < 300) {
+        if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+          if (onDoubleTap && touchEndRef.current) {
+            onDoubleTap(touchEndRef.current);
+            // Reset to prevent triple tap being detected as double tap
+            lastTapRef.current = 0;
+          }
+        } else {
+          // Update last tap timestamp
+          lastTapRef.current = now;
         }
-      } else {
-        // Update last tap timestamp
-        lastTapRef.current = now;
       }
     }
     
     // Reset touch tracking
-    touchesRef.current = [];
+    initialTouchDistanceRef.current = 0;
   };
   
   const handleSwipe = () => {
@@ -172,6 +177,7 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
   // Mouse event handlers to mimic touch events
   const handleMouseDown = (e: React.MouseEvent) => {
     touchStartRef.current = { x: e.clientX, y: e.clientY };
+    touchStartTimeRef.current = Date.now();
     
     // Start long press timer
     if (onLongPress) {
@@ -213,16 +219,20 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
       // Handle double click
       const now = Date.now();
       const DOUBLE_CLICK_DELAY = 300;
+      const touchTime = now - touchStartTimeRef.current;
       
-      if (now - lastTapRef.current < DOUBLE_CLICK_DELAY) {
-        if (onDoubleTap && touchEndRef.current) {
-          onDoubleTap(touchEndRef.current);
-          // Reset to prevent triple click being detected as double click
-          lastTapRef.current = 0;
+      // Only recognize as click if duration was short
+      if (touchTime < 300) {
+        if (now - lastTapRef.current < DOUBLE_CLICK_DELAY) {
+          if (onDoubleTap && touchEndRef.current) {
+            onDoubleTap(touchEndRef.current);
+            // Reset to prevent triple click being detected as double click
+            lastTapRef.current = 0;
+          }
+        } else {
+          // Update last tap timestamp
+          lastTapRef.current = now;
         }
-      } else {
-        // Update last tap timestamp
-        lastTapRef.current = now;
       }
     }
   };
