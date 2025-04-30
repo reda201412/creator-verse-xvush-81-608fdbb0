@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface ProfileAvatarProps {
   src: string;
+  alt?: string; // Added alt property as optional
   size?: 'sm' | 'md' | 'lg' | 'xl';
   hasStory?: boolean;
   status?: 'online' | 'offline' | 'busy';
@@ -12,6 +13,7 @@ interface ProfileAvatarProps {
 
 const ProfileAvatar = ({ 
   src, 
+  alt = "Profile Picture", // Added default value
   size = 'md', 
   hasStory = false, 
   status,
@@ -51,7 +53,7 @@ const ProfileAvatar = ({
           <div className="bg-background p-0.5 rounded-full">
             <img 
               src={src} 
-              alt="Profile" 
+              alt={alt} // Use the alt property
               className={cn(
                 "rounded-full object-cover", 
                 sizeMap[size]
@@ -62,7 +64,7 @@ const ProfileAvatar = ({
       ) : (
         <img 
           src={src} 
-          alt="Profile" 
+          alt={alt} // Use the alt property
           className={cn(
             "rounded-full object-cover border-2 border-white dark:border-gray-800", 
             sizeMap[size]

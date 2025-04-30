@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -448,8 +447,7 @@ const SubscribersManagement = () => {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <ProfileAvatar 
-                            src={subscriber.avatar} 
-                            alt={subscriber.name}
+                            src={subscriber.avatar}
                             size="sm"
                           />
                           <div className="flex flex-col">
@@ -601,7 +599,7 @@ const SubscribersManagement = () => {
                   
                   return (
                     <div key={id} className="flex items-center gap-2 bg-muted px-2 py-1 rounded-full text-xs">
-                      <ProfileAvatar src={subscriber.avatar} size="xs" />
+                      <ProfileAvatar src={subscriber.avatar} size="sm" />
                       <span>@{subscriber.username}</span>
                     </div>
                   );
