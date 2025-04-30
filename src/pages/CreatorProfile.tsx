@@ -1,6 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import ProfileNav from '@/components/ProfileNav';
 import CreatorHeader from '@/components/CreatorHeader';
 import TabNav from '@/components/TabNav';
@@ -8,6 +8,12 @@ import ContentGrid from '@/components/ContentGrid';
 import SubscriptionPanel from '@/components/SubscriptionPanel';
 import ProfileSettingsModal from '@/components/modals/ProfileSettingsModal';
 import EngagementDashboard from '@/components/dashboards/EngagementDashboard';
+import RadialMenu from '@/components/navigation/RadialMenu';
+import ContentFilters from '@/components/navigation/ContentFilters';
+import ZoomControls from '@/components/navigation/ZoomControls';
+import ImmersiveView from '@/components/navigation/ImmersiveView';
+import GestureHandler from '@/components/navigation/GestureHandler';
+import NavigationOverlay from '@/components/navigation/NavigationOverlay';
 import { Settings, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -178,6 +184,13 @@ const CreatorProfile = () => {
   const [filteredContents, setFilteredContents] = useState(mockContents);
   const [isCreatorView, setIsCreatorView] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRadialMenuOpen, setIsRadialMenuOpen] = useState(false);
+  const [radialMenuPosition, setRadialMenuPosition] = useState({ x: 0, y: 0 });
+  const [intelligentFilter, setIntelligentFilter] = useState('trending');
+  const [zoomLevel, setZoomLevel] = useState(50); // 0-100
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
+  const [immersiveContentIndex, setImmersiveContentIndex] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   // Profile data state
@@ -215,6 +228,94 @@ const CreatorProfile = () => {
     }
     // L'onglet 'stats' n'affiche pas de contenu, mais le tableau de bord
   }, [activeTab]);
+
+  // Apply intelligent filter to content
+  useEffect(() => {
+    let newFilteredContents = [...filteredContents];
+    
+    // Apply intelligent filtering based on the selected filter
+    switch (intelligentFilter) {
+      case 'trending':
+        // Sort by growth rate descending
+        newFilteredContents.sort((a, b) => 
+          (b.metrics?.growth || 0) - (a.metrics?.growth || 0)
+        );
+        break;
+      case 'recent':
+        // In a real app, you would sort by date
+        // Here we're just shuffling for demo purposes
+        newFilteredContents = newFilteredContents
+          .sort(() => Math.random() - 0.5);
+        break;
+      case 'popular':
+        // Sort by likes descending
+        newFilteredContents.sort((a, b) => 
+          (b.metrics?.likes || 0) - (a.metrics?.likes || 0)
+        );
+        break;
+      case 'mostWatched':
+        // Sort by views descending
+        newFilteredContents.sort((a, b) => 
+          (b.metrics?.views || 0) - (a.metrics?.views || 0)
+        );
+        break;
+      case 'mostCommented':
+        // Sort by comments descending
+        newFilteredContents.sort((a, b) => 
+          (b.metrics?.comments || 0) - (a.metrics?.comments || 0)
+        );
+        break;
+      case 'highestRated':
+        // In a real app, you would sort by rating
+        // Here we're using likes as a proxy
+        newFilteredContents.sort((a, b) => {
+          const aRatio = a.metrics ? (a.metrics.likes || 0) / (a.metrics.views || 1) : 0;
+          const bRatio = b.metrics ? (b.metrics.likes || 0) / (b.metrics.views || 1) : 0;
+          return bRatio - aRatio;
+        });
+        break;
+      case 'fastestGrowing':
+        // Sort by growth rate descending
+        newFilteredContents.sort((a, b) => 
+          (b.metrics?.growth || 0) - (a.metrics?.growth || 0)
+        );
+        break;
+      case 'forYou':
+        // In a real app, you would use an algorithm to recommend content
+        // Here we're just shuffling for demo purposes
+        newFilteredContents = newFilteredContents
+          .sort(() => Math.random() - 0.5);
+        break;
+      default:
+        // No additional filtering
+        break;
+    }
+    
+    setFilteredContents(newFilteredContents);
+  }, [intelligentFilter, activeTab]);
+
+  // Apply zoom level to content
+  useEffect(() => {
+    if (contentRef.current) {
+      // Calculate scale factor from 0.8 to 1.5 based on zoom level 0-100
+      const scaleFactor = 0.8 + (zoomLevel / 100) * 0.7;
+      
+      // Apply to the content element
+      contentRef.current.style.transform = `scale(${scaleFactor})`;
+      contentRef.current.style.transformOrigin = 'center top';
+      
+      // Adjust spacing based on zoom level
+      if (zoomLevel < 25) {
+        contentRef.current.style.gap = '0.5rem';
+      } else if (zoomLevel < 50) {
+        contentRef.current.style.gap = '0.75rem';
+      } else if (zoomLevel < 75) {
+        contentRef.current.style.gap = '1rem';
+      } else {
+        contentRef.current.style.gap = '1.5rem';
+      }
+    }
+  }, [zoomLevel]);
 
   const handleSubscribe = (tier: string) => {
     toast({
@@ -325,6 +426,18 @@ const CreatorProfile = () => {
           tabs={tabs}
         />
         
+        {/* Navigation révolutionnaire */}
+        <NavigationOverlay
+          isRadialMenuOpen={isRadialMenuOpen}
+          onRadialMenuClose={() => setIsRadialMenuOpen(false)}
+          radialMenuPosition={radialMenuPosition}
+          activeFilter={intelligentFilter}
+          onFilterChange={setIntelligentFilter}
+          zoomLevel={zoomLevel}
+          onZoomChange={setZoomLevel}
+          onEnterImmersiveMode={() => setIsImmersiveMode(true)}
+        />
+        
         {/* Contenu du tableau de bord d'engagement */}
         {activeTab === 'stats' && isCreatorView && (
           <EngagementDashboard />
@@ -332,12 +445,25 @@ const CreatorProfile = () => {
         
         {/* Contenu filtré selon le layout approprié */}
         {activeTab !== 'stats' && (
-          <ContentGrid 
-            contents={filteredContents}
-            layout={activeLayout as 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections'}
-            isCreator={isCreatorView}
-            collections={activeTab === 'collections' ? mockCollections : []}
-          />
+          <GestureHandler
+            onLongPress={handleLongPress}
+            onDoubleTap={handleDoubleTap}
+            onSwipeUp={handleSwipeUp}
+            onSwipeDown={handleSwipeDown}
+            onPinch={handlePinch}
+          >
+            <motion.div 
+              ref={contentRef}
+              className="transition-all duration-300"
+            >
+              <ContentGrid 
+                contents={filteredContents}
+                layout={activeLayout as 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections'}
+                isCreator={isCreatorView}
+                collections={activeTab === 'collections' ? mockCollections : []}
+              />
+            </motion.div>
+          </GestureHandler>
         )}
         
         {activeTab === 'grid' && !isCreatorView && (
@@ -350,6 +476,14 @@ const CreatorProfile = () => {
         onOpenChange={setIsSettingsOpen}
         initialData={profileData}
         onSave={handleProfileUpdate}
+      />
+      
+      {/* Mode immersif */}
+      <ImmersiveView 
+        isOpen={isImmersiveMode}
+        onClose={() => setIsImmersiveMode(false)}
+        content={filteredContents}
+        initialIndex={immersiveContentIndex}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Heart, MessageSquare, Eye, Flame, Clock, TrendingUp } from 'lucide-react';
@@ -119,7 +118,7 @@ const ContentCard = ({
   return (
     <div 
       className={cn(
-        "relative overflow-hidden rounded-lg group transition-all duration-300 hover:shadow-lg",
+        "content-card relative overflow-hidden rounded-lg group transition-all duration-300 hover:shadow-lg",
         sizeClasses[size],
         className
       )}
