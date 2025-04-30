@@ -67,37 +67,39 @@ const ValueVault = ({ premiumContent = [], className }: ValueVaultProps) => {
             ))}
           </TabsList>
           
-          <motion.div 
-            layout 
-            className="grid grid-cols-1 md:grid-cols-2 gap-3"
-          >
-            {filteredContent.map((item) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-                className="bg-secondary/20 rounded-lg p-3 border border-border/50 hover:border-primary/30 transition-all cursor-pointer"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-sm">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{item.views.toLocaleString()} vues</p>
+          <TabsContent value={selectedCategory}>
+            <motion.div 
+              layout 
+              className="grid grid-cols-1 md:grid-cols-2 gap-3"
+            >
+              {filteredContent.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-secondary/20 rounded-lg p-3 border border-border/50 hover:border-primary/30 transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-sm">{item.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{item.views.toLocaleString()} vues</p>
+                    </div>
+                    <Badge 
+                      variant={item.type === 'vip' ? 'destructive' : 'default'} 
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      {getTypeIcon(item.type)}
+                      {item.type.toUpperCase()}
+                    </Badge>
                   </div>
-                  <Badge 
-                    variant={item.type === 'vip' ? 'destructive' : 'default'} 
-                    className="flex items-center gap-1 text-xs"
-                  >
-                    {getTypeIcon(item.type)}
-                    {item.type.toUpperCase()}
-                  </Badge>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </TabsList>
+                </motion.div>
+              ))}
+            </motion.div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
