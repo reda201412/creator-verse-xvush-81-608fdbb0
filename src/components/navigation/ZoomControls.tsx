@@ -14,12 +14,12 @@ interface ZoomControlsProps {
 
 const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className }: ZoomControlsProps) => {
   const handleZoomOut = () => {
-    const newZoom = Math.max(0, zoomLevel - 25);
+    const newZoom = Math.max(25, zoomLevel - 10);
     onZoomChange(newZoom);
   };
   
   const handleZoomIn = () => {
-    const newZoom = Math.min(100, zoomLevel + 25);
+    const newZoom = Math.min(75, zoomLevel + 10);
     onZoomChange(newZoom);
   };
   
@@ -29,28 +29,28 @@ const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className
   
   return (
     <div className={cn(
-      "flex items-center gap-2 bg-background/70 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-border transition-all duration-300 hover:bg-background/90",
+      "flex items-center gap-2 bg-background/50 backdrop-blur-sm rounded-full px-2 py-1 shadow-sm border border-border/50 transition-all duration-300",
       className
     )}>
       <Button 
         size="icon" 
         variant="ghost" 
-        className="h-7 w-7 rounded-full"
+        className="h-6 w-6 rounded-full"
         onClick={handleZoomOut}
       >
-        <ZoomOut size={15} />
+        <ZoomOut size={13} />
       </Button>
       
-      <div className="relative w-32">
+      <div className="relative w-24">
         <Slider
           value={[zoomLevel]}
-          min={0}
-          max={100}
+          min={25}
+          max={75}
           step={5}
-          className="w-32"
+          className="w-24"
           onValueChange={handleSliderChange}
         />
-        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium bg-primary text-primary-foreground px-1.5 py-0.5 rounded-sm opacity-70">
+        <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-medium bg-primary text-primary-foreground px-1 py-0.5 rounded-sm opacity-60 scale-75">
           {zoomLevel}%
         </div>
       </div>
@@ -58,22 +58,22 @@ const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className
       <Button 
         size="icon" 
         variant="ghost" 
-        className="h-7 w-7 rounded-full"
+        className="h-6 w-6 rounded-full"
         onClick={handleZoomIn}
       >
-        <ZoomIn size={15} />
+        <ZoomIn size={13} />
       </Button>
       
-      <div className="h-5 border-l border-border mx-1"></div>
+      <div className="h-4 border-l border-border/50 mx-0.5"></div>
       
       <Button
         size="icon"
         variant="ghost"
-        className="h-7 w-7 rounded-full"
+        className="h-6 w-6 rounded-full"
         onClick={onEnterImmersiveMode}
         title="Mode immersif"
       >
-        <Maximize size={15} />
+        <Maximize size={13} />
       </Button>
     </div>
   );

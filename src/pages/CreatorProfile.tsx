@@ -409,26 +409,19 @@ const CreatorProfile = () => {
     setFilteredContents(newFilteredContents);
   }, [intelligentFilter, activeTab]);
 
-  // Apply zoom level to content
+  // Apply zoom level to content with more subtle transformation
   useEffect(() => {
     if (contentRef.current) {
-      // Calculate scale factor from 0.8 to 1.5 based on zoom level 0-100
-      const scaleFactor = 0.8 + (zoomLevel / 100) * 0.7;
+      // Calculate scale factor from 0.9 to 1.1 based on zoom level 25-75
+      const scaleFactor = 0.9 + (zoomLevel - 25) / 50 * 0.2;
       
-      // Apply to the content element
+      // Apply to the content element with smoother transformation
       contentRef.current.style.transform = `scale(${scaleFactor})`;
       contentRef.current.style.transformOrigin = 'center top';
+      contentRef.current.style.transition = 'transform 0.3s ease-out';
       
-      // Adjust spacing based on zoom level
-      if (zoomLevel < 25) {
-        contentRef.current.style.gap = '0.5rem';
-      } else if (zoomLevel < 50) {
-        contentRef.current.style.gap = '0.75rem';
-      } else if (zoomLevel < 75) {
-        contentRef.current.style.gap = '1rem';
-      } else {
-        contentRef.current.style.gap = '1.5rem';
-      }
+      // Use fixed spacing regardless of zoom level to maintain layout stability
+      contentRef.current.style.gap = '0.75rem';
     }
   }, [zoomLevel]);
 
@@ -500,22 +493,21 @@ const CreatorProfile = () => {
   };
   
   const handleSwipeUp = () => {
-    // Augmenter le niveau de zoom
-    const newZoom = Math.min(100, zoomLevel + 10);
+    // Gentler zoom increase
+    const newZoom = Math.min(75, zoomLevel + 5);
     setZoomLevel(newZoom);
   };
   
   const handleSwipeDown = () => {
-    // Diminuer le niveau de zoom
-    const newZoom = Math.max(0, zoomLevel - 10);
+    // Gentler zoom decrease
+    const newZoom = Math.max(25, zoomLevel - 5);
     setZoomLevel(newZoom);
   };
   
   const handlePinch = (scale: number) => {
-    // Ajuster le niveau de zoom en fonction du pincement
-    // Scale est relatif, nous voulons l'effet cumulatif
-    const zoomChange = (scale - 1) * 30; // Facteur d'amplification
-    const newZoom = Math.max(0, Math.min(100, zoomLevel + zoomChange));
+    // More subtle zoom adjustment with pinch
+    const zoomChange = (scale - 1) * 15; // Reduced amplification factor
+    const newZoom = Math.max(25, Math.min(75, zoomLevel + zoomChange));
     setZoomLevel(newZoom);
   };
 
