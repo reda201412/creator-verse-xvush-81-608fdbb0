@@ -14,9 +14,13 @@ import ZoomControls from '@/components/navigation/ZoomControls';
 import ImmersiveView from '@/components/navigation/ImmersiveView';
 import GestureHandler from '@/components/navigation/GestureHandler';
 import NavigationOverlay from '@/components/navigation/NavigationOverlay';
+import CreatorDNA from '@/components/creator/CreatorDNA';
+import ValueVault from '@/components/creator/ValueVault';
+import CreatorJourney from '@/components/creator/CreatorJourney';
+import FeedbackLoop from '@/components/creator/FeedbackLoop';
 import { Settings, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 // Contenus améliorés avec formats et collections
 const mockContents = [
@@ -202,6 +206,117 @@ const CreatorProfile = () => {
     tier: "gold" as const,
   });
 
+  // Nouvelles données pour les fonctionnalités exclusives
+  const creatorSkills = ["Danse", "Photographie", "Mise en scène", "Écriture", "Maquillage"];
+  const creatorStyle = ["Sensuel", "Authentique", "Créatif", "Élégant", "Personnel"];
+  const creatorAchievements = ["Top 1% Créateurs", "Prix d'Excellence 2023", "10K Abonnés", "100 Vidéos"];
+  
+  const premiumContent = mockContents
+    .filter(content => content.type === 'premium' || content.type === 'vip')
+    .map(content => ({
+      id: content.id,
+      title: content.title,
+      type: content.type,
+      category: content.collection || 'Non classé',
+      views: content.metrics?.views || 0,
+      thumbnail: content.imageUrl
+    }));
+  
+  const journeyMilestones = [
+    {
+      id: '1',
+      date: 'Jan 2023',
+      title: 'Début sur la plateforme',
+      description: 'Premier post et création du profil',
+      metricBefore: 0,
+      metricAfter: 100,
+      metricLabel: 'Abonnés'
+    },
+    {
+      id: '2',
+      date: 'Mars 2023',
+      title: 'Premier contenu Premium',
+      description: 'Lancement de la série "Danses sensuelles"',
+      metricBefore: 350,
+      metricAfter: 1200,
+      metricLabel: 'Abonnés'
+    },
+    {
+      id: '3',
+      date: 'Juin 2023',
+      title: 'Collaboration exclusive',
+      description: 'Partenariat avec Danse Magazine',
+      metricBefore: 2500,
+      metricAfter: 5000,
+      metricLabel: 'Abonnés'
+    },
+    {
+      id: '4',
+      date: 'Oct 2023',
+      title: 'Lancement Collection VIP',
+      description: 'Accès exclusif aux archives privées',
+      metricBefore: 8000,
+      metricAfter: 15000,
+      metricLabel: 'Abonnés'
+    },
+    {
+      id: '5',
+      date: 'Jan 2024',
+      title: 'Award Top Créateur',
+      description: 'Reconnaissance pour qualité de contenu',
+      metricBefore: 20000,
+      metricAfter: 35000,
+      metricLabel: 'Abonnés'
+    },
+    {
+      id: '6',
+      date: 'Mars 2024',
+      title: 'Nouveau format interactif',
+      description: 'Lancement des sessions live exclusives',
+      metricBefore: 40000,
+      metricAfter: 64400,
+      metricLabel: 'Abonnés'
+    }
+  ];
+  
+  const feedbackMessages = [
+    {
+      id: '1',
+      username: 'michel45',
+      message: 'Superbe vidéo de danse ! J\'adore l\'éclairage.',
+      timestamp: 'Il y a 2h',
+      type: 'comment'
+    },
+    {
+      id: '2',
+      username: 'sophie22',
+      message: 'Est-ce que tu pourrais faire une vidéo sur ta routine d\'échauffement ?',
+      timestamp: 'Il y a 1j',
+      type: 'request'
+    },
+    {
+      id: '3',
+      username: 'thomas78',
+      message: 'Tu es incroyablement talentueuse !',
+      timestamp: 'Il y a 3j',
+      type: 'appreciation'
+    },
+    {
+      id: '4',
+      username: 'laura_dance',
+      message: 'La dernière collection est magnifique, j\'ai tout regardé en une soirée !',
+      timestamp: 'Il y a 5j',
+      type: 'appreciation'
+    },
+    {
+      id: '5',
+      username: 'robert01',
+      message: 'Peux-tu faire une session spéciale sur la musique classique ?',
+      timestamp: 'Il y a 1sem',
+      type: 'request'
+    }
+  ];
+  
   // Filter content based on active tab and set appropriate layout
   useEffect(() => {
     if (activeTab === 'grid') {
@@ -461,6 +576,31 @@ const CreatorProfile = () => {
               </Button>
             </div>
           )}
+        </div>
+        
+        {/* Section des fonctionnalités exclusives */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <CreatorDNA 
+            creatorName={profileData.name}
+            creatorSkills={creatorSkills}
+            creatorStyle={creatorStyle}
+            creatorAchievements={creatorAchievements}
+          />
+          
+          <ValueVault 
+            premiumContent={premiumContent}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <CreatorJourney 
+            milestones={journeyMilestones}
+          />
+          
+          <FeedbackLoop 
+            feedbackMessages={feedbackMessages}
+            isCreator={isCreatorView}
+          />
         </div>
         
         <TabNav 

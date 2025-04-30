@@ -29,7 +29,7 @@ const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className
   
   return (
     <div className={cn(
-      "flex items-center gap-2 bg-background/70 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-border",
+      "flex items-center gap-2 bg-background/70 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-border transition-all duration-300 hover:bg-background/90",
       className
     )}>
       <Button 
@@ -71,6 +71,7 @@ const ZoomControls = ({ zoomLevel, onZoomChange, onEnterImmersiveMode, className
         variant="ghost"
         className="h-7 w-7 rounded-full"
         onClick={onEnterImmersiveMode}
+        title="Mode immersif"
       >
         <Maximize size={15} />
       </Button>
