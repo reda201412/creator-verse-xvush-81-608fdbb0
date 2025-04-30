@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProfileNav from '@/components/ProfileNav';
@@ -11,18 +12,22 @@ import { Settings, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
-// Mock content for our demo - Ensuring type is strictly "premium", "vip", or "standard"
+// Contenus améliorés avec formats et collections
 const mockContents = [
   {
     id: '1',
     imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
     title: 'Sunset Dance',
     type: 'premium' as const,
+    format: 'video' as const,
+    duration: 1044, // 17:24 min
+    collection: 'Danses sensuelles',
     metrics: {
       views: 12000,
       likes: 3200,
       comments: 215,
       revenue: 342,
+      growth: 18,
     },
   },
   {
@@ -30,10 +35,13 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21',
     title: 'Ocean Breeze',
     type: 'standard' as const,
+    format: 'image' as const,
+    collection: 'Moments intimes',
     metrics: {
       views: 8500,
       likes: 2100,
       comments: 142,
+      growth: 5,
     },
   },
   {
@@ -41,10 +49,13 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1482881497185-d4a9ddbe4151',
     title: 'Desert Dreams',
     type: 'standard' as const,
+    format: 'image' as const,
+    collection: 'Moments intimes',
     metrics: {
       views: 7200,
       likes: 1800,
       comments: 95,
+      growth: 3,
     },
   },
   {
@@ -52,11 +63,15 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1470813740244-df37b8c1edcb',
     title: 'Night Sky',
     type: 'vip' as const,
+    format: 'video' as const,
+    duration: 1560, // 26:00 min
+    collection: 'Archives VIP',
     metrics: {
       views: 15000,
       likes: 4300,
       comments: 320,
       revenue: 580,
+      growth: 22,
     },
   },
   {
@@ -64,11 +79,15 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81',
     title: 'Mountain Mist',
     type: 'premium' as const,
+    format: 'video' as const,
+    duration: 480, // 8:00 min
+    collection: 'Danses sensuelles',
     metrics: {
       views: 9700,
       likes: 2800,
       comments: 185,
       revenue: 210,
+      growth: 8,
     },
   },
   {
@@ -76,10 +95,13 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7',
     title: 'Forest Whispers',
     type: 'standard' as const,
+    format: 'image' as const,
+    collection: 'Behind the scenes',
     metrics: {
       views: 6800,
       likes: 1500,
       comments: 88,
+      growth: 2,
     },
   },
   {
@@ -87,11 +109,15 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158',
     title: 'Dawn Light',
     type: 'premium' as const,
+    format: 'video' as const,
+    duration: 720, // 12:00 min
+    collection: 'Danses sensuelles',
     metrics: {
       views: 11200,
       likes: 3500,
       comments: 230,
       revenue: 290,
+      growth: 14,
     },
   },
   {
@@ -99,11 +125,15 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5',
     title: 'Digital Dreams',
     type: 'vip' as const,
+    format: 'video' as const,
+    duration: 900, // 15:00 min
+    collection: 'Archives VIP',
     metrics: {
       views: 18500,
       likes: 5200,
       comments: 410,
       revenue: 640,
+      growth: 25,
     },
   },
   {
@@ -111,16 +141,40 @@ const mockContents = [
     imageUrl: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
     title: 'Urban Sunset',
     type: 'standard' as const,
+    format: 'image' as const,
+    collection: 'Behind the scenes',
     metrics: {
       views: 7900,
       likes: 1850,
       comments: 112,
+      growth: 4,
     },
   },
 ];
 
+// Collections pré-définies
+const mockCollections = [
+  {
+    name: 'Danses sensuelles',
+    contents: mockContents.filter(content => content.collection === 'Danses sensuelles')
+  },
+  {
+    name: 'Moments intimes',
+    contents: mockContents.filter(content => content.collection === 'Moments intimes')
+  },
+  {
+    name: 'Behind the scenes',
+    contents: mockContents.filter(content => content.collection === 'Behind the scenes')
+  },
+  {
+    name: 'Archives VIP',
+    contents: mockContents.filter(content => content.collection === 'Archives VIP')
+  }
+];
+
 const CreatorProfile = () => {
   const [activeTab, setActiveTab] = useState('grid');
+  const [activeLayout, setActiveLayout] = useState('featured');
   const [filteredContents, setFilteredContents] = useState(mockContents);
   const [isCreatorView, setIsCreatorView] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -135,22 +189,29 @@ const CreatorProfile = () => {
     tier: "gold" as const,
   });
 
-  // Filter content based on active tab
+  // Filter content based on active tab and set appropriate layout
   useEffect(() => {
     if (activeTab === 'grid') {
       setFilteredContents(mockContents);
+      setActiveLayout('featured'); // Utilisons le layout featured par défaut pour l'onglet grid
     } else if (activeTab === 'videos') {
       setFilteredContents(mockContents.filter(content => 
-        content.type === 'standard'
+        content.format === 'video'
       ));
+      setActiveLayout('vertical'); // Flux vertical pour les vidéos
     } else if (activeTab === 'premium') {
       setFilteredContents(mockContents.filter(content => 
         content.type === 'premium'
       ));
+      setActiveLayout('grid'); // Grid standard pour premium
     } else if (activeTab === 'vip') {
       setFilteredContents(mockContents.filter(content => 
         content.type === 'vip'
       ));
+      setActiveLayout('grid'); // Grid standard pour VIP
+    } else if (activeTab === 'collections') {
+      setFilteredContents(mockContents);
+      setActiveLayout('collections'); // Layout collections
     }
     // L'onglet 'stats' n'affiche pas de contenu, mais le tableau de bord
   }, [activeTab]);
@@ -172,14 +233,6 @@ const CreatorProfile = () => {
     });
   };
 
-  const handleEventReminder = () => {
-    toast({
-      title: "Rappel programmé",
-      description: "Vous recevrez une notification avant le début de l'événement.",
-      duration: 3000,
-    });
-  };
-
   const handleProfileUpdate = (updatedData: any) => {
     setProfileData(prev => ({
       ...prev,
@@ -192,6 +245,19 @@ const CreatorProfile = () => {
       duration: 3000,
     });
   };
+
+  // Mise à jour de TabNav pour inclure l'onglet collections
+  const tabs = [
+    { value: 'grid', label: 'Tous', icon: 'layout-grid' },
+    { value: 'videos', label: 'Vidéos', icon: 'film' },
+    { value: 'premium', label: 'Premium', icon: 'crown' },
+    { value: 'vip', label: 'VIP', icon: 'star' },
+    { value: 'collections', label: 'Collections', icon: 'folder' },
+  ];
+  
+  if (isCreatorView) {
+    tabs.push({ value: 'stats', label: 'Statistiques', icon: 'bar-chart-3' });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -256,6 +322,7 @@ const CreatorProfile = () => {
           activeTab={activeTab} 
           onTabChange={setActiveTab}
           isCreator={isCreatorView}
+          tabs={tabs}
         />
         
         {/* Contenu du tableau de bord d'engagement */}
@@ -263,21 +330,13 @@ const CreatorProfile = () => {
           <EngagementDashboard />
         )}
         
-        {/* Grille de contenu standard */}
-        {activeTab === 'grid' && (
+        {/* Contenu filtré selon le layout approprié */}
+        {activeTab !== 'stats' && (
           <ContentGrid 
-            contents={filteredContents} 
-            layout="masonry" 
+            contents={filteredContents}
+            layout={activeLayout as 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections'}
             isCreator={isCreatorView}
-          />
-        )}
-        
-        {/* Contenu filtré par type */}
-        {(activeTab === 'videos' || activeTab === 'premium' || activeTab === 'vip') && (
-          <ContentGrid 
-            contents={filteredContents} 
-            layout="grid"
-            isCreator={isCreatorView} 
+            collections={activeTab === 'collections' ? mockCollections : []}
           />
         )}
         
