@@ -285,35 +285,35 @@ const CreatorProfile = () => {
       username: 'michel45',
       message: 'Superbe vidéo de danse ! J\'adore l\'éclairage.',
       timestamp: 'Il y a 2h',
-      type: 'comment'
+      type: 'comment' as const
     },
     {
       id: '2',
       username: 'sophie22',
       message: 'Est-ce que tu pourrais faire une vidéo sur ta routine d\'échauffement ?',
       timestamp: 'Il y a 1j',
-      type: 'request'
+      type: 'request' as const
     },
     {
       id: '3',
       username: 'thomas78',
       message: 'Tu es incroyablement talentueuse !',
       timestamp: 'Il y a 3j',
-      type: 'appreciation'
+      type: 'appreciation' as const
     },
     {
       id: '4',
       username: 'laura_dance',
       message: 'La dernière collection est magnifique, j\'ai tout regardé en une soirée !',
       timestamp: 'Il y a 5j',
-      type: 'appreciation'
+      type: 'appreciation' as const
     },
     {
       id: '5',
       username: 'robert01',
       message: 'Peux-tu faire une session spéciale sur la musique classique ?',
       timestamp: 'Il y a 1sem',
-      type: 'request'
+      type: 'request' as const
     }
   ];
   
