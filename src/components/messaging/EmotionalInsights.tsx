@@ -10,12 +10,15 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { MoveRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EmotionalInsightsProps {
   threadId: string;
 }
 
 const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
+  const isMobile = useIsMobile();
+  
   // Mocked data for emotional insights
   const emotionData = [
     { emotion: 'Joie', value: 80, fill: '#10B981' },
@@ -47,7 +50,7 @@ const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
     <div className="space-y-4">
       <div>
         <h4 className="text-sm font-medium mb-2">Carte émotionnelle</h4>
-        <div className="h-48">
+        <div className={isMobile ? "h-40" : "h-48"}>
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart
               innerRadius="30%"
@@ -58,7 +61,6 @@ const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
             >
               <RadialBar
                 background
-                clockwise={true}
                 dataKey="value"
                 cornerRadius={10}
               />
@@ -74,10 +76,10 @@ const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className={isMobile ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
         <div className="bg-background/70 border border-border/50 rounded-lg p-3">
           <h4 className="text-sm font-medium mb-2">Fan Affinity AI</h4>
-          <div className="h-32">
+          <div className={isMobile ? "h-28" : "h-32"}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

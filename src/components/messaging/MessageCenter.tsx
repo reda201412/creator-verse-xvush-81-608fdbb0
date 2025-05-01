@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   MessageSquare, 
   Send, 
@@ -16,12 +17,14 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
-  Users
+  Users,
+  ArrowLeft
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
 import MessageThread from './MessageThread';
 import MessageInput from './MessageInput';
 import WalletPanel from './WalletPanel';
@@ -34,6 +37,7 @@ interface MessageCenterProps {
   userId: string;
   userName: string;
   userAvatar: string;
+  isCreator?: boolean;
   className?: string;
 }
 
@@ -41,8 +45,10 @@ const MessageCenter = ({
   userId,
   userName,
   userAvatar,
+  isCreator = false,
   className,
 }: MessageCenterProps) => {
+  const isMobile = useIsMobile();
   const [threads, setThreads] = useState<MessageThreadType[]>(mockMessageThreads);
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(mockMessageThreads[0]?.id);
   const [showWallet, setShowWallet] = useState(false);
@@ -52,12 +58,27 @@ const MessageCenter = ({
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
   const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
   const [monetizationAmount, setMonetizationAmount] = useState(1.99);
+  const [showThreadList, setShowThreadList] = useState(!isMobile);
 
   const { toast } = useToast();
   const messageEndRef = useRef<HTMLDivElement>(null);
   
   const activeThread = threads.find(thread => thread.id === activeThreadId);
   
+  useEffect(() => {
+    // Handle mobile view - hide thread list when thread is selected
+    if (isMobile && activeThreadId) {
+      setShowThreadList(false);
+    }
+  }, [activeThreadId, isMobile]);
+
+  useEffect(() => {
+    // Toggle thread list visibility based on mobile state
+    if (!isMobile) {
+      setShowThreadList(true);
+    }
+  }, [isMobile]);
+
   useEffect(() => {
     // Scroll to latest message
     if (messageEndRef.current) {
@@ -143,6 +164,10 @@ const MessageCenter = ({
     }
   };
 
+  const backToThreadList = () => {
+    setShowThreadList(true);
+  };
+
   return (
     <div className={cn(
       "glass-card rounded-2xl overflow-hidden shadow-lg flex flex-col",
@@ -153,6 +178,16 @@ const MessageCenter = ({
       <div className="bg-background/50 backdrop-blur-sm border-b border-border/20 p-3">
         <Tabs defaultValue="direct" className="w-full">
           <TabsList className="w-full justify-start">
+            {isMobile && !showThreadList && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 mr-2" 
+                onClick={backToThreadList}
+              >
+                <ArrowLeft size={16} />
+              </Button>
+            )}
             <TabsTrigger value="direct" className="flex items-center gap-2">
               <MessageSquare size={16} />
               <span className="text-sm hidden sm:inline">Direct</span>
@@ -196,115 +231,132 @@ const MessageCenter = ({
       </div>
       
       <div className="flex flex-grow overflow-hidden">
-        {/* Thread list sidebar */}
-        <div className="w-1/3 border-r border-border/20 hidden md:block">
-          <ScrollArea className="h-full">
-            {threads.map(thread => (
-              <div 
-                key={thread.id}
-                className={cn(
-                  "p-3 border-b border-border/10 hover:bg-primary/5 cursor-pointer",
-                  thread.id === activeThreadId && "bg-primary/10",
-                  thread.isGated && "relative"
-                )}
-                onClick={() => setActiveThreadId(thread.id)}
-              >
-                {thread.isGated && (
-                  <div className="absolute top-2 right-2">
-                    <Lock size={12} className="text-muted-foreground" />
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <img 
-                      src={thread.participants[0] !== userId ? 
-                        `https://i.pravatar.cc/40?u=${thread.participants[0]}` : 
-                        `https://i.pravatar.cc/40?u=${thread.participants[1]}`} 
-                      alt="Avatar" 
-                      className="w-8 h-8 rounded-full object-cover" 
-                    />
-                    <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex justify-between">
-                      <p className="font-medium text-sm truncate">
-                        {thread.name || `User_${thread.participants.find(p => p !== userId)}`}
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(thread.lastActivity).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
+        {/* Thread list sidebar - shown conditionally based on mobile state and view */}
+        {showThreadList && (
+          <div className={cn(
+            "border-r border-border/20",
+            isMobile ? "w-full" : "w-1/3 hidden md:block"
+          )}>
+            <ScrollArea className="h-full">
+              {threads.map(thread => (
+                <div 
+                  key={thread.id}
+                  className={cn(
+                    "p-3 border-b border-border/10 hover:bg-primary/5 cursor-pointer",
+                    thread.id === activeThreadId && "bg-primary/10",
+                    thread.isGated && "relative"
+                  )}
+                  onClick={() => setActiveThreadId(thread.id)}
+                >
+                  {thread.isGated && (
+                    <div className="absolute top-2 right-2">
+                      <Lock size={12} className="text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {thread.messages[thread.messages.length - 1]?.content || "New conversation"}
-                      {thread.messages[thread.messages.length - 1]?.monetization && " 💰"}
-                    </p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img 
+                        src={thread.participants[0] !== userId ? 
+                          `https://i.pravatar.cc/40?u=${thread.participants[0]}` : 
+                          `https://i.pravatar.cc/40?u=${thread.participants[1]}`} 
+                        alt="Avatar" 
+                        className="w-8 h-8 rounded-full object-cover" 
+                      />
+                      <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex justify-between">
+                        <p className="font-medium text-sm truncate">
+                          {thread.name || `User_${thread.participants.find(p => p !== userId)}`}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(thread.lastActivity).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {thread.messages[thread.messages.length - 1]?.content || "New conversation"}
+                        {thread.messages[thread.messages.length - 1]?.monetization && " 💰"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </ScrollArea>
-        </div>
+              ))}
+            </ScrollArea>
+          </div>
+        )}
         
         {/* Active conversation */}
-        <div className="flex-1 flex flex-col">
-          {activeThread ? (
-            <>
-              <div className="p-3 border-b border-border/20 bg-background/50 backdrop-blur-sm flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <img 
-                      src={`https://i.pravatar.cc/40?u=${activeThread.participants.find(p => p !== userId)}`} 
-                      alt="Avatar" 
-                      className="w-8 h-8 rounded-full object-cover" 
-                    />
-                    <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+        {!showThreadList && (
+          <div className="flex-1 flex flex-col">
+            {activeThread ? (
+              <>
+                <div className="p-3 border-b border-border/20 bg-background/50 backdrop-blur-sm flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img 
+                        src={`https://i.pravatar.cc/40?u=${activeThread.participants.find(p => p !== userId)}`} 
+                        alt="Avatar" 
+                        className="w-8 h-8 rounded-full object-cover" 
+                      />
+                      <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">
+                        {activeThread.name || `User_${activeThread.participants.find(p => p !== userId)}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">En ligne maintenant</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">
-                      {activeThread.name || `User_${activeThread.participants.find(p => p !== userId)}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground">En ligne maintenant</p>
-                  </div>
+                  
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                    <ChevronRight size={18} />
+                  </Button>
                 </div>
                 
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <ChevronRight size={18} />
-                </Button>
-              </div>
-              
-              <ScrollArea className="flex-1">
-                <div className="p-4">
-                  <MessageThread 
-                    messages={activeThread.messages} 
-                    currentUserId={userId} 
+                <ScrollArea className="flex-1">
+                  <div className="p-4">
+                    <MessageThread 
+                      messages={activeThread.messages} 
+                      currentUserId={userId} 
+                    />
+                    <div ref={messageEndRef} />
+                  </div>
+                </ScrollArea>
+                
+                <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
+                  <MessageInput 
+                    onSendMessage={(content) => sendMessage(content, 'text')}
+                    isComposing={isComposing}
+                    setIsComposing={setIsComposing}
+                    monetizationEnabled={monetizationEnabled}
+                    onToggleMonetization={toggleMonetization}
+                    monetizationTier={monetizationTier}
+                    setMonetizationTier={setMonetizationTier}
+                    monetizationAmount={monetizationAmount}
+                    setMonetizationAmount={setMonetizationAmount}
                   />
-                  <div ref={messageEndRef} />
                 </div>
-              </ScrollArea>
-              
-              <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
-                <MessageInput 
-                  onSendMessage={(content) => sendMessage(content, 'text')}
-                  isComposing={isComposing}
-                  setIsComposing={setIsComposing}
-                  monetizationEnabled={monetizationEnabled}
-                  onToggleMonetization={toggleMonetization}
-                  monetizationTier={monetizationTier}
-                  setMonetizationTier={setMonetizationTier}
-                  monetizationAmount={monetizationAmount}
-                  setMonetizationAmount={setMonetizationAmount}
-                />
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center flex-col gap-4">
+                <MessageSquare size={64} className="text-muted-foreground/40" />
+                <p className="text-muted-foreground text-center">
+                  Sélectionnez une conversation pour commencer à discuter
+                </p>
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center flex-col gap-4">
-              <MessageSquare size={64} className="text-muted-foreground/40" />
-              <p className="text-muted-foreground text-center">
-                Sélectionnez une conversation pour commencer à discuter
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+        
+        {/* Empty state shown when on mobile but no thread selected */}
+        {isMobile && showThreadList && (
+          <div className="flex-1 hidden md:flex items-center justify-center flex-col gap-4">
+            <MessageSquare size={64} className="text-muted-foreground/40" />
+            <p className="text-muted-foreground text-center">
+              Sélectionnez une conversation pour commencer à discuter
+            </p>
+          </div>
+        )}
       </div>
       
       {/* Collapsible wallet panel */}
@@ -351,6 +403,24 @@ const MessageCenter = ({
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Mobile floating action for new messages */}
+      {isMobile && isCreator && (
+        <div className="absolute bottom-20 right-4">
+          <Button 
+            className="h-12 w-12 rounded-full shadow-lg bg-primary text-primary-foreground"
+            onClick={() => {
+              // Here we would add a new conversation function
+              toast({
+                title: "Nouvelle conversation",
+                description: "Fonctionnalité à venir.",
+              });
+            }}
+          >
+            <MessageSquare />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

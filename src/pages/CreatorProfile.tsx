@@ -22,6 +22,8 @@ import MessageCenter from '@/components/messaging/MessageCenter';
 import { Settings, Users, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 // Contenus améliorés avec formats et collections
 const mockContents = [
@@ -184,6 +186,8 @@ const mockCollections = [
 ];
 
 const CreatorProfile = () => {
+  const isMobile = useIsMobile();
+  
   const [activeTab, setActiveTab] = useState('grid');
   const [activeLayout, setActiveLayout] = useState('featured');
   const [filteredContents, setFilteredContents] = useState(mockContents);
@@ -571,6 +575,17 @@ const CreatorProfile = () => {
                 </Button>
               </Link>
               
+              <Link to="/messages">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex gap-1 items-center"
+                >
+                  <MessageSquare size={16} />
+                  Messagerie
+                </Button>
+              </Link>
+              
               <Button 
                 variant="outline" 
                 size="sm"
@@ -584,15 +599,34 @@ const CreatorProfile = () => {
           )}
           
           {!isCreatorView && (
-            <Button 
-              variant={showMessaging ? "default" : "outline"}
-              size="sm"
-              onClick={toggleMessaging}
-              className="flex gap-1 items-center"
-            >
-              <MessageSquare size={16} />
-              {showMessaging ? "Fermer" : "Messages"}
-            </Button>
+            <div className="flex gap-2">
+              <Link to="/messages">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={cn(
+                    "flex gap-1 items-center", 
+                    isMobile ? "fixed bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary text-primary-foreground h-14 w-14 p-0" : ""
+                  )}
+                >
+                  <MessageSquare size={isMobile ? 24 : 16} />
+                  {!isMobile && <span>Messages</span>}
+                </Button>
+              </Link>
+
+              <Button 
+                variant={showMessaging ? "default" : "outline"}
+                size="sm"
+                onClick={toggleMessaging}
+                className={cn(
+                  "flex gap-1 items-center",
+                  isMobile ? "hidden" : ""
+                )}
+              >
+                <MessageSquare size={16} />
+                {showMessaging ? "Fermer" : "Chat rapide"}
+              </Button>
+            </div>
           )}
         </div>
         
@@ -713,6 +747,18 @@ const CreatorProfile = () => {
         content={filteredContents}
         initialIndex={immersiveContentIndex}
       />
+      
+      {/* Fixed messaging button for mobile */}
+      {isMobile && !showMessaging && !isCreatorView && (
+        <Link to="/messages">
+          <Button 
+            className="fixed bottom-4 right-4 z-10 h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground"
+            aria-label="Messages"
+          >
+            <MessageSquare size={24} />
+          </Button>
+        </Link>
+      )}
     </div>
   );
 };

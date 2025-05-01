@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
 import SubscribersManagement from "./pages/SubscribersManagement";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/subscribers" element={<SubscribersManagement />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
