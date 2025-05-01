@@ -18,7 +18,8 @@ import CreatorDNA from '@/components/creator/CreatorDNA';
 import ValueVault from '@/components/creator/ValueVault';
 import CreatorJourney from '@/components/creator/CreatorJourney';
 import FeedbackLoop from '@/components/creator/FeedbackLoop';
-import { Settings, Users } from 'lucide-react';
+import MessageCenter from '@/components/messaging/MessageCenter';
+import { Settings, Users, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -195,6 +196,7 @@ const CreatorProfile = () => {
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [immersiveContentIndex, setImmersiveContentIndex] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [showMessaging, setShowMessaging] = useState(false);
   const { toast } = useToast();
   
   // Profile data state
@@ -511,6 +513,18 @@ const CreatorProfile = () => {
     setZoomLevel(newZoom);
   };
 
+  const toggleMessaging = () => {
+    setShowMessaging(!showMessaging);
+    
+    if (!showMessaging) {
+      toast({
+        title: "Messagerie activée",
+        description: "Communiquez directement avec le créateur pour du contenu exclusif.",
+        duration: 3000,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <ProfileNav username={profileData.username} onBack={() => console.log('Back clicked')} />
@@ -568,82 +582,120 @@ const CreatorProfile = () => {
               </Button>
             </div>
           )}
+          
+          {!isCreatorView && (
+            <Button 
+              variant={showMessaging ? "default" : "outline"}
+              size="sm"
+              onClick={toggleMessaging}
+              className="flex gap-1 items-center"
+            >
+              <MessageSquare size={16} />
+              {showMessaging ? "Fermer" : "Messages"}
+            </Button>
+          )}
         </div>
+        
+        {/* Messaging overlay for fans */}
+        {showMessaging && !isCreatorView && (
+          <div className="relative">
+            <div className="absolute top-2 right-2 z-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80"
+                onClick={() => setShowMessaging(false)}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            <MessageCenter 
+              userId="user_visitor"
+              userName="Visiteur"
+              userAvatar="https://i.pravatar.cc/300?img=50"
+              className="w-full"
+            />
+          </div>
+        )}
         
         {/* Section des fonctionnalités exclusives */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <CreatorDNA 
-            creatorName={profileData.name}
-            creatorSkills={creatorSkills}
-            creatorStyle={creatorStyle}
-            creatorAchievements={creatorAchievements}
-          />
-          
-          <ValueVault 
-            premiumContent={premiumContent}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <CreatorJourney 
-            milestones={journeyMilestones}
-          />
-          
-          <FeedbackLoop 
-            feedbackMessages={feedbackMessages}
-            isCreator={isCreatorView}
-          />
-        </div>
-        
-        <TabNav 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab}
-          isCreator={isCreatorView}
-          tabs={tabs}
-        />
-        
-        {/* Navigation révolutionnaire */}
-        <NavigationOverlay
-          isRadialMenuOpen={isRadialMenuOpen}
-          onRadialMenuClose={() => setIsRadialMenuOpen(false)}
-          radialMenuPosition={radialMenuPosition}
-          activeFilter={intelligentFilter}
-          onFilterChange={setIntelligentFilter}
-          zoomLevel={zoomLevel}
-          onZoomChange={setZoomLevel}
-          onEnterImmersiveMode={() => setIsImmersiveMode(true)}
-        />
-        
-        {/* Contenu du tableau de bord d'engagement */}
-        {activeTab === 'stats' && isCreatorView && (
-          <EngagementDashboard />
-        )}
-        
-        {/* Contenu filtré selon le layout approprié */}
-        {activeTab !== 'stats' && (
-          <GestureHandler
-            onLongPress={handleLongPress}
-            onDoubleTap={handleDoubleTap}
-            onSwipeUp={handleSwipeUp}
-            onSwipeDown={handleSwipeDown}
-            onPinch={handlePinch}
-          >
-            <motion.div 
-              ref={contentRef}
-              className="transition-all duration-300"
-            >
-              <ContentGrid 
-                contents={filteredContents}
-                layout={activeLayout as 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections'}
-                isCreator={isCreatorView}
-                collections={activeTab === 'collections' ? mockCollections : []}
+        {!showMessaging && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <CreatorDNA 
+                creatorName={profileData.name}
+                creatorSkills={creatorSkills}
+                creatorStyle={creatorStyle}
+                creatorAchievements={creatorAchievements}
               />
-            </motion.div>
-          </GestureHandler>
-        )}
-        
-        {activeTab === 'grid' && !isCreatorView && (
-          <SubscriptionPanel onSubscribe={handleSubscribe} />
+              
+              <ValueVault 
+                premiumContent={premiumContent}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <CreatorJourney 
+                milestones={journeyMilestones}
+              />
+              
+              <FeedbackLoop 
+                feedbackMessages={feedbackMessages}
+                isCreator={isCreatorView}
+              />
+            </div>
+            
+            <TabNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab}
+              isCreator={isCreatorView}
+              tabs={tabs}
+            />
+            
+            {/* Navigation révolutionnaire */}
+            <NavigationOverlay
+              isRadialMenuOpen={isRadialMenuOpen}
+              onRadialMenuClose={() => setIsRadialMenuOpen(false)}
+              radialMenuPosition={radialMenuPosition}
+              activeFilter={intelligentFilter}
+              onFilterChange={setIntelligentFilter}
+              zoomLevel={zoomLevel}
+              onZoomChange={setZoomLevel}
+              onEnterImmersiveMode={() => setIsImmersiveMode(true)}
+            />
+            
+            {/* Contenu du tableau de bord d'engagement */}
+            {activeTab === 'stats' && isCreatorView && (
+              <EngagementDashboard />
+            )}
+            
+            {/* Contenu filtré selon le layout approprié */}
+            {activeTab !== 'stats' && (
+              <GestureHandler
+                onLongPress={handleLongPress}
+                onDoubleTap={handleDoubleTap}
+                onSwipeUp={handleSwipeUp}
+                onSwipeDown={handleSwipeDown}
+                onPinch={handlePinch}
+              >
+                <motion.div 
+                  ref={contentRef}
+                  className="transition-all duration-300"
+                >
+                  <ContentGrid 
+                    contents={filteredContents}
+                    layout={activeLayout as 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections'}
+                    isCreator={isCreatorView}
+                    collections={activeTab === 'collections' ? mockCollections : []}
+                  />
+                </motion.div>
+              </GestureHandler>
+            )}
+            
+            {activeTab === 'grid' && !isCreatorView && (
+              <SubscriptionPanel onSubscribe={handleSubscribe} />
+            )}
+          </>
         )}
       </div>
       
