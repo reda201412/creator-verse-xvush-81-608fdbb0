@@ -57,7 +57,6 @@ const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
               endAngle={-180}
             >
               <RadialBar
-                minAngle={15}
                 background
                 clockWise={true}
                 dataKey="value"
