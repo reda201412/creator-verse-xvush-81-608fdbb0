@@ -58,7 +58,7 @@ const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
             >
               <RadialBar
                 background
-                clockWise={true}
+                clockwise={true}
                 dataKey="value"
                 cornerRadius={10}
               />
