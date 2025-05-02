@@ -23,9 +23,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen w-full">
             <DesktopSidebar />
-            <main className="flex-1">
+            <main className="flex-1 w-full overflow-x-hidden">
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/creator" element={<CreatorProfile />} />

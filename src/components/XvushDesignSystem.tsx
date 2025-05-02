@@ -24,11 +24,11 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     toggleFocusMode,
     toggleAmbientSounds
   } = useNeuroAesthetic({
-    // Mobile devices get slightly reduced effects
-    moodIntensity: isMobile ? 40 : 50,
-    microRewardsIntensity: isMobile ? 40 : 50,
-    fluidityIntensity: isMobile ? 50 : 60,
-    fluiditySpeed: isMobile ? 40 : 50,
+    // Mobile devices get significantly reduced effects for better performance
+    moodIntensity: isMobile ? 30 : 50,
+    microRewardsIntensity: isMobile ? 20 : 50,
+    fluidityIntensity: isMobile ? 30 : 60,
+    fluiditySpeed: isMobile ? 30 : 50,
   });
   
   // Apply design system to the document
@@ -36,31 +36,41 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     // Add design system CSS variables and classes
     document.documentElement.classList.add('xvush-design-system');
     
+    // Add mobile-specific class if needed
+    if (isMobile) {
+      document.documentElement.classList.add('xvush-mobile');
+    } else {
+      document.documentElement.classList.remove('xvush-mobile');
+    }
+    
     // Clean up when unmounted
     return () => {
       document.documentElement.classList.remove('xvush-design-system');
       document.documentElement.classList.remove('focus-mode');
+      document.documentElement.classList.remove('xvush-mobile');
     };
-  }, []);
+  }, [isMobile]);
   
   return (
     <div className={className}>
-      {/* Golden Ratio Grid */}
-      <GoldenRatioGrid 
-        visible={config.goldenRatioVisible} 
-        opacity={0.05} 
-      />
+      {/* Golden Ratio Grid - disabled on mobile for performance */}
+      {!isMobile && (
+        <GoldenRatioGrid 
+          visible={config.goldenRatioVisible} 
+          opacity={0.05} 
+        />
+      )}
       
-      {/* Adaptive Mood Lighting */}
+      {/* Adaptive Mood Lighting - reduced intensity on mobile */}
       <AdaptiveMoodLighting 
         currentMood={config.adaptiveMood}
         intensity={config.moodIntensity}
         autoAdapt={config.autoAdaptMood}
       />
       
-      {/* Micro Rewards */}
+      {/* Micro Rewards - reduced frequency on mobile */}
       <MicroRewards 
-        enable={config.microRewardsEnabled}
+        enable={config.microRewardsEnabled && !isMobile}
         rewardIntensity={config.microRewardsIntensity}
         triggerPoints={['like', 'view', 'scroll']}
       />
@@ -73,9 +83,9 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
         onAmbientSoundsToggle={toggleAmbientSounds}
       />
       
-      {/* Ambient Soundscapes */}
+      {/* Ambient Soundscapes - disabled by default on mobile to save bandwidth */}
       <AmbientSoundscapes
-        enabled={config.ambientSoundsEnabled}
+        enabled={config.ambientSoundsEnabled && !isMobile}
         volume={config.ambientVolume}
         onVolumeChange={(volume) => updateConfig({ ambientVolume: volume })}
         autoAdapt={config.autoAdaptMood}
