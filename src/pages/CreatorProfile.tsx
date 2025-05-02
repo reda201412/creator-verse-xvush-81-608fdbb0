@@ -19,7 +19,7 @@ import ValueVault from '@/components/creator/ValueVault';
 import CreatorJourney from '@/components/creator/CreatorJourney';
 import FeedbackLoop from '@/components/creator/FeedbackLoop';
 import MessageCenter from '@/components/messaging/MessageCenter';
-import { Settings, Users, MessageSquare, X } from 'lucide-react';
+import { Settings, Users, MessageSquare, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -208,6 +208,7 @@ const CreatorProfile = () => {
     name: "Julie Sky",
     username: "juliesky",
     avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200",
+    coverImage: "/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png", // Added cover image
     bio: "Passionnée et créative, Julie aime partager des moments intimes et authentiques. Elle se spécialise dans les vidéos solo et les danses sensuelles.",
     tier: "gold" as const,
   });
@@ -533,7 +534,26 @@ const CreatorProfile = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <ProfileNav username={profileData.username} onBack={() => console.log('Back clicked')} />
       
-      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-6">
+      {/* Cover Image */}
+      <div className="relative h-40 md:h-64 w-full overflow-hidden">
+        {profileData.coverImage ? (
+          <img 
+            src={profileData.coverImage} 
+            alt="Cover" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary/30 to-secondary/30 flex items-center justify-center">
+            {isCreatorView && (
+              <Button variant="secondary" className="bg-background/80 backdrop-blur-sm">
+                Ajouter une photo de couverture
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-6 -mt-16 relative z-10">
         <CreatorHeader 
           name={profileData.name}
           username={profileData.username}
@@ -554,7 +574,8 @@ const CreatorProfile = () => {
           isOnline={true}
         />
         
-        <div className="flex justify-between">
+        {/* Message Button and Actions */}
+        <div className="flex flex-wrap justify-between gap-3 mb-6">
           <button 
             onClick={toggleCreatorView}
             className="text-xs text-muted-foreground hover:text-primary transition-colors"
@@ -563,7 +584,7 @@ const CreatorProfile = () => {
           </button>
           
           {isCreatorView && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Link to="/subscribers">
                 <Button 
                   variant="outline" 
@@ -600,31 +621,37 @@ const CreatorProfile = () => {
           
           {!isCreatorView && (
             <div className="flex gap-2">
-              <Link to="/messages">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className={cn(
-                    "flex gap-1 items-center", 
-                    isMobile ? "fixed bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary text-primary-foreground h-14 w-14 p-0" : ""
-                  )}
-                >
-                  <MessageSquare size={isMobile ? 24 : 16} />
-                  {!isMobile && <span>Messages</span>}
-                </Button>
-              </Link>
-
-              <Button 
-                variant={showMessaging ? "default" : "outline"}
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={toggleMessaging}
-                className={cn(
-                  "flex gap-1 items-center",
-                  isMobile ? "hidden" : ""
-                )}
+                className="flex gap-1 items-center"
               >
                 <MessageSquare size={16} />
-                {showMessaging ? "Fermer" : "Chat rapide"}
+                Message
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex gap-1 items-center"
+              >
+                <Bell size={16} />
+                Suivre
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex gap-1 items-center"
+                onClick={() => {
+                  toast({
+                    title: "Options",
+                    description: "Fonctionnalité à venir",
+                  });
+                }}
+              >
+                <span>...</span>
               </Button>
             </div>
           )}
@@ -652,33 +679,9 @@ const CreatorProfile = () => {
           </div>
         )}
         
-        {/* Section des fonctionnalités exclusives */}
+        {/* Content Tab Navigation */}
         {!showMessaging && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-              <CreatorDNA 
-                creatorName={profileData.name}
-                creatorSkills={creatorSkills}
-                creatorStyle={creatorStyle}
-                creatorAchievements={creatorAchievements}
-              />
-              
-              <ValueVault 
-                premiumContent={premiumContent}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-              <CreatorJourney 
-                milestones={journeyMilestones}
-              />
-              
-              <FeedbackLoop 
-                feedbackMessages={feedbackMessages}
-                isCreator={isCreatorView}
-              />
-            </div>
-            
             <TabNav 
               activeTab={activeTab} 
               onTabChange={setActiveTab}
@@ -686,7 +689,7 @@ const CreatorProfile = () => {
               tabs={tabs}
             />
             
-            {/* Navigation révolutionnaire */}
+            {/* Navigation overlay */}
             <NavigationOverlay
               isRadialMenuOpen={isRadialMenuOpen}
               onRadialMenuClose={() => setIsRadialMenuOpen(false)}
@@ -698,12 +701,7 @@ const CreatorProfile = () => {
               onEnterImmersiveMode={() => setIsImmersiveMode(true)}
             />
             
-            {/* Contenu du tableau de bord d'engagement */}
-            {activeTab === 'stats' && isCreatorView && (
-              <EngagementDashboard />
-            )}
-            
-            {/* Contenu filtré selon le layout approprié */}
+            {/* Featured Content */}
             {activeTab !== 'stats' && (
               <GestureHandler
                 onLongPress={handleLongPress}
@@ -726,8 +724,43 @@ const CreatorProfile = () => {
               </GestureHandler>
             )}
             
+            {/* Engagement Dashboard (only for creator view and stats tab) */}
+            {activeTab === 'stats' && isCreatorView && (
+              <EngagementDashboard />
+            )}
+            
+            {/* Value Vault and Feedback Loop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <ValueVault 
+                premiumContent={premiumContent}
+              />
+              
+              <FeedbackLoop 
+                feedbackMessages={feedbackMessages}
+                isCreator={isCreatorView}
+              />
+            </div>
+
+            {/* Creator DNA and Creator Journey */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <CreatorDNA 
+                creatorName={profileData.name}
+                creatorSkills={creatorSkills}
+                creatorStyle={creatorStyle}
+                creatorAchievements={creatorAchievements}
+              />
+              
+              <CreatorJourney 
+                milestones={journeyMilestones}
+              />
+            </div>
+
+            {/* Subscription Panel */}
             {activeTab === 'grid' && !isCreatorView && (
-              <SubscriptionPanel onSubscribe={handleSubscribe} />
+              <div className="glass-card rounded-2xl p-6 mt-8">
+                <h2 className="text-2xl font-bold mb-4">Rejoignez l'univers exclusif de {profileData.name}</h2>
+                <SubscriptionPanel onSubscribe={handleSubscribe} />
+              </div>
             )}
           </>
         )}
@@ -750,14 +783,13 @@ const CreatorProfile = () => {
       
       {/* Fixed messaging button for mobile */}
       {isMobile && !showMessaging && !isCreatorView && (
-        <Link to="/messages">
-          <Button 
-            className="fixed bottom-4 right-4 z-10 h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground"
-            aria-label="Messages"
-          >
-            <MessageSquare size={24} />
-          </Button>
-        </Link>
+        <Button 
+          className="fixed bottom-4 right-4 z-10 h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground"
+          aria-label="Messages"
+          onClick={toggleMessaging}
+        >
+          <MessageSquare size={24} />
+        </Button>
       )}
     </div>
   );
