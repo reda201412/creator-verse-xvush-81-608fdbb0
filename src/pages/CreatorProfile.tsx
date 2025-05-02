@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import Header from "@/components/navigation/Header";
 
 // Contenus améliorés avec formats et collections
 const mockContents = [
@@ -531,8 +532,8 @@ const CreatorProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <ProfileNav username={profileData.username} onBack={() => console.log('Back clicked')} />
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <Header />
       
       {/* Cover Image */}
       <div className="relative h-40 md:h-64 w-full overflow-hidden">
@@ -553,26 +554,61 @@ const CreatorProfile = () => {
         )}
       </div>
       
-      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-6 -mt-16 relative z-10">
-        <CreatorHeader 
-          name={profileData.name}
-          username={profileData.username}
-          avatar={profileData.avatar}
-          bio={profileData.bio}
-          tier={profileData.tier}
-          metrics={{
-            followers: 64400,
-            following: 68,
-            revenue: isCreatorView ? 4752 : undefined,
-            growthRate: isCreatorView ? 12 : undefined,
-            nextTierProgress: 73,
-            retentionRate: 87,
-            superfans: 3200,
-            watchMinutes: 237000,
-          }}
-          isCreator={isCreatorView}
-          isOnline={true}
-        />
+      <div className="max-w-5xl mx-auto px-4 pb-20 space-y-6 relative">
+        {/* Profile Information */}
+        <div className="flex flex-col items-center -mt-20">
+          <div className="story-ring">
+            <img 
+              src={profileData.avatar || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200"}
+              alt={profileData.name || "Creator"}
+              className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-900"
+            />
+          </div>
+          
+          <div className="flex items-center mt-2">
+            {/* Online status */}
+            <div className="flex items-center text-sm text-green-500 font-medium">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              <span>En ligne</span>
+              <span className="ml-1 text-md">○</span>
+            </div>
+          </div>
+          
+          {/* Message button */}
+          <button 
+            onClick={toggleMessaging}
+            className="mt-4 flex items-center gap-2 px-5 py-2 border border-gray-200 rounded-full text-gray-800 font-medium hover:bg-gray-50 transition-colors"
+          >
+            <MessageSquare size={18} />
+            Message
+          </button>
+          
+          <div className="text-center mt-4">
+            <h1 className="text-3xl font-bold">
+              {profileData.name} 
+              <span className="ml-2 text-sm bg-yellow-400 text-black px-2 py-0.5 rounded-md">Gold</span>
+            </h1>
+            <h2 className="text-gray-500 mt-1">@{profileData.username}</h2>
+          </div>
+          
+          <p className="mt-3 text-center max-w-lg">
+            {profileData.bio}
+          </p>
+          
+          {/* Additional actions */}
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" size="sm" className="rounded-full gap-2">
+              <MessageSquare size={16} />
+              Message
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-full">
+              <Bell size={16} />
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-full">
+              ...
+            </Button>
+          </div>
+        </div>
         
         {/* Message Button and Actions */}
         <div className="flex flex-wrap justify-between gap-3 mb-6">

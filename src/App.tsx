@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import SubscribersManagement from "./pages/SubscribersManagement";
 import Messages from "./pages/Messages";
 import XvushDesignSystem from "./components/XvushDesignSystem";
+import { DesktopSidebar } from "./components/navigation/Sidebar";
 
 const queryClient = new QueryClient();
 
@@ -22,15 +23,20 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/creator" element={<CreatorProfile />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/calendar" element={<CalendarView />} />
-            <Route path="/subscribers" element={<SubscribersManagement />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <div className="flex min-h-screen">
+            <DesktopSidebar />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/creator" element={<CreatorProfile />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/calendar" element={<CalendarView />} />
+                <Route path="/subscribers" element={<SubscribersManagement />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
         </BrowserRouter>
       </XvushDesignSystem>
     </TooltipProvider>
