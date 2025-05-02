@@ -94,6 +94,45 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+  
+  /* XVush Design System additions */
+  .xvush-design-system {
+    --xvush-transition-duration: 0.5s;
+    --xvush-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .xvush-design-system .interactive-element {
+    @apply transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
+  }
+  
+  .xvush-design-system .focus-mode {
+    --filter-intensity: 0.7;
+    filter: saturate(var(--filter-intensity)) contrast(1.1);
+  }
+  
+  .focus-mode .non-essential-element {
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+  }
+  
+  .focus-mode .non-essential-element:hover {
+    opacity: 1;
+  }
+  
+  /* Golden ratio enhanced containers */
+  .golden-container {
+    aspect-ratio: 1.618033988749895;
+  }
+  
+  .golden-horizontal {
+    width: 100%;
+    height: calc(100% / 1.618033988749895);
+  }
+  
+  .golden-vertical {
+    height: 100%;
+    width: calc(100% / 1.618033988749895);
+  }
 }
 
 @layer components {
@@ -124,6 +163,39 @@
   .animate-pulse-subtle {
     animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  
+  /* XVush Design System components */
+  .xvush-card {
+    @apply relative overflow-hidden rounded-xl backdrop-blur-sm 
+           bg-white/70 dark:bg-black/40 border border-white/30 dark:border-white/5
+           shadow-lg shadow-black/5 dark:shadow-white/5
+           transition-all duration-500 hover:shadow-xl hover:scale-[1.01];
+  }
+  
+  .xvush-button {
+    @apply relative overflow-hidden bg-gradient-to-br from-primary to-primary/80
+           text-primary-foreground rounded-full px-6 py-2
+           shadow-md shadow-primary/20
+           transition-all duration-300
+           hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.03]
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .xvush-input {
+    @apply bg-white/70 dark:bg-black/30 backdrop-blur-sm
+           border border-white/30 dark:border-white/10
+           rounded-lg px-4 py-2
+           focus:outline-none focus:ring-2 focus:ring-primary/30
+           transition-all duration-300;
+  }
+  
+  .neuomorphic-element {
+    @apply bg-white dark:bg-zinc-900
+           shadow-[5px_5px_10px_#d9d9d9,-5px_-5px_10px_#ffffff]
+           dark:shadow-[5px_5px_10px_#131313,-5px_-5px_10px_#272727]
+           rounded-xl;
+  }
 }
 
 @keyframes pulse-subtle {
@@ -148,3 +220,29 @@
   border-radius: 50%;
 }
 
+/* Addictive loop micro-interactions */
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes subtle-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 145, 164, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 145, 164, 0.6);
+  }
+}
+
+.animate-subtle-float {
+  animation: subtle-float 3s ease-in-out infinite;
+}
+
+.animate-subtle-glow {
+  animation: subtle-glow 2s ease-in-out infinite;
+}
