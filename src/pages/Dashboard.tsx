@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
@@ -7,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  BarChart, 
+  BarChart as BarChartIcon, 
   TrendingUp, 
   ArrowUp, 
   ArrowDown,
@@ -38,7 +37,9 @@ import {
   Pie,
   Cell,
   Scatter,
-  ScatterChart
+  ScatterChart,
+  Bar,
+  BarChart
 } from 'recharts';
 import { toast } from '@/components/ui/sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
@@ -274,7 +275,7 @@ const Dashboard = () => {
               Vue d'ensemble
             </TabsTrigger>
             <TabsTrigger value="revenue" className="flex items-center gap-2">
-              <BarChart size={16} />
+              <BarChartIcon size={16} />
               Revenus
             </TabsTrigger>
             <TabsTrigger value="audience" className="flex items-center gap-2">
@@ -296,7 +297,7 @@ const Dashboard = () => {
                 value="€4,285" 
                 change="+23%" 
                 trend="up" 
-                icon={<BarChart className="text-emerald-500" />}
+                icon={<BarChartIcon className="text-emerald-500" />}
                 onClick={() => setActiveTab('revenue')}
               />
               <StatCard 
