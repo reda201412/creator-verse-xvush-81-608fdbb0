@@ -13,8 +13,32 @@ import SubscribersManagement from "./pages/SubscribersManagement";
 import Messages from "./pages/Messages";
 import XvushDesignSystem from "./components/XvushDesignSystem";
 import { DesktopSidebar } from "./components/navigation/Sidebar";
+import { useIsMobile } from "./hooks/use-mobile";
+import Header from "./components/navigation/Header";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <div className="flex min-h-screen w-full">
+      {!isMobile && <DesktopSidebar />}
+      <main className="flex-1 w-full overflow-x-hidden">
+        {isMobile && <Header />}
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/creator" element={<CreatorProfile />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/subscribers" element={<SubscribersManagement />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,20 +47,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="flex min-h-screen w-full">
-            <DesktopSidebar />
-            <main className="flex-1 w-full overflow-x-hidden">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/creator" element={<CreatorProfile />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/calendar" element={<CalendarView />} />
-                <Route path="/subscribers" element={<SubscribersManagement />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
+          <AppContent />
         </BrowserRouter>
       </XvushDesignSystem>
     </TooltipProvider>

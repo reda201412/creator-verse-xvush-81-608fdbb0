@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { useToast } from '@/components/ui/use-toast';
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, BarChart, Users, ArrowUp, ArrowDown } from 'lucide-react';
@@ -40,15 +38,6 @@ const growthData = [
 ];
 
 const Dashboard = () => {
-  const { toast } = useToast();
-  
-  React.useEffect(() => {
-    toast({
-      title: 'Tableau de bord chargé',
-      description: 'Bienvenue sur votre tableau de bord de créateur',
-    });
-  }, [toast]);
-  
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="max-w-7xl mx-auto px-4 py-8">
