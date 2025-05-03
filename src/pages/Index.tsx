@@ -1,11 +1,9 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import ContentGrid from "@/components/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useToast } from "@/hooks/use-toast";
 import FocusMode from "@/components/ambient/FocusMode";
 import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
@@ -116,24 +114,12 @@ const recommendedCreators = [
 
 const Index: React.FC = () => {
   const isMobile = useIsMobile();
-  const { toast } = useToast();
   const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic({
     moodIntensity: isMobile ? 30 : 50,
     microRewardsIntensity: isMobile ? 20 : 50,
   });
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
-
-  useEffect(() => {
-    // Welcome notification
-    toast({
-      title: "Bienvenue sur CreatorVerse",
-      description: "Découvrez notre nouveau design neuro-esthétique",
-    });
-    
-    // Trigger a micro-reward
-    triggerMicroReward('view');
-  }, [toast, triggerMicroReward]);
 
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);

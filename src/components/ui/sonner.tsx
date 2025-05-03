@@ -1,3 +1,4 @@
+
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast } from "sonner"
 
@@ -11,6 +12,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
+        duration: 3000, // Shorter duration
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
@@ -26,4 +28,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster, toast }
+// Modified toast function with defaults that prevent spam
+const enhancedToast = Object.assign(
+  (props: Parameters<typeof toast>[0]) => {
+    // Only show the toast if it's not a navigation notification
+    if (props && typeof props === 'object' && 
+        props.title && 
+        (props.title.toString().includes('Bienvenue') || 
+         props.title.toString().includes('Loading'))) {
+      return { id: 'suppressed-toast' };
+    }
+    return toast(props);
+  },
+  toast
+);
+
+export { Toaster, enhancedToast as toast }

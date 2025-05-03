@@ -16,7 +16,16 @@ import { DesktopSidebar } from "./components/navigation/Sidebar";
 import { useIsMobile } from "./hooks/use-mobile";
 import Header from "./components/navigation/Header";
 
-const queryClient = new QueryClient();
+// Create QueryClient with better caching settings to improve navigation fluidity
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: false, // Prevent unnecessary refetches on focus
+      retry: 1, // Only retry once to avoid notification spam
+    },
+  },
+});
 
 const AppContent = () => {
   const isMobile = useIsMobile();
@@ -45,7 +54,7 @@ const App = () => (
     <TooltipProvider>
       <XvushDesignSystem>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-right" closeButton={true} />
         <BrowserRouter>
           <AppContent />
         </BrowserRouter>

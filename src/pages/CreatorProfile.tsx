@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import CreatorHeader from '@/components/CreatorHeader';
 import ContentGrid from '@/components/ContentGrid';
@@ -304,12 +303,6 @@ const CreatorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState('grid');
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Trigger a custom event to show micro reward on page load
-    const event = new Event('xvush:view');
-    document.dispatchEvent(event);
-  }, []);
-
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
@@ -463,4 +456,3 @@ const CreatorProfile: React.FC = () => {
 };
 
 export default CreatorProfile;
-
