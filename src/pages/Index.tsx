@@ -245,8 +245,7 @@ const Index: React.FC = () => {
                 <Button 
                   className="w-full mt-3 bg-xvush-pink hover:bg-xvush-pink-dark"
                   onClick={() => {
-                    toast({
-                      title: `Vous suivez maintenant ${creator.name}`,
+                    toast(`Vous suivez maintenant ${creator.name}`, {
                       description: "Découvrez son contenu exclusif"
                     });
                     triggerMicroReward('like');

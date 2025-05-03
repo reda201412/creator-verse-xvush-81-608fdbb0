@@ -1,6 +1,6 @@
 
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner, toast as sonnerToast, type ToastT } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -29,19 +29,29 @@ const Toaster = ({ ...props }: ToasterProps) => {
 }
 
 // Modified toast function with defaults that prevent spam
-const enhancedToast = Object.assign(
-  (props: Parameters<typeof toast>[0]) => {
-    // Only show the toast if it's not a navigation notification
-    if (props && typeof props === 'object' && 'title' in props && 
-        props.title && 
-        (typeof props.title === 'string' && 
-         (props.title.includes('Bienvenue') || 
-          props.title.includes('Loading')))) {
+const toast = Object.assign(
+  (message: React.ReactNode, options?: Parameters<typeof sonnerToast>[1]) => {
+    // Filter out welcome and loading messages
+    if (
+      typeof message === 'string' && 
+      (message.includes('Bienvenue') || message.includes('Loading'))
+    ) {
       return { id: 'suppressed-toast' };
     }
-    return toast(props);
+
+    // Filter by title if options contain title
+    if (
+      options && 
+      'title' in options && 
+      typeof options.title === 'string' && 
+      (options.title.includes('Bienvenue') || options.title.includes('Loading'))
+    ) {
+      return { id: 'suppressed-toast' };
+    }
+
+    return sonnerToast(message, options);
   },
-  toast
+  sonnerToast
 );
 
-export { Toaster, enhancedToast as toast }
+export { Toaster, toast }
