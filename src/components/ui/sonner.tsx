@@ -32,10 +32,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
 const enhancedToast = Object.assign(
   (props: Parameters<typeof toast>[0]) => {
     // Only show the toast if it's not a navigation notification
-    if (props && typeof props === 'object' && 
+    if (props && typeof props === 'object' && 'title' in props && 
         props.title && 
-        (props.title.toString().includes('Bienvenue') || 
-         props.title.toString().includes('Loading'))) {
+        (typeof props.title === 'string' && 
+         (props.title.includes('Bienvenue') || 
+          props.title.includes('Loading')))) {
       return { id: 'suppressed-toast' };
     }
     return toast(props);

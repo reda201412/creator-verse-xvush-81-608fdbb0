@@ -4,6 +4,7 @@ import ContentGrid from "@/components/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "@/components/ui/sonner";
 import FocusMode from "@/components/ambient/FocusMode";
 import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
