@@ -1,19 +1,39 @@
 
 import React from 'react';
-import { Badge, Star, StarHalf } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { Users, Clock, User, TrendingUp } from 'lucide-react';
 
 interface CreatorMetricsProps {
   metrics: {
     followers: number;
     following?: number;
-    superfans?: number;
     retentionRate?: number;
+    superfans?: number;
     watchMinutes?: number;
   };
+  className?: string;
 }
 
-const CreatorMetrics = ({ metrics }: CreatorMetricsProps) => {
-  // Format large numbers with K or M suffix
+const CreatorMetrics: React.FC<CreatorMetricsProps> = ({
+  metrics,
+  className
+}) => {
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
@@ -24,43 +44,70 @@ const CreatorMetrics = ({ metrics }: CreatorMetricsProps) => {
   };
 
   return (
-    <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-      <div className="flex items-center">
-        <Badge size={14} className="mr-1.5 text-xvush-pink" />
-        <span className="font-semibold">{formatNumber(metrics.followers)}</span>{' '}
-        <span className="text-muted-foreground ml-1">abonnés</span>
-      </div>
+    <motion.div 
+      className={cn("flex flex-wrap gap-5", className)}
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={item} className="flex items-center gap-2">
+        <div className="bg-primary/10 rounded-full p-2">
+          <Users size={16} className="text-primary" />
+        </div>
+        <div>
+          <div className="text-lg font-semibold">{formatNumber(metrics.followers)}</div>
+          <div className="text-xs text-muted-foreground">Abonnés</div>
+        </div>
+      </motion.div>
       
       {metrics.following !== undefined && (
-        <div>
-          <span className="font-semibold">{formatNumber(metrics.following)}</span>{' '}
-          <span className="text-muted-foreground">abonnements</span>
-        </div>
-      )}
-      
-      {metrics.superfans !== undefined && (
-        <div className="flex items-center">
-          <Star size={14} className="mr-1.5 text-xvush-gold" />
-          <span className="font-semibold">{formatNumber(metrics.superfans)}</span>{' '}
-          <span className="text-muted-foreground ml-1">super-fans</span>
-        </div>
+        <motion.div variants={item} className="flex items-center gap-2">
+          <div className="bg-xvush-blue/10 rounded-full p-2">
+            <User size={16} className="text-xvush-blue" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold">{formatNumber(metrics.following)}</div>
+            <div className="text-xs text-muted-foreground">Abonnements</div>
+          </div>
+        </motion.div>
       )}
       
       {metrics.retentionRate !== undefined && (
-        <div className="flex items-center">
-          <StarHalf size={14} className="mr-1.5 text-blue-400" />
-          <span className="font-semibold">{metrics.retentionRate}%</span>{' '}
-          <span className="text-muted-foreground ml-1">fidélisation</span>
-        </div>
+        <motion.div variants={item} className="flex items-center gap-2">
+          <div className="bg-green-500/10 rounded-full p-2">
+            <TrendingUp size={16} className="text-green-500" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold">{metrics.retentionRate}%</div>
+            <div className="text-xs text-muted-foreground">Rétention</div>
+          </div>
+        </motion.div>
+      )}
+      
+      {metrics.superfans !== undefined && (
+        <motion.div variants={item} className="flex items-center gap-2">
+          <div className="bg-xvush-orange/10 rounded-full p-2">
+            <User size={16} className="text-xvush-orange" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold">{metrics.superfans}</div>
+            <div className="text-xs text-muted-foreground">Super-fans</div>
+          </div>
+        </motion.div>
       )}
       
       {metrics.watchMinutes !== undefined && (
-        <div>
-          <span className="font-semibold">{formatNumber(metrics.watchMinutes)}</span>{' '}
-          <span className="text-muted-foreground">min regardées</span>
-        </div>
+        <motion.div variants={item} className="flex items-center gap-2">
+          <div className="bg-xvush-teal/10 rounded-full p-2">
+            <Clock size={16} className="text-xvush-teal" />
+          </div>
+          <div>
+            <div className="text-lg font-semibold">{formatNumber(metrics.watchMinutes)}min</div>
+            <div className="text-xs text-muted-foreground">Visionnage</div>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

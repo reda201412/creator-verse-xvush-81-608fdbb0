@@ -1,140 +1,140 @@
 
 import React, { useEffect, useState } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
+type Mood = 'energetic' | 'calm' | 'creative' | 'focused';
 
 interface AdaptiveMoodLightingProps {
-  currentMood?: 'calm' | 'energetic' | 'mysterious' | 'passionate' | 'creative' | 'focused';
+  currentMood: Mood;
   intensity?: number; // 0-100
   autoAdapt?: boolean;
   className?: string;
 }
 
 const AdaptiveMoodLighting: React.FC<AdaptiveMoodLightingProps> = ({
-  currentMood = 'creative',
+  currentMood,
   intensity = 50,
   autoAdapt = true,
   className
 }) => {
-  const isMobile = useIsMobile();
-  const [activeMood, setActiveMood] = useState(currentMood);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [mood, setMood] = useState<Mood>(currentMood);
   
+  // Update when props change
   useEffect(() => {
-    if (!autoAdapt) {
-      setActiveMood(currentMood);
-      return;
-    }
-    
-    // Update time every minute for time-based lighting
-    const intervalId = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      
-      // Adapt mood based on time of day
-      const hour = now.getHours();
-      if (hour >= 5 && hour < 10) {
-        setActiveMood('energetic'); // Morning energy
-      } else if (hour >= 10 && hour < 15) {
-        setActiveMood('creative'); // Productive daytime
-      } else if (hour >= 15 && hour < 19) {
-        setActiveMood('passionate'); // Afternoon passion
-      } else if (hour >= 19 && hour < 22) {
-        setActiveMood('mysterious'); // Evening mystery
-      } else {
-        setActiveMood('calm'); // Night calmness
-      }
-    }, 60000);
-    
-    return () => clearInterval(intervalId);
-  }, [autoAdapt, currentMood]);
+    setMood(currentMood);
+  }, [currentMood]);
+
+  // Map intensity to actual opacity and blur values
+  const opacityValue = Math.min(0.5, intensity / 200);
+  const blurValue = Math.max(40, intensity * 0.8);
+  const sizeValue = Math.max(150, 100 + intensity * 1.5);
   
-  // Generate CSS variables for the mood lighting
-  const getMoodStyles = () => {
-    const baseIntensity = intensity / 100;
-    const mobileReducedIntensity = isMobile ? baseIntensity * 0.7 : baseIntensity;
-    
-    switch (activeMood) {
-      case 'calm':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(100, 149, 237, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(173, 216, 230, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(240, 248, 255, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(176, 224, 230, 0.3), rgba(100, 149, 237, 0.2))'
-        };
-      case 'energetic':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(255, 165, 0, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(255, 215, 0, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(255, 248, 220, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 215, 0, 0.2))'
-        };
-      case 'mysterious':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(138, 43, 226, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(75, 0, 130, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(230, 230, 250, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(75, 0, 130, 0.2))'
-        };
-      case 'passionate':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(220, 20, 60, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(255, 105, 180, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(255, 240, 245, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(220, 20, 60, 0.3), rgba(255, 105, 180, 0.2))'
-        };
-      case 'creative':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(147, 112, 219, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(72, 209, 204, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(245, 255, 250, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(147, 112, 219, 0.3), rgba(72, 209, 204, 0.2))'
-        };
-      case 'focused':
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(0, 128, 128, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(0, 191, 255, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(240, 255, 255, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(0, 128, 128, 0.3), rgba(0, 191, 255, 0.2))'
-        };
-      default:
-        return {
-          '--primary-glow': `0 0 ${80 * mobileReducedIntensity}px rgba(147, 112, 219, ${0.6 * mobileReducedIntensity})`,
-          '--secondary-glow': `0 0 ${120 * mobileReducedIntensity}px rgba(72, 209, 204, ${0.5 * mobileReducedIntensity})`,
-          '--ambient-color': 'rgba(245, 255, 250, 0.1)',
-          '--gradient': 'linear-gradient(135deg, rgba(147, 112, 219, 0.3), rgba(72, 209, 204, 0.2))'
-        };
-    }
+  // Configure mood colors
+  const moodColors = {
+    energetic: {
+      primary: 'rgba(255, 124, 67, VAR_OPACITY)',
+      secondary: 'rgba(255, 186, 71, VAR_OPACITY)',
+      accent: 'rgba(255, 149, 0, VAR_OPACITY)',
+    },
+    calm: {
+      primary: 'rgba(67, 182, 212, VAR_OPACITY)',
+      secondary: 'rgba(107, 196, 255, VAR_OPACITY)',
+      accent: 'rgba(142, 209, 252, VAR_OPACITY)',
+    },
+    creative: {
+      primary: 'rgba(174, 122, 250, VAR_OPACITY)',
+      secondary: 'rgba(238, 109, 220, VAR_OPACITY)',
+      accent: 'rgba(218, 143, 255, VAR_OPACITY)',
+    },
+    focused: {
+      primary: 'rgba(76, 110, 219, VAR_OPACITY)',
+      secondary: 'rgba(90, 97, 195, VAR_OPACITY)',
+      accent: 'rgba(43, 108, 176, VAR_OPACITY)',
+    },
+  };
+  
+  const colors = moodColors[mood];
+  
+  // Replace variable opacity in colors
+  const colorWithOpacity = (color: string) => {
+    return color.replace('VAR_OPACITY', opacityValue.toString());
   };
 
   return (
-    <div 
-      className={`fixed inset-0 z-0 pointer-events-none ${className || ''}`}
-      style={getMoodStyles() as React.CSSProperties}
-    >
-      <div 
-        className="absolute inset-0" 
-        style={{ 
-          background: 'var(--gradient)',
-          opacity: intensity / 200,
-          transition: 'all 2s ease-out'
-        }} 
-      />
-      <div 
-        className="absolute top-0 left-0 w-1/3 h-1/2 rounded-full opacity-30 blur-3xl"
-        style={{ 
-          boxShadow: 'var(--primary-glow)', 
-          transform: 'translate(-15%, -15%)',
-          transition: 'all 3s ease-in-out'
-        }} 
-      />
-      <div 
-        className="absolute bottom-0 right-0 w-1/3 h-1/2 rounded-full opacity-30 blur-3xl"
-        style={{ 
-          boxShadow: 'var(--secondary-glow)', 
-          transform: 'translate(15%, 15%)',
-          transition: 'all 3s ease-in-out'
-        }} 
-      />
+    <div className={cn("fixed inset-0 pointer-events-none overflow-hidden", className)} data-mood={mood}>
+      <motion.div 
+        className="absolute -inset-1/4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2 }}
+      >
+        {/* Primary gradient orb */}
+        <motion.div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            background: colorWithOpacity(colors.primary),
+            width: `${sizeValue}vh`,
+            height: `${sizeValue}vh`,
+            filter: `blur(${blurValue}px)`,
+            top: '15%',
+            left: '15%',
+          }}
+          animate={{
+            x: [0, 20, -20, 0],
+            y: [0, -20, 20, 0],
+          }}
+          transition={{
+            duration: 30,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+        
+        {/* Secondary gradient orb */}
+        <motion.div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            background: colorWithOpacity(colors.secondary),
+            width: `${sizeValue * 0.8}vh`,
+            height: `${sizeValue * 0.8}vh`,
+            filter: `blur(${blurValue * 1.2}px)`,
+            bottom: '20%',
+            right: '25%',
+          }}
+          animate={{
+            x: [0, -30, 30, 0],
+            y: [0, 30, -30, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+        
+        {/* Accent gradient orb */}
+        <motion.div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            background: colorWithOpacity(colors.accent),
+            width: `${sizeValue * 0.6}vh`,
+            height: `${sizeValue * 0.6}vh`,
+            filter: `blur(${blurValue * 0.8}px)`,
+            top: '60%',
+            left: '60%',
+          }}
+          animate={{
+            x: [0, 40, -40, 0],
+            y: [0, -40, 40, 0],
+          }}
+          transition={{
+            duration: 35,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+      </motion.div>
     </div>
   );
 };

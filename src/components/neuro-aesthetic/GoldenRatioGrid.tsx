@@ -1,5 +1,7 @@
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface GoldenRatioGridProps {
   visible?: boolean;
@@ -7,124 +9,47 @@ interface GoldenRatioGridProps {
   className?: string;
 }
 
-const GoldenRatioGrid: React.FC<GoldenRatioGridProps> = ({ 
-  visible = false, 
-  opacity = 0.05,
-  className 
+const GoldenRatioGrid: React.FC<GoldenRatioGridProps> = ({
+  visible = false,
+  opacity = 0.1,
+  className
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  useEffect(() => {
-    if (!visible || !canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      drawGoldenRatioGrid(ctx, canvas.width, canvas.height);
-    };
-    
-    const drawGoldenRatioGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.strokeStyle = `rgba(255, 215, 0, ${opacity})`;
-      ctx.lineWidth = 0.5;
-      
-      // Golden ratio: 1.618033988749895
-      const phi = 1.618033988749895;
-      
-      // Draw vertical golden ratio lines
-      const startX = 0;
-      let x = startX;
-      while (x < width) {
-        x += width / phi;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-        
-        // Secondary lines
-        const secondaryX = x - width / (phi * phi);
-        if (secondaryX > 0) {
-          ctx.strokeStyle = `rgba(255, 215, 0, ${opacity / 2})`;
-          ctx.beginPath();
-          ctx.moveTo(secondaryX, 0);
-          ctx.lineTo(secondaryX, height);
-          ctx.stroke();
-          ctx.strokeStyle = `rgba(255, 215, 0, ${opacity})`;
-        }
-      }
-      
-      // Draw horizontal golden ratio lines
-      const startY = 0;
-      let y = startY;
-      while (y < height) {
-        y += height / phi;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-        
-        // Secondary lines
-        const secondaryY = y - height / (phi * phi);
-        if (secondaryY > 0) {
-          ctx.strokeStyle = `rgba(255, 215, 0, ${opacity / 2})`;
-          ctx.beginPath();
-          ctx.moveTo(0, secondaryY);
-          ctx.lineTo(width, secondaryY);
-          ctx.stroke();
-          ctx.strokeStyle = `rgba(255, 215, 0, ${opacity})`;
-        }
-      }
-      
-      // Draw spiral
-      const spiralSize = Math.min(width, height) * 0.4;
-      const centerX = width / 2;
-      const centerY = height / 2;
-      
-      ctx.strokeStyle = `rgba(255, 215, 0, ${opacity * 2})`;
-      ctx.beginPath();
-      
-      let radius = 0;
-      let angle = 0;
-      const angleIncrement = 0.1;
-      const growthFactor = 0.05;
-      
-      while (radius < spiralSize) {
-        radius = growthFactor * angle;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-        
-        if (angle === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-        
-        angle += angleIncrement;
-      }
-      
-      ctx.stroke();
-    };
-    
-    // Initial draw and setup resize handler
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [visible, opacity]);
-  
   if (!visible) return null;
-  
+
+  // Golden ratio is approximately 1.618
+  const phi = 1.618;
+
   return (
-    <canvas
-      ref={canvasRef}
-      className={`fixed inset-0 z-0 pointer-events-none ${className || ''}`}
-    />
+    <motion.div
+      className={cn("fixed inset-0 pointer-events-none z-10", className)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: visible ? opacity : 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Vertical lines based on Golden Ratio */}
+      <div className="absolute inset-0 flex">
+        {/* First golden section from left */}
+        <div className="h-full border-r border-primary/20" style={{ width: `${100 / (phi + 1)}%` }}></div>
+        
+        {/* Second golden section from left */}
+        <div className="h-full border-r border-primary/20" style={{ width: `${100 * phi / (phi + 1)}%` }}></div>
+        
+        {/* First golden section from right */}
+        <div className="h-full border-l border-primary/20" style={{ width: `${100 / (phi + 1)}%`, marginLeft: `auto` }}></div>
+      </div>
+      
+      {/* Horizontal lines based on Golden Ratio */}
+      <div className="absolute inset-0 flex flex-col">
+        {/* First golden section from top */}
+        <div className="w-full border-b border-primary/20" style={{ height: `${100 / (phi + 1)}%` }}></div>
+        
+        {/* Second golden section from top */}
+        <div className="w-full border-b border-primary/20" style={{ height: `${100 * phi / (phi + 1)}%` }}></div>
+        
+        {/* First golden section from bottom */}
+        <div className="w-full border-t border-primary/20" style={{ height: `${100 / (phi + 1)}%`, marginTop: `auto` }}></div>
+      </div>
+    </motion.div>
   );
 };
 

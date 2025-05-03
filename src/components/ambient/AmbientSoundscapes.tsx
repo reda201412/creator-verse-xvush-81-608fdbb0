@@ -1,4 +1,6 @@
 
+// Removing existing implementation and replacing with enhanced version that supports audio feedback
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX, Pause, Play, Zap, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';

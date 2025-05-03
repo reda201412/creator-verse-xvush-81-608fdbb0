@@ -1,296 +1,218 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --background: 240 20% 99%;
+    --foreground: 240 10% 3.9%;
+    
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 240 10% 3.9%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
+    --popover-foreground: 240 10% 3.9%;
+    
+    --primary: 325 90% 66%;
+    --primary-foreground: 355 100% 97%;
+    
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* XVush specific colors */
-    --xvush-pink: 255 145 164;
-    --xvush-pink-dark: 230 110 130;
-    --xvush-gold: 255 215 0;
+    --xvush-pink: 325 90% 66%;
+    --xvush-pink-dark: 325 90% 56%;
+    --xvush-purple: 275 80% 65%;
+    --xvush-indigo: 245 70% 60%;
+    --xvush-blue: 215 80% 60%;
+    --xvush-teal: 175 85% 45%;
+    --xvush-orange: 25 95% 60%;
   }
-
+  
   .dark {
-    --background: 20 14% 4%;
-    --foreground: 210 40% 98%;
-
-    --card: 24 9% 10%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 20 14% 4%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 325 90% 66%;
+    --primary-foreground: 355 100% 97%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
-}
 
-@layer base {
   * {
-    @apply border-border;
+    @apply border-border selection:bg-primary/10 selection:text-primary;
   }
-
+  
   body {
-    @apply bg-background text-foreground font-sans;
-  }
-  
-  /* Mobile viewport adjustments */
-  html, body {
-    @apply overflow-x-hidden w-full;
-    max-width: 100vw;
-  }
-  
-  /* XVush Design System additions */
-  .xvush-design-system {
-    --xvush-transition-duration: 0.5s;
-    --xvush-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  
-  .xvush-design-system .interactive-element {
-    @apply transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
-  }
-  
-  .xvush-design-system .focus-mode {
-    --filter-intensity: 0.7;
-    filter: saturate(var(--filter-intensity)) contrast(1.1);
-  }
-  
-  .focus-mode .non-essential-element {
-    opacity: 0.3;
-    transition: opacity 0.3s ease;
-  }
-  
-  .focus-mode .non-essential-element:hover {
-    opacity: 1;
-  }
-  
-  /* Golden ratio enhanced containers */
-  .golden-container {
-    aspect-ratio: 1.618033988749895;
-  }
-  
-  .golden-horizontal {
-    width: 100%;
-    height: calc(100% / 1.618033988749895);
-  }
-  
-  .golden-vertical {
-    height: 100%;
-    width: calc(100% / 1.618033988749895);
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
 
-  /* Mobile-first adjustments */
-  @media (max-width: 768px) {
-    h1 {
-      @apply text-2xl;
-    }
-    
-    h2 {
-      @apply text-xl;
-    }
-    
-    .container {
-      @apply px-4;
-    }
+  html {
+    @apply scroll-smooth;
   }
 }
 
-@layer components {
-  .glass-card {
-    @apply bg-white/80 dark:bg-black/50 backdrop-blur-md border border-white/20 dark:border-black/20 shadow-lg;
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
   
-  .gold-badge {
-    @apply bg-gradient-to-br from-xvush-gold to-amber-400 text-black/80 font-semibold;
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Neuro-Aesthetic Elements */
+  .glass-card {
+    @apply backdrop-blur-xl bg-white/50 dark:bg-black/40 border border-white/20 dark:border-white/10 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)];
   }
   
   .premium-badge {
-    @apply bg-gradient-to-r from-xvush-pink to-xvush-pink-dark text-white font-semibold;
+    @apply bg-gradient-to-r from-amber-500 to-amber-300 text-white;
   }
   
   .vip-badge {
-    @apply bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-semibold;
+    @apply bg-gradient-to-r from-purple-600 to-indigo-400 text-white;
   }
   
-  .progress-bar {
-    @apply h-1.5 bg-gray-200/30 dark:bg-gray-700/30 rounded-full overflow-hidden;
+  .text-gradient {
+    @apply bg-gradient-to-br from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent;
   }
   
-  .progress-fill {
-    @apply h-full rounded-full transition-all duration-700 ease-out;
+  .text-gradient-primary {
+    @apply bg-gradient-to-br from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent;
+  }
+  
+  /* Golden ratio grid helpers */
+  .golden-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.618fr;
+  }
+  
+  .golden-grid-reverse {
+    display: grid;
+    grid-template-columns: 1.618fr 1fr;
+  }
+  
+  /* Story Ring Animation */
+  .story-ring {
+    @apply relative inline-block rounded-full p-[2px] bg-gradient-to-tr from-primary via-xvush-purple to-xvush-blue;
   }
   
   .animate-pulse-subtle {
     animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
-  /* XVush Design System components */
-  .xvush-card {
-    @apply relative overflow-hidden rounded-xl backdrop-blur-sm 
-           bg-white/70 dark:bg-black/40 border border-white/30 dark:border-white/5
-           shadow-lg shadow-black/5 dark:shadow-white/5
-           transition-all duration-500 hover:shadow-xl hover:scale-[1.01];
-  }
-  
-  /* Mobile-optimized components */
-  .mobile-card {
-    @apply p-3 md:p-4 lg:p-6;
-  }
-  
-  .mobile-container {
-    @apply px-4 md:px-6 lg:px-8;
-  }
-  
-  .xvush-button {
-    @apply relative overflow-hidden bg-gradient-to-br from-primary to-primary/80
-           text-primary-foreground rounded-full px-4 sm:px-6 py-2
-           shadow-md shadow-primary/20
-           transition-all duration-300
-           hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.03]
-           active:scale-[0.98]
-           disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .xvush-input {
-    @apply bg-white/70 dark:bg-black/30 backdrop-blur-sm
-           border border-white/30 dark:border-white/10
-           rounded-lg px-4 py-2
-           focus:outline-none focus:ring-2 focus:ring-primary/30
-           transition-all duration-300;
-  }
-  
-  .neuomorphic-element {
-    @apply bg-white dark:bg-zinc-900
-           shadow-[5px_5px_10px_#d9d9d9,-5px_-5px_10px_#ffffff]
-           dark:shadow-[5px_5px_10px_#131313,-5px_-5px_10px_#272727]
-           rounded-xl;
-  }
-}
-
-@keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-.story-ring {
-  background: conic-gradient(
-    from 0deg, 
-    #FF91A4 0%, 
-    #FFA07A 25%, 
-    #FFD700 50%, 
-    #FFA07A 75%, 
-    #FF91A4 100%
-  );
-  padding: 3px;
-  border-radius: 50%;
-}
-
-/* Addictive loop micro-interactions */
-@keyframes subtle-float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes subtle-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 145, 164, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(255, 145, 164, 0.6);
-  }
-}
-
-.animate-subtle-float {
-  animation: subtle-float 3s ease-in-out infinite;
-}
-
-.animate-subtle-glow {
-  animation: subtle-glow 2s ease-in-out infinite;
-}
-
-/* Mobile specific animations with reduced motion */
-@media (prefers-reduced-motion: no-preference) {
-  @media (max-width: 768px) {
-    .animate-subtle-float {
-      animation-duration: 4s;
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
     }
-    
-    .animate-subtle-glow {
-      animation-duration: 3s;
+    50% {
+      opacity: 0.8;
     }
+  }
+  
+  /* Progress bar styling */
+  .progress-bar {
+    @apply w-full bg-muted/50 rounded-full overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full;
+    transition: width 0.5s ease;
+  }
+  
+  /* Focus mode */
+  .focus-mode {
+    @apply bg-background;
+  }
+  
+  .focus-mode .non-essential {
+    @apply opacity-30 transition-opacity duration-300;
+  }
+  
+  .focus-mode .essential {
+    @apply opacity-100 transition-opacity duration-300;
+  }
+  
+  /* Creator Signature effects */
+  .creator-signature {
+    @apply opacity-0 transition-opacity duration-300;
+  }
+  
+  .xvush-design-system .creator-signature {
+    @apply opacity-100;
+  }
+  
+  /* Mood lighting system */
+  .xvush-design-system [data-mood="energetic"] {
+    --mood-primary: hsl(15, 95%, 65%);
+    --mood-secondary: hsl(42, 95%, 65%);
+    --mood-accent: hsl(28, 95%, 65%);
+  }
+  
+  .xvush-design-system [data-mood="calm"] {
+    --mood-primary: hsl(195, 70%, 60%);
+    --mood-secondary: hsl(215, 70%, 65%);
+    --mood-accent: hsl(185, 70%, 60%);
+  }
+  
+  .xvush-design-system [data-mood="creative"] {
+    --mood-primary: hsl(265, 80%, 65%);
+    --mood-secondary: hsl(325, 80%, 65%);
+    --mood-accent: hsl(285, 80%, 65%);
+  }
+  
+  .xvush-design-system [data-mood="focused"] {
+    --mood-primary: hsl(220, 70%, 55%);
+    --mood-secondary: hsl(240, 70%, 60%);
+    --mood-accent: hsl(200, 70%, 55%);
+  }
+  
+  /* Mobile optimization */
+  .xvush-mobile .complex-animation {
+    @apply animate-none;
+  }
+  
+  .xvush-mobile .depth-effect {
+    @apply shadow-none;
   }
 }

@@ -1,102 +1,62 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-interface NeuroAestheticConfig {
-  goldenRatioVisible?: boolean;
-  adaptiveMood?: 'calm' | 'energetic' | 'mysterious' | 'passionate' | 'creative' | 'focused';
+type NeuroAestheticConfig = {
+  goldenRatioVisible: boolean;
+  adaptiveMood: 'energetic' | 'calm' | 'creative' | 'focused';
+  autoAdaptMood: boolean;
+  moodIntensity: number; // 0-100
+  microRewardsEnabled: boolean;
+  microRewardsIntensity: number; // 0-100
+  fluidityIntensity: number; // 0-100
+  fluiditySpeed: number; // 0-100
+  focusModeEnabled: boolean;
+  ambientSoundsEnabled: boolean;
+  ambientVolume: number; // 0-100
+};
+
+interface UseNeuroAestheticOptions {
   moodIntensity?: number;
-  autoAdaptMood?: boolean;
-  microRewardsEnabled?: boolean;
   microRewardsIntensity?: number;
-  focusModeEnabled?: boolean;
-  ambientSoundsEnabled?: boolean;
-  ambientVolume?: number;
   fluidityIntensity?: number;
   fluiditySpeed?: number;
-  activeTransitions?: 'fade' | 'slide' | 'zoom' | 'flip' | 'parallax';
-  paralaxDepth?: number;
-  creatorSignatureStyle?: 'minimal' | 'artistic' | 'elegant' | 'bold' | 'playful';
-  creatorSignatureSize?: 'sm' | 'md' | 'lg';
 }
 
-export function useNeuroAesthetic(initialConfig?: Partial<NeuroAestheticConfig>) {
-  // Default configuration for neuro-aesthetic features
-  const defaultConfig: NeuroAestheticConfig = {
+export const useNeuroAesthetic = (options?: UseNeuroAestheticOptions) => {
+  const [config, setConfig] = useState<NeuroAestheticConfig>({
     goldenRatioVisible: false,
     adaptiveMood: 'creative',
-    moodIntensity: 50,
     autoAdaptMood: true,
+    moodIntensity: options?.moodIntensity ?? 50,
     microRewardsEnabled: true,
-    microRewardsIntensity: 50,
+    microRewardsIntensity: options?.microRewardsIntensity ?? 50,
+    fluidityIntensity: options?.fluidityIntensity ?? 50,
+    fluiditySpeed: options?.fluiditySpeed ?? 50,
     focusModeEnabled: false,
     ambientSoundsEnabled: false,
     ambientVolume: 30,
-    fluidityIntensity: 60,
-    fluiditySpeed: 50,
-    activeTransitions: 'zoom',
-    paralaxDepth: 50,
-    creatorSignatureStyle: 'elegant',
-    creatorSignatureSize: 'md',
-  };
-
-  // Merge default and initial configs
-  const [config, setConfig] = useState<NeuroAestheticConfig>({
-    ...defaultConfig,
-    ...initialConfig
   });
   
-  // Detect user preferences
-  useEffect(() => {
-    const detectPreferences = () => {
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      
-      if (prefersReducedMotion) {
-        setConfig(prev => ({
-          ...prev,
-          microRewardsEnabled: false,
-          ambientSoundsEnabled: false,
-          fluiditySpeed: 20,
-          activeTransitions: 'fade',
-          fluidityIntensity: 20
-        }));
-      }
-      
-      const prefersLightMode = window.matchMedia('(prefers-color-scheme: light)').matches;
-      const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      if (prefersDarkMode) {
-        setConfig(prev => ({
-          ...prev,
-          adaptiveMood: 'mysterious',
-          moodIntensity: 60
-        }));
-      }
-    };
-    
-    detectPreferences();
-  }, []);
+  const userInteractionCount = useRef(0);
+  const lastMoodChange = useRef(Date.now());
   
-  const updateConfig = (newConfig: Partial<NeuroAestheticConfig>) => {
-    setConfig(prev => ({
-      ...prev,
-      ...newConfig
-    }));
-  };
-  
-  const toggleGoldenRatio = () => {
-    setConfig(prev => ({
-      ...prev,
-      goldenRatioVisible: !prev.goldenRatioVisible
-    }));
-  };
-  
+  // Toggle focus mode
   const toggleFocusMode = () => {
     setConfig(prev => ({
       ...prev,
       focusModeEnabled: !prev.focusModeEnabled
     }));
+    
+    // When enabling focus mode, also enable ambient sounds if they aren't already
+    if (!config.focusModeEnabled && !config.ambientSoundsEnabled) {
+      setConfig(prev => ({
+        ...prev,
+        ambientSoundsEnabled: true
+      }));
+    }
   };
   
+  // Toggle ambient sounds
   const toggleAmbientSounds = () => {
     setConfig(prev => ({
       ...prev,
@@ -104,56 +64,75 @@ export function useNeuroAesthetic(initialConfig?: Partial<NeuroAestheticConfig>)
     }));
   };
   
-  const setMood = (mood: NeuroAestheticConfig['adaptiveMood']) => {
+  // Update any config option
+  const updateConfig = (updates: Partial<NeuroAestheticConfig>) => {
     setConfig(prev => ({
       ...prev,
-      adaptiveMood: mood
+      ...updates
     }));
   };
   
-  // Get transition props for a specific element
-  const getTransitionProps = (customConfig?: Partial<NeuroAestheticConfig>) => {
-    const mergedConfig = { ...config, ...customConfig };
+  // Trigger a microreward
+  const triggerMicroReward = (type: 'like' | 'view' | 'comment' | 'subscribe') => {
+    // We'll implement this in a separate component
+    console.log(`Micro reward triggered: ${type}`);
+    userInteractionCount.current += 1;
     
-    return {
-      type: mergedConfig.activeTransitions,
-      duration: 0.5,
-      isActive: true
-    };
+    // Maybe change mood after certain number of interactions
+    if (config.autoAdaptMood && userInteractionCount.current % 10 === 0) {
+      const now = Date.now();
+      // Only change mood if at least 2 minutes have passed since last change
+      if (now - lastMoodChange.current > 120000) {
+        const moods: Array<NeuroAestheticConfig['adaptiveMood']> = ['energetic', 'calm', 'creative', 'focused'];
+        const currentIndex = moods.indexOf(config.adaptiveMood);
+        const nextIndex = (currentIndex + 1) % moods.length;
+        
+        setConfig(prev => ({
+          ...prev,
+          adaptiveMood: moods[nextIndex]
+        }));
+        
+        lastMoodChange.current = now;
+      }
+    }
   };
   
-  // Get parallax layer props
-  const getParallaxProps = (customConfig?: Partial<NeuroAestheticConfig>) => {
-    const mergedConfig = { ...config, ...customConfig };
+  // Apply time-of-day adaptive mood if enabled
+  useEffect(() => {
+    if (!config.autoAdaptMood) return;
     
-    return {
-      sensitivity: mergedConfig.paralaxDepth ? mergedConfig.paralaxDepth / 100 : 0.5,
-      mouseParallax: true,
-      scrollParallax: true
+    const setMoodByTimeOfDay = () => {
+      const hour = new Date().getHours();
+      
+      if (hour >= 5 && hour < 10) {
+        // Morning: Energetic
+        setConfig(prev => ({ ...prev, adaptiveMood: 'energetic' }));
+      } else if (hour >= 10 && hour < 15) {
+        // Midday: Focused
+        setConfig(prev => ({ ...prev, adaptiveMood: 'focused' }));
+      } else if (hour >= 15 && hour < 20) {
+        // Evening: Creative
+        setConfig(prev => ({ ...prev, adaptiveMood: 'creative' }));
+      } else {
+        // Night: Calm
+        setConfig(prev => ({ ...prev, adaptiveMood: 'calm' }));
+      }
     };
-  };
-  
-  // Get fluidity container props
-  const getFluidityProps = (customConfig?: Partial<NeuroAestheticConfig>) => {
-    const mergedConfig = { ...config, ...customConfig };
     
-    return {
-      intensity: mergedConfig.fluidityIntensity || 60,
-      speed: mergedConfig.fluiditySpeed || 50,
-      interactive: true,
-      animated: true
-    };
-  };
+    // Set initial mood based on time
+    setMoodByTimeOfDay();
+    
+    // Update mood every hour
+    const intervalId = setInterval(setMoodByTimeOfDay, 3600000);
+    
+    return () => clearInterval(intervalId);
+  }, [config.autoAdaptMood]);
   
   return {
     config,
     updateConfig,
-    toggleGoldenRatio,
+    triggerMicroReward,
     toggleFocusMode,
     toggleAmbientSounds,
-    setMood,
-    getTransitionProps,
-    getParallaxProps,
-    getFluidityProps
   };
-}
+};

@@ -1,48 +1,67 @@
 
 import React from 'react';
-import RevenueChart from '../RevenueChart';
-import UpcomingEvent from '../UpcomingEvent';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { CreditCard, Crown } from 'lucide-react';
+import RevenueChart from '@/components/RevenueChart';
+import UpcomingEvent from '@/components/UpcomingEvent';
 
 interface RevenueSectionProps {
-  isCreator: boolean;
+  isCreator?: boolean;
   revenue?: number;
   growthRate?: number;
-  upcomingEvent: {
+  upcomingEvent?: {
     title: string;
     time: string;
-    type: 'live';
+    type: 'live' | 'post' | 'event';
     countdown: string;
   };
-  onSubscribe: () => void;
+  onSubscribe?: () => void;
+  className?: string;
 }
 
-const RevenueSection = ({ 
-  isCreator, 
-  revenue, 
-  growthRate,
+const RevenueSection: React.FC<RevenueSectionProps> = ({
+  isCreator = false,
+  revenue,
+  growthRate = 0,
   upcomingEvent,
-  onSubscribe 
-}: RevenueSectionProps) => {
+  onSubscribe,
+  className
+}) => {
   return (
-    <div className="space-y-3">
-      {isCreator && revenue && (
-        <div className="bg-black/5 dark:bg-white/5 rounded-lg p-3">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-sm">Revenus ce mois</span>
-            <div className="font-semibold">
-              ${revenue}
-            </div>
+    <div className={cn("space-y-4", className)}>
+      {/* Creator revenue display */}
+      {isCreator && revenue !== undefined && (
+        <div className="glass-card p-4 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <div className="text-xs text-muted-foreground">Revenu mensuel</div>
+            <CreditCard size={16} className="text-muted-foreground" />
           </div>
-          <RevenueChart 
-            growthRate={growthRate} 
-          />
+          
+          <div className="text-2xl font-bold">${revenue}</div>
+          
+          <RevenueChart growthRate={growthRate} className="mt-2" />
         </div>
       )}
       
-      <UpcomingEvent 
-        {...upcomingEvent}
-        onSubscribe={onSubscribe}
-      />
+      {/* Subscriber button (for fans) */}
+      {!isCreator && (
+        <Button className="w-full bg-xvush-pink hover:bg-xvush-pink-dark">
+          <Crown className="mr-2 h-4 w-4" />
+          S'abonner
+        </Button>
+      )}
+      
+      {/* Upcoming event */}
+      {upcomingEvent && (
+        <UpcomingEvent 
+          title={upcomingEvent.title}
+          time={upcomingEvent.time}
+          type={upcomingEvent.type}
+          countdown={upcomingEvent.countdown}
+          onSubscribe={onSubscribe}
+        />
+      )}
     </div>
   );
 };

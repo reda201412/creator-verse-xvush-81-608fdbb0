@@ -1,27 +1,45 @@
 
 import React from 'react';
-import ProfileAvatar from '../ProfileAvatar';
-import CreatorPulse from '../CreatorPulse';
+import { cn } from '@/lib/utils';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import CreatorPulse from '@/components/CreatorPulse';
 
 interface ProfileSectionProps {
   avatar: string;
   isOnline?: boolean;
+  pulseStatus?: 'online' | 'creating' | 'scheduled' | 'offline';
+  scheduledTime?: string;
+  className?: string;
 }
 
-const ProfileSection = ({ avatar, isOnline = false }: ProfileSectionProps) => {
+const ProfileSection: React.FC<ProfileSectionProps> = ({
+  avatar,
+  isOnline = false,
+  pulseStatus = 'offline',
+  scheduledTime,
+  className
+}) => {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <ProfileAvatar 
-        src={avatar} 
-        size="xl" 
-        hasStory={true} 
-        status={isOnline ? 'online' : undefined}
-      />
-      
-      <CreatorPulse 
-        status={isOnline ? 'online' : 'creating'} 
-        className="mt-1"
-      />
+    <div className={cn("flex flex-col items-center gap-2", className)}>
+      <div className="relative">
+        <ProfileAvatar 
+          src={avatar} 
+          size="xl" 
+          hasStory={true} 
+          status={isOnline ? 'online' : 'offline'}
+        />
+        
+        {/* Animated background glow */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-xvush-purple/30 rounded-full blur-md -z-10"></div>
+        
+        {/* Pulse indicator under avatar */}
+        <div className="mt-2">
+          <CreatorPulse 
+            status={pulseStatus} 
+            scheduledTime={scheduledTime} 
+          />
+        </div>
+      </div>
     </div>
   );
 };
