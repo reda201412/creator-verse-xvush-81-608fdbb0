@@ -11,6 +11,7 @@ import CreatorDNA from '@/components/creator/CreatorDNA';
 import CreatorJourney from '@/components/creator/CreatorJourney';
 import FeedbackLoop from '@/components/creator/FeedbackLoop';
 import ValueVault from '@/components/creator/ValueVault';
+import { ContentType, ContentItem, FeedbackType, FeedbackMessage } from '@/types/content';
 
 // Mock data
 const creatorData = {
@@ -204,14 +205,14 @@ const creatorJourney = [
 ];
 
 // Mock feedback messages
-const feedbackMessages = [
+const feedbackMessages: FeedbackMessage[] = [
   {
     id: "f1",
     username: "marie_p",
     avatar: "https://i.pravatar.cc/150?img=1",
     message: "Tes photos me donnent toujours envie de redécorer mon appartement !",
     timestamp: "Il y a 2 heures",
-    type: "comment"
+    type: "comment" as FeedbackType
   },
   {
     id: "f2",
@@ -219,7 +220,7 @@ const feedbackMessages = [
     avatar: "https://i.pravatar.cc/150?img=2",
     message: "Est-ce que tu pourrais faire un tuto sur la composition des photos lifestyle ?",
     timestamp: "Il y a 5 heures",
-    type: "request"
+    type: "request" as FeedbackType
   },
   {
     id: "f3",
@@ -227,7 +228,7 @@ const feedbackMessages = [
     avatar: "https://i.pravatar.cc/150?img=3",
     message: "Ta dernière série m'a tellement inspirée !",
     timestamp: "Il y a 1 jour",
-    type: "appreciation"
+    type: "appreciation" as FeedbackType
   },
   {
     id: "f4",
@@ -235,7 +236,7 @@ const feedbackMessages = [
     avatar: "https://i.pravatar.cc/150?img=4",
     message: "Quel appareil photo utilises-tu pour les vidéos ?",
     timestamp: "Il y a 2 jours",
-    type: "comment"
+    type: "comment" as FeedbackType
   },
   {
     id: "f5",
@@ -243,16 +244,16 @@ const feedbackMessages = [
     avatar: "https://i.pravatar.cc/150?img=5",
     message: "Pourrais-tu faire un jour dans ma vie en hiver ?",
     timestamp: "Il y a 3 jours",
-    type: "request"
+    type: "request" as FeedbackType
   }
 ];
 
 // Mock premium content data
-const premiumContent = [
+const premiumContent: ContentItem[] = [
   {
     id: "p1",
     title: "Portrait Photography Masterclass",
-    type: "premium",
+    type: "premium" as ContentType,
     category: "cours",
     views: 2800,
     thumbnail: "https://images.unsplash.com/photo-1554080353-a576cf803bda?w=800&auto=format&fit=crop"
@@ -260,7 +261,7 @@ const premiumContent = [
   {
     id: "p2",
     title: "Lightroom Presets Collection",
-    type: "premium",
+    type: "premium" as ContentType,
     category: "ressources",
     views: 4100,
     thumbnail: "https://images.unsplash.com/photo-1542395765-761f1b5f9a55?w=800&auto=format&fit=crop"
@@ -268,7 +269,7 @@ const premiumContent = [
   {
     id: "p3",
     title: "Behind the Scenes: Magazine Shoot",
-    type: "vip",
+    type: "vip" as ContentType,
     category: "backstage",
     views: 1850,
     thumbnail: "https://images.unsplash.com/photo-1554668048-a2c814e56977?w=800&auto=format&fit=crop"
@@ -276,7 +277,7 @@ const premiumContent = [
   {
     id: "p4",
     title: "City Photography Guide: Paris",
-    type: "premium",
+    type: "premium" as ContentType,
     category: "guides",
     views: 3200,
     thumbnail: "https://images.unsplash.com/photo-1568684333877-4d89c7aedf0a?w=800&auto=format&fit=crop"
@@ -284,7 +285,7 @@ const premiumContent = [
   {
     id: "p5",
     title: "1:1 Portfolio Review Session",
-    type: "vip",
+    type: "vip" as ContentType,
     category: "coaching",
     views: 980,
     thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop"
@@ -292,7 +293,7 @@ const premiumContent = [
   {
     id: "p6",
     title: "Color Theory for Visual Artists",
-    type: "premium",
+    type: "premium" as ContentType,
     category: "cours",
     views: 2450,
     thumbnail: "https://images.unsplash.com/photo-1655635949211-ff246747a421?w=800&auto=format&fit=crop"
@@ -462,3 +463,4 @@ const CreatorProfile: React.FC = () => {
 };
 
 export default CreatorProfile;
+
