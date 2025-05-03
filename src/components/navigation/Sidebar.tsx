@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 
 interface NavItemProps {
   to: string;
@@ -29,8 +30,15 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isActive, isExpanded, onClick }: NavItemProps) => {
+  const { triggerMicroReward } = useNeuroAesthetic();
+  
+  const handleClick = () => {
+    triggerMicroReward("tab");
+    if (onClick) onClick();
+  };
+  
   return (
-    <Link to={to} onClick={onClick}>
+    <Link to={to} onClick={handleClick}>
       <div
         className={cn(
           "relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200",
@@ -69,6 +77,7 @@ const NavItem = ({ to, icon, label, isActive, isExpanded, onClick }: NavItemProp
 export const DesktopSidebar = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const location = useLocation();
+  const { triggerMicroReward } = useNeuroAesthetic();
 
   const navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil" },
@@ -81,6 +90,7 @@ export const DesktopSidebar = () => {
 
   const toggleSidebar = () => {
     setIsExpanded(!isExpanded);
+    triggerMicroReward("action");
   };
 
   // Apply a transition to the width of the sidebar
@@ -110,7 +120,7 @@ export const DesktopSidebar = () => {
               exit={{ opacity: 0 }}
               className="text-lg font-semibold text-primary"
             >
-              CreatorVerse
+              CreaVerse
             </motion.span>
           </Link>
         ) : (

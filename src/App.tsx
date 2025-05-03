@@ -34,7 +34,7 @@ const AppContent = () => {
     <div className="flex min-h-screen w-full">
       {!isMobile && <DesktopSidebar />}
       <main className="flex-1 w-full overflow-x-hidden">
-        {isMobile && <Header />}
+        <Header />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/creator" element={<CreatorProfile />} />

@@ -14,9 +14,11 @@ import {
   Users,
   Settings,
   Bell,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 
 interface NavItemProps {
   to: string;
@@ -27,8 +29,15 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
+  const { triggerMicroReward } = useNeuroAesthetic();
+  
+  const handleClick = () => {
+    triggerMicroReward("tab");
+    if (onClick) onClick();
+  };
+  
   return (
-    <Link to={to} onClick={onClick}>
+    <Link to={to} onClick={handleClick}>
       <div
         className={cn(
           "relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200",
@@ -55,6 +64,7 @@ const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
 export const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { triggerMicroReward } = useNeuroAesthetic();
 
   const navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil" },
@@ -65,8 +75,14 @@ export const HamburgerMenu = () => {
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
   ];
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const closeMenu = () => setIsOpen(false);
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+    triggerMicroReward("action");
+  };
+  
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
 
   return (
     <>
@@ -102,14 +118,16 @@ export const HamburgerMenu = () => {
             >
               <div className="flex flex-col overflow-y-auto flex-1 p-4">
                 <div className="flex items-center justify-between py-4 px-2">
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-                      alt="CreatorVerse Logo" 
-                      className="w-8 h-8" 
-                    />
-                    <span className="text-lg font-semibold text-primary">CreatorVerse</span>
-                  </div>
+                  <Link to="/" onClick={closeMenu}>
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
+                        alt="CreatorVerse Logo" 
+                        className="w-8 h-8" 
+                      />
+                      <span className="text-lg font-semibold text-primary">CreaVerse</span>
+                    </div>
+                  </Link>
                   <Button variant="ghost" size="icon" onClick={closeMenu}>
                     <X size={18} />
                   </Button>
