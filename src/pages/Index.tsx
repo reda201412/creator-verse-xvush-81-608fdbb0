@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import ContentGrid from "@/components/ContentGrid";
@@ -11,6 +12,7 @@ import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLight
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewards from "@/components/effects/MicroRewards";
 import { Eye, Heart, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Sample content data similar to the CreatorProfile page
 const trendingContent = [
@@ -148,37 +150,27 @@ const Index: React.FC = () => {
       />
 
       {/* Main content */}
-      <div className="container px-4 mx-auto py-8 space-y-16">
-        {/* Hero section */}
-        <section className="relative">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center space-y-6 max-w-3xl mx-auto"
-          >
-            <h1 className="text-4xl md:text-6xl font-bold font-display">
-              <span className="text-gradient-primary">CreatorVerse</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground">
-              Découvrez une nouvelle expérience créateur enrichie par la neuro-esthétique et l'immersion visuelle avancée
-            </p>
-            
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark">
+      <div className="container px-4 mx-auto py-8 space-y-8">
+        {/* Hero section - Simplified without the encircled elements */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-4 max-w-3xl mx-auto mb-4"
+        >
+          <h1 className="text-4xl md:text-6xl font-bold font-display">
+            <span className="text-gradient-primary">CreatorVerse</span>
+          </h1>
+          
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark" asChild>
+              <Link to="/creators">
                 Explorer les créateurs
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button size="lg" variant="outline" onClick={toggleGoldenRatio}>
-                {showGoldenRatio ? 'Masquer' : 'Afficher'} la grille d'or
-              </Button>
-            </div>
-          </motion.div>
-          
-          {/* Decorative elements */}
-          <div className="absolute top-0 -left-10 w-72 h-72 bg-xvush-purple/20 rounded-full filter blur-3xl opacity-50 -z-10"></div>
-          <div className="absolute bottom-0 -right-10 w-72 h-72 bg-xvush-pink/20 rounded-full filter blur-3xl opacity-50 -z-10"></div>
-        </section>
+              </Link>
+            </Button>
+          </div>
+        </motion.div>
         
         {/* Trending content section */}
         <section>
@@ -205,8 +197,10 @@ const Index: React.FC = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Recommended Creators</h2>
-            <Button variant="link" className="gap-2">
-              Voir tout <ArrowRight className="h-4 w-4" />
+            <Button variant="link" className="gap-2" asChild>
+              <Link to="/creators">
+                Voir tout <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
           
@@ -218,7 +212,7 @@ const Index: React.FC = () => {
                 whileHover={{ y: -5 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="flex items-center gap-3 mb-3">
+                <Link to={`/creator?id=${creator.id}`} className="flex items-center gap-3 mb-3">
                   <img 
                     src={creator.imageUrl} 
                     alt={creator.name}
@@ -228,7 +222,7 @@ const Index: React.FC = () => {
                     <h3 className="font-medium">{creator.name}</h3>
                     <p className="text-sm text-muted-foreground">@{creator.username}</p>
                   </div>
-                </div>
+                </Link>
                 
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-1">

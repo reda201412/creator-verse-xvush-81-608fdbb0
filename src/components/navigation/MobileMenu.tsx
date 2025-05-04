@@ -68,6 +68,7 @@ export const HamburgerMenu = () => {
 
   const navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil" },
+    { to: "/creators", icon: <Users size={22} />, label: "Créateurs" },
     { to: "/creator", icon: <User size={22} />, label: "Profil créateur" },
     { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord" },
     { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier" },

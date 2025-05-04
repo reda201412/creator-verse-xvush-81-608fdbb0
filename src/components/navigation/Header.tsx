@@ -45,6 +45,19 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             </NavigationMenuItem>
             
             <NavigationMenuItem>
+              <Link to="/creators">
+                <NavigationMenuLink 
+                  className={cn(
+                    navigationMenuTriggerStyle(),
+                    location.pathname === "/creators" ? "bg-accent" : ""
+                  )}
+                >
+                  Créateurs
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
               <Link to="/creator">
                 <NavigationMenuLink 
                   className={cn(

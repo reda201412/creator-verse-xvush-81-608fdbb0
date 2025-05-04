@@ -11,6 +11,7 @@ import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
 import SubscribersManagement from "./pages/SubscribersManagement";
 import Messages from "./pages/Messages";
+import CreatorsFeed from "./pages/CreatorsFeed";
 import XvushDesignSystem from "./components/XvushDesignSystem";
 import { DesktopSidebar } from "./components/navigation/Sidebar";
 import { useIsMobile } from "./hooks/use-mobile";
@@ -38,6 +39,7 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/creator" element={<CreatorProfile />} />
+          <Route path="/creators" element={<CreatorsFeed />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/subscribers" element={<SubscribersManagement />} />

@@ -7,6 +7,9 @@ import HeaderInfo from './header/HeaderInfo';
 import CreatorMetrics from './header/CreatorMetrics';
 import TierProgressBar from './header/TierProgressBar';
 import RevenueSection from './header/RevenueSection';
+import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
+import { MessageSquare } from 'lucide-react';
 
 interface CreatorHeaderProps {
   name: string;
@@ -55,7 +58,24 @@ const CreatorHeader = ({
   return (
     <div className={cn("glass-card rounded-2xl p-6", className)}>
       <div className="flex flex-col md:flex-row md:items-start gap-6">
-        <ProfileSection avatar={avatar} isOnline={isOnline} />
+        <div className="flex flex-col items-center gap-3">
+          <ProfileSection avatar={avatar} isOnline={isOnline} />
+          
+          {/* Message button that links to the messages page */}
+          {!isCreator && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full flex items-center gap-2"
+              asChild
+            >
+              <Link to="/messages">
+                <MessageSquare size={16} />
+                Envoyer un message
+              </Link>
+            </Button>
+          )}
+        </div>
 
         <div className="flex-grow space-y-4">
           <HeaderInfo 
