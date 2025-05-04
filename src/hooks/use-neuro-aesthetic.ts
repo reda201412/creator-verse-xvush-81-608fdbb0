@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 
 interface NeuroAestheticConfig {
@@ -9,12 +10,19 @@ interface NeuroAestheticConfig {
   microRewardsEnabled: boolean;
   microRewardsIntensity: number;
   goldenRatioVisible: boolean;
+  autoAdaptMood?: boolean;
+  fluidityIntensity?: number;
+  fluiditySpeed?: number;
 }
+
+export type RewardType = 'like' | 'tab' | 'action' | 'opportunity' | 'click' | 'navigate' | 'analyze' | 'select' | 'wellbeing';
 
 interface UseNeuroAestheticProps {
   initialConfig?: Partial<NeuroAestheticConfig>;
   moodIntensity?: number;
   microRewardsIntensity?: number;
+  fluidityIntensity?: number;
+  fluiditySpeed?: number;
 }
 
 const defaultInitialConfig: NeuroAestheticConfig = {
@@ -26,13 +34,18 @@ const defaultInitialConfig: NeuroAestheticConfig = {
   microRewardsEnabled: true,
   microRewardsIntensity: 50,
   goldenRatioVisible: false,
+  autoAdaptMood: false,
+  fluidityIntensity: 50,
+  fluiditySpeed: 50,
 };
 
-export const useNeuroAesthetic = ({ initialConfig, moodIntensity, microRewardsIntensity }: UseNeuroAestheticProps = {}) => {
+export const useNeuroAesthetic = ({ initialConfig, moodIntensity, microRewardsIntensity, fluidityIntensity, fluiditySpeed }: UseNeuroAestheticProps = {}) => {
   const [config, setConfig] = useState<NeuroAestheticConfig>({
     ...defaultInitialConfig,
     moodIntensity: moodIntensity !== undefined ? moodIntensity : defaultInitialConfig.moodIntensity,
     microRewardsIntensity: microRewardsIntensity !== undefined ? microRewardsIntensity : defaultInitialConfig.microRewardsIntensity,
+    fluidityIntensity: fluidityIntensity !== undefined ? fluidityIntensity : defaultInitialConfig.fluidityIntensity,
+    fluiditySpeed: fluiditySpeed !== undefined ? fluiditySpeed : defaultInitialConfig.fluiditySpeed,
     ...initialConfig,
   });
 
@@ -43,7 +56,7 @@ export const useNeuroAesthetic = ({ initialConfig, moodIntensity, microRewardsIn
     }));
   }, []);
 
-  const triggerMicroReward = useCallback((rewardType: 'like' | 'tab' | 'action') => {
+  const triggerMicroReward = useCallback((rewardType: RewardType) => {
     if (!config.microRewardsEnabled) return;
 
     const event = new CustomEvent('xvush:micro-reward', {
@@ -55,9 +68,19 @@ export const useNeuroAesthetic = ({ initialConfig, moodIntensity, microRewardsIn
     document.dispatchEvent(event);
   }, [config.microRewardsEnabled, config.microRewardsIntensity]);
 
+  const toggleFocusMode = useCallback(() => {
+    updateConfig({ focusModeEnabled: !config.focusModeEnabled });
+  }, [config.focusModeEnabled, updateConfig]);
+
+  const toggleAmbientSounds = useCallback(() => {
+    updateConfig({ ambientSoundsEnabled: !config.ambientSoundsEnabled });
+  }, [config.ambientSoundsEnabled, updateConfig]);
+
   return {
     config,
     updateConfig,
     triggerMicroReward,
+    toggleFocusMode,
+    toggleAmbientSounds
   };
 };
