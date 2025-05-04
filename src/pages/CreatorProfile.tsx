@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import CreatorHeader from '@/components/CreatorHeader';
@@ -10,6 +11,7 @@ import CreatorDNA from '@/components/creator/CreatorDNA';
 import CreatorJourney from '@/components/creator/CreatorJourney';
 import FeedbackLoop from '@/components/creator/FeedbackLoop';
 import ValueVault from '@/components/creator/ValueVault';
+import MonetizedContentSection from '@/components/creator/MonetizedContentSection';
 import { ContentType, ContentItem, FeedbackType, FeedbackMessage } from '@/types/content';
 
 // Mock data
@@ -423,6 +425,12 @@ const CreatorProfile: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="space-y-8"
           >
+            {activeTab === 'premium' && (
+              <MonetizedContentSection 
+                isCreator={creatorData.isCreator} 
+              />
+            )}
+            
             <ContentGrid 
               contents={getFilteredContent()} 
               layout={getContentLayout()} 

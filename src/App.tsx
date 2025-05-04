@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DesktopSidebar } from "./components/navigation/Sidebar";
 import { useIsMobile } from "./hooks/use-mobile";
 import Header from "./components/navigation/Header";
+import MicroRewards from "./components/monetization/MicroRewards";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -19,6 +20,7 @@ const SubscribersManagement = lazy(() => import("./pages/SubscribersManagement")
 const Messages = lazy(() => import("./pages/Messages"));
 const CreatorsFeed = lazy(() => import("./pages/CreatorsFeed"));
 const XvushDesignSystem = lazy(() => import("./components/XvushDesignSystem"));
+const TokensPage = lazy(() => import("./pages/TokensPage"));
 
 // Create QueryClient with better caching settings to improve navigation fluidity
 const queryClient = new QueryClient({
@@ -57,6 +59,7 @@ const AppContent = () => {
             <Route path="/calendar" element={<CalendarView />} />
             <Route path="/subscribers" element={<SubscribersManagement />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/tokens" element={<TokensPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -71,6 +74,7 @@ const App = () => (
       <XvushDesignSystem>
         <Toaster />
         <Sonner position="top-right" closeButton={true} />
+        <MicroRewards enabled={true} intensity={75} />
         <BrowserRouter>
           <AppContent />
         </BrowserRouter>

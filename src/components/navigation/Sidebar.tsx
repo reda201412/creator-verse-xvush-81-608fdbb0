@@ -1,6 +1,6 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -10,101 +10,99 @@ import {
   MessageCircle,
   Users,
   Settings,
-  Bell,
-  LogOut
+  LogOut,
+  Coins,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 
-interface SidebarProps {
-  className?: string;
-}
-
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}
-
-const NavItem = ({ to, icon, label }: NavItemProps) => {
+export const DesktopSidebar = () => {
   const location = useLocation();
-  const isActive = location.pathname === to;
   const { triggerMicroReward } = useNeuroAesthetic();
 
-  return (
-    <Link to={to} onClick={() => triggerMicroReward("tab")}>
-      <motion.div
-        className={cn(
-          "relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200",
-          isActive
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
-        )}
-        layout
-        transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 20,
-        }}
-      >
-        <div className="flex items-center">
-          <span className="text-xl">{icon}</span>
-          <span className="ml-3 font-medium text-sm">{label}</span>
-        </div>
-        {isActive && (
-          <motion.div
-            className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary"
-            layoutId="activeSidebarIndicator"
-          />
-        )}
-      </motion.div>
-    </Link>
-  );
-};
+  const navItems = [
+    { to: "/", icon: <Home size={22} />, label: "Accueil" },
+    { to: "/creators", icon: <Users size={22} />, label: "Créateurs" },
+    { to: "/creator", icon: <User size={22} />, label: "Profil créateur" },
+    { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord" },
+    { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier" },
+    { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages" },
+    { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
+    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
+  ];
 
-export const DesktopSidebar: React.FC<SidebarProps> = ({ className }) => {
+  const userName = "Sarah K.";
+  const userRole = "Créatrice";
+
   return (
-    <div
-      className={cn(
-        "hidden border-r flex-col fixed h-screen z-20 bg-background w-[260px] p-3",
-        className
-      )}
-    >
-      <div className="flex flex-col flex-1 overflow-y-auto px-3 py-4">
-        <Link to="/">
-          <div className="flex items-center gap-2 pb-2 mb-4 border-b">
-            <img 
-              src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-              alt="CreatorVerse Logo" 
-              className="w-8 h-8" 
-            />
-            <span className="text-lg font-semibold">CreaVerse</span>
-          </div>
+    <div className="hidden md:flex flex-col w-64 bg-card min-h-screen p-4 border-r">
+      <Link to="/" className="flex items-center gap-2 mb-8">
+        <img 
+          src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
+          alt="CreatorVerse Logo" 
+          className="w-10 h-10" 
+        />
+        <div className="text-2xl font-bold text-xvush-pink">CreaVerse</div>
+      </Link>
+
+      <div className="flex-1 space-y-1">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => triggerMicroReward('navigate')}
+              className={cn(
+                "relative flex items-center group rounded-lg py-3 px-3 transition-all duration-200",
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+              )}
+            >
+              <div className="flex items-center">
+                <span className="text-xl">{item.icon}</span>
+                <span className="ml-3 font-medium text-sm">{item.label}</span>
+              </div>
+              {isActive && (
+                <motion.div
+                  className="absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-l-full bg-primary"
+                  layoutId="activeIndicator"
+                />
+              )}
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-border pt-4 mt-4">
+        <Link
+          to="/settings"
+          className="flex items-center py-3 px-3 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+        >
+          <Settings size={22} />
+          <span className="ml-3 font-medium text-sm">Paramètres</span>
         </Link>
-        
-        <div className="space-y-1">
-          <NavItem to="/" icon={<Home size={20} />} label="Accueil" />
-          <NavItem to="/creators" icon={<Users size={20} />} label="Créateurs" />
-          <NavItem to="/creator" icon={<User size={20} />} label="Profil créateur" />
-          <NavItem to="/dashboard" icon={<BarChart2 size={20} />} label="Tableau de bord" />
-          <NavItem to="/calendar" icon={<Calendar size={20} />} label="Calendrier" />
-          <NavItem to="/messages" icon={<MessageCircle size={20} />} label="Messages" />
-          <NavItem to="/subscribers" icon={<Users size={20} />} label="Abonnés" />
-        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-lg"
+        >
+          <LogOut size={22} />
+          <span className="ml-3 font-medium text-sm">Déconnexion</span>
+        </Button>
+      </div>
 
-        <div className="mt-auto pt-6 space-y-2">
-          <NavItem to="/settings" icon={<Settings size={20} />} label="Paramètres" />
-          <NavItem to="/notifications" icon={<Bell size={20} />} label="Notifications" />
-        </div>
-
-        <div className="mt-6 pt-6 border-t">
-          <div className="flex items-center p-3 rounded-md hover:bg-primary/5">
-            <ProfileAvatar src="https://avatars.githubusercontent.com/u/124599?v=4" size="sm" status="online" />
-            <div className="ml-3">
-              <p className="text-sm font-medium">Sarah K.</p>
-              <p className="text-xs text-muted-foreground">Creator</p>
-            </div>
-          </div>
+      <div className="flex items-center gap-3 mt-6 pt-4 border-t">
+        <ProfileAvatar
+          src="https://avatars.githubusercontent.com/u/124599?v=4"
+          size="sm"
+          status="online"
+        />
+        <div>
+          <div className="font-medium text-sm">{userName}</div>
+          <div className="text-xs text-muted-foreground">{userRole}</div>
         </div>
       </div>
     </div>

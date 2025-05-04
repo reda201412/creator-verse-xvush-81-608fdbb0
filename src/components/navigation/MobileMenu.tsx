@@ -14,7 +14,8 @@ import {
   Users,
   Settings,
   Bell,
-  LogOut
+  LogOut,
+  Coins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -74,6 +75,7 @@ export const HamburgerMenu = () => {
     { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier" },
     { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages" },
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
+    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
   ];
 
   const toggleMenu = () => {
