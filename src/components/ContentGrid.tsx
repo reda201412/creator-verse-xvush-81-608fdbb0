@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface Content {
   id: string;
@@ -44,6 +45,7 @@ const ContentGrid = ({
   collections = []
 }: ContentGridProps) => {
   const [expandedCollections, setExpandedCollections] = useState<Record<string, boolean>>({});
+  const { triggerMicroReward } = useNeuroAesthetic();
   
   // Déterminer les contenus tendances (si views > 10k ou growth > 15%)
   const trendingContents = contents.filter(content => 
@@ -60,6 +62,7 @@ const ContentGrid = ({
       ...prev,
       [name]: !prev[name]
     }));
+    triggerMicroReward('click');
   };
   
   // Layout: Vertical Flow (similaire à TikTok/Instagram Reels)
@@ -173,7 +176,7 @@ const ContentGrid = ({
             </div>
             
             {(!expandedCollections[collection.name] || expandedCollections[collection.name] === true) && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {collection.contents.map((content) => (
                   <ContentCard 
                     key={content.id}
@@ -261,7 +264,7 @@ const ContentGrid = ({
         {/* Recent content */}
         <div>
           <h2 className="text-xl font-semibold mb-3">Recent Content</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {remaining.map((content) => (
               <ContentCard 
                 key={content.id}
@@ -283,7 +286,7 @@ const ContentGrid = ({
   if (layout === 'masonry') {
     // Create an irregular grid for visual interest based on metrics
     return (
-      <div className={cn("grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 auto-rows-max", className)}>
+      <div className={cn("grid grid-cols-2 md:grid-cols-3 gap-4 auto-rows-max", className)}>
         {contents.map((content, index) => {
           // Determine size based on metrics and position
           let size = 'md';
@@ -324,9 +327,9 @@ const ContentGrid = ({
     );
   }
   
-  // Default grid layout
+  // Default grid layout with improved spacing
   return (
-    <div className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4", className)}>
+    <div className={cn("grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4", className)}>
       {contents.map((content) => (
         <ContentCard 
           key={content.id}

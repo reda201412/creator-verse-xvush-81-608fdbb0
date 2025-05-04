@@ -10,6 +10,7 @@ import RevenueSection from './header/RevenueSection';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { MessageSquare } from 'lucide-react';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface CreatorHeaderProps {
   name: string;
@@ -43,6 +44,8 @@ const CreatorHeader = ({
   isOnline = false,
   className,
 }: CreatorHeaderProps) => {
+  const { triggerMicroReward } = useNeuroAesthetic();
+  
   // Mock data for upcoming event
   const upcomingEvent = {
     title: "Session photo spéciale abonnés",
@@ -53,6 +56,10 @@ const CreatorHeader = ({
 
   const handleEventSubscribe = () => {
     console.log("Reminder set for upcoming event");
+  };
+  
+  const handleMessageClick = () => {
+    triggerMicroReward('navigate');
   };
 
   return (
@@ -68,6 +75,7 @@ const CreatorHeader = ({
               size="sm" 
               className="w-full flex items-center gap-2"
               asChild
+              onClick={handleMessageClick}
             >
               <Link to="/messages">
                 <MessageSquare size={16} />

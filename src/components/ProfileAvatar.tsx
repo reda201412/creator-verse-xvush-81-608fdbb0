@@ -1,23 +1,26 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface ProfileAvatarProps {
   src: string;
-  alt?: string; // Added alt property as optional
+  alt?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   hasStory?: boolean;
   status?: 'online' | 'offline' | 'busy';
   className?: string;
+  onClick?: () => void;
 }
 
 const ProfileAvatar = ({ 
   src, 
-  alt = "Profile Picture", // Added default value
+  alt = "Profile Picture",
   size = 'md', 
   hasStory = false, 
   status,
-  className 
+  className,
+  onClick
 }: ProfileAvatarProps) => {
   const sizeMap = {
     sm: 'w-12 h-12',
@@ -36,7 +39,10 @@ const ProfileAvatar = ({
     };
     
     return (
-      <span 
+      <motion.span 
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
         className={cn(
           'absolute bottom-1 right-1 rounded-full border-2 border-white dark:border-gray-900',
           statusColors[status],
@@ -46,30 +52,35 @@ const ProfileAvatar = ({
     );
   };
 
+  const imageComponent = (
+    <motion.img 
+      src={src} 
+      alt={alt}
+      whileHover={{ scale: 1.05 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        "rounded-full object-cover", 
+        hasStory ? "" : "border-2 border-white dark:border-gray-800",
+        sizeMap[size]
+      )}
+    />
+  );
+
   return (
-    <div className={cn("relative inline-block", className)}>
+    <div 
+      className={cn("relative inline-block cursor-pointer", className)}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {hasStory ? (
         <div className="story-ring animate-pulse-subtle">
           <div className="bg-background p-0.5 rounded-full">
-            <img 
-              src={src} 
-              alt={alt} // Use the alt property
-              className={cn(
-                "rounded-full object-cover", 
-                sizeMap[size]
-              )}
-            />
+            {imageComponent}
           </div>
         </div>
       ) : (
-        <img 
-          src={src} 
-          alt={alt} // Use the alt property
-          className={cn(
-            "rounded-full object-cover border-2 border-white dark:border-gray-800", 
-            sizeMap[size]
-          )}
-        />
+        imageComponent
       )}
       {renderStatus()}
     </div>
