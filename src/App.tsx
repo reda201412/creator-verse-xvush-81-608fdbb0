@@ -27,8 +27,7 @@ const queryClient = new QueryClient({
       staleTime: 60000, // 1 minute
       refetchOnWindowFocus: false, // Prevent unnecessary refetches on focus
       retry: 1, // Only retry once to avoid notification spam
-      // Add suspense support for smoother transitions
-      suspense: true,
+      // Remove the suspense property as it's causing a TypeScript error
     },
   },
 });
