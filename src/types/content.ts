@@ -1,4 +1,5 @@
 
+
 export type ContentType = 'standard' | 'premium' | 'vip' | 'teaser';
 
 export interface Content {
@@ -33,3 +34,29 @@ export interface ContentMonetization {
     viewLimit?: number;
   };
 }
+
+// Add new missing types
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  type: ContentType;
+  category?: string;
+  views?: number;
+  thumbnail?: string;
+  format?: string;
+  duration?: number;
+  isPremium?: boolean;
+}
+
+export type FeedbackType = 'comment' | 'request' | 'appreciation';
+
+export interface FeedbackMessage {
+  id: string;
+  username: string;
+  avatar?: string;
+  message: string;
+  timestamp: string;
+  type: FeedbackType;
+}
+

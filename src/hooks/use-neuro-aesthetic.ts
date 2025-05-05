@@ -15,7 +15,7 @@ interface NeuroAestheticConfig {
   fluiditySpeed?: number;
 }
 
-export type RewardType = 'like' | 'tab' | 'action' | 'opportunity' | 'click' | 'navigate' | 'analyze' | 'select' | 'wellbeing';
+export type RewardType = 'like' | 'tab' | 'action' | 'opportunity' | 'click' | 'navigate' | 'analyze' | 'select' | 'wellbeing' | 'interaction';
 
 interface UseNeuroAestheticProps {
   initialConfig?: Partial<NeuroAestheticConfig>;
