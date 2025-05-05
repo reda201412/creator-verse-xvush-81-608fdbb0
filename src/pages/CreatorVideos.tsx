@@ -36,7 +36,7 @@ const CreatorVideos: React.FC = () => {
         
         // Transform Supabase data to VideoMetadata format
         const transformedData: VideoMetadata[] = data.map(video => ({
-          id: video.id.toString(),
+          id: video.id?.toString() || '',
           title: video.title || 'Sans titre',
           description: video.description || '',
           type: video.type as VideoMetadata['type'],

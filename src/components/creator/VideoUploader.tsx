@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import { useVideoUpload } from './video-uploader/useVideoUpload';
+import useVideoUpload from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata: VideoMetadata) => void;
