@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -14,15 +14,21 @@ import {
   Coins,
   Shield,
   Video,
+  Upload,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const DesktopSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { user, profile, isCreator, signOut } = useAuth();
+  const { toast } = useToast();
 
   const navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil" },
@@ -34,11 +40,44 @@ export const DesktopSidebar = () => {
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
     { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
     { to: "/exclusive", icon: <Shield size={22} />, label: "Contenu Exclusif" },
-    { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos" },
   ];
 
-  const userName = "Sarah K.";
-  const userRole = "Créatrice";
+  // Ajout d'un élément spécifique pour les créateurs
+  if (isCreator) {
+    navItems.push({ 
+      to: "/videos", 
+      icon: <Video size={22} />, 
+      label: "Mes Vidéos" 
+    });
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès."
+      });
+      navigate('/');
+      triggerMicroReward('action');
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur s'est produite lors de la déconnexion.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Ajouter un bouton d'upload rapide pour les créateurs
+  const handleQuickUpload = () => {
+    navigate('/videos');
+    triggerMicroReward('navigate');
+  };
+
+  const displayName = profile?.display_name || profile?.username || "Utilisateur";
+  const userRole = isCreator ? "Créateur" : "Fan";
 
   return (
     <div className="hidden md:flex flex-col w-64 bg-card min-h-screen p-4 border-r">
@@ -50,6 +89,16 @@ export const DesktopSidebar = () => {
         />
         <div className="text-2xl font-bold text-xvush-pink">CreaVerse</div>
       </Link>
+
+      {isCreator && (
+        <Button 
+          onClick={handleQuickUpload}
+          className="w-full mb-4 bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
+        >
+          <Upload size={16} />
+          Créer du contenu
+        </Button>
+      )}
 
       <div className="flex-1 space-y-1">
         {navItems.map((item) => {
@@ -92,6 +141,7 @@ export const DesktopSidebar = () => {
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-lg"
+          onClick={handleLogout}
         >
           <LogOut size={22} />
           <span className="ml-3 font-medium text-sm">Déconnexion</span>
@@ -100,12 +150,12 @@ export const DesktopSidebar = () => {
 
       <div className="flex items-center gap-3 mt-6 pt-4 border-t">
         <ProfileAvatar
-          src="https://avatars.githubusercontent.com/u/124599?v=4"
+          src={profile?.avatar_url || "https://avatars.githubusercontent.com/u/124599?v=4"}
           size="sm"
           status="online"
         />
         <div>
-          <div className="font-medium text-sm">{userName}</div>
+          <div className="font-medium text-sm">{displayName}</div>
           <div className="text-xs text-muted-foreground">{userRole}</div>
         </div>
       </div>

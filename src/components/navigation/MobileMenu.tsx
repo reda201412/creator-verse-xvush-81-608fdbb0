@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -15,11 +15,15 @@ import {
   Settings,
   Bell,
   LogOut,
-  Coins
+  Coins,
+  Video,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface NavItemProps {
   to: string;
@@ -65,9 +69,12 @@ const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
 export const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { user, profile, isCreator, signOut } = useAuth();
+  const { toast } = useToast();
 
-  const navItems = [
+  let navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil" },
     { to: "/creators", icon: <Users size={22} />, label: "Créateurs" },
     { to: "/creator", icon: <User size={22} />, label: "Profil créateur" },
@@ -78,6 +85,10 @@ export const HamburgerMenu = () => {
     { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
   ];
 
+  if (isCreator) {
+    navItems.push({ to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos" });
+  }
+
   const toggleMenu = () => {
     setIsOpen(!isOpen);
     triggerMicroReward("action");
@@ -86,6 +97,35 @@ export const HamburgerMenu = () => {
   const closeMenu = () => {
     setIsOpen(false);
   };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès."
+      });
+      navigate('/');
+      closeMenu();
+      triggerMicroReward('action');
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur s'est produite lors de la déconnexion.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleQuickUpload = () => {
+    navigate('/videos');
+    closeMenu();
+    triggerMicroReward('navigate');
+  };
+
+  const displayName = profile?.display_name || profile?.username || "Utilisateur";
+  const userRole = isCreator ? "Créateur" : "Fan";
 
   return (
     <>
@@ -136,6 +176,16 @@ export const HamburgerMenu = () => {
                   </Button>
                 </div>
                 
+                {isCreator && (
+                  <Button 
+                    onClick={handleQuickUpload}
+                    className="mb-4 bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
+                  >
+                    <Upload size={16} />
+                    Créer du contenu
+                  </Button>
+                )}
+                
                 <div className="mt-4 space-y-1">
                   {navItems.map((item) => (
                     <NavItem
@@ -157,21 +207,23 @@ export const HamburgerMenu = () => {
                     isActive={location.pathname === "/settings"}
                     onClick={closeMenu}
                   />
-                  <NavItem
-                    to="/notifications" 
-                    icon={<Bell size={22} />}
-                    label="Notifications"
-                    isActive={location.pathname === "/notifications"}
-                    onClick={closeMenu}
-                  />
+                  <div
+                    className="relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200 text-muted-foreground hover:bg-primary/5 hover:text-foreground cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    <div className="flex items-center">
+                      <span className="text-xl"><LogOut size={22} /></span>
+                      <span className="ml-3 font-medium text-sm">Déconnexion</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-6 pt-6 border-t">
                   <div className="flex items-center p-3">
-                    <ProfileAvatar src="https://avatars.githubusercontent.com/u/124599?v=4" size="sm" status="online" />
+                    <ProfileAvatar src={profile?.avatar_url || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
                     <div className="ml-3">
-                      <p className="text-sm font-medium">Sarah K.</p>
-                      <p className="text-xs text-muted-foreground">Creator</p>
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-xs text-muted-foreground">{userRole}</p>
                     </div>
                   </div>
                 </div>
