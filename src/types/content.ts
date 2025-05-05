@@ -1,5 +1,6 @@
 
 
+
 export type ContentType = 'standard' | 'premium' | 'vip' | 'teaser';
 
 export interface Content {
@@ -35,12 +36,13 @@ export interface ContentMonetization {
   };
 }
 
-// Add new missing types
+// Restrict the ContentItem type to only allow certain content types
+export type RestrictedContentType = 'standard' | 'premium' | 'vip';
 
 export interface ContentItem {
   id: string;
   title: string;
-  type: ContentType; // This is correctly defined as ContentType
+  type: RestrictedContentType; // Changed from ContentType to RestrictedContentType
   category?: string;
   views?: number;
   thumbnail?: string;
