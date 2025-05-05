@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Lock, Unlock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { decryptMessage } from '@/utils/encryption';
+import { decryptMessage, EncryptedContent } from '@/utils/encryption';
 
 interface SecureMessageBubbleProps {
   content: string | EncryptedContent;

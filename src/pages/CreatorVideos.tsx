@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import VideoUploader, { VideoMetadata } from '@/components/creator/VideoUploader';
+import { ContentType } from '@/types/content';
 
 // Mock video data
 const initialVideos: VideoMetadata[] = [

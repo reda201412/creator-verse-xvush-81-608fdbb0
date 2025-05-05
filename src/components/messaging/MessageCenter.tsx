@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
@@ -105,7 +106,7 @@ const MessageCenter = ({
     }
   }, [activeThread?.messages]);
   
-  const handleSendMessage = (content: string, to: string) => {
+  const handleSendMessage = async (content: string, to: string) => {
     if (!activeThreadId || !content.trim()) return;
     
     let finalContent = content;

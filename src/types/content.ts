@@ -1,22 +1,35 @@
 
-export type ContentType = "premium" | "standard" | "vip";
+export type ContentType = 'standard' | 'premium' | 'vip' | 'teaser';
 
-export interface ContentItem {
+export interface Content {
   id: string;
   title: string;
+  description: string;
   type: ContentType;
-  category: string;
+  createdAt: string;
+  updatedAt: string;
+  creatorId: string;
+  isPremium: boolean;
+  isPublished: boolean;
+  isGated: boolean;
+  isFeatured: boolean;
   views: number;
-  thumbnail: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  earnings: number;
+  tags?: string[];
+  monetization?: ContentMonetization;
 }
 
-export type FeedbackType = "comment" | "request" | "appreciation";
-
-export interface FeedbackMessage {
-  id: string;
-  username: string;
-  avatar: string;
-  message: string;
-  timestamp: string;
-  type: FeedbackType;
+export interface ContentMonetization {
+  type: 'subscription' | 'one-time' | 'token';
+  price?: number;
+  currency?: string;
+  tokenPrice?: number;
+  accessControl?: {
+    tier?: string;
+    expiresAfter?: string;
+    viewLimit?: number;
+  };
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Video, Film, Play, X } from 'lucide-react';
@@ -210,7 +209,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       };
       
       onUploadComplete(metadata);
-      triggerMicroReward('success');
+      triggerMicroReward('interaction');
       
       toast({
         title: "Vidéo téléchargée avec succès",
