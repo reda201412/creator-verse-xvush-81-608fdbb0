@@ -1,19 +1,20 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import ContentGrid from "@/components/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
+import { useUserBehavior } from "@/hooks/use-user-behavior";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/components/ui/sonner";
 import FocusMode from "@/components/ambient/FocusMode";
 import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
-import MicroRewards from "@/components/effects/MicroRewards";
-import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload } from "lucide-react";
+import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
+import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 
 // Sample content data similar to the CreatorProfile page
 const trendingContent = [
@@ -122,16 +123,30 @@ const Index = () => {
     moodIntensity: isMobile ? 30 : 50,
     microRewardsIntensity: isMobile ? 20 : 50,
   });
+  const { trackInteraction, trackContentPreference } = useUserBehavior();
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
+  const [showCognitivePanel, setShowCognitivePanel] = useState(false);
   const { user, profile, isCreator } = useAuth();
   const navigate = useNavigate();
+
+  // Track page view on component mount
+  useEffect(() => {
+    trackInteraction('view', { page: 'index' });
+  }, [trackInteraction]);
 
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);
     updateConfig({
       goldenRatioVisible: !showGoldenRatio
     });
+    trackInteraction('toggle', { feature: 'goldenRatio', state: !showGoldenRatio });
+  };
+
+  const handleContentClick = (contentId: string, contentType: string) => {
+    triggerMicroReward('click');
+    trackInteraction('click', { contentId, contentType });
+    trackContentPreference(contentType);
   };
 
   return (
@@ -139,12 +154,23 @@ const Index = () => {
       {/* Neuro-aesthetic elements */}
       <GoldenRatioGrid visible={config.goldenRatioVisible} opacity={0.05} />
       <AdaptiveMoodLighting currentMood={config.adaptiveMood} intensity={config.moodIntensity} />
-      <MicroRewards enable={config.microRewardsEnabled} rewardIntensity={config.microRewardsIntensity} />
+      <MicroRewardsEnhanced 
+        enable={config.microRewardsEnabled} 
+        rewardIntensity={config.microRewardsIntensity}
+        adaptToContext={true}
+        reducedMotion={config.animationSpeed === 'reduced'}
+      />
       <FocusMode 
         enabled={config.focusModeEnabled}
-        onToggle={(isEnabled) => updateConfig({ focusModeEnabled: isEnabled })}
+        onToggle={(isEnabled) => {
+          updateConfig({ focusModeEnabled: isEnabled });
+          trackInteraction('toggle', { feature: 'focusMode', state: isEnabled });
+        }}
         ambientSoundsEnabled={config.ambientSoundsEnabled}
-        onAmbientSoundsToggle={(isEnabled) => updateConfig({ ambientSoundsEnabled: isEnabled })}
+        onAmbientSoundsToggle={(isEnabled) => {
+          updateConfig({ ambientSoundsEnabled: isEnabled });
+          trackInteraction('toggle', { feature: 'ambientSounds', state: isEnabled });
+        }}
       />
       <AmbientSoundscapes
         enabled={config.ambientSoundsEnabled}
@@ -168,13 +194,22 @@ const Index = () => {
           <div className="flex flex-wrap gap-4 justify-center">
             {!user ? (
               <>
-                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2">
+                <Button 
+                  size="lg" 
+                  className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2"
+                  onClick={() => trackInteraction('navigate', { to: 'login' })}
+                >
                   <Link to="/auth" className="flex items-center">
                     <LogIn className="mr-2 h-4 w-4" />
                     Se connecter
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => trackInteraction('navigate', { to: 'signup' })}
+                >
                   <Link to="/auth?tab=signup" className="flex items-center">
                     <UserPlus className="mr-2 h-4 w-4" />
                     Créer un compte
@@ -183,17 +218,36 @@ const Index = () => {
               </>
             ) : isCreator ? (
               <>
-                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => navigate('/dashboard')}>
+                <Button 
+                  size="lg" 
+                  className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" 
+                  onClick={() => {
+                    navigate('/dashboard');
+                    trackInteraction('navigate', { to: 'dashboard' });
+                  }}
+                >
                   <Crown className="mr-2 h-4 w-4" />
                   Tableau de bord créateur
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2" onClick={() => navigate('/videos')}>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="gap-2" 
+                  onClick={() => {
+                    navigate('/videos');
+                    trackInteraction('navigate', { to: 'videos' });
+                  }}
+                >
                   <Upload className="mr-2 h-4 w-4" />
                   Publier du contenu
                 </Button>
               </>
             ) : (
-              <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark">
+              <Button 
+                size="lg" 
+                className="bg-xvush-pink hover:bg-xvush-pink-dark"
+                onClick={() => trackInteraction('navigate', { to: 'creators' })}
+              >
                 <Link to="/creators">
                   Explorer les créateurs
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -207,7 +261,11 @@ const Index = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Trending Content</h2>
-            <Button variant="link" className="gap-2">
+            <Button 
+              variant="link" 
+              className="gap-2"
+              onClick={() => trackInteraction('navigate', { to: 'allTrending' })}
+            >
               Voir tout <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -219,7 +277,8 @@ const Index = () => {
           >
             <ContentGrid 
               contents={trendingContent} 
-              layout="masonry" 
+              layout="masonry"
+              onItemClick={(id) => handleContentClick(id, 'trending')}
             />
           </motion.div>
         </section>
@@ -228,7 +287,11 @@ const Index = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Recommended Creators</h2>
-            <Button variant="link" className="gap-2">
+            <Button 
+              variant="link" 
+              className="gap-2"
+              onClick={() => trackInteraction('navigate', { to: 'creators' })}
+            >
               <Link to="/creators">
                 Voir tout <ArrowRight className="h-4 w-4" />
               </Link>
@@ -242,6 +305,7 @@ const Index = () => {
                 className="glass-card rounded-xl p-4 hover:shadow-lg transition-shadow"
                 whileHover={{ y: -5 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => handleContentClick(creator.id, 'creator')}
               >
                 <Link to={`/creator?id=${creator.id}`} className="flex items-center gap-3 mb-3">
                   <img 
@@ -269,9 +333,13 @@ const Index = () => {
                 
                 <Button 
                   className="w-full mt-3 bg-xvush-pink hover:bg-xvush-pink-dark"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     if (!user) {
                       navigate('/auth');
+                      trackInteraction('navigate', { to: 'auth', reason: 'follow' });
                       return;
                     }
                     
@@ -279,6 +347,7 @@ const Index = () => {
                       description: "Découvrez son contenu exclusif"
                     });
                     triggerMicroReward('like');
+                    trackInteraction('follow', { creatorId: creator.id });
                   }}
                 >
                   {user ? 'Suivre' : 'Se connecter pour suivre'}
@@ -290,7 +359,21 @@ const Index = () => {
         
         {/* Neuro-aesthetic controls */}
         <section className="bg-muted/30 backdrop-blur-sm p-6 rounded-xl">
-          <h2 className="text-xl font-bold mb-4">Neuro-Aesthetic Experience Controls</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Neuro-Aesthetic Experience Controls</h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setShowCognitivePanel(!showCognitivePanel);
+                trackInteraction('toggle', { feature: 'cognitivePanel', state: !showCognitivePanel });
+              }}
+              className="flex items-center gap-1.5"
+            >
+              <Settings className="h-4 w-4" />
+              {showCognitivePanel ? "Masquer avancé" : "Paramètres avancés"}
+            </Button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
@@ -302,7 +385,11 @@ const Index = () => {
                     variant={config.adaptiveMood === mood ? "default" : "outline"}
                     size="sm"
                     className="capitalize"
-                    onClick={() => updateConfig({ adaptiveMood: mood })}
+                    onClick={() => {
+                      updateConfig({ adaptiveMood: mood });
+                      trackInteraction('select', { feature: 'mood', value: mood });
+                      triggerMicroReward('select');
+                    }}
                   >
                     {mood}
                   </Button>
@@ -319,7 +406,10 @@ const Index = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) })}
+                  onClick={() => {
+                    updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) });
+                    trackInteraction('adjust', { feature: 'moodIntensity', direction: 'decrease' });
+                  }}
                 >
                   -
                 </Button>
@@ -327,7 +417,10 @@ const Index = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) })}
+                  onClick={() => {
+                    updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) });
+                    trackInteraction('adjust', { feature: 'moodIntensity', direction: 'increase' });
+                  }}
                 >
                   +
                 </Button>
@@ -342,7 +435,13 @@ const Index = () => {
               <Button
                 variant={config.microRewardsEnabled ? "default" : "outline"}
                 size="sm"
-                onClick={() => updateConfig({ microRewardsEnabled: !config.microRewardsEnabled })}
+                onClick={() => {
+                  updateConfig({ microRewardsEnabled: !config.microRewardsEnabled });
+                  trackInteraction('toggle', { feature: 'microRewards', state: !config.microRewardsEnabled });
+                  if (!config.microRewardsEnabled) {
+                    triggerMicroReward('click');
+                  }
+                }}
               >
                 {config.microRewardsEnabled ? "Activées" : "Désactivées"}
               </Button>
@@ -351,6 +450,18 @@ const Index = () => {
               </p>
             </div>
           </div>
+          
+          {/* Cognitive Profile Panel (conditionally shown) */}
+          {showCognitivePanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-6 overflow-hidden"
+            >
+              <CognitiveProfilePanel />
+            </motion.div>
+          )}
         </section>
       </div>
     </div>

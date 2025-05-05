@@ -44,6 +44,12 @@
     --xvush-blue: 215 80% 60%;
     --xvush-teal: 175 85% 45%;
     --xvush-orange: 25 95% 60%;
+    
+    /* SENA system variables */
+    --mood-intensity: 50%;
+    --micro-rewards-intensity: 50%;
+    --contrast-multiplier: 1;
+    --animation-multiplier: 1;
   }
   
   .dark {
@@ -214,5 +220,43 @@
   
   .xvush-mobile .depth-effect {
     @apply shadow-none;
+  }
+  
+  /* Cognitive Profile Adjustments */
+  .cognitive-visual {
+    --animation-multiplier: 0.8; /* Faster animations */
+    --contrast-multiplier: 1.1; /* Higher contrast */
+  }
+  
+  .cognitive-analytical {
+    --animation-multiplier: 1.5; /* Slower animations */
+    --contrast-multiplier: 1.2; /* Higher contrast for readability */
+  }
+  
+  .cognitive-balanced {
+    --animation-multiplier: 1; /* Standard animations */
+    --contrast-multiplier: 1; /* Standard contrast */
+  }
+  
+  .cognitive-immersive {
+    --animation-multiplier: 0.7; /* Very dynamic animations */
+    --contrast-multiplier: 1.1; /* Higher contrast for immersion */
+  }
+  
+  /* Circadian adjustments */
+  [data-time-of-day="morning"] {
+    --mood-intensity-multiplier: 1.2;
+  }
+  
+  [data-time-of-day="afternoon"] {
+    --mood-intensity-multiplier: 1;
+  }
+  
+  [data-time-of-day="evening"] {
+    --mood-intensity-multiplier: 0.9;
+  }
+  
+  [data-time-of-day="night"] {
+    --mood-intensity-multiplier: 0.7;
   }
 }
