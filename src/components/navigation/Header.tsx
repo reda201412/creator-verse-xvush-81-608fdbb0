@@ -94,31 +94,35 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                 </Link>
               </NavigationMenuItem>
               
-              <NavigationMenuItem>
-                <Link to="/dashboard">
-                  <NavigationMenuLink 
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      location.pathname === "/dashboard" ? "bg-accent" : ""
-                    )}
-                  >
-                    Tableau de Bord
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
+              {isCreator && (
+                <NavigationMenuItem>
+                  <Link to="/dashboard">
+                    <NavigationMenuLink 
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        location.pathname === "/dashboard" ? "bg-accent" : ""
+                      )}
+                    >
+                      Tableau de Bord
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+              )}
               
               <NavigationMenuItem>
                 <NavigationMenuTrigger>Autres</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                    <li>
-                      <Link to="/calendar" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                        <div className="text-sm font-medium leading-none">Calendrier</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          Planifiez et visualisez vos contenus
-                        </p>
-                      </Link>
-                    </li>
+                    {isCreator && (
+                      <li>
+                        <Link to="/calendar" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Calendrier</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Planifiez et visualisez vos contenus
+                          </p>
+                        </Link>
+                      </li>
+                    )}
                     <li>
                       <Link to="/messages" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                         <div className="text-sm font-medium leading-none">Messages</div>
@@ -127,14 +131,16 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                         </p>
                       </Link>
                     </li>
-                    <li>
-                      <Link to="/subscribers" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                        <div className="text-sm font-medium leading-none">Abonnés</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          Gérez vos abonnés et communauté
-                        </p>
-                      </Link>
-                    </li>
+                    {isCreator && (
+                      <li>
+                        <Link to="/subscribers" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Abonnés</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Gérez vos abonnés et communauté
+                          </p>
+                        </Link>
+                      </li>
+                    )}
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>

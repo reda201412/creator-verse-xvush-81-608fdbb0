@@ -74,19 +74,26 @@ export const HamburgerMenu = () => {
   const { user, profile, isCreator, signOut } = useAuth();
   const { toast } = useToast();
 
+  // Common navigation items for all users
   let navItems = [
-    { to: "/", icon: <Home size={22} />, label: "Accueil" },
-    { to: "/creators", icon: <Users size={22} />, label: "Créateurs" },
-    { to: "/creator", icon: <User size={22} />, label: "Profil créateur" },
-    { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord" },
-    { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier" },
-    { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages" },
-    { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
-    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
+    { to: "/", icon: <Home size={22} />, label: "Accueil", role: "all" },
+    { to: "/creators", icon: <Users size={22} />, label: "Créateurs", role: "all" },
+    { to: "/creator", icon: <User size={22} />, label: "Profil créateur", role: "all" },
+    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens", role: "all" },
+    { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages", role: "all" },
   ];
 
+  // Creator-only navigation items
+  const creatorNavItems = [
+    { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord", role: "creator" },
+    { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier", role: "creator" },
+    { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés", role: "creator" },
+    { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos", role: "creator" },
+  ];
+
+  // Combine navigation items based on user role
   if (isCreator) {
-    navItems.push({ to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos" });
+    navItems = [...navItems, ...creatorNavItems];
   }
 
   const toggleMenu = () => {

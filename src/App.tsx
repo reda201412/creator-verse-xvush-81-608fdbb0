@@ -18,15 +18,33 @@ import CalendarView from '@/pages/CalendarView';
 import ProfileSettings from '@/pages/ProfileSettings';
 import NotFound from '@/pages/NotFound';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useAuth } from '@/contexts/AuthContext';
 import './App.css';
 
-// Protected route wrapper
+// Protected route wrapper that only checks authentication
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Check if the user is authenticated
   const hasSession = localStorage.getItem('supabase.auth.token') !== null;
   
   if (!hasSession) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Creator route wrapper that checks both authentication and creator role
+const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isCreator } = useAuth();
+  // Check if the user is authenticated
+  const hasSession = localStorage.getItem('supabase.auth.token') !== null;
+  
+  if (!hasSession) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  if (!isCreator) {
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
@@ -49,15 +67,49 @@ function App() {
                   <Route path="/creators" element={<CreatorsFeed />} />
                   <Route path="/creator" element={<CreatorProfile />} />
                   
-                  {/* Protected routes */}
+                  {/* Creator-only routes */}
                   <Route 
                     path="/dashboard" 
                     element={
-                      <ProtectedRoute>
+                      <CreatorRoute>
                         <Dashboard />
-                      </ProtectedRoute>
+                      </CreatorRoute>
                     } 
                   />
+                  <Route 
+                    path="/videos" 
+                    element={
+                      <CreatorRoute>
+                        <CreatorVideos />
+                      </CreatorRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/subscribers" 
+                    element={
+                      <CreatorRoute>
+                        <SubscribersManagement />
+                      </CreatorRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/calendar" 
+                    element={
+                      <CreatorRoute>
+                        <CalendarView />
+                      </CreatorRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/exclusive" 
+                    element={
+                      <CreatorRoute>
+                        <ExclusiveContent />
+                      </CreatorRoute>
+                    } 
+                  />
+                  
+                  {/* Protected routes for all authenticated users */}
                   <Route 
                     path="/messages" 
                     element={
@@ -67,42 +119,10 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/videos" 
-                    element={
-                      <ProtectedRoute>
-                        <CreatorVideos />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/exclusive" 
-                    element={
-                      <ProtectedRoute>
-                        <ExclusiveContent />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
                     path="/tokens" 
                     element={
                       <ProtectedRoute>
                         <TokensPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/subscribers" 
-                    element={
-                      <ProtectedRoute>
-                        <SubscribersManagement />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/calendar" 
-                    element={
-                      <ProtectedRoute>
-                        <CalendarView />
                       </ProtectedRoute>
                     } 
                   />
