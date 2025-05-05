@@ -20,7 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNeuroAesthetic, useMicroRewards } from '@/hooks/use-neuro-aesthetic';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useMicroRewards } from '@/hooks/use-microrewards';
 
 export interface VideoPlayerProps {
   src: string;
