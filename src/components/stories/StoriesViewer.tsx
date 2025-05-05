@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Story } from '@/types/stories';
 import { Button } from '@/components/ui/button';
@@ -168,7 +167,8 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
         triggerMicroReward('message', { type: 'story_comment' });
         break;
       case 'share':
-        triggerMicroReward('share', { type: 'story_shared' });
+        // Update to use a valid MicroRewardType
+        triggerMicroReward('action', { type: 'story_shared' });
         break;
     }
   };

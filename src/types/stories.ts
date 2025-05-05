@@ -1,7 +1,16 @@
 
-import { UserProfile } from '@/contexts/AuthContext';
-
+// Remove the import of UserProfile from AuthContext and define it here instead
 export type StoryFilter = 'none' | 'sepia' | 'grayscale' | 'blur' | 'vintage' | 'neon' | 'vibrant' | 'minimal';
+
+// Use the same interface structure but defined here rather than imported
+export interface UserProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  role: 'fan' | 'creator';
+}
 
 export interface Story {
   id: string;

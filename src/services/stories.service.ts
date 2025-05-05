@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Story, StoryTag, StoryView, StoryUploadParams } from '@/types/stories';
+import { Story, StoryTag, StoryView, StoryUploadParams, StoryFilter } from '@/types/stories';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 export const StoriesService = {
@@ -20,7 +20,12 @@ export const StoriesService = {
       throw error;
     }
     
-    return data || [];
+    // Ensure filter_used is a valid StoryFilter
+    return (data || []).map(item => ({
+      ...item,
+      filter_used: (item.filter_used || 'none') as StoryFilter,
+      user_profiles: item.user_profiles as any // Cast to any temporarily
+    })) as Story[];
   },
   
   // Récupérer les stories d'un créateur spécifique
@@ -39,7 +44,12 @@ export const StoriesService = {
       throw error;
     }
     
-    return data || [];
+    // Ensure filter_used is a valid StoryFilter
+    return (data || []).map(item => ({
+      ...item,
+      filter_used: (item.filter_used || 'none') as StoryFilter,
+      story_tags: item.story_tags as any // Cast to any temporarily
+    })) as Story[];
   },
   
   // Récupérer les stories par tag
@@ -60,8 +70,15 @@ export const StoriesService = {
       throw error;
     }
     
-    // Extract stories from nested structure
-    return (data || []).map(item => item.stories).filter(Boolean);
+    // Extract stories from nested structure and ensure filter_used is a valid StoryFilter
+    return (data || [])
+      .map(item => item.stories)
+      .filter(Boolean)
+      .map(story => ({
+        ...story,
+        filter_used: (story.filter_used || 'none') as StoryFilter,
+        user_profiles: story.user_profiles as any
+      })) as Story[];
   },
   
   // Télécharger un fichier média pour une story
@@ -143,11 +160,20 @@ export const StoriesService = {
   
   // Marquer une story comme vue par l'utilisateur actuel
   async markStoryAsViewed(storyId: string, viewDuration: number = 0): Promise<void> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    
+    if (!userId) {
+      console.error('No authenticated user found');
+      return;
+    }
+    
     const { error } = await supabase
       .from('story_views')
       .upsert({
         story_id: storyId,
-        viewer_id: supabase.auth.getUser().then(({ data }) => data.user?.id || ''),
+        viewer_id: userId,
         view_duration: viewDuration,
         viewed_at: new Date().toISOString()
       }, {
@@ -159,13 +185,13 @@ export const StoriesService = {
       throw error;
     }
     
-    // Increment view count
-    const { error: updateError } = await supabase.rpc('increment_story_views', {
-      story_id: storyId
-    });
-    
-    if (updateError) {
-      console.error('Error incrementing story views:', updateError);
+    try {
+      // Call Supabase edge function to increment view count
+      await supabase.functions.invoke('increment-story-views', {
+        body: { storyId }
+      });
+    } catch (error) {
+      console.error('Error incrementing story views:', error);
     }
   },
   
