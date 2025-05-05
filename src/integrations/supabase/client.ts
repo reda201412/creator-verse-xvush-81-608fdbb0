@@ -26,10 +26,13 @@ export const getCreatorVideos = async (creatorId: string) => {
 };
 
 // Function to get video by ID
-export const getVideoById = async (videoId: string) => {
+export const getVideoById = async (videoId: string | number) => {
+  // Convert string ID to number if necessary
+  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
+  
   return supabase
     .from('videos')
     .select('*')
-    .eq('id', videoId)
+    .eq('id', id)
     .maybeSingle();
 };

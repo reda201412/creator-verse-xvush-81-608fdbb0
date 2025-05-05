@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { VideoMetadata } from '@/types/video';
@@ -69,10 +70,13 @@ const CreatorVideos: React.FC = () => {
 
   const handleDeleteVideo = async (videoId: string) => {
     try {
+      // Convert string ID to number for Supabase query
+      const id = parseInt(videoId, 10);
+      
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', videoId);
+        .eq('id', id);
       
       if (error) throw error;
       
