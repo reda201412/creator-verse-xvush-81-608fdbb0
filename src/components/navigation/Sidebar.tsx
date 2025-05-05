@@ -80,17 +80,31 @@ export const DesktopSidebar = () => {
 
   const displayName = profile?.display_name || profile?.username || "Utilisateur";
   const userRole = isCreator ? "Créateur" : "Fan";
+  const avatarUrl = profile?.avatar_url || "https://avatars.githubusercontent.com/u/124599?v=4";
 
   return (
     <div className="hidden md:flex flex-col w-64 bg-card min-h-screen p-4 border-r">
-      <Link to="/" className="flex items-center gap-2 mb-8">
-        <img 
-          src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-          alt="XDose Logo" 
-          className="w-10 h-10" 
-        />
-        <div className="text-2xl font-bold text-xvush-pink">XDose</div>
-      </Link>
+      <div className="flex items-center justify-between mb-8">
+        <Link to="/" className="flex items-center gap-2">
+          <img 
+            src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
+            alt="XDose Logo" 
+            className="w-10 h-10" 
+          />
+          <div className="text-2xl font-bold text-xvush-pink">XDose</div>
+        </Link>
+        
+        {/* User Profile Image - This is the new part */}
+        <div className="flex-shrink-0">
+          <ProfileAvatar
+            src={avatarUrl}
+            size="sm"
+            status="online"
+            hasStory={true}
+            onClick={() => navigate('/settings')}
+          />
+        </div>
+      </div>
 
       {isCreator && (
         <Button 
@@ -152,7 +166,7 @@ export const DesktopSidebar = () => {
 
       <div className="flex items-center gap-3 mt-6 pt-4 border-t">
         <ProfileAvatar
-          src={profile?.avatar_url || "https://avatars.githubusercontent.com/u/124599?v=4"}
+          src={avatarUrl}
           size="sm"
           status="online"
         />
@@ -164,3 +178,5 @@ export const DesktopSidebar = () => {
     </div>
   );
 };
+
+export default DesktopSidebar;

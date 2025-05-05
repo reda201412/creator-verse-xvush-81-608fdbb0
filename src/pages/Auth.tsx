@@ -113,7 +113,7 @@ const Auth = () => {
         <Card className="backdrop-blur-md bg-background/80 border-muted/30">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">
-              <span className="text-gradient-primary">CreatorVerse</span>
+              <span className="text-gradient-primary">XDose</span>
             </CardTitle>
             <CardDescription>
               Rejoignez la communauté créative ou découvrez du contenu exclusif
