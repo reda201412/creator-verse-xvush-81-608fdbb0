@@ -18,7 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
-  ArrowLeft
+  ArrowLeft,
+  Key
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,11 @@ import MessageAnalytics from './MessageAnalytics';
 import EmotionalInsights from './EmotionalInsights';
 import { Message, MessageThread as MessageThreadType, MonetizationTier } from '@/types/messaging';
 import { mockMessageThreads } from '@/data/mockMessages';
+import { encryptMessage, generateSessionKey } from '@/utils/encryption';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface MessageCenterProps {
   userId: string;
@@ -59,11 +65,25 @@ const MessageCenter = ({
   const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
   const [monetizationAmount, setMonetizationAmount] = useState(1.99);
   const [showThreadList, setShowThreadList] = useState(!isMobile);
+  const [encryptionEnabled, setEncryptionEnabled] = useState(true);
+  const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
+  const [showEncryptionSettings, setShowEncryptionSettings] = useState(false);
 
   const { toast } = useToast();
   const messageEndRef = useRef<HTMLDivElement>(null);
   
   const activeThread = threads.find(thread => thread.id === activeThreadId);
+  
+  // Générer ou récupérer la clé de session pour le thread actif
+  useEffect(() => {
+    if (activeThreadId && !sessionKeys[activeThreadId]) {
+      const newSessionKey = generateSessionKey();
+      setSessionKeys(prev => ({
+        ...prev,
+        [activeThreadId]: newSessionKey
+      }));
+    }
+  }, [activeThreadId]);
   
   useEffect(() => {
     // Handle mobile view - hide thread list when thread is selected
@@ -86,8 +106,27 @@ const MessageCenter = ({
     }
   }, [activeThread?.messages]);
   
-  const sendMessage = (content: string, type: 'text' | 'voice' | 'media') => {
+  const sendMessage = async (content: string, type: 'text' | 'voice' | 'media') => {
     if (!activeThreadId || !content.trim()) return;
+    
+    let finalContent = content;
+    let isEncrypted = false;
+    
+    // Chiffrer le message si l'option est activée
+    if (encryptionEnabled && activeThreadId && sessionKeys[activeThreadId]) {
+      try {
+        const encryptedData = await encryptMessage(content, sessionKeys[activeThreadId]);
+        finalContent = JSON.stringify(encryptedData);
+        isEncrypted = true;
+      } catch (error) {
+        console.error('Erreur de chiffrement:', error);
+        toast({
+          title: "Échec du chiffrement",
+          description: "Le message sera envoyé non chiffré.",
+          variant: "destructive",
+        });
+      }
+    }
     
     const newMessage: Message = {
       id: `msg_${Date.now()}`,
@@ -95,11 +134,11 @@ const MessageCenter = ({
       senderName: userName,
       senderAvatar: userAvatar,
       recipientId: activeThread?.participants.filter(p => p !== userId) || [],
-      content,
+      content: finalContent,
       type,
       timestamp: new Date().toISOString(),
       status: 'sent',
-      isEncrypted: true,
+      isEncrypted,
       monetization: monetizationEnabled ? {
         tier: monetizationTier,
         price: monetizationAmount,
@@ -140,6 +179,14 @@ const MessageCenter = ({
       });
     }
     
+    if (isEncrypted) {
+      toast({
+        title: "Message chiffré",
+        description: "Votre message a été chiffré avant l'envoi.",
+        variant: "success",
+      });
+    }
+    
     // Reset monetization for next message
     setMonetizationEnabled(false);
   };
@@ -166,6 +213,21 @@ const MessageCenter = ({
 
   const backToThreadList = () => {
     setShowThreadList(true);
+  };
+  
+  const handleResetSessionKey = () => {
+    if (activeThreadId) {
+      const newSessionKey = generateSessionKey();
+      setSessionKeys(prev => ({
+        ...prev,
+        [activeThreadId]: newSessionKey
+      }));
+      
+      toast({
+        title: "Clé de session régénérée",
+        description: "Les nouveaux messages utiliseront cette clé pour le chiffrement.",
+      });
+    }
   };
 
   return (
@@ -226,6 +288,74 @@ const MessageCenter = ({
             >
               <ChevronDown size={16} />
             </Button>
+            
+            <Dialog open={showEncryptionSettings} onOpenChange={setShowEncryptionSettings}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0 rounded-full",
+                    encryptionEnabled && "bg-green-500/10 text-green-500"
+                  )}
+                >
+                  <Lock size={16} />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Paramètres de chiffrement</DialogTitle>
+                  <DialogDescription>
+                    Configurez les options de sécurité pour vos messages.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="encryption">Chiffrement de bout en bout</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Vos messages sont chiffrés et ne peuvent être lus que par vous et votre destinataire.
+                      </p>
+                    </div>
+                    <Switch
+                      id="encryption"
+                      checked={encryptionEnabled}
+                      onCheckedChange={setEncryptionEnabled}
+                    />
+                  </div>
+                  
+                  {activeThreadId && encryptionEnabled && (
+                    <div className="space-y-2 pt-2">
+                      <Label>Clé de session actuelle</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={sessionKeys[activeThreadId]?.substring(0, 10) + '...'}
+                          readOnly
+                          className="font-mono text-xs"
+                        />
+                        <Button variant="outline" onClick={handleResetSessionKey}>
+                          <Key size={16} className="mr-2" />
+                          Régénérer
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cette clé est utilisée pour chiffrer vos messages dans cette conversation.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <DialogFooter>
+                  <Button
+                    onClick={() => setShowEncryptionSettings(false)}
+                    className="w-full sm:w-auto"
+                  >
+                    Fermer
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </Tabs>
       </div>
@@ -273,9 +403,14 @@ const MessageCenter = ({
                           {new Date(thread.lastActivity).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                        {thread.messages[thread.messages.length - 1]?.isEncrypted && (
+                          <Lock size={10} className="text-green-500" />
+                        )}
                         {thread.messages[thread.messages.length - 1]?.content || "New conversation"}
-                        {thread.messages[thread.messages.length - 1]?.monetization && " 💰"}
+                        {thread.messages[thread.messages.length - 1]?.monetization && (
+                          <Zap size={10} className="text-amber-500" />
+                        )}
                       </p>
                     </div>
                   </div>
@@ -317,7 +452,8 @@ const MessageCenter = ({
                   <div className="p-4">
                     <MessageThread 
                       messages={activeThread.messages} 
-                      currentUserId={userId} 
+                      currentUserId={userId}
+                      sessionKey={sessionKeys[activeThread.id]}
                     />
                     <div ref={messageEndRef} />
                   </div>

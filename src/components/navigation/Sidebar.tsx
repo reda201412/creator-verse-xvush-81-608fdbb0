@@ -12,6 +12,8 @@ import {
   Settings,
   LogOut,
   Coins,
+  Shield,
+  Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ export const DesktopSidebar = () => {
     { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages" },
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
     { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
+    { to: "/exclusive", icon: <Shield size={22} />, label: "Contenu Exclusif" },
   ];
 
   const userName = "Sarah K.";
