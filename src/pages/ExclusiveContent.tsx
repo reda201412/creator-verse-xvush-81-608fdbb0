@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import ExclusiveContentViewer from '@/components/exclusive/ExclusiveContentViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateSessionKey, encryptMessage } from '@/utils/encryption';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 // Exemple de données de contenu exclusif
 const mockExclusiveContent = [
@@ -110,7 +111,7 @@ const ExclusiveContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [userTier] = useState('fan');
   const [userTokenBalance] = useState(250);
-  const { toast } = useToast();
+  const { triggerMicroReward } = useNeuroAesthetic();
   
   // Générer les clés de session pour les contenus chiffrés
   const [sessionKeys] = useState(() => {
@@ -143,24 +144,18 @@ const ExclusiveContent: React.FC = () => {
   });
   
   const handleUnlock = () => {
-    toast({
-      title: "Contenu déverrouillé",
-      description: "Profitez de ce contenu exclusif!",
-    });
+    toast.success("Contenu déverrouillé");
+    triggerMicroReward('action');
   };
   
   const handleLike = () => {
-    toast({
-      title: "Contenu liké",
-      description: "Merci pour votre appréciation!",
-    });
+    toast.success("Contenu liké");
+    triggerMicroReward('action');
   };
   
   const handleComment = () => {
-    toast({
-      title: "Commentaire",
-      description: "Fonctionnalité à venir.",
-    });
+    toast("Fonctionnalité à venir");
+    triggerMicroReward('interaction');
   };
   
   return (

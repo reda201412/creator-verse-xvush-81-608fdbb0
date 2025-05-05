@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { ArrowUpRight, Ban, Check, Clock, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 // Types de données pour les retraits
 interface Withdrawal {
@@ -33,7 +33,6 @@ const WithdrawalHistoryCard: React.FC = () => {
   const [address, setAddress] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { requestWithdrawal } = useTronWallet();
-  const { toast } = useToast();
   
   // Données mockées d'historique de retraits
   const withdrawalHistory: Withdrawal[] = [

@@ -11,17 +11,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   children,
   className
 }) => {
-  const { 
-    config, 
-    updateConfig,
-    triggerMicroReward,
-    toggleFocusMode
-  } = useNeuroAesthetic({
-    moodIntensity: 50,
-    microRewardsIntensity: 50,
-    fluidityIntensity: 60,
-    fluiditySpeed: 50,
-  });
+  const { triggerMicroReward } = useNeuroAesthetic();
   
   // Apply design system to the document
   useEffect(() => {

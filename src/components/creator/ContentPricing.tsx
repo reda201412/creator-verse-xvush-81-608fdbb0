@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Coins, Lock, Unlock, CreditCard, Copy } from 'lucide-react';
 import { ContentPrice } from '@/types/monetization';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import ContentPurchaseModal from '@/components/monetization/ContentPurchaseModal';
 import { useTronWallet } from '@/hooks/use-tron-wallet';

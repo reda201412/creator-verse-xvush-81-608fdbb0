@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Wallet, Copy, ExternalLink, Send } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 
 interface WalletConnectProps {
@@ -15,7 +15,6 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ walletInfo }) => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const { toast } = useToast();
   const { requestWithdrawal } = useTronWallet();
   
   const tronAddress = walletInfo?.wallet?.tron_address || '';

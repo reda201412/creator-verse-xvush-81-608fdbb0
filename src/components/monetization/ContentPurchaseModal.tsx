@@ -7,8 +7,9 @@ import { Coins, CreditCard, QrCode, ArrowRight, Check, Loader2 } from 'lucide-re
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { ContentPrice } from '@/types/monetization';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface ContentPurchaseModalProps {
   isOpen: boolean;
@@ -35,8 +36,9 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
   const { verifyTransaction } = useTronWallet();
+  const { triggerMicroReward } = useNeuroAesthetic();
   
-  const mockQRCodeUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIQAAACECAYAAABRRIOnAAAAAklEQVR4AewaftIAAAOPSURBVO3BQY4kRxIEQdNA/f/Lug0eCmRm9YwWZu7+IcaYcowp15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeY8uFLSv5SSjolpVNS+klK/pKSb4wp15hyjSnXmPLhZSnvSskTJZ2SZ0qeKXlHyjtS3jSmXGPKNaZcY8qHX1byRMk3SnpKOik9Jb8p5YmS3zSmXGPKNaZcY8qHvyYlT5T0lPSUdFL+z8aUa0y5xpRrTPlwGSU/SfmdlHeU/E3GlGtMucaUa0z58MtK/k9JT0knpZPyL1PyjZRvjCnXmHKNKdeY8uFLKX9TSk9JT0lPSU9JJ+VNJZ2SZ0p+0phyjSnXmHKNKR++lPKTlGdKnilJSp4p6ZQ8UdJT8kzJT1K+MaZcY8o1plxjSvpDfyjpKTlJT0kn5YmSTso7Uv5LY8o1plxjyjWmfLilpJPSU9JJeUdKJ+UdJT0lPSWdlJ6Sv2lMucaUa0y5xpQPL0t5R8kTJZ2Sn5R0Ujoln5R0SnpKOik9Jd8YU64x5RpTrjHlwy9L6aR0Sp4o6SnppDyTklPyREkn5YmSb4wp15hyjSnXmPLhZSU9JZ2SZ1I6KZ2SntJTcpL0lHRKTkoz5V8ypnx0jCnXmHKNKemHX5TSSekp6aR0UjopnZJnUjopnZRnUp4p+UnKN8aUa0y5xpRrTPnwpZRnSjopPSXPlHRK3pHSTOmk9JScpJnyjpSfjCnXmHKNKdeY8uFLKU+UdEqeKXmmpJPyjpJOyTtSnknppPSUvGNMucaUa0y5xpQPX0rppJykk/JMSielp+SZkk5KJ6Wn5JmSTkpPyRM/GVOuMeUaU64x5cMvS+kp6aT0lDxT0lPyREkn5YmSJ1J6Sk5KJ+VPjCnXmHKNKdeY8uGXpfSU9JR0SjopPSVJyTtKekoS5SQ9JZ2Ud4wp15hyjSnXmJJ+eENKT8lJeqakU/KOkk7JEyU9JU+UdEqeKemkdFLeNaZcY8o1plxjyocvpfyllJ6SJ0o6JZ2UJ0p6Sp4p6aT8SWPKNaZcY8o1pqQf/qCUJ0o6KZ2UnpJOSk9JT0mnpKekp+QkPSWdlE7KT8aUa0y5xpRrTPnwSyXvSOmUvKPkmZROySmlp6ST0lPyjpRvjCnXmHKNKdeY8uFLSv5SSk/JEyWdkmdKvpHyREknpZPyjTHlGlOuMeUaU8YfYowpx5hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeYco0p/wNZQqPP8Sw3TwAAAABJRU5ErkJggg==";
+  const mockQRCodeUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIQAAACECAYAAABRRIOnAAAAAklEQVR4AewaftIAAAOPSURBVO3BQY4kRxIEQdNA/f/Lug0eCmRm9YwWZu7+IcaYcowp15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeY8uFLSv5SSjolpVNS+klK/pKSb4wp15hyjSnXmPLhZSnvSskTJZ2SZ0qeKXlHyjtS3jSmXGPKNaZcY8qHX1byRMk3SnpKOik9Jb8p5YmS3zSmXGPKNaZcY8qHvyYlT5T0lPSUdFL+z8aUa0y5xpRrTPlwGSU/SfmdlHeU/E3GlGtMucaUa0z58MtK/k9JT0knpZPyL1PyjZRvjCnXmHKNKdeY8uFLKX9TSk9JT0lPSU9JJ+VNJZ2SZ0p+0phyjSnXmHKNKR++lPKTlGdKnilJSp4p6ZQ8UdJT8kzJT1K+MaZcY8o1plxjSvpDfyjpKTlJT0kn5YmSTso7Uv5LY8o1plxjyjWmfLilpJPSU9JJeUdKJ+UdJT0lPSWdlJ6Sv2lMucaUa0y5xpQPL0t5R8kTJZ2Sn5R0Ujoln5R0SnpKOik9Jd8YU64x5RpTrjHlwy9L6aR0Sp4o6SnppDyTklPyREkn5YmSb4wp15hyjSnXmPLhZSU9JZ2SZ1I6KZ2SntJTcpL0lHRKTkoz5V8ypnx0jCnXmHKNKemHX5TSSekp6aR0UjopnZJnUjopnZRnUp4p+UnKN8aUa0y5xpRrTPnwpZRnSjopPSXPlHRK3pHSTOmk9JScpJnyjpSfjCnXmHKNKdeY8uFLKU+UdEqeKXmmpJPyTkknpZPyRMkzKZ2UnpRvjCnXmHKNKdeY8uFLKU+UdEqeKXmmpJPyTkknpZPSU9JT8kxKJ6WTkmmpTyTlTfMeUeDVZKdl7Y0PPNsG8TkrSXnXmHKNKdeYco0p6Yc3pPSUnKRnSjolph7lHSU9JY+kdJQ8kdJJ6aT8pJV3jSnXmHKNKdeY8uFLSn4pJU+UdEo6KU+U9JQ8U9JJ+ZPGlGtMucaUa0xJP/xBKU+UdFI6KT0lnZSeXjb/kpVOSk9JJ6WT0lPyjZQfGVOuMeUaU64x5cMvlbwjpVPyjpJnUjolp5Sekk5KT8k7Ur4xplxjyjWmXGPKhy+l/FJKnknpKTlJ+VrKT0o6KZ2UXjZ/kvKNMeUaU64x5RpTxh9ijCnHmHKNKdeYco0p15hyjSnXmHKNKdeYco0p15hyjSnXmHKNKdeYco0p15hyjSn/A1lCo8/xLDdPAAAAAElFTkSuQmCC";
   
   const hasEnoughTokens = userTokenBalance >= (pricing.tokenPrice || 0);
   
@@ -47,6 +49,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
     }
     
     setPaymentStatus('pending');
+    triggerMicroReward('action');
     
     // Simulate transaction verification
     let progress = 0;
@@ -62,6 +65,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   
   const handlePurchaseWithQR = async () => {
     setPaymentStatus('pending');
+    triggerMicroReward('action');
     
     // Simulate waiting for blockchain confirmation
     let progress = 0;
@@ -88,6 +92,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
       });
       
       setPaymentStatus('success');
+      triggerMicroReward('action');
       setTimeout(() => {
         onPurchaseComplete();
         onClose();
