@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 import ContentGrid from "@/components/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
@@ -11,8 +12,8 @@ import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewards from "@/components/effects/MicroRewards";
-import { Eye, Heart, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Sample content data similar to the CreatorProfile page
 const trendingContent = [
@@ -123,6 +124,8 @@ const Index = () => {
   });
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
+  const { user, profile, isCreator } = useAuth();
+  const navigate = useNavigate();
 
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);
@@ -163,12 +166,40 @@ const Index = () => {
           </h1>
           
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark">
-              <Link to="/creators">
-                Explorer les créateurs
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            {!user ? (
+              <>
+                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2">
+                  <Link to="/auth" className="flex items-center">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Se connecter
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="gap-2">
+                  <Link to="/auth?tab=signup" className="flex items-center">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Créer un compte
+                  </Link>
+                </Button>
+              </>
+            ) : isCreator ? (
+              <>
+                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => navigate('/dashboard')}>
+                  <Crown className="mr-2 h-4 w-4" />
+                  Tableau de bord créateur
+                </Button>
+                <Button size="lg" variant="outline" className="gap-2" onClick={() => navigate('/videos')}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Publier du contenu
+                </Button>
+              </>
+            ) : (
+              <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark">
+                <Link to="/creators">
+                  Explorer les créateurs
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </motion.div>
         
@@ -239,13 +270,18 @@ const Index = () => {
                 <Button 
                   className="w-full mt-3 bg-xvush-pink hover:bg-xvush-pink-dark"
                   onClick={() => {
+                    if (!user) {
+                      navigate('/auth');
+                      return;
+                    }
+                    
                     toast(`Vous suivez maintenant ${creator.name}`, {
                       description: "Découvrez son contenu exclusif"
                     });
                     triggerMicroReward('like');
                   }}
                 >
-                  Suivre
+                  {user ? 'Suivre' : 'Se connecter pour suivre'}
                 </Button>
               </motion.div>
             ))}

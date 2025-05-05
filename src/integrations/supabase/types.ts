@@ -15,6 +15,7 @@ export type Database = {
           bio: string | null
           id: number
           name: string | null
+          user_id: string | null
           username: string | null
         }
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           bio?: string | null
           id?: number
           name?: string | null
+          user_id?: string | null
           username?: string | null
         }
         Update: {
@@ -29,7 +31,41 @@ export type Database = {
           bio?: string | null
           id?: number
           name?: string | null
+          user_id?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }
@@ -70,10 +106,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_creator: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "fan" | "creator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -188,6 +227,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["fan", "creator"],
+    },
   },
 } as const
