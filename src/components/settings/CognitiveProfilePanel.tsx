@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useNeuroAesthetic, defaultConfig } from '@/hooks/use-neuro-aesthetic';
 import { useUserBehavior } from '@/hooks/use-user-behavior';
 import { 
   Card, 

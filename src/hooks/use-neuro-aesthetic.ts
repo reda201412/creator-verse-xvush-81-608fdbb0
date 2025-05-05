@@ -17,10 +17,16 @@ export type MicroRewardType =
   | 'insight'
   | 'goal'
   | 'challenge'
-  | 'creative';
+  | 'creative'
+  | 'star'     // Adding missing types
+  | 'message'
+  | 'comment'
+  | 'award'
+  | 'thumbs-up'
+  | 'trophy';
 
 // Default configuration values
-const defaultConfig = {
+export const defaultConfig = {
   adaptiveMood: 'calm' as 'energetic' | 'calm' | 'creative' | 'focused',
   moodIntensity: 50,
   microRewardsEnabled: true,

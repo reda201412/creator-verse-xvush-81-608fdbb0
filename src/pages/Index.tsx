@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import ContentGrid from "@/components/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
-import { useUserBehavior } from "@/hooks/use-user-behavior";
+import { useUserBehavior, InteractionType } from "@/hooks/use-user-behavior";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/components/ui/sonner";
 import FocusMode from "@/components/ambient/FocusMode";
@@ -140,7 +141,7 @@ const Index = () => {
     updateConfig({
       goldenRatioVisible: !showGoldenRatio
     });
-    trackInteraction('toggle', { feature: 'goldenRatio', state: !showGoldenRatio });
+    trackInteraction('toggle' as InteractionType, { feature: 'goldenRatio', state: !showGoldenRatio });
   };
 
   const handleContentClick = (contentId: string, contentType: string) => {
@@ -164,12 +165,12 @@ const Index = () => {
         enabled={config.focusModeEnabled}
         onToggle={(isEnabled) => {
           updateConfig({ focusModeEnabled: isEnabled });
-          trackInteraction('toggle', { feature: 'focusMode', state: isEnabled });
+          trackInteraction('toggle' as InteractionType, { feature: 'focusMode', state: isEnabled });
         }}
         ambientSoundsEnabled={config.ambientSoundsEnabled}
         onAmbientSoundsToggle={(isEnabled) => {
           updateConfig({ ambientSoundsEnabled: isEnabled });
-          trackInteraction('toggle', { feature: 'ambientSounds', state: isEnabled });
+          trackInteraction('toggle' as InteractionType, { feature: 'ambientSounds', state: isEnabled });
         }}
       />
       <AmbientSoundscapes
@@ -366,7 +367,7 @@ const Index = () => {
               size="sm"
               onClick={() => {
                 setShowCognitivePanel(!showCognitivePanel);
-                trackInteraction('toggle', { feature: 'cognitivePanel', state: !showCognitivePanel });
+                trackInteraction('toggle' as InteractionType, { feature: 'cognitivePanel', state: !showCognitivePanel });
               }}
               className="flex items-center gap-1.5"
             >
@@ -387,7 +388,7 @@ const Index = () => {
                     className="capitalize"
                     onClick={() => {
                       updateConfig({ adaptiveMood: mood });
-                      trackInteraction('select', { feature: 'mood', value: mood });
+                      trackInteraction('select' as InteractionType, { feature: 'mood', value: mood });
                       triggerMicroReward('select');
                     }}
                   >
@@ -408,7 +409,7 @@ const Index = () => {
                   size="sm"
                   onClick={() => {
                     updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) });
-                    trackInteraction('adjust', { feature: 'moodIntensity', direction: 'decrease' });
+                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'decrease' });
                   }}
                 >
                   -
@@ -419,7 +420,7 @@ const Index = () => {
                   size="sm"
                   onClick={() => {
                     updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) });
-                    trackInteraction('adjust', { feature: 'moodIntensity', direction: 'increase' });
+                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'increase' });
                   }}
                 >
                   +
@@ -437,7 +438,7 @@ const Index = () => {
                 size="sm"
                 onClick={() => {
                   updateConfig({ microRewardsEnabled: !config.microRewardsEnabled });
-                  trackInteraction('toggle', { feature: 'microRewards', state: !config.microRewardsEnabled });
+                  trackInteraction('toggle' as InteractionType, { feature: 'microRewards', state: !config.microRewardsEnabled });
                   if (!config.microRewardsEnabled) {
                     triggerMicroReward('click');
                   }

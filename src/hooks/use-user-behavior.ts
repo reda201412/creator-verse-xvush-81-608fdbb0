@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/ui/sonner';
 
@@ -34,7 +33,12 @@ export type InteractionType =
   | 'search'
   | 'navigate'
   | 'purchase'
-  | 'follow';
+  | 'follow'
+  | 'analyze'
+  | 'toggle'
+  | 'select'
+  | 'adjust'
+  | 'creative';
 
 interface UserBehaviorOptions {
   storageKey?: string;

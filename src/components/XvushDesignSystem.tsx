@@ -72,7 +72,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
         'cognitive-balanced',
         'cognitive-immersive'
       );
-      document.removeAttribute('data-time-of-day');
+      document.documentElement.removeAttribute('data-time-of-day');
       clearTimeout(timer);
     };
   }, [

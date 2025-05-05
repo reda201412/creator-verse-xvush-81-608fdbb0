@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Star, Heart, MessageSquare, Award, ThumbsUp, Lightbulb, Target, Trophy, Zap, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUserBehavior } from '@/hooks/use-user-behavior';
+import { useUserBehavior, InteractionType } from '@/hooks/use-user-behavior';
 import { useNeuroAesthetic, MicroRewardType } from '@/hooks/use-neuro-aesthetic';
 
 interface RewardItem {
@@ -106,7 +105,7 @@ const MicroRewardsEnhanced: React.FC<MicroRewardsEnhancedProps> = ({
     
     // Update streak and track interaction
     updateStreak();
-    trackInteraction(type, metadata);
+    trackInteraction(type as unknown as InteractionType, metadata);
   }, [enable, rewardIntensity, streakCount, trackInteraction]);
   
   // Update the interaction streak
@@ -129,7 +128,7 @@ const MicroRewardsEnhanced: React.FC<MicroRewardsEnhancedProps> = ({
       // Create a burst of rewards for milestone
       for (let i = 0; i < Math.min(3, 1 + Math.floor(streakCount / 10)); i++) {
         setTimeout(() => {
-          const types: MicroRewardType[] = ['star', 'award', 'trophy'];
+          const types: MicroRewardType[] = ['star' as MicroRewardType, 'award' as MicroRewardType, 'trophy' as MicroRewardType];
           generateReward(
             types[Math.floor(Math.random() * types.length)], 
             { streak: streakCount },
