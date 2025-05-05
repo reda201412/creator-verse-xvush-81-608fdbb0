@@ -1,0 +1,194 @@
+
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface WalletInfo {
+  wallet: {
+    id: string;
+    user_id: string;
+    tron_address: string | null;
+    is_verified: boolean;
+    balance_usdt: number;
+  } | null;
+  subscription: {
+    id: string;
+    is_active: boolean;
+    expires_at: string;
+    subscription_tiers: {
+      name: string;
+      price_usdt: number;
+    };
+  } | null;
+  transactions: Array<{
+    id: string;
+    amount_usdt: number;
+    transaction_type: string;
+    status: string;
+    created_at: string;
+  }>;
+}
+
+export function useTronWallet() {
+  const { user } = useAuth();
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getWalletInfo = async () => {
+    if (!user) {
+      setError("Vous devez être connecté pour accéder à votre portefeuille");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+        body: { operation: 'get_wallet_info' },
+      });
+
+      if (error) throw new Error(error.message);
+      setWalletInfo(data);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations du portefeuille";
+      setError(message);
+      toast.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createWallet = async () => {
+    if (!user) {
+      setError("Vous devez être connecté pour créer un portefeuille");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+        body: { operation: 'create_wallet' },
+      });
+
+      if (error) throw new Error(error.message);
+      toast.success("Portefeuille créé avec succès");
+      await getWalletInfo(); // Refresh wallet info
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la création du portefeuille";
+      setError(message);
+      toast.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyTransaction = async (params: {
+    txHash: string;
+    amount: number;
+    purpose: 'purchase' | 'subscription';
+    contentId?: string;
+    tierId?: string;
+  }) => {
+    if (!user) {
+      setError("Vous devez être connecté pour vérifier une transaction");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+        body: { 
+          operation: 'verify_transaction',
+          data: params
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      toast.success("Transaction vérifiée avec succès");
+      await getWalletInfo(); // Refresh wallet info
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la vérification de la transaction";
+      setError(message);
+      toast.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const requestWithdrawal = async (params: {
+    amount: number;
+    destinationAddress: string;
+  }) => {
+    if (!user) {
+      setError("Vous devez être connecté pour effectuer un retrait");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+        body: { 
+          operation: 'request_withdrawal',
+          data: params
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      toast.success("Demande de retrait soumise avec succès");
+      await getWalletInfo(); // Refresh wallet info
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la demande de retrait";
+      setError(message);
+      toast.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkContentAccess = async (contentId: string | number) => {
+    if (!user) {
+      return { hasAccess: false, reason: 'not_authenticated' };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('content-access', {
+        body: { contentId },
+      });
+
+      if (error) throw new Error(error.message);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la vérification de l'accès au contenu";
+      toast.error(message);
+      return { hasAccess: false, reason: 'error', message };
+    }
+  };
+
+  return {
+    walletInfo,
+    loading,
+    error,
+    getWalletInfo,
+    createWallet,
+    verifyTransaction,
+    requestWithdrawal,
+    checkContentAccess
+  };
+}

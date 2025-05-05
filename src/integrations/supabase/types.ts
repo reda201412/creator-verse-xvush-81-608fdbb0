@@ -9,6 +9,95 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      content_purchases: {
+        Row: {
+          amount_usdt: number
+          content_id: number
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_usdt: number
+          content_id: number
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_usdt?: number
+          content_id?: number
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_purchases_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_purchases_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_payouts: {
+        Row: {
+          amount_usdt: number
+          created_at: string | null
+          creator_id: string
+          destination_address: string
+          id: string
+          status: string
+          transaction_id: string | null
+          tron_tx_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_usdt: number
+          created_at?: string | null
+          creator_id: string
+          destination_address: string
+          id?: string
+          status: string
+          transaction_id?: string | null
+          tron_tx_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_usdt?: number
+          created_at?: string | null
+          creator_id?: string
+          destination_address?: string
+          id?: string
+          status?: string
+          transaction_id?: string | null
+          tron_tx_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_payouts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           avatar: string | null
@@ -33,6 +122,99 @@ export type Database = {
           name?: string | null
           user_id?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      site_wallet: {
+        Row: {
+          commission_percentage: number | null
+          id: string
+          last_updated: string | null
+          total_balance_usdt: number | null
+          tron_address: string
+        }
+        Insert: {
+          commission_percentage?: number | null
+          id?: string
+          last_updated?: string | null
+          total_balance_usdt?: number | null
+          tron_address: string
+        }
+        Update: {
+          commission_percentage?: number | null
+          id?: string
+          last_updated?: string | null
+          total_balance_usdt?: number | null
+          tron_address?: string
+        }
+        Relationships: []
+      }
+      subscription_tiers: {
+        Row: {
+          created_at: string | null
+          duration_days: number
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price_usdt: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_days: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_usdt: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_days?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_usdt?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount_usdt: number
+          created_at: string | null
+          id: string
+          reference_id: string | null
+          status: string
+          transaction_type: string
+          tron_tx_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_usdt: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          status: string
+          transaction_type: string
+          tron_tx_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_usdt?: number
+          created_at?: string | null
+          id?: string
+          reference_id?: string | null
+          status?: string
+          transaction_type?: string
+          tron_tx_id?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -68,6 +250,54 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          starts_at: string | null
+          tier_id: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          starts_at?: string | null
+          tier_id: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          starts_at?: string | null
+          tier_id?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       videos: {
         Row: {
@@ -130,6 +360,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wallet_addresses: {
+        Row: {
+          balance_usdt: number | null
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          tron_address: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance_usdt?: number | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          tron_address?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance_usdt?: number | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          tron_address?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

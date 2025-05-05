@@ -1,1 +1,8 @@
+
 project_id = "ryuczcsiiyghdnxanofq"
+
+[functions.tron-wallet]
+verify_jwt = true
+
+[functions.content-access]
+verify_jwt = true
