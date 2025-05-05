@@ -7,13 +7,15 @@ export interface ContentGridProps {
   layout?: 'grid' | 'masonry' | 'featured' | 'vertical' | 'collections';
   className?: string;
   onItemClick?: (id: string) => void;
+  isCreator?: boolean;
 }
 
 const ContentGrid: React.FC<ContentGridProps> = ({
   contents,
   layout = 'grid',
   className = '',
-  onItemClick
+  onItemClick,
+  isCreator
 }) => {
   // Component implementation would go here
   // This is a stub to add the onItemClick prop to the type definition
