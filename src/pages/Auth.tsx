@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 
@@ -17,6 +18,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [userRole, setUserRole] = useState<'fan' | 'creator'>('fan');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const navigate = useNavigate();
 
@@ -48,7 +50,8 @@ const Auth = () => {
         password,
         options: {
           data: {
-            username
+            username,
+            role: userRole
           }
         }
       });
@@ -196,6 +199,25 @@ const Auth = () => {
                       placeholder="••••••••"
                       required
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Choisissez votre rôle</Label>
+                    <RadioGroup 
+                      defaultValue="fan" 
+                      value={userRole}
+                      onValueChange={(value) => setUserRole(value as 'fan' | 'creator')}
+                      className="flex gap-4 mt-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="fan" id="fan" />
+                        <Label htmlFor="fan" className="cursor-pointer">Fan / Spectateur</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="creator" id="creator" />
+                        <Label htmlFor="creator" className="cursor-pointer">Créateur</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                   
                   <Button 
