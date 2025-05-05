@@ -20,7 +20,7 @@ const trendingContent = [
     id: "trend1",
     imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
     title: "Morning Coffee Routine",
-    type: "premium",
+    type: "premium" as const,
     format: "image",
     metrics: {
       likes: 1200,
@@ -32,7 +32,7 @@ const trendingContent = [
     id: "trend2",
     imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
     title: "Spring Fashion Look",
-    type: "standard",
+    type: "standard" as const,
     format: "image",
     metrics: {
       likes: 950,
@@ -44,7 +44,7 @@ const trendingContent = [
     id: "trend3",
     imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
     title: "Sunset at the Mountain",
-    type: "standard",
+    type: "standard" as const,
     format: "video",
     duration: 187,
     metrics: {
@@ -57,7 +57,7 @@ const trendingContent = [
     id: "trend4",
     imageUrl: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=800&auto=format&fit=crop",
     title: "Boulangerie Tour Paris",
-    type: "vip",
+    type: "vip" as const,
     format: "video",
     duration: 845,
     metrics: {
