@@ -1,10 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
+import { useVideoMetrics } from '@/hooks/use-video-metrics';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface ImmersiveViewProps {
   isOpen: boolean;
@@ -17,6 +21,13 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isInfoVisible, setIsInfoVisible] = useState(true);
   const [isScrollLocked, setIsScrollLocked] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSwipeActive, setIsSwipeActive] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<null | 'left' | 'right'>(null);
+  
+  const { trackEvent, updateProgress } = useVideoMetrics(content[currentIndex]?.id || 'unknown');
+  const { triggerMicroReward } = useNeuroAesthetic();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   
   useEffect(() => {
     if (isOpen) {
@@ -32,18 +43,25 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
         if (e.key === 'ArrowLeft') goToPrevious();
         if (e.key === 'ArrowRight') goToNext();
         if (e.key === 'i') setIsInfoVisible(prev => !prev);
+        if (e.key === 'm') setIsMuted(prev => !prev);
       };
       
       window.addEventListener('keydown', handleKeydown);
+      
+      // Track opening event
+      trackEvent('play');
       
       return () => {
         clearTimeout(scrollTimer);
         document.body.style.overflow = 'auto';
         setIsScrollLocked(false);
         window.removeEventListener('keydown', handleKeydown);
+        
+        // Track closing event
+        trackEvent('pause');
       };
     }
-  }, [isOpen, currentIndex]);
+  }, [isOpen, trackEvent]);
 
   useEffect(() => {
     if (!isOpen && isScrollLocked) {
@@ -58,11 +76,45 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
   const currentContent = content[currentIndex];
   
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % content.length);
+    // Track seek event
+    trackEvent('seek', { direction: 'next' });
+    
+    setSwipeDirection('left');
+    setIsSwipeActive(true);
+    
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % content.length);
+      
+      setTimeout(() => {
+        setIsSwipeActive(false);
+        setSwipeDirection(null);
+      }, 50);
+    }, 300);
+    
+    triggerMicroReward('navigate');
   };
   
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + content.length) % content.length);
+    // Track seek event
+    trackEvent('seek', { direction: 'previous' });
+    
+    setSwipeDirection('right');
+    setIsSwipeActive(true);
+    
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev - 1 + content.length) % content.length);
+      
+      setTimeout(() => {
+        setIsSwipeActive(false);
+        setSwipeDirection(null);
+      }, 50);
+    }, 300);
+    
+    triggerMicroReward('navigate');
+  };
+
+  const handleVideoTimeUpdate = (currentTime: number, duration: number) => {
+    updateProgress(currentTime, duration);
   };
 
   return (
@@ -90,34 +142,58 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
             <X size={24} />
           </Button>
           
-          {/* Content display */}
-          <motion.div 
-            className="w-full h-full flex items-center justify-center"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            style={{ willChange: 'transform, opacity' }}
+          {/* Mute button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-16 z-10 text-white hover:bg-white/10 rounded-full"
+            onClick={() => setIsMuted(prev => !prev)}
           >
-            {currentContent.format === 'video' ? (
-              <div className="w-full max-w-4xl aspect-video relative">
-                <video 
-                  src={currentContent.videoUrl || 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'} 
-                  controls 
-                  autoPlay 
-                  className="w-full h-full object-contain"
-                  playsInline
+            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          </Button>
+          
+          {/* Content display with swipe animations */}
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={currentIndex}
+              className="w-full h-full flex items-center justify-center"
+              initial={{ 
+                x: swipeDirection === 'left' ? 300 : swipeDirection === 'right' ? -300 : 0,
+                opacity: 0 
+              }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ 
+                x: swipeDirection === 'left' ? -300 : swipeDirection === 'right' ? 300 : 0,
+                opacity: 0 
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              style={{ willChange: 'transform, opacity' }}
+            >
+              {currentContent.format === 'video' ? (
+                <div className="w-full max-w-4xl aspect-video relative">
+                  <EnhancedVideoPlayer
+                    src={currentContent.videoUrl || 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'} 
+                    thumbnailUrl={currentContent.thumbnailUrl}
+                    title={currentContent.title}
+                    autoPlay={true}
+                    muted={isMuted}
+                    onTimeUpdate={handleVideoTimeUpdate}
+                    onPlay={() => trackEvent('play')}
+                    onPause={() => trackEvent('pause')}
+                    onError={(error) => trackEvent('error', { message: error?.message || 'Unknown error' })}
+                    className="max-h-[85vh] max-w-[85vw]"
+                  />
+                </div>
+              ) : (
+                <img 
+                  src={currentContent.imageUrl} 
+                  alt={currentContent.title || 'Content'} 
+                  className="max-h-[85vh] max-w-[85vw] object-contain"
+                  loading="eager"
                 />
-              </div>
-            ) : (
-              <img 
-                src={currentContent.imageUrl} 
-                alt={currentContent.title || 'Content'} 
-                className="max-h-[85vh] max-w-[85vw] object-contain"
-                loading="eager"
-              />
-            )}
-          </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
           
           {/* Navigation controls */}
           <Button
@@ -125,6 +201,7 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/10 rounded-full h-12 w-12"
             onClick={goToPrevious}
+            disabled={isSwipeActive}
           >
             <ChevronLeft size={36} />
           </Button>
@@ -134,6 +211,7 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/10 rounded-full h-12 w-12"
             onClick={goToNext}
+            disabled={isSwipeActive}
           >
             <ChevronRight size={36} />
           </Button>
@@ -173,7 +251,7 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
           {/* Page indicator */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1">
             {content.map((_, index) => (
-              <div 
+              <motion.div 
                 key={index}
                 className={cn(
                   "h-1 rounded-full transition-all",
@@ -181,6 +259,12 @@ const ImmersiveView = ({ isOpen, onClose, content, initialIndex = 0 }: Immersive
                     ? "w-8 bg-white" 
                     : "w-2 bg-white/50"
                 )}
+                initial={{ scale: 0.8, opacity: 0.6 }}
+                animate={{ 
+                  scale: index === currentIndex ? 1 : 0.8,
+                  opacity: index === currentIndex ? 1 : 0.6
+                }}
+                transition={{ duration: 0.2 }}
               />
             ))}
           </div>

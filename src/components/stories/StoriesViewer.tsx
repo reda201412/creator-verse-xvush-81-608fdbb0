@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Story } from '@/types/stories';
 import { Button } from '@/components/ui/button';
@@ -5,12 +6,14 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, X, MessageCircle, Heart, Share } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, MessageCircle, Heart, Share2 } from 'lucide-react';
 import { useStories } from '@/hooks/use-stories';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
+import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
+import { MediaCacheService } from '@/services/media-cache.service';
 
 interface StoriesViewerProps {
   isOpen: boolean;
@@ -37,13 +40,17 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeStartX, setSwipeStartX] = useState(0);
   const timerRef = useRef<number | null>(null);
   const viewStartTimeRef = useRef<number>(Date.now());
   
   const { triggerMicroReward } = useNeuroAesthetic();
   const { user } = useAuth();
   
-  // Initialiser avec le groupe initial si fourni
+  // Initialize with the initial group if provided
   useEffect(() => {
     if (isOpen && initialGroupIndex !== undefined && storyGroups.length > 0) {
       const validIndex = Math.min(initialGroupIndex, storyGroups.length - 1);
@@ -52,26 +59,71 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
     }
   }, [isOpen, initialGroupIndex, storyGroups.length, setActiveGroupIndex, setActiveStoryIndex]);
   
-  // Story actuelle
+  // Current story
   const currentGroup = storyGroups[activeGroupIndex] || null;
   const currentStory = currentGroup?.stories[activeStoryIndex] || null;
   
-  // Gérer le timer pour passer à la story suivante
+  // Handle the timer to progress to the next story
   useEffect(() => {
-    if (!isOpen || !currentStory || isPaused) return;
+    if (!isOpen || !currentStory || isPaused || isVideoPlaying) return;
     
-    const duration = currentStory.duration * 1000; // Convertir en millisecondes
+    const duration = currentStory.duration * 1000; // Convert to milliseconds
     
-    // Réinitialiser le progrès
+    // Reset the progress
     setProgress(0);
     
-    // Enregistrer le moment où l'utilisateur a commencé à voir la story
+    // Record when the user started viewing the story
     viewStartTimeRef.current = Date.now();
     
-    // Marquer la story comme vue
+    // Mark the story as viewed
     markStoryAsViewed(currentStory.id);
     
-    // Animation de progression
+    // Pre-cache next stories for smoother viewing
+    const preloadNextStories = async () => {
+      // Find the next 2 stories to preload
+      const storiesQueue = [];
+      
+      // Add the next story in current group
+      if (currentGroup && activeStoryIndex < currentGroup.stories.length - 1) {
+        storiesQueue.push(currentGroup.stories[activeStoryIndex + 1]);
+      }
+      
+      // Add the first story of the next group
+      if (activeGroupIndex < storyGroups.length - 1) {
+        const nextGroup = storyGroups[activeGroupIndex + 1];
+        if (nextGroup && nextGroup.stories.length > 0) {
+          storiesQueue.push(nextGroup.stories[0]);
+        }
+      }
+      
+      // Preload media
+      storiesQueue.forEach(story => {
+        if (story) {
+          const isVideo = story.media_url.includes('.mp4') || 
+                        story.media_url.includes('.webm');
+                        
+          // For videos, just prefetch
+          if (isVideo) {
+            fetch(story.media_url, { method: 'HEAD' }).catch(() => {});
+          } 
+          // For images, actually preload
+          else {
+            const img = new Image();
+            img.src = story.media_url;
+          }
+          
+          // Preload thumbnail if available
+          if (story.thumbnail_url) {
+            const thumbImg = new Image();
+            thumbImg.src = story.thumbnail_url;
+          }
+        }
+      });
+    };
+    
+    preloadNextStories();
+    
+    // Progress animation
     const startTime = Date.now();
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
@@ -81,7 +133,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
       if (progressValue < 100) {
         timerRef.current = window.requestAnimationFrame(updateProgress);
       } else {
-        // Passer à la story suivante
+        // Move to the next story
         nextStory();
       }
     };
@@ -93,15 +145,15 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
         window.cancelAnimationFrame(timerRef.current);
       }
     };
-  }, [isOpen, currentStory, isPaused, nextStory, markStoryAsViewed]);
+  }, [isOpen, currentStory, isPaused, isVideoPlaying, nextStory, markStoryAsViewed, currentGroup, activeStoryIndex, activeGroupIndex, storyGroups]);
   
-  // Nettoyer en fermant
+  // Clean up when closing
   const handleClose = () => {
     if (timerRef.current !== null) {
       window.cancelAnimationFrame(timerRef.current);
     }
     
-    // Enregistrer la durée de visionnage si une story est active
+    // Record the viewing duration if a story is active
     if (currentStory) {
       const viewDuration = Math.round((Date.now() - viewStartTimeRef.current) / 1000);
       markStoryAsViewed(currentStory.id, viewDuration);
@@ -110,44 +162,62 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
     onClose();
   };
   
-  // Naviguer entre les stories
+  // Navigate between stories
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     nextStory();
+    triggerMicroReward('navigate');
   };
   
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     prevStory();
+    triggerMicroReward('navigate');
   };
   
-  // Gérer les interactions tactiles
+  // Handle touch interactions
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsPaused(true);
-    
-    // Enregistrer la position initiale du toucher
-    const touchX = e.touches[0].clientX;
-    const screenWidth = window.innerWidth;
-    
-    // Toucher sur le côté gauche (1/3) -> story précédente
-    if (touchX < screenWidth / 3) {
-      prevStory();
-    }
-    // Toucher sur le côté droit (1/3) -> story suivante
-    else if (touchX > (screenWidth * 2) / 3) {
-      nextStory();
-    }
+    setIsSwiping(true);
+    setSwipeStartX(e.touches[0].clientX);
   };
   
-  const handleTouchEnd = () => {
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - swipeStartX;
+    
+    // You could add some visual feedback here based on the swipe distance
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - swipeStartX;
+    
+    // If swiped far enough
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        // Swiped right
+        prevStory();
+      } else {
+        // Swiped left
+        nextStory();
+      }
+      triggerMicroReward('gesture');
+    }
+    
+    setIsSwiping(false);
     setIsPaused(false);
   };
   
-  // Gérer les interactions avec le contenu
+  // Handle content clicks
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Déterminer si le clic est à gauche ou à droite
+    // Determine if the click is on the left or right side
     const clickX = e.clientX;
     const elementWidth = (e.currentTarget as HTMLElement).offsetWidth;
     
@@ -173,7 +243,24 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
     }
   };
   
-  // Charger les stories lors de l'ouverture
+  // Handle video specific events
+  const handleVideoPlay = () => {
+    setIsVideoPlaying(true);
+    setIsPaused(true); // Pause the story timer while video is playing
+  };
+  
+  const handleVideoPause = () => {
+    setIsVideoPlaying(false);
+    setIsPaused(false); // Resume the story timer
+  };
+  
+  const handleVideoEnded = () => {
+    setIsVideoPlaying(false);
+    setIsPaused(false); // Resume the story timer
+    nextStory(); // Automatically move to next story when video ends
+  };
+  
+  // Load stories when opened
   useEffect(() => {
     if (isOpen) {
       loadStories();
@@ -182,12 +269,15 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   
   if (!isOpen) return null;
   
+  const isVideoStory = currentStory?.media_url.includes('.mp4') || 
+                       currentStory?.media_url.includes('.webm');
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="p-0 max-w-md h-[90vh] max-h-[90vh] bg-black relative overflow-hidden">
         {currentStory ? (
           <>
-            {/* Barre de progression */}
+            {/* Progress bar */}
             <div className="absolute top-0 left-0 right-0 z-10 flex space-x-1 p-2 bg-gradient-to-b from-black/80 to-transparent">
               {currentGroup?.stories.map((_, index) => (
                 <Progress 
@@ -198,7 +288,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
               ))}
             </div>
             
-            {/* Info du créateur */}
+            {/* Creator info */}
             <div className="absolute top-6 left-0 right-0 z-10 flex items-center justify-between px-4">
               <div className="flex items-center space-x-2">
                 <Avatar className="h-8 w-8 border border-white">
@@ -230,26 +320,27 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
               </Button>
             </div>
             
-            {/* Contenu principal */}
+            {/* Main content */}
             <div 
               className="h-full w-full flex items-center justify-center bg-gray-900"
               onClick={handleContentClick}
               onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              {currentStory.media_url.includes('.mp4') || 
-               currentStory.media_url.includes('.webm') ? (
-                <video 
+              {isVideoStory ? (
+                <EnhancedVideoPlayer
                   src={currentStory.media_url}
-                  autoPlay
-                  playsInline
-                  muted
-                  loop
-                  className={`max-h-full max-w-full object-contain ${
+                  thumbnailUrl={currentStory.thumbnail_url || undefined}
+                  autoPlay={isPlaying}
+                  className={`max-h-full max-w-full ${
                     currentStory.filter_used && currentStory.filter_used !== 'none' 
                       ? `filter-${currentStory.filter_used}` 
                       : ''
                   }`}
+                  onPlay={handleVideoPlay}
+                  onPause={handleVideoPause}
+                  onEnded={handleVideoEnded}
                 />
               ) : (
                 <img 
@@ -264,7 +355,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
               )}
             </div>
             
-            {/* Légende et tags */}
+            {/* Caption and tags */}
             {(currentStory.caption || currentStory.tags?.length) && (
               <div className="absolute bottom-16 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 to-transparent">
                 {currentStory.caption && (
@@ -287,7 +378,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
               </div>
             )}
             
-            {/* Boutons d'interaction */}
+            {/* Interaction buttons */}
             <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-between items-center p-4 bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex space-x-4">
                 <Button 
@@ -312,12 +403,12 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
                   className="text-white hover:bg-white/20"
                   onClick={() => handleInteraction('share')}
                 >
-                  <Share className="h-5 w-5" />
+                  <Share2 className="h-5 w-5" />
                 </Button>
               </div>
             </div>
             
-            {/* Boutons de navigation */}
+            {/* Navigation buttons */}
             <Button 
               variant="ghost" 
               size="icon" 

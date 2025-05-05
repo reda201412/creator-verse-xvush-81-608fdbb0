@@ -27,6 +27,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
+import { MediaCacheService } from '@/services/media-cache.service';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface VideoCardProps {
   video: VideoMetadata;
@@ -45,6 +48,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const { triggerMicroReward } = useNeuroAesthetic();
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -56,18 +60,37 @@ const VideoCard: React.FC<VideoCardProps> = ({
     }
   };
 
+  // Preload video when hover
+  const handleHover = async () => {
+    if (video.video_url && MediaCacheService.isCacheAvailable()) {
+      try {
+        // Pre-fetch the video resource to speed up playback
+        await fetch(video.video_url, { method: 'HEAD' });
+      } catch (error) {
+        console.error('Error preloading video:', error);
+      }
+    }
+  };
+
   return (
-    <div className="bg-card rounded-lg overflow-hidden shadow transition-all hover:shadow-md">
+    <div 
+      className="bg-card rounded-lg overflow-hidden shadow transition-all hover:shadow-md"
+      onMouseEnter={handleHover}
+    >
       {/* Video Thumbnail */}
       <div 
         className="relative aspect-video bg-muted cursor-pointer"
-        onClick={() => setVideoDialogOpen(true)}
+        onClick={() => {
+          setVideoDialogOpen(true);
+          triggerMicroReward('media');
+        }}
       >
         {video.thumbnailUrl ? (
           <img 
             src={video.thumbnailUrl} 
             alt={video.title} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-primary/10">
@@ -156,25 +179,28 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
       {/* Video Preview Dialog */}
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <div className="aspect-video bg-black rounded-md overflow-hidden">
-            {video.video_url ? (
-              <video
-                src={video.video_url}
-                className="w-full h-full"
-                controls
-                autoPlay
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-white">Erreur: Vidéo non disponible</p>
-              </div>
+        <DialogContent className="sm:max-w-3xl p-0">
+          {video.video_url ? (
+            <EnhancedVideoPlayer
+              src={video.video_url}
+              thumbnailUrl={video.thumbnailUrl}
+              title={video.title}
+              autoPlay={true}
+              onPlay={() => {
+                triggerMicroReward('media');
+              }}
+            />
+          ) : (
+            <div className="aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
+              <p className="text-white">Erreur: Vidéo non disponible</p>
+            </div>
+          )}
+          <div className="p-4">
+            <h3 className="text-lg font-medium">{video.title}</h3>
+            {video.description && (
+              <p className="text-sm text-muted-foreground mt-2">{video.description}</p>
             )}
           </div>
-          <h3 className="text-lg font-medium mt-2">{video.title}</h3>
-          {video.description && (
-            <p className="text-sm text-muted-foreground">{video.description}</p>
-          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Story, StoryTag, StoryView, StoryUploadParams, StoryFilter } from '@/types/stories';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { MediaCacheService } from '@/services/media-cache.service';
 
 export const StoriesService = {
   // Récupérer les stories actives (non expirées)
@@ -20,12 +21,16 @@ export const StoriesService = {
       throw error;
     }
     
-    // Ensure filter_used is a valid StoryFilter
-    return (data || []).map(item => ({
+    const stories = (data || []).map(item => ({
       ...item,
       filter_used: (item.filter_used || 'none') as StoryFilter,
       creator: item.user_profiles as any // Cast to the correct type
     })) as Story[];
+    
+    // Pre-cache thumbnails for better performance
+    this.preCacheStoryMedia(stories);
+    
+    return stories;
   },
   
   // Récupérer les stories d'un créateur spécifique
@@ -44,12 +49,16 @@ export const StoriesService = {
       throw error;
     }
     
-    // Ensure filter_used is a valid StoryFilter
-    return (data || []).map(item => ({
+    const stories = (data || []).map(item => ({
       ...item,
       filter_used: (item.filter_used || 'none') as StoryFilter,
       tags: item.story_tags as any // Cast to the correct type
     })) as Story[];
+    
+    // Pre-cache thumbnails for better performance
+    this.preCacheStoryMedia(stories);
+    
+    return stories;
   },
   
   // Récupérer les stories par tag
@@ -71,7 +80,7 @@ export const StoriesService = {
     }
     
     // Extract stories from nested structure and ensure filter_used is a valid StoryFilter
-    return (data || [])
+    const stories = (data || [])
       .map(item => item.stories)
       .filter(Boolean)
       .map(story => ({
@@ -79,6 +88,39 @@ export const StoriesService = {
         filter_used: (story.filter_used || 'none') as StoryFilter,
         creator: story.user_profiles as any
       })) as Story[];
+    
+    // Pre-cache thumbnails for better performance
+    this.preCacheStoryMedia(stories);
+    
+    return stories;
+  },
+  
+  // Pre-cache thumbnails for better performance
+  async preCacheStoryMedia(stories: Story[]): Promise<void> {
+    if (!MediaCacheService.isCacheAvailable()) return;
+    
+    // Get all thumbnail URLs
+    const thumbnailUrls = stories
+      .filter(s => s.thumbnail_url)
+      .map(s => s.thumbnail_url as string);
+    
+    // Preload thumbnails in background
+    if (thumbnailUrls.length > 0) {
+      MediaCacheService.preCacheVideos(thumbnailUrls).catch(err => {
+        console.warn('Failed to pre-cache some thumbnails:', err);
+      });
+    }
+    
+    // Preload first few video stories for instant playback
+    const videoStories = stories
+      .filter(s => s.media_url.includes('.mp4') || s.media_url.includes('.webm'))
+      .slice(0, 3); // Only preload first 3 videos
+    
+    if (videoStories.length > 0) {
+      videoStories.forEach(story => {
+        fetch(story.media_url, { method: 'HEAD' }).catch(() => {});
+      });
+    }
   },
   
   // Télécharger un fichier média pour une story
@@ -86,9 +128,19 @@ export const StoriesService = {
     const fileExt = file.name.split('.').pop();
     const filePath = `${userId}/stories/${Date.now()}.${fileExt}`;
     
+    // Add optimized upload for video files
+    let compressedFile = file;
+    
+    // If it's a video and larger than 10MB, we could implement compression here
+    if (file.type.includes('video/') && file.size > 10 * 1024 * 1024) {
+      // This is a placeholder for video compression
+      // In a real implementation, you'd compress the video before upload
+      console.log('Large video file detected, compression would be applied here');
+    }
+    
     const { error, data } = await supabase.storage
       .from('media')
-      .upload(filePath, file);
+      .upload(filePath, compressedFile);
     
     if (error) {
       console.error('Error uploading story media:', error);
@@ -128,7 +180,8 @@ export const StoriesService = {
         filter_used: params.filter || 'none',
         duration: params.duration || 10,
         expires_at: expiresAt.toISOString(),
-        metadata: params.metadata || {}
+        metadata: params.metadata || {},
+        format: params.mediaFile.type.includes('video/') ? 'video' : 'image'
       })
       .select()
       .single();
