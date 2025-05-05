@@ -21,32 +21,36 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import './App.css';
 
-// Protected route wrapper that only checks authentication
+// Protected route wrapper that checks authentication using useAuth hook
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // Check if the user is authenticated
-  const hasSession = localStorage.getItem('supabase.auth.token') !== null;
+  // Use the session from useAuth hook instead of localStorage
+  const { session } = useAuth();
   
-  if (!hasSession) {
+  if (!session) {
     return <Navigate to="/auth" replace />;
   }
   
   return <>{children}</>;
 };
 
-// Creator route wrapper that checks both authentication and creator role
+// Creator route wrapper that checks both authentication and creator role using useAuth hook
 const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isCreator } = useAuth();
-  // Check if the user is authenticated
-  const hasSession = localStorage.getItem('supabase.auth.token') !== null;
+  // Use session and isCreator from useAuth hook
+  const { session, isCreator } = useAuth();
   
-  if (!hasSession) {
+  // First check if user is authenticated
+  if (!session) {
+    console.log("CreatorRoute: No session, redirecting to /auth");
     return <Navigate to="/auth" replace />;
   }
   
+  // Then check if user is a creator
   if (!isCreator) {
+    console.log("CreatorRoute: Not a creator, redirecting to /");
     return <Navigate to="/" replace />;
   }
   
+  console.log("CreatorRoute: User is a creator, allowing access");
   return <>{children}</>;
 };
 
