@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Film, Video, ChevronDown } from 'lucide-react';
@@ -16,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import VideoUploader, { VideoMetadata } from '@/components/creator/VideoUploader';
 import { ContentType } from '@/types/content';
+import FreeVideosDemo from '@/components/creator/FreeVideosDemo';
 
 // Mock video data
 const initialVideos: VideoMetadata[] = [
@@ -195,6 +195,11 @@ const CreatorVideos: React.FC = () => {
             <TabsTrigger value="vip">VIP</TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* API Demo Section */}
+      <div className="mb-8">
+        <FreeVideosDemo />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

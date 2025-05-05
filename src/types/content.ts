@@ -1,6 +1,3 @@
-
-
-
 export type ContentType = 'standard' | 'premium' | 'vip' | 'teaser';
 
 export interface Content {
@@ -22,6 +19,7 @@ export interface Content {
   earnings: number;
   tags?: string[];
   monetization?: ContentMonetization;
+  shareable?: boolean;
 }
 
 export interface ContentMonetization {
@@ -42,13 +40,14 @@ export type RestrictedContentType = 'standard' | 'premium' | 'vip';
 export interface ContentItem {
   id: string;
   title: string;
-  type: RestrictedContentType; // Changed from ContentType to RestrictedContentType
+  type: RestrictedContentType;
   category?: string;
   views?: number;
   thumbnail?: string;
   format?: string;
   duration?: number;
   isPremium?: boolean;
+  shareable?: boolean;
 }
 
 export type FeedbackType = 'comment' | 'request' | 'appreciation';
@@ -62,3 +61,20 @@ export interface FeedbackMessage {
   type: FeedbackType;
 }
 
+// API response type for free videos endpoint
+export interface FreeVideoResponse {
+  id: string;
+  performerId: string;
+  author: string;
+  performerImage?: string;
+  thumbnail?: string;
+  title: string;
+  description: string;
+  publishDate: string;
+  metrics: {
+    likes: number;
+    views: number;
+  };
+  type: 'standard' | 'teaser';
+  shareable: boolean;
+}
