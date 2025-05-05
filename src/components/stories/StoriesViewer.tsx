@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Story } from '@/types/stories';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
 import { MediaCacheService } from '@/services/media-cache.service';
+import { useMicroRewards } from '@/hooks/use-microrewards';
 
 interface StoriesViewerProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   const viewStartTimeRef = useRef<number>(Date.now());
   
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { triggerGestureReward, triggerNavigationReward } = useMicroRewards();
   const { user } = useAuth();
   
   // Initialize with the initial group if provided
@@ -166,13 +167,13 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     nextStory();
-    triggerMicroReward('navigate');
+    triggerNavigationReward();
   };
   
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     prevStory();
-    triggerMicroReward('navigate');
+    triggerNavigationReward();
   };
   
   // Handle touch interactions
@@ -206,7 +207,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
         // Swiped left
         nextStory();
       }
-      triggerMicroReward('gesture');
+      triggerGestureReward();
     }
     
     setIsSwiping(false);

@@ -29,7 +29,7 @@ import {
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
 import { MediaCacheService } from '@/services/media-cache.service';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useMicroRewards } from '@/hooks/use-microrewards';
 
 interface VideoCardProps {
   video: VideoMetadata;
@@ -48,7 +48,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const { triggerMicroReward } = useNeuroAesthetic();
+  const { triggerMediaReward } = useMicroRewards();
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -82,7 +82,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         className="relative aspect-video bg-muted cursor-pointer"
         onClick={() => {
           setVideoDialogOpen(true);
-          triggerMicroReward('media');
+          triggerMediaReward();
         }}
       >
         {video.thumbnailUrl ? (
@@ -187,7 +187,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
               title={video.title}
               autoPlay={true}
               onPlay={() => {
-                triggerMicroReward('media');
+                triggerMediaReward();
               }}
             />
           ) : (

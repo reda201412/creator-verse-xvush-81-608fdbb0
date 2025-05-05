@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   Play, 
@@ -21,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useNeuroAesthetic, useMicroRewards } from '@/hooks/use-neuro-aesthetic';
 
 export interface VideoPlayerProps {
   src: string;
@@ -74,6 +73,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { triggerMediaReward, triggerGestureReward } = useMicroRewards();
 
   // Quality settings
   const qualityOptions = [
@@ -97,7 +97,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            triggerMicroReward('media');
+            triggerMediaReward();
             onPlay?.();
           })
           .catch(error => {
@@ -326,12 +326,12 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         // Right swipe - seek forward
         if (deltaX > 0) {
           video.currentTime = Math.min(video.currentTime + 10, video.duration);
-          triggerMicroReward('gesture');
+          triggerGestureReward();
         } 
         // Left swipe - seek backward
         else {
           video.currentTime = Math.max(video.currentTime - 10, 0);
-          triggerMicroReward('gesture');
+          triggerGestureReward();
         }
         
         setCurrentTime(video.currentTime);
@@ -347,7 +347,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isMobile, triggerMicroReward]);
+  }, [isMobile, triggerGestureReward]);
 
   // Format time (seconds to MM:SS)
   const formatTime = (timeInSeconds: number) => {
@@ -432,8 +432,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             {/* Buffered progress */}
             <Progress 
               value={(buffered / (duration || 1)) * 100} 
-              className="h-1 bg-white/20"
-              indicatorClassName="bg-white/40" 
+              className="h-1 bg-white/20" 
             />
             
             {/* Playback progress (on top of buffered) */}
@@ -448,8 +447,7 @@ const EnhancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             />
             <Progress 
               value={(currentTime / (duration || 1)) * 100} 
-              className="h-1 bg-transparent absolute inset-0"
-              indicatorClassName="bg-primary" 
+              className="h-1 bg-transparent absolute inset-0" 
             />
           </div>
           <span className="text-white text-xs">{formatTime(duration)}</span>

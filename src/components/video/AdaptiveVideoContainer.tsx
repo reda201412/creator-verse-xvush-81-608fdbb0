@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { useMediaQuery, useIsMobileDevice } from '@/hooks/use-media-query';
 import EnhancedVideoPlayer from './EnhancedVideoPlayer';
 import { cn } from '@/lib/utils';
 import { MediaCacheService } from '@/services/media-cache.service';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useMicroRewards } from '@/hooks/use-microrewards';
 
 // Define different video quality levels
 interface VideoResolution {
@@ -60,6 +60,7 @@ const AdaptiveVideoContainer: React.FC<AdaptiveVideoContainerProps> = ({
   const isMobile = useIsMobileDevice();
   const isHighResScreen = useMediaQuery('(min-resolution: 2dppx)');
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { triggerMilestoneReward } = useMicroRewards();
   
   // Monitor network conditions
   useEffect(() => {
@@ -143,10 +144,7 @@ const AdaptiveVideoContainer: React.FC<AdaptiveVideoContainerProps> = ({
         Math.floor(progress) === 50 || 
         Math.floor(progress) === 75 || 
         Math.floor(progress) === 98) {
-      triggerMicroReward('milestone', { 
-        type: 'video_progress', 
-        progress: Math.floor(progress) 
-      });
+      triggerMilestoneReward(Math.floor(progress));
     }
   };
 
