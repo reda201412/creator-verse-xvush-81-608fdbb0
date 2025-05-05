@@ -13,6 +13,7 @@ import Messages from '@/pages/Messages';
 import CreatorVideos from '@/pages/CreatorVideos';
 import ExclusiveContent from '@/pages/ExclusiveContent';
 import TokensPage from '@/pages/TokensPage';
+import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
 import SubscribersManagement from '@/pages/SubscribersManagement';
 import CalendarView from '@/pages/CalendarView';
 import ProfileSettings from '@/pages/ProfileSettings';
@@ -109,6 +110,14 @@ function App() {
                     element={
                       <CreatorRoute>
                         <ExclusiveContent />
+                      </CreatorRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/revenue" 
+                    element={
+                      <CreatorRoute>
+                        <CreatorRevenueDashboard />
                       </CreatorRoute>
                     } 
                   />
