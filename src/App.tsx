@@ -17,6 +17,7 @@ import SubscribersManagement from '@/pages/SubscribersManagement';
 import CalendarView from '@/pages/CalendarView';
 import ProfileSettings from '@/pages/ProfileSettings';
 import NotFound from '@/pages/NotFound';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import './App.css';
 
 // Protected route wrapper
@@ -34,93 +35,95 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="flex min-h-screen bg-background">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1">
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/creators" element={<CreatorsFeed />} />
-                <Route path="/creator" element={<CreatorProfile />} />
-                
-                {/* Protected routes */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/messages" 
-                  element={
-                    <ProtectedRoute>
-                      <Messages />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/videos" 
-                  element={
-                    <ProtectedRoute>
-                      <CreatorVideos />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/exclusive" 
-                  element={
-                    <ProtectedRoute>
-                      <ExclusiveContent />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/tokens" 
-                  element={
-                    <ProtectedRoute>
-                      <TokensPage />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/subscribers" 
-                  element={
-                    <ProtectedRoute>
-                      <SubscribersManagement />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/calendar" 
-                  element={
-                    <ProtectedRoute>
-                      <CalendarView />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/settings" 
-                  element={
-                    <ProtectedRoute>
-                      <ProfileSettings />
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Catch-all route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+      <TooltipProvider>
+        <Router>
+          <div className="flex min-h-screen bg-background">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="flex-1">
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/creators" element={<CreatorsFeed />} />
+                  <Route path="/creator" element={<CreatorProfile />} />
+                  
+                  {/* Protected routes */}
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/messages" 
+                    element={
+                      <ProtectedRoute>
+                        <Messages />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/videos" 
+                    element={
+                      <ProtectedRoute>
+                        <CreatorVideos />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/exclusive" 
+                    element={
+                      <ProtectedRoute>
+                        <ExclusiveContent />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/tokens" 
+                    element={
+                      <ProtectedRoute>
+                        <TokensPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/subscribers" 
+                    element={
+                      <ProtectedRoute>
+                        <SubscribersManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/calendar" 
+                    element={
+                      <ProtectedRoute>
+                        <CalendarView />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/settings" 
+                    element={
+                      <ProtectedRoute>
+                        <ProfileSettings />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Catch-all route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
           </div>
-        </div>
-        <Toaster />
-      </Router>
+          <Toaster />
+        </Router>
+      </TooltipProvider>
     </AuthProvider>
   );
 }
