@@ -5,6 +5,7 @@ import { VideoMetadata } from '@/types/video';
 import VideoHeader from '@/components/creator/videos/VideoHeader';
 import VideoFilterTabs from '@/components/creator/videos/VideoFilterTabs';
 import VideoGrid from '@/components/creator/videos/VideoGrid';
+import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -12,6 +13,7 @@ const CreatorVideos: React.FC = () => {
   const [videos, setVideos] = useState<VideoMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -65,15 +67,13 @@ const CreatorVideos: React.FC = () => {
 
   const handleDeleteVideo = async (videoId: string) => {
     try {
-      // Delete from Supabase
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', videoId.toString());
+        .eq('id', videoId);
       
       if (error) throw error;
       
-      // Update local state
       setVideos(prev => prev.filter(video => video.id !== videoId));
       
       toast({
@@ -116,14 +116,21 @@ const CreatorVideos: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <VideoHeader onUploadComplete={handleUploadComplete} />
       
-      <VideoFilterTabs 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <div className="mb-6 space-y-4">
+        <VideoSearch 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+        <VideoFilterTabs 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      </div>
 
       <VideoGrid
         videos={videos}
         activeTab={activeTab}
+        searchQuery={searchQuery}
         onDeleteVideo={handleDeleteVideo}
         onEditVideo={handleEditVideo}
         onPromoteVideo={handlePromoteVideo}

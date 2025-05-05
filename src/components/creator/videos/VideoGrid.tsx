@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface VideoGridProps {
   videos: VideoMetadata[];
   activeTab: string;
+  searchQuery: string;
   onDeleteVideo: (videoId: string) => void;
   onEditVideo: (videoId: string) => void;
   onPromoteVideo: (videoId: string) => void;
@@ -20,6 +20,7 @@ interface VideoGridProps {
 const VideoGrid: React.FC<VideoGridProps> = ({
   videos,
   activeTab,
+  searchQuery,
   onDeleteVideo,
   onEditVideo,
   onPromoteVideo,
@@ -28,20 +29,23 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   isLoading = false
 }) => {
   const getFilteredVideos = () => {
-    switch (activeTab) {
-      case 'all':
-        return videos;
-      case 'standard':
-        return videos.filter(video => video.type === 'standard');
-      case 'teaser':
-        return videos.filter(video => video.type === 'teaser');
-      case 'premium':
-        return videos.filter(video => video.type === 'premium');
-      case 'vip':
-        return videos.filter(video => video.type === 'vip');
-      default:
-        return videos;
+    let filteredVideos = videos;
+
+    // Filter by tab
+    if (activeTab !== 'all') {
+      filteredVideos = filteredVideos.filter(video => video.type === activeTab);
     }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filteredVideos = filteredVideos.filter(video => 
+        video.title.toLowerCase().includes(query) || 
+        video.description?.toLowerCase().includes(query)
+      );
+    }
+
+    return filteredVideos;
   };
 
   const getTypeLabel = (type: string) => {
@@ -92,7 +96,10 @@ const VideoGrid: React.FC<VideoGridProps> = ({
           <Video className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">Aucune vidéo</h3>
           <p className="text-muted-foreground mt-1 mb-4">
-            Vous n'avez pas encore ajouté de vidéo{activeTab !== 'all' ? ` de type ${getTypeLabel(activeTab)}` : ''}.
+            {searchQuery.trim() 
+              ? "Aucune vidéo ne correspond à votre recherche."
+              : `Vous n'avez pas encore ajouté de vidéo${activeTab !== 'all' ? ` de type ${getTypeLabel(activeTab)}` : ''}.`
+            }
           </p>
           <VideoUploader 
             onUploadComplete={onUploadComplete} 
