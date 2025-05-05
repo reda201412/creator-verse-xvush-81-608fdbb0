@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './use-local-storage';
 
@@ -41,6 +42,10 @@ export interface NeuroAestheticConfig {
   microRewardsEnabled: boolean;
   microRewardsIntensity: number;
   environmentalAdaptation: boolean;
+  // Add the missing properties that are used in Index.tsx
+  goldenRatioVisible?: boolean;
+  ambientSoundsEnabled?: boolean;
+  ambientVolume?: number;
 }
 
 export const defaultConfig: NeuroAestheticConfig = {
@@ -54,6 +59,9 @@ export const defaultConfig: NeuroAestheticConfig = {
   microRewardsEnabled: true,
   microRewardsIntensity: 50,
   environmentalAdaptation: true,
+  goldenRatioVisible: false,
+  ambientSoundsEnabled: false,
+  ambientVolume: 50,
 };
 
 interface CircadianState {

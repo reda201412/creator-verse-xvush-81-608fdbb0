@@ -2,7 +2,7 @@
 export type PathIcon = 'creator' | 'explorer' | 'curator' | 'supporter' | 'analyst';
 export type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type TaskDifficulty = 'easy' | 'medium' | 'hard';
-export type RewardType = 'badge' | 'token' | 'experience' | 'feature' | 'unlock';
+export type RewardType = 'badge' | 'token' | 'experience' | 'unlock';
 
 export interface Badge {
   id: string;

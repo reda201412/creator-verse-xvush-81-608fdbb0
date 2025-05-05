@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -120,10 +119,7 @@ const recommendedCreators = [
 
 const Index = () => {
   const isMobile = useIsMobile();
-  const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic({
-    moodIntensity: isMobile ? 30 : 50,
-    microRewardsIntensity: isMobile ? 20 : 50,
-  });
+  const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic();
   const { trackInteraction, trackContentPreference } = useUserBehavior();
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
@@ -153,7 +149,7 @@ const Index = () => {
   return (
     <div className="relative z-10">
       {/* Neuro-aesthetic elements */}
-      <GoldenRatioGrid visible={config.goldenRatioVisible} opacity={0.05} />
+      <GoldenRatioGrid visible={config.goldenRatioVisible || false} opacity={0.05} />
       <AdaptiveMoodLighting currentMood={config.adaptiveMood} intensity={config.moodIntensity} />
       <MicroRewardsEnhanced 
         enable={config.microRewardsEnabled} 
@@ -167,15 +163,15 @@ const Index = () => {
           updateConfig({ focusModeEnabled: isEnabled });
           trackInteraction('toggle' as InteractionType, { feature: 'focusMode', state: isEnabled });
         }}
-        ambientSoundsEnabled={config.ambientSoundsEnabled}
+        ambientSoundsEnabled={config.ambientSoundsEnabled || false}
         onAmbientSoundsToggle={(isEnabled) => {
           updateConfig({ ambientSoundsEnabled: isEnabled });
           trackInteraction('toggle' as InteractionType, { feature: 'ambientSounds', state: isEnabled });
         }}
       />
       <AmbientSoundscapes
-        enabled={config.ambientSoundsEnabled}
-        volume={config.ambientVolume}
+        enabled={config.ambientSoundsEnabled || false}
+        volume={config.ambientVolume || 50}
         onVolumeChange={(volume) => updateConfig({ ambientVolume: volume })}
       />
 
