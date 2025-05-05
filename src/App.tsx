@@ -9,9 +9,9 @@ import { DesktopSidebar } from "./components/navigation/Sidebar";
 import { useIsMobile } from "./hooks/use-mobile";
 import Header from "./components/navigation/Header";
 import MicroRewards from "./components/monetization/MicroRewards";
+import Index from "./pages/Index"; // Direct import instead of lazy loading
 
-// Lazy load pages for better performance
-const Index = lazy(() => import("./pages/Index"));
+// Lazy load other pages for better performance
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
@@ -31,7 +31,6 @@ const queryClient = new QueryClient({
       staleTime: 60000, // 1 minute
       refetchOnWindowFocus: false, // Prevent unnecessary refetches on focus
       retry: 1, // Only retry once to avoid notification spam
-      // Remove the suspense property as it's causing a TypeScript error
     },
   },
 });

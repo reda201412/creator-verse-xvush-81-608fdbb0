@@ -20,8 +20,8 @@ const trendingContent = [
     id: "trend1",
     imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
     title: "Morning Coffee Routine",
-    type: "premium" as const,
-    format: "image" as const,
+    type: "premium",
+    format: "image",
     metrics: {
       likes: 1200,
       comments: 89,
@@ -32,8 +32,8 @@ const trendingContent = [
     id: "trend2",
     imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
     title: "Spring Fashion Look",
-    type: "standard" as const,
-    format: "image" as const,
+    type: "standard",
+    format: "image",
     metrics: {
       likes: 950,
       comments: 63,
@@ -44,8 +44,8 @@ const trendingContent = [
     id: "trend3",
     imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
     title: "Sunset at the Mountain",
-    type: "standard" as const,
-    format: "video" as const,
+    type: "standard",
+    format: "video",
     duration: 187,
     metrics: {
       likes: 2300,
@@ -57,8 +57,8 @@ const trendingContent = [
     id: "trend4",
     imageUrl: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=800&auto=format&fit=crop",
     title: "Boulangerie Tour Paris",
-    type: "vip" as const,
-    format: "video" as const,
+    type: "vip",
+    format: "video",
     duration: 845,
     metrics: {
       likes: 3200,
@@ -115,7 +115,7 @@ const recommendedCreators = [
   }
 ];
 
-const Index: React.FC = () => {
+const Index = () => {
   const isMobile = useIsMobile();
   const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic({
     moodIntensity: isMobile ? 30 : 50,
@@ -163,7 +163,7 @@ const Index: React.FC = () => {
           </h1>
           
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark" asChild>
+            <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark">
               <Link to="/creators">
                 Explorer les créateurs
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -197,7 +197,7 @@ const Index: React.FC = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Recommended Creators</h2>
-            <Button variant="link" className="gap-2" asChild>
+            <Button variant="link" className="gap-2">
               <Link to="/creators">
                 Voir tout <ArrowRight className="h-4 w-4" />
               </Link>
