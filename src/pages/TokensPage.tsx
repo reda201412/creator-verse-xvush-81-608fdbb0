@@ -117,7 +117,7 @@ const TokensPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Coins className="h-8 w-8 text-amber-500" />
-          XVush Tokens
+          XDose Tokens
         </h1>
         
         <Button

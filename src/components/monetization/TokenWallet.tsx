@@ -64,7 +64,7 @@ const TokenWallet = ({ wallet, onPurchaseTokens, className }: TokenWalletProps) 
       <CardHeader>
         <div className="flex items-center gap-2">
           <Coins className="h-6 w-6 text-xvush-pink" />
-          <CardTitle>Porte-monnaie XVush</CardTitle>
+          <CardTitle>Porte-monnaie XDose</CardTitle>
         </div>
         <CardDescription>Gérez vos tokens et abonnements</CardDescription>
       </CardHeader>

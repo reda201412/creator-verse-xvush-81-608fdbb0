@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -172,10 +171,10 @@ export const HamburgerMenu = () => {
                     <div className="flex items-center gap-2">
                       <img 
                         src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-                        alt="CreatorVerse Logo" 
+                        alt="XDose Logo" 
                         className="w-8 h-8" 
                       />
-                      <span className="text-lg font-semibold text-primary">CreaVerse</span>
+                      <span className="text-lg font-semibold text-primary">XDose</span>
                     </div>
                   </Link>
                   <Button variant="ghost" size="icon" onClick={closeMenu}>

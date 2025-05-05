@@ -86,10 +86,10 @@ export const DesktopSidebar = () => {
       <Link to="/" className="flex items-center gap-2 mb-8">
         <img 
           src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-          alt="CreatorVerse Logo" 
+          alt="XDose Logo" 
           className="w-10 h-10" 
         />
-        <div className="text-2xl font-bold text-xvush-pink">CreaVerse</div>
+        <div className="text-2xl font-bold text-xvush-pink">XDose</div>
       </Link>
 
       {isCreator && (

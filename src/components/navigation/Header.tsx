@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
   return (
     <header className={`flex items-center justify-between p-4 ${className}`}>
       <Link to="/" className="text-xvush-pink text-2xl font-bold transition-transform hover:scale-105">
-        CreaVerse
+        XDose
       </Link>
       
       <div className="flex items-center gap-4">

@@ -125,7 +125,7 @@ const TokenPurchasePanel = ({ isOpen, onClose, onPurchase }: TokenPurchaseProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-amber-500" />
-            Achetez des XVush Tokens
+            Achetez des XDose Tokens
           </DialogTitle>
           <DialogDescription>
             Les tokens vous permettent d'accéder à du contenu exclusif et d'interagir avec vos créateurs préférés
