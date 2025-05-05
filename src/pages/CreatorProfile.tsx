@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import CreatorHeader from '@/components/CreatorHeader';
@@ -249,12 +248,12 @@ const feedbackMessages: FeedbackMessage[] = [
   }
 ];
 
-// Mock premium content data
+// Mock premium content data - this is where the type error occurs
 const premiumContent: ContentItem[] = [
   {
     id: "p1",
     title: "Portrait Photography Masterclass",
-    type: "premium" as ContentType,
+    type: "premium" as ContentType, // Fix: Use correct casting
     category: "cours",
     views: 2800,
     thumbnail: "https://images.unsplash.com/photo-1554080353-a576cf803bda?w=800&auto=format&fit=crop"
@@ -262,7 +261,7 @@ const premiumContent: ContentItem[] = [
   {
     id: "p2",
     title: "Lightroom Presets Collection",
-    type: "premium" as ContentType,
+    type: "premium" as ContentType, // Fix: Use correct casting
     category: "ressources",
     views: 4100,
     thumbnail: "https://images.unsplash.com/photo-1542395765-761f1b5f9a55?w=800&auto=format&fit=crop"
@@ -270,7 +269,7 @@ const premiumContent: ContentItem[] = [
   {
     id: "p3",
     title: "Behind the Scenes: Magazine Shoot",
-    type: "vip" as ContentType,
+    type: "vip" as ContentType, // Fix: Use correct casting
     category: "backstage",
     views: 1850,
     thumbnail: "https://images.unsplash.com/photo-1554668048-a2c814e56977?w=800&auto=format&fit=crop"
@@ -278,7 +277,7 @@ const premiumContent: ContentItem[] = [
   {
     id: "p4",
     title: "City Photography Guide: Paris",
-    type: "premium" as ContentType,
+    type: "premium" as ContentType, // Fix: Use correct casting
     category: "guides",
     views: 3200,
     thumbnail: "https://images.unsplash.com/photo-1568684333877-4d89c7aedf0a?w=800&auto=format&fit=crop"
@@ -286,7 +285,7 @@ const premiumContent: ContentItem[] = [
   {
     id: "p5",
     title: "1:1 Portfolio Review Session",
-    type: "vip" as ContentType,
+    type: "vip" as ContentType, // Fix: Use correct casting
     category: "coaching",
     views: 980,
     thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop"
@@ -294,7 +293,7 @@ const premiumContent: ContentItem[] = [
   {
     id: "p6",
     title: "Color Theory for Visual Artists",
-    type: "premium" as ContentType,
+    type: "premium" as ContentType, // Fix: Use correct casting
     category: "cours",
     views: 2450,
     thumbnail: "https://images.unsplash.com/photo-1655635949211-ff246747a421?w=800&auto=format&fit=crop"

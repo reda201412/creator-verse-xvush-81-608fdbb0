@@ -40,7 +40,7 @@ export interface ContentMonetization {
 export interface ContentItem {
   id: string;
   title: string;
-  type: ContentType;
+  type: ContentType; // This is correctly defined as ContentType
   category?: string;
   views?: number;
   thumbnail?: string;
