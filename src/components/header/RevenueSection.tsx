@@ -8,6 +8,7 @@ import UpcomingEvent from '@/components/UpcomingEvent';
 
 interface RevenueSectionProps {
   isCreator?: boolean;
+  isOwner?: boolean;
   revenue?: number;
   growthRate?: number;
   upcomingEvent?: {
@@ -22,6 +23,7 @@ interface RevenueSectionProps {
 
 const RevenueSection: React.FC<RevenueSectionProps> = ({
   isCreator = false,
+  isOwner = false,
   revenue,
   growthRate = 0,
   upcomingEvent,
@@ -30,8 +32,8 @@ const RevenueSection: React.FC<RevenueSectionProps> = ({
 }) => {
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Creator revenue display */}
-      {isCreator && revenue !== undefined && (
+      {/* Creator revenue display - only visible to the profile owner */}
+      {isCreator && isOwner && revenue !== undefined && (
         <div className="glass-card p-4 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <div className="text-xs text-muted-foreground">Revenu mensuel</div>

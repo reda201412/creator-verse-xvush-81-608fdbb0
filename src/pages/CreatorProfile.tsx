@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import CreatorHeader from '@/components/CreatorHeader';
@@ -12,6 +13,7 @@ import FeedbackLoop from '@/components/creator/FeedbackLoop';
 import ValueVault from '@/components/creator/ValueVault';
 import MonetizedContentSection from '@/components/creator/MonetizedContentSection';
 import { ContentType, RestrictedContentType, ContentItem, FeedbackType, FeedbackMessage } from '@/types/content';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Mock data
 const creatorData = {
@@ -303,6 +305,12 @@ const premiumContent: ContentItem[] = [
 const CreatorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState('grid');
   const { toast } = useToast();
+  const { user, profile, isCreator } = useAuth();
+  
+  // Check if the current user is the owner of this profile
+  // For this example, we're using the mock data. In a real app, 
+  // you would compare the current user's ID with the profile's user ID
+  const isProfileOwner = isCreator && profile?.username === creatorData.username;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -375,6 +383,7 @@ const CreatorProfile: React.FC = () => {
             tier={creatorData.tier as any}
             metrics={creatorData.metrics}
             isCreator={creatorData.isCreator}
+            isOwner={isProfileOwner}
             isOnline={creatorData.isOnline}
           />
         </motion.div>

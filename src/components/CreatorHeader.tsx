@@ -29,6 +29,7 @@ interface CreatorHeaderProps {
     watchMinutes?: number;
   };
   isCreator?: boolean;
+  isOwner?: boolean;
   isOnline?: boolean;
   className?: string;
 }
@@ -41,6 +42,7 @@ const CreatorHeader = ({
   tier,
   metrics,
   isCreator = false,
+  isOwner = false,
   isOnline = false,
   className,
 }: CreatorHeaderProps) => {
@@ -112,6 +114,7 @@ const CreatorHeader = ({
             <div className="col-span-1">
               <RevenueSection 
                 isCreator={isCreator}
+                isOwner={isOwner}
                 revenue={metrics.revenue}
                 growthRate={metrics.growthRate}
                 upcomingEvent={upcomingEvent}
