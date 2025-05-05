@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -150,8 +149,11 @@ const useVideoUpload = () => {
       setIsUploading(true);
       setUploadProgress(10);
 
+      // Create a user-specific path for video files
+      const userId = user.id;
+      const videoFileName = `${userId}/${crypto.randomUUID()}-${videoFile.name}`;
+      
       // Upload video file to Supabase Storage
-      const videoFileName = `${crypto.randomUUID()}-${videoFile.name}`;
       const { data: videoUploadData, error: videoUploadError } = await supabase.storage
         .from('videos')
         .upload(videoFileName, videoFile, {
@@ -160,6 +162,7 @@ const useVideoUpload = () => {
         });
 
       if (videoUploadError) {
+        console.error("Video upload error:", videoUploadError);
         throw videoUploadError;
       }
 
@@ -172,7 +175,9 @@ const useVideoUpload = () => {
       // Upload thumbnail if provided
       let thumbnailUrl: string | undefined;
       if (thumbnailFile) {
-        const thumbnailFileName = `${crypto.randomUUID()}-${thumbnailFile.name}`;
+        // Create a user-specific path for thumbnail files
+        const thumbnailFileName = `${userId}/${crypto.randomUUID()}-${thumbnailFile.name}`;
+        
         const { data: thumbnailUploadData, error: thumbnailUploadError } = await supabase.storage
           .from('thumbnails')
           .upload(thumbnailFileName, thumbnailFile, {
@@ -181,6 +186,7 @@ const useVideoUpload = () => {
           });
 
         if (thumbnailUploadError) {
+          console.error("Thumbnail upload error:", thumbnailUploadError);
           throw thumbnailUploadError;
         }
 
@@ -216,7 +222,6 @@ const useVideoUpload = () => {
       };
 
       // Save video metadata to Supabase database
-      // Omit the 'id' field to let Supabase auto-generate it
       const { data: insertData, error: insertError } = await supabase
         .from('videos')
         .insert({
@@ -238,6 +243,7 @@ const useVideoUpload = () => {
         });
 
       if (insertError) {
+        console.error("Database insert error:", insertError);
         throw insertError;
       }
 
@@ -246,14 +252,17 @@ const useVideoUpload = () => {
         .from('videos')
         .select('*')
         .eq('video_url', videoUrl)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
+        console.error("Error fetching new video:", fetchError);
         throw fetchError;
       }
 
-      // Update the metadata with the database-generated ID
-      videoMetadata.id = newVideo.id.toString();
+      // Update the metadata with the database-generated ID if available
+      if (newVideo && newVideo.id) {
+        videoMetadata.id = newVideo.id.toString();
+      }
 
       setUploadProgress(100);
 
@@ -267,7 +276,7 @@ const useVideoUpload = () => {
       console.error("Error uploading video:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors du téléchargement de la vidéo. Veuillez réessayer.",
+        description: "Erreur lors du téléchargement de la vidéo: " + (error.message || "Veuillez réessayer."),
         variant: "destructive",
       });
       return null;

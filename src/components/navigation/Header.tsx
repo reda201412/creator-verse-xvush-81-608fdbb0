@@ -13,6 +13,8 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
@@ -27,6 +29,11 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
   const { isCreator } = useAuth();
   const { triggerMicroReward } = useNeuroAesthetic();
   
+  const handleQuickUpload = () => {
+    navigate('/videos');
+    triggerMicroReward('navigate');
+  };
+  
   return (
     <header className={`flex items-center justify-between p-4 ${className}`}>
       <Link to="/" className="text-xvush-pink text-2xl font-bold transition-transform hover:scale-105">
@@ -34,6 +41,17 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
       </Link>
       
       <div className="flex items-center gap-4">
+        {isCreator && !isMobile && (
+          <Button 
+            size="sm"
+            onClick={handleQuickUpload}
+            className="bg-xvush-pink hover:bg-xvush-pink-dark"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Créer
+          </Button>
+        )}
+        
         {!isMobile && (
           <NavigationMenu>
             <NavigationMenuList>
