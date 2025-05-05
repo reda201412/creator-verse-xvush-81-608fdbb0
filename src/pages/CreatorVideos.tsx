@@ -8,12 +8,15 @@ import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
 
 const CreatorVideos: React.FC = () => {
   const [videos, setVideos] = useState<VideoMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -106,10 +109,8 @@ const CreatorVideos: React.FC = () => {
   };
 
   const handleAnalyticsVideo = (videoId: string) => {
-    toast({
-      title: "Statistiques de vidéo",
-      description: "Fonctionnalité à venir.",
-    });
+    setSelectedVideoId(videoId);
+    setIsAnalyticsModalOpen(true);
   };
 
   return (
@@ -137,6 +138,12 @@ const CreatorVideos: React.FC = () => {
         onAnalyticsVideo={handleAnalyticsVideo}
         onUploadComplete={handleUploadComplete}
         isLoading={loading}
+      />
+
+      <VideoAnalyticsModal
+        videoId={selectedVideoId}
+        isOpen={isAnalyticsModalOpen}
+        onClose={() => setIsAnalyticsModalOpen(false)}
       />
     </div>
   );

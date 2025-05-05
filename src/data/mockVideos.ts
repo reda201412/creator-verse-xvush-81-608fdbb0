@@ -1,5 +1,5 @@
 
-import { VideoMetadata } from '@/components/creator/VideoUploader';
+import { VideoMetadata } from '@/types/video';
 
 // Mock video data
 export const initialVideos: VideoMetadata[] = [

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { VideoMetadata } from '@/components/creator/VideoUploader';
+import { VideoMetadata } from '@/types/video';
 import { useToast } from '@/hooks/use-toast';
 
 interface VideoCardProps {
