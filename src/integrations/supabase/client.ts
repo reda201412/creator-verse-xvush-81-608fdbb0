@@ -30,6 +30,6 @@ export const getVideoById = async (videoId: string) => {
   return supabase
     .from('videos')
     .select('*')
-    .eq('id', videoId)
+    .eq('id', videoId.toString())
     .maybeSingle();
 };

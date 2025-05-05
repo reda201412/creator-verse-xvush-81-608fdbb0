@@ -1,7 +1,7 @@
 
 import React from 'react';
 import VideoUploader from '@/components/creator/VideoUploader';
-import { VideoMetadata } from '@/components/creator/VideoUploader';
+import { VideoMetadata } from '@/types/video';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface VideoHeaderProps {

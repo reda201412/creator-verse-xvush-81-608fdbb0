@@ -69,7 +69,7 @@ const CreatorVideos: React.FC = () => {
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', videoId);
+        .eq('id', videoId.toString());
       
       if (error) throw error;
       
