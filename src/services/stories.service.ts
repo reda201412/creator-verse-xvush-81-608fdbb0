@@ -24,7 +24,7 @@ export const StoriesService = {
     return (data || []).map(item => ({
       ...item,
       filter_used: (item.filter_used || 'none') as StoryFilter,
-      user_profiles: item.user_profiles as any // Cast to any temporarily
+      creator: item.user_profiles as any // Cast to the correct type
     })) as Story[];
   },
   
@@ -48,7 +48,7 @@ export const StoriesService = {
     return (data || []).map(item => ({
       ...item,
       filter_used: (item.filter_used || 'none') as StoryFilter,
-      story_tags: item.story_tags as any // Cast to any temporarily
+      tags: item.story_tags as any // Cast to the correct type
     })) as Story[];
   },
   
@@ -77,7 +77,7 @@ export const StoriesService = {
       .map(story => ({
         ...story,
         filter_used: (story.filter_used || 'none') as StoryFilter,
-        user_profiles: story.user_profiles as any
+        creator: story.user_profiles as any
       })) as Story[];
   },
   

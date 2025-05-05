@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -52,7 +51,10 @@ export const DesktopSidebar: React.FC = () => {
     <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed">
       <div className="p-4">
         {profile && profile.avatar_url ? (
-          <ProfileAvatar src={profile.avatar_url} alt={profile.display_name || profile.username} />
+          <ProfileAvatar 
+            src={profile.avatar_url} 
+            alt={profile.display_name || profile.username} 
+          />
         ) : (
           <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
             {profile?.display_name?.charAt(0) || profile?.username?.charAt(0) || '?'}
@@ -143,7 +145,10 @@ export const MobileSidebar: React.FC = () => {
         {profile && (
           <div className="p-4">
             {profile.avatar_url ? (
-              <ProfileAvatar src={profile.avatar_url} alt={profile.display_name || profile.username} />
+              <ProfileAvatar 
+                src={profile.avatar_url} 
+                alt={profile.display_name || profile.username} 
+              />
             ) : (
               <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
                 {profile.display_name?.charAt(0) || profile.username.charAt(0)}
