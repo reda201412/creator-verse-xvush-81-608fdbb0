@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { VideoMetadata } from '@/components/creator/VideoUploader';
+import { VideoMetadata } from '@/types/video';
 import VideoHeader from '@/components/creator/videos/VideoHeader';
 import VideoFilterTabs from '@/components/creator/videos/VideoFilterTabs';
 import VideoGrid from '@/components/creator/videos/VideoGrid';
@@ -34,13 +34,13 @@ const CreatorVideos: React.FC = () => {
           id: video.id.toString(),
           title: video.title || 'Sans titre',
           description: video.description || '',
-          type: video.type as ContentType,
+          type: video.type as VideoMetadata['type'],
           videoFile: {} as File, // We don't have the actual file object from database
           thumbnailUrl: video.thumbnail_url,
           format: video.format as '16:9' | '9:16' | '1:1' | 'other' || '16:9',
           isPremium: video.is_premium || false,
-          tokenPrice: video.token_price,
-          restrictions: video.restrictions
+          tokenPrice: video.token_price || undefined,
+          restrictions: video.restrictions as VideoMetadata['restrictions']
         }));
         
         setVideos(transformedData);

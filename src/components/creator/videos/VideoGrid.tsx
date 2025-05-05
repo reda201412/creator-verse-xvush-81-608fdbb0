@@ -2,7 +2,7 @@
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-import { VideoMetadata } from '@/components/creator/VideoUploader';
+import { VideoMetadata } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
