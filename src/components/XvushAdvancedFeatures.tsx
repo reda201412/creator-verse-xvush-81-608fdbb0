@@ -13,9 +13,11 @@ import ImmersiveExperience from './immersive/ImmersiveExperience';
 import AdaptiveMoodLighting from './neuro-aesthetic/AdaptiveMoodLighting';
 import CognitiveProfilePanel from './settings/CognitiveProfilePanel';
 import { Brain, Coins, Trophy, ArrowUpRight, Sparkles, LineChart, Layers, ScrollText } from 'lucide-react';
+import { Creator, Investment } from './economy/types';
+import { PathProgress, PathIcon } from './progression/types';
 
 // Mock data for the demos
-const mockCreators = [
+const mockCreators: Creator[] = [
   {
     id: '1',
     name: 'Emma Creativia',
@@ -54,7 +56,7 @@ const mockCreators = [
   }
 ];
 
-const mockInvestments = [
+const mockInvestments: Investment[] = [
   {
     id: '1',
     creatorId: '1',
@@ -105,7 +107,7 @@ const mockInvestments = [
   }
 ];
 
-const mockProgressionPaths = [
+const mockProgressionPaths: PathProgress[] = [
   {
     id: 'creator',
     name: 'Créateur',

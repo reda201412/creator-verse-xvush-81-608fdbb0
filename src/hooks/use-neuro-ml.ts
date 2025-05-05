@@ -1,8 +1,6 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useUserBehavior } from './use-user-behavior';
 import { useNeuroAesthetic, NeuroAestheticConfig } from './use-neuro-aesthetic';
-import { useLocalStorage } from './use-local-storage';
 
 // Types for ML model
 export interface MLPrediction {
@@ -32,6 +30,31 @@ interface FeatureWeights {
   analyticalContent: number;
   timeOfDay: number;
   scrollBehavior: number;
+}
+
+// Helper hook for local storage state
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error("Error reading from localStorage", error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error("Error writing to localStorage", error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
 }
 
 export function useNeuroML(options = {}) {
@@ -165,6 +188,13 @@ export function useNeuroML(options = {}) {
         bestProfile = profile as any;
       }
     });
+    
+    // Fix comparison issues by ensuring we're comparing the same types
+    if (features.analyticalContent > 0.7) {
+      bestProfile = 'analytical';
+    } else if (features.visualContent > 0.7) {
+      bestProfile = 'visual';
+    }
     
     // Determine mood based on time and interaction pattern
     let suggestedMood: 'energetic' | 'calm' | 'creative' | 'focused';
@@ -317,29 +347,4 @@ export function useNeuroML(options = {}) {
     applyLatestPrediction,
     extractFeatures
   };
-}
-
-// Helper hook for local storage state
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error("Error reading from localStorage", error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error("Error writing to localStorage", error);
-    }
-  };
-
-  return [storedValue, setValue] as const;
 }

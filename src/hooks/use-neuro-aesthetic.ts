@@ -1,244 +1,146 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useLocalStorage } from './use-local-storage';
 
-import { useCallback, useState, useEffect } from 'react';
-import { useCircadianRhythm } from './use-circadian-rhythm';
-
-// Expanded MicroRewardType to include all the types being used in the codebase
+export type CognitiveProfile = 'visual' | 'analytical' | 'balanced' | 'immersive';
+export type ContrastLevel = 'low' | 'standard' | 'high';
+export type AnimationSpeed = 'reduced' | 'standard' | 'enhanced';
+export type AdaptiveMood = 'energetic' | 'calm' | 'creative' | 'focused';
 export type MicroRewardType = 
-  | 'action' 
-  | 'opportunity' 
-  | 'navigate' 
-  | 'interaction'
-  | 'like'
-  | 'click'
+  | 'achievement' 
+  | 'discover' 
+  | 'progress' 
+  | 'wellbeing' 
+  | 'opportunity'
+  | 'navigate'
+  | 'interact'
   | 'tab'
-  | 'select'
-  | 'analyze'
-  | 'wellbeing'
-  | 'insight'
-  | 'goal'
-  | 'challenge'
-  | 'creative'
-  | 'star'     // Adding missing types
-  | 'message'
-  | 'comment'
-  | 'award'
-  | 'thumbs-up'
-  | 'trophy';
+  | 'select';
 
-// Default configuration values
-export const defaultConfig = {
-  adaptiveMood: 'calm' as 'energetic' | 'calm' | 'creative' | 'focused',
+export interface NeuroAestheticConfig {
+  cognitiveProfile: CognitiveProfile;
+  contrastLevel: ContrastLevel;
+  animationSpeed: AnimationSpeed;
+  focusModeEnabled: boolean;
+  autoAdapt: boolean;
+  adaptiveMood: AdaptiveMood;
+  moodIntensity: number;
+  microRewardsEnabled: boolean;
+  microRewardsIntensity: number;
+  environmentalAdaptation: boolean;
+}
+
+export const defaultConfig: NeuroAestheticConfig = {
+  cognitiveProfile: 'balanced',
+  contrastLevel: 'standard',
+  animationSpeed: 'standard',
+  focusModeEnabled: false,
+  autoAdapt: true,
+  adaptiveMood: 'calm',
   moodIntensity: 50,
   microRewardsEnabled: true,
   microRewardsIntensity: 50,
-  focusModeEnabled: false,
-  ambientSoundsEnabled: false,
-  ambientVolume: 30,
-  goldenRatioVisible: false,
-  autoAdapt: true,
-  cognitiveProfile: 'balanced' as 'visual' | 'analytical' | 'balanced' | 'immersive',
-  contrastLevel: 'standard' as 'low' | 'standard' | 'high',
-  animationSpeed: 'standard' as 'reduced' | 'standard' | 'enhanced',
   environmentalAdaptation: true,
-  colorSensitivity: 'standard' as 'reduced' | 'standard' | 'enhanced'
 };
 
-// Interface for configuration
-export interface NeuroAestheticConfig {
-  adaptiveMood?: 'energetic' | 'calm' | 'creative' | 'focused';
-  moodIntensity?: number;
-  microRewardsEnabled?: boolean;
-  microRewardsIntensity?: number;
-  focusModeEnabled?: boolean;
-  ambientSoundsEnabled?: boolean;
-  ambientVolume?: number;
-  goldenRatioVisible?: boolean;
-  autoAdapt?: boolean;
-  cognitiveProfile?: 'visual' | 'analytical' | 'balanced' | 'immersive';
-  contrastLevel?: 'low' | 'standard' | 'high';
-  animationSpeed?: 'reduced' | 'standard' | 'enhanced';
-  environmentalAdaptation?: boolean;
-  colorSensitivity?: 'reduced' | 'standard' | 'enhanced';
+interface CircadianState {
+  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  circadianPhase: 'early' | 'peak' | 'late';
+  suggestedMood: AdaptiveMood;
 }
 
-// Add initial configuration option
-interface UseNeuroAestheticOptions {
-  moodIntensity?: number;
-  microRewardsIntensity?: number;
-  initialConfig?: Partial<NeuroAestheticConfig>;
-  enableCircadian?: boolean;
-}
-
-export function useNeuroAesthetic(options: UseNeuroAestheticOptions = {}) {
-  const enableCircadian = options.enableCircadian ?? true;
+export function useNeuroAesthetic(options: { enableCircadian?: boolean } = {}) {
+  const { enableCircadian = true } = options;
+  const [config, setConfig] = useLocalStorage<NeuroAestheticConfig>('xvush_aesthetic_config', defaultConfig);
+  const [circadian, setCircadian] = useState<CircadianState>(getCircadianState());
   
-  // Initialize with default config and any provided options
-  const initialConfig = {
-    ...defaultConfig,
-    moodIntensity: options.moodIntensity || defaultConfig.moodIntensity,
-    microRewardsIntensity: options.microRewardsIntensity || defaultConfig.microRewardsIntensity,
-    ...options.initialConfig
-  };
-
-  const [config, setConfig] = useState<NeuroAestheticConfig>(initialConfig);
+  // Update config
+  const updateConfig = useCallback((newConfig: Partial<NeuroAestheticConfig>) => {
+    setConfig(prevConfig => ({ ...prevConfig, ...newConfig }));
+  }, [setConfig]);
   
-  // Get circadian rhythm suggestions
-  const circadian = useCircadianRhythm({
-    defaultSettings: {
-      enableAdaptation: config.autoAdapt ?? true
-    }
-  });
-  
-  // Apply circadian adaptations if enabled
-  useEffect(() => {
-    if (!enableCircadian || !config.autoAdapt) return;
-    
-    const suggestions = circadian.getSuggestedSettings();
-    
-    // Only update if in auto adapt mode
-    if (config.autoAdapt) {
-      setConfig(prev => {
-        // Don't update if user has manually set these recently
-        const updatedConfig: Partial<NeuroAestheticConfig> = {};
-        
-        updatedConfig.adaptiveMood = suggestions.suggestedMood;
-        
-        // Adjust intensity based on time of day
-        if (suggestions.timeOfDay === 'night') {
-          updatedConfig.moodIntensity = Math.min(prev.moodIntensity || 50, 40);
-          updatedConfig.microRewardsIntensity = Math.min(prev.microRewardsIntensity || 50, 30);
-        } else if (suggestions.timeOfDay === 'morning') {
-          updatedConfig.moodIntensity = Math.max(prev.moodIntensity || 50, 60);
-        }
-        
-        // Adjust animation and contrast based on circadian phase
-        if (suggestions.circadianPhase === 'resting') {
-          updatedConfig.contrastLevel = 'low';
-          updatedConfig.animationSpeed = 'reduced';
-        } else if (suggestions.circadianPhase === 'focused') {
-          updatedConfig.contrastLevel = 'high';
-        }
-        
-        return {
-          ...prev,
-          ...updatedConfig
-        };
-      });
-    }
-  }, [circadian, config.autoAdapt, enableCircadian]);
-
-  const triggerMicroReward = useCallback((type: MicroRewardType, metadata?: any) => {
+  // Micro-rewards trigger
+  const triggerMicroReward = useCallback((type: MicroRewardType, details: any = {}) => {
     if (!config.microRewardsEnabled) return;
     
-    const eventName = `xvush:${type}`;
-    document.dispatchEvent(new Event(eventName));
+    // Simulate reward effect
+    console.log(`Micro-reward triggered: ${type}`, details);
     
-    // Also trigger generic micro-reward event with additional details
-    const customEvent = new CustomEvent('xvush:micro-reward', {
-      detail: { 
-        type,
-        intensity: config.microRewardsIntensity,
-        timestamp: new Date(),
-        metadata
-      }
-    });
-    document.dispatchEvent(customEvent);
+    // Play subtle animation or sound
+    // Adjust interface elements slightly
     
-    // Optionally trigger haptic feedback if available
-    if ('vibrate' in navigator) {
-      try {
-        // Very gentle vibration
-        navigator.vibrate(10);
-      } catch (e) {
-        // Some browsers throw if vibration is not supported
-      }
-    }
-  }, [config.microRewardsEnabled, config.microRewardsIntensity]);
-
-  const updateConfig = useCallback((newConfig: Partial<NeuroAestheticConfig>) => {
-    setConfig(prevConfig => ({
-      ...prevConfig,
-      ...newConfig
-    }));
-  }, []);
+    // Log the reward event
+    // trackEvent('micro-reward', { type, ...details });
+  }, [config.microRewardsEnabled]);
   
-  // Get CSS variables for the current configuration
-  const getCssVariables = useCallback(() => {
-    const variables: Record<string, string> = {};
-    
-    // Set mood colors
-    if (config.adaptiveMood === 'energetic') {
-      variables['--mood-primary'] = 'hsl(15, 95%, 65%)';
-      variables['--mood-secondary'] = 'hsl(42, 95%, 65%)';
-      variables['--mood-accent'] = 'hsl(28, 95%, 65%)';
-    } else if (config.adaptiveMood === 'calm') {
-      variables['--mood-primary'] = 'hsl(195, 70%, 60%)';
-      variables['--mood-secondary'] = 'hsl(215, 70%, 65%)';
-      variables['--mood-accent'] = 'hsl(185, 70%, 60%)';
-    } else if (config.adaptiveMood === 'creative') {
-      variables['--mood-primary'] = 'hsl(265, 80%, 65%)';
-      variables['--mood-secondary'] = 'hsl(325, 80%, 65%)';
-      variables['--mood-accent'] = 'hsl(285, 80%, 65%)';
-    } else if (config.adaptiveMood === 'focused') {
-      variables['--mood-primary'] = 'hsl(220, 70%, 55%)';
-      variables['--mood-secondary'] = 'hsl(240, 70%, 60%)';
-      variables['--mood-accent'] = 'hsl(200, 70%, 55%)';
-    }
-    
-    // Set intensity
-    variables['--mood-intensity'] = `${config.moodIntensity}%`;
-    variables['--micro-rewards-intensity'] = `${config.microRewardsIntensity}%`;
-    
-    // Set contrast
-    if (config.contrastLevel === 'low') {
-      variables['--contrast-multiplier'] = '0.8';
-    } else if (config.contrastLevel === 'high') {
-      variables['--contrast-multiplier'] = '1.2';
-    } else {
-      variables['--contrast-multiplier'] = '1';
-    }
-    
-    // Set animation speed
-    if (config.animationSpeed === 'reduced') {
-      variables['--animation-multiplier'] = '1.5';  // slower
-    } else if (config.animationSpeed === 'enhanced') {
-      variables['--animation-multiplier'] = '0.7';  // faster
-    } else {
-      variables['--animation-multiplier'] = '1';    // standard
-    }
-    
-    return variables;
-  }, [config]);
-  
-  // Apply CSS variables to document root
+  // Circadian rhythm
   useEffect(() => {
-    const variables = getCssVariables();
-    const root = document.documentElement;
+    if (!enableCircadian) return;
     
-    Object.entries(variables).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
-    });
-    
-    // Add class for cognitive profile
-    if (config.cognitiveProfile) {
-      root.classList.remove('cognitive-visual', 'cognitive-analytical', 'cognitive-balanced', 'cognitive-immersive');
-      root.classList.add(`cognitive-${config.cognitiveProfile}`);
-    }
-    
-    // Cleanup
-    return () => {
-      Object.keys(variables).forEach(key => {
-        root.style.removeProperty(key);
-      });
-      root.classList.remove('cognitive-visual', 'cognitive-analytical', 'cognitive-balanced', 'cognitive-immersive');
+    const updateCircadianState = () => {
+      setCircadian(getCircadianState());
     };
-  }, [getCssVariables, config.cognitiveProfile]);
+    
+    updateCircadianState();
+    
+    const intervalId = setInterval(updateCircadianState, 60 * 60 * 1000); // Update every hour
+    
+    return () => clearInterval(intervalId);
+  }, [enableCircadian]);
+  
+  return {
+    config,
+    updateConfig,
+    circadian,
+    triggerMicroReward
+  };
+}
 
-  return { 
-    config, 
-    updateConfig, 
-    triggerMicroReward,
-    getCssVariables,
-    circadian
+// Helper functions
+function getCircadianState(): CircadianState {
+  const now = new Date();
+  const hour = now.getHours();
+  
+  let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+  if (hour >= 5 && hour < 12) {
+    timeOfDay = 'morning';
+  } else if (hour >= 12 && hour < 17) {
+    timeOfDay = 'afternoon';
+  } else if (hour >= 17 && hour < 22) {
+    timeOfDay = 'evening';
+  } else {
+    timeOfDay = 'night';
+  }
+  
+  let circadianPhase: 'early' | 'peak' | 'late';
+  if (hour >= 5 && hour < 9) {
+    circadianPhase = 'early';
+  } else if (hour >= 9 && hour < 18) {
+    circadianPhase = 'peak';
+  } else {
+    circadianPhase = 'late';
+  }
+  
+  let suggestedMood: AdaptiveMood;
+  switch (timeOfDay) {
+    case 'morning':
+      suggestedMood = 'energetic';
+      break;
+    case 'afternoon':
+      suggestedMood = 'focused';
+      break;
+    case 'evening':
+      suggestedMood = 'calm';
+      break;
+    case 'night':
+      suggestedMood = 'calm';
+      break;
+    default:
+      suggestedMood = 'calm';
+  }
+  
+  return {
+    timeOfDay,
+    circadianPhase,
+    suggestedMood
   };
 }

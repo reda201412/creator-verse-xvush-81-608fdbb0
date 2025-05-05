@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -418,16 +417,16 @@ const ImmersiveExperience: React.FC<ImmersiveExperienceProps> = ({
       )}
       
       {/* Contextual adaptations via CSS variables */}
-      <style jsx>{`
-        :global(.immersive-container) {
+      <style dangerouslySetInnerHTML={{ __html: `
+        .immersive-container {
           transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
         }
         
-        :global(.immersive-container.immersive-mode) {
+        .immersive-container.immersive-mode {
           padding: ${isImmersiveMode ? '2rem' : '0'};
         }
         
-        :global(.immersive-container.immersive-mode .immersive-content) {
+        .immersive-container.immersive-mode .immersive-content {
           backdrop-filter: ${isImmersiveMode ? 'blur(8px)' : 'none'};
           background-color: ${isImmersiveMode ? 'var(--immersive-surface)' : 'transparent'};
           border-radius: ${isImmersiveMode ? '1rem' : '0'};
@@ -435,47 +434,47 @@ const ImmersiveExperience: React.FC<ImmersiveExperienceProps> = ({
           padding: ${isImmersiveMode ? '1.5rem' : '0'};
         }
         
-        :global(.immersive-media-container.immersive-mode img),
-        :global(.immersive-media-container.immersive-mode video) {
+        .immersive-media-container.immersive-mode img,
+        .immersive-media-container.immersive-mode video {
           border-radius: 0.75rem;
           box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
         
-        :global(.immersive-container) :global(button),
-        :global(.immersive-container) :global(.button) {
+        .immersive-container button,
+        .immersive-container .button {
           background-color: var(--immersive-primary);
           color: white;
           border: none;
         }
         
-        :global(.immersive-container) :global(button:hover),
-        :global(.immersive-container) :global(.button:hover) {
+        .immersive-container button:hover,
+        .immersive-container .button:hover {
           background-color: var(--immersive-secondary);
         }
         
-        :global(.immersive-container.immersive-article) {
+        .immersive-container.immersive-article {
           max-width: ${isImmersiveMode ? '65ch' : 'none'};
           margin: ${isImmersiveMode ? '0 auto' : '0'};
           line-height: 1.7;
         }
         
-        :global(.immersive-container.immersive-article h1),
-        :global(.immersive-container.immersive-article h2),
-        :global(.immersive-container.immersive-article h3) {
+        .immersive-container.immersive-article h1,
+        .immersive-container.immersive-article h2,
+        .immersive-container.immersive-article h3 {
           color: var(--immersive-primary);
         }
         
-        :global(.immersive-container.immersive-article p) {
+        .immersive-container.immersive-article p {
           margin-bottom: 1.5em;
         }
         
-        :global(.immersive-container.immersive-gallery) {
+        .immersive-container.immersive-gallery {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
           grid-gap: ${isImmersiveMode ? '1.5rem' : '1rem'};
         }
         
-        :global(.immersive-container.immersive-gallery img) {
+        .immersive-container.immersive-gallery img {
           width: 100%;
           height: auto;
           object-fit: cover;
@@ -484,11 +483,11 @@ const ImmersiveExperience: React.FC<ImmersiveExperienceProps> = ({
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
-        :global(.immersive-container.immersive-gallery img:hover) {
+        .immersive-container.immersive-gallery img:hover {
           transform: ${isImmersiveMode ? 'translateY(-5px) scale(1.02)' : 'scale(1.01)'};
           box-shadow: ${isImmersiveMode ? '0 10px 30px rgba(0,0,0,0.15)' : '0 5px 15px rgba(0,0,0,0.1)'};
         }
-      `}</style>
+      `}} />
     </div>
   );
 };
