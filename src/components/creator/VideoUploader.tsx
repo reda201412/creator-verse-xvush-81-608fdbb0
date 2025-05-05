@@ -19,11 +19,9 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { ContentType } from '@/types/content';
-import { useXvushNotifications } from '@/utils/webhooks';
 
 export interface VideoMetadata {
   id: string;
@@ -37,7 +35,6 @@ export interface VideoMetadata {
   isProcessing?: boolean;
   isPremium: boolean;
   tokenPrice?: number;
-  shareable?: boolean; // Added shareable property
   restrictions?: {
     tier?: 'free' | 'fan' | 'superfan' | 'vip' | 'exclusive';
     sharingAllowed?: boolean;
@@ -72,13 +69,11 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   const [tier, setTier] = useState<'free' | 'fan' | 'superfan' | 'vip' | 'exclusive'>('free');
   const [sharingAllowed, setSharingAllowed] = useState(false);
   const [downloadsAllowed, setDownloadsAllowed] = useState(false);
-  const [shareable, setShareable] = useState(false); // Added for XVush sharing
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { triggerMicroReward } = useNeuroAesthetic();
-  const { notifyAboutContent } = useXvushNotifications();
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -162,7 +157,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     setTier('free');
     setSharingAllowed(false);
     setDownloadsAllowed(false);
-    setShareable(false); // Reset shareable state
     setUploadProgress(0);
     if (videoInputRef.current) videoInputRef.current.value = '';
     if (thumbnailInputRef.current) thumbnailInputRef.current.value = '';
@@ -206,7 +200,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         format: videoFormat,
         isPremium: videoType !== 'standard',
         tokenPrice: videoType !== 'standard' ? tokenPrice : undefined,
-        shareable, // Add shareable property to metadata
         restrictions: {
           tier: videoType !== 'standard' ? tier : 'free',
           sharingAllowed,
@@ -217,11 +210,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       
       onUploadComplete(metadata);
       triggerMicroReward('interaction');
-      
-      // Notify XVush if content is shareable and free/teaser
-      if ((videoType === 'standard' || videoType === 'teaser') && shareable) {
-        await notifyAboutContent(metadata);
-      }
       
       toast({
         title: "Vidéo téléchargée avec succès",
@@ -246,7 +234,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   };
 
   const isPremiumVideo = videoType === 'premium' || videoType === 'vip';
-  const isFreeOrTeaser = videoType === 'standard' || videoType === 'teaser';
 
   return (
     <>
@@ -423,20 +410,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 </Select>
               </div>
 
-              {/* XVush Sharing Option - Show for free or teaser content */}
-              {isFreeOrTeaser && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="shareable"
-                    checked={shareable}
-                    onCheckedChange={(checked) => setShareable(checked === true)}
-                  />
-                  <Label htmlFor="shareable" className="text-sm">
-                    Partager avec XVush (contenu gratuit visible sur la plateforme)
-                  </Label>
-                </div>
-              )}
-
               {/* Premium/VIP Options */}
               {isPremiumVideo && (
                 <div className="space-y-4 pt-2 border-t border-border">
@@ -469,19 +442,23 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
+                    <input 
+                      type="checkbox" 
                       id="sharingAllowed"
                       checked={sharingAllowed}
-                      onCheckedChange={(checked) => setSharingAllowed(checked === true)} 
+                      onChange={(e) => setSharingAllowed(e.target.checked)} 
+                      className="h-4 w-4"
                     />
                     <Label htmlFor="sharingAllowed" className="text-sm">Autoriser le partage</Label>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
+                    <input 
+                      type="checkbox" 
                       id="downloadsAllowed"
                       checked={downloadsAllowed}
-                      onCheckedChange={(checked) => setDownloadsAllowed(checked === true)} 
+                      onChange={(e) => setDownloadsAllowed(e.target.checked)} 
+                      className="h-4 w-4"
                     />
                     <Label htmlFor="downloadsAllowed" className="text-sm">Autoriser le téléchargement</Label>
                   </div>
