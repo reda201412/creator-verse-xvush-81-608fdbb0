@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -166,6 +167,25 @@ function toast({ ...props }: Toast) {
     dismiss,
     update,
   }
+}
+
+// Add success and error methods
+toast.success = (message: React.ReactNode, options?: Omit<Toast, "variant">) => {
+  return toast({
+    ...options,
+    title: options?.title || "Success",
+    description: message,
+    variant: "default",
+  })
+}
+
+toast.error = (message: React.ReactNode, options?: Omit<Toast, "variant">) => {
+  return toast({
+    ...options,
+    title: options?.title || "Error",
+    description: message,
+    variant: "destructive",
+  })
 }
 
 function useToast() {

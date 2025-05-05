@@ -28,7 +28,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-// Modified toast function with defaults that prevent spam
+// Modified toast function with extended methods
 const toast = Object.assign(
   (message: React.ReactNode, options?: Parameters<typeof sonnerToast>[1]) => {
     // Filter out welcome and loading messages
@@ -51,7 +51,16 @@ const toast = Object.assign(
 
     return sonnerToast(message, options);
   },
-  sonnerToast
+  {
+    ...sonnerToast,
+    // Add success and error methods
+    success: (message: React.ReactNode, options?: Parameters<typeof sonnerToast.success>[1]) => {
+      return sonnerToast.success(message, options);
+    },
+    error: (message: React.ReactNode, options?: Parameters<typeof sonnerToast.error>[1]) => {
+      return sonnerToast.error(message, options);
+    }
+  }
 );
 
 export { Toaster, toast }
