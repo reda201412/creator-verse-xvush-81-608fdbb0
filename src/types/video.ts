@@ -15,6 +15,7 @@ export interface VideoMetadata {
   type: ContentType;
   videoFile: File;
   thumbnailUrl?: string;
+  video_url?: string; // Ajout du champ video_url
   format: '16:9' | '9:16' | '1:1' | 'other';
   isPremium: boolean;
   tokenPrice?: number;

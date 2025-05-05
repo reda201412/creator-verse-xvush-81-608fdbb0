@@ -34,6 +34,8 @@ const CreatorVideos: React.FC = () => {
         
         if (error) throw error;
         
+        console.log("Vidéos récupérées:", data);
+        
         // Transform Supabase data to VideoMetadata format
         const transformedData: VideoMetadata[] = data.map(video => ({
           id: video.id?.toString() || '',
@@ -42,12 +44,14 @@ const CreatorVideos: React.FC = () => {
           type: video.type as VideoMetadata['type'],
           videoFile: {} as File, // We don't have the actual file object from database
           thumbnailUrl: video.thumbnail_url,
+          video_url: video.video_url, // Ajout de l'URL de la vidéo
           format: video.format as '16:9' | '9:16' | '1:1' | 'other' || '16:9',
           isPremium: video.is_premium || false,
           tokenPrice: video.token_price || undefined,
           restrictions: video.restrictions as VideoMetadata['restrictions']
         }));
         
+        console.log("Vidéos transformées:", transformedData);
         setVideos(transformedData);
       } catch (error) {
         console.error('Error fetching videos:', error);

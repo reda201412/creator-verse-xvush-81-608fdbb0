@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -153,6 +154,9 @@ const useVideoUpload = () => {
       const userId = user.id;
       const videoFileName = `${userId}/${crypto.randomUUID()}-${videoFile.name}`;
       
+      console.log("Début du téléversement de la vidéo:", videoFileName);
+      console.log("Taille du fichier vidéo:", videoFile.size, "bytes");
+      
       // Upload video file to Supabase Storage
       const { data: videoUploadData, error: videoUploadError } = await supabase.storage
         .from('videos')
@@ -166,17 +170,22 @@ const useVideoUpload = () => {
         throw videoUploadError;
       }
 
+      console.log("Vidéo téléversée avec succès:", videoUploadData);
       setUploadProgress(50);
 
       // Get the public URL for the uploaded video
       const { data: videoPublicUrl } = supabase.storage.from('videos').getPublicUrl(videoFileName);
       const videoUrl = videoPublicUrl.publicUrl;
+      
+      console.log("URL publique de la vidéo:", videoUrl);
 
       // Upload thumbnail if provided
       let thumbnailUrl: string | undefined;
       if (thumbnailFile) {
         // Create a user-specific path for thumbnail files
         const thumbnailFileName = `${userId}/${crypto.randomUUID()}-${thumbnailFile.name}`;
+        
+        console.log("Début du téléversement de la miniature:", thumbnailFileName);
         
         const { data: thumbnailUploadData, error: thumbnailUploadError } = await supabase.storage
           .from('thumbnails')
@@ -190,9 +199,13 @@ const useVideoUpload = () => {
           throw thumbnailUploadError;
         }
 
+        console.log("Miniature téléversée avec succès:", thumbnailUploadData);
+
         // Get the public URL for the uploaded thumbnail
         const { data: thumbnailPublicUrl } = supabase.storage.from('thumbnails').getPublicUrl(thumbnailFileName);
         thumbnailUrl = thumbnailPublicUrl.publicUrl;
+        
+        console.log("URL publique de la miniature:", thumbnailUrl);
       }
 
       setUploadProgress(75);
@@ -240,28 +253,19 @@ const useVideoUpload = () => {
             downloadsAllowed: values.downloadsAllowed
           } : null,
           uploadedat: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (insertError) {
         console.error("Database insert error:", insertError);
         throw insertError;
       }
 
-      // Get the newly created video with its database-generated ID
-      const { data: newVideo, error: fetchError } = await supabase
-        .from('videos')
-        .select('*')
-        .eq('video_url', videoUrl)
-        .maybeSingle();
+      console.log("Métadonnées de la vidéo insérées en base:", insertData);
 
-      if (fetchError) {
-        console.error("Error fetching new video:", fetchError);
-        throw fetchError;
-      }
-
-      // Update the metadata with the database-generated ID if available
-      if (newVideo && newVideo.id) {
-        videoMetadata.id = newVideo.id.toString();
+      // Update the metadata with the database-generated ID
+      if (insertData && insertData.length > 0 && insertData[0].id) {
+        videoMetadata.id = insertData[0].id.toString();
       }
 
       setUploadProgress(100);
