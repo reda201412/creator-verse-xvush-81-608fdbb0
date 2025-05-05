@@ -4,6 +4,7 @@ import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
 import { VideoMetadata } from '@/components/creator/VideoUploader';
 import VideoUploader from '@/components/creator/VideoUploader';
+import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
   videos: VideoMetadata[];
@@ -13,6 +14,7 @@ interface VideoGridProps {
   onPromoteVideo: (videoId: string) => void;
   onAnalyticsVideo: (videoId: string) => void;
   onUploadComplete: (metadata: VideoMetadata) => void;
+  isLoading?: boolean;
 }
 
 const VideoGrid: React.FC<VideoGridProps> = ({
@@ -22,7 +24,8 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   onEditVideo,
   onPromoteVideo,
   onAnalyticsVideo,
-  onUploadComplete
+  onUploadComplete,
+  isLoading = false
 }) => {
   const getFilteredVideos = () => {
     switch (activeTab) {
@@ -52,6 +55,22 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   };
 
   const filteredVideos = getFilteredVideos();
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="rounded-lg overflow-hidden">
+            <Skeleton className="aspect-video w-full" />
+            <div className="p-3 space-y-2">
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>

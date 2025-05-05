@@ -198,20 +198,21 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       const videoPath = `${userId}/${videoFileName}`;
       
       // Mise à jour de la barre de progression
+      let uploadProgress = 0;
       const uploadProgressCallback = (progress: number) => {
         setUploadProgress(progress);
       };
       
-      // Upload de la vidéo
+      // Upload de la vidéo - Fix: Remove onUploadProgress from options
       const { data: videoData, error: videoError } = await supabase.storage
         .from('videos')
         .upload(videoPath, videoFile, {
           cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: ({ percent }) => {
-            uploadProgressCallback(Math.round(percent * 100 * 0.7)); // 70% de la progression totale
-          }
+          upsert: false
         });
+      
+      // Update progress manually since we can't use onUploadProgress
+      uploadProgressCallback(70); // 70% complete after video upload
       
       if (videoError) throw videoError;
       
@@ -228,15 +229,16 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         const thumbnailFileName = `thumbnail_${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
         const thumbnailPath = `${userId}/${thumbnailFileName}`;
         
+        // Fix: Remove onUploadProgress from options
         const { data: thumbnailData, error: thumbnailError } = await supabase.storage
           .from('videos')
           .upload(thumbnailPath, thumbnailFile, {
             cacheControl: '3600',
-            upsert: false,
-            onUploadProgress: ({ percent }) => {
-              uploadProgressCallback(70 + Math.round(percent * 100 * 0.2)); // 20% supplémentaires
-            }
+            upsert: false
           });
+        
+        // Update progress manually since we can't use onUploadProgress
+        uploadProgressCallback(90); // 90% complete after thumbnail upload
         
         if (thumbnailError) throw thumbnailError;
         
@@ -275,7 +277,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       
       if (dbError) throw dbError;
       
-      setUploadProgress(100);
+      // Update to 100% when everything is done
+      uploadProgressCallback(100);
       
       // Préparer les métadonnées pour le retour
       const metadata: VideoMetadata = {
