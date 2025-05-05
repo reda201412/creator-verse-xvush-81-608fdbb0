@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -112,7 +111,7 @@ const mockProgressionPaths: PathProgress[] = [
     id: 'creator',
     name: 'Créateur',
     description: 'Développez vos talents créatifs et partagez vos créations avec la communauté',
-    icon: 'creator',
+    icon: 'creator' as PathIcon,
     level: 3,
     maxLevel: 10,
     experience: 750,
@@ -207,7 +206,7 @@ const mockProgressionPaths: PathProgress[] = [
     id: 'explorer',
     name: 'Explorateur',
     description: 'Découvrez et interagissez avec du contenu varié pour élargir vos horizons',
-    icon: 'explorer',
+    icon: 'explorer' as PathIcon,
     level: 5,
     maxLevel: 10,
     experience: 450,
@@ -268,7 +267,7 @@ const mockProgressionPaths: PathProgress[] = [
     id: 'supporter',
     name: 'Supporter',
     description: 'Soutenez la communauté en investissant et en faisant des donations',
-    icon: 'supporter',
+    icon: 'supporter' as PathIcon,
     level: 2,
     maxLevel: 10,
     experience: 220,

@@ -14,7 +14,21 @@ export type MicroRewardType =
   | 'navigate'
   | 'interact'
   | 'tab'
-  | 'select';
+  | 'select'
+  | 'action'
+  | 'like'
+  | 'star'
+  | 'message'
+  | 'comment'
+  | 'award'
+  | 'thumbs-up'
+  | 'insight'
+  | 'goal'
+  | 'challenge'
+  | 'click'
+  | 'creative'
+  | 'analyze'
+  | 'interaction';
 
 export interface NeuroAestheticConfig {
   cognitiveProfile: CognitiveProfile;
