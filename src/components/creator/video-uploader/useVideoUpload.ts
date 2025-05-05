@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,37 +35,126 @@ export interface VideoFormData {
 }
 
 const useVideoUpload = () => {
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const [videoFormat, setVideoFormat] = useState<'16:9' | '9:16' | '1:1' | 'other'>('16:9');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSubmit = async (data: VideoFormData) => {
+  const handleVideoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setVideoFile(file);
+
+    // Create a preview URL
+    const url = URL.createObjectURL(file);
+    setVideoPreviewUrl(url);
+
+    // Determine video format
+    const video = document.createElement('video');
+    video.onloadedmetadata = () => {
+      const ratio = video.videoWidth / video.videoHeight;
+      if (ratio > 1.7 && ratio < 1.8) {
+        setVideoFormat('16:9');
+      } else if (ratio < 0.6) {
+        setVideoFormat('9:16');
+      } else if (ratio >= 0.9 && ratio <= 1.1) {
+        setVideoFormat('1:1');
+      } else {
+        setVideoFormat('other');
+      }
+    };
+    video.src = url;
+  }, []);
+
+  const handleThumbnailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setThumbnailFile(file);
+
+    // Create a preview URL
+    const url = URL.createObjectURL(file);
+    setThumbnailPreviewUrl(url);
+  }, []);
+
+  const generateThumbnail = useCallback(() => {
+    if (!videoFile || !videoPreviewUrl) return;
+
+    // Create a video element to capture a frame
+    const video = document.createElement('video');
+    video.src = videoPreviewUrl;
+    video.currentTime = 1; // Seek to 1 second
+    
+    video.onseeked = () => {
+      // Create a canvas and draw the video frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to a Blob and then to a File
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const thumbnailFile = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
+            setThumbnailFile(thumbnailFile);
+            
+            // Create a preview URL
+            const url = URL.createObjectURL(thumbnailFile);
+            setThumbnailPreviewUrl(url);
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    };
+  }, [videoFile, videoPreviewUrl]);
+
+  const resetForm = useCallback(() => {
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    
+    setVideoFile(null);
+    setThumbnailFile(null);
+    setVideoPreviewUrl(null);
+    setThumbnailPreviewUrl(null);
+    setVideoFormat('16:9');
+    setUploadProgress(0);
+  }, [videoPreviewUrl, thumbnailPreviewUrl]);
+
+  const uploadToSupabase = async (values: VideoFormValues): Promise<VideoMetadata | null> => {
     if (!user) {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour télécharger une vidéo.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
-    if (!data.videoFile) {
+    if (!videoFile) {
       toast({
         title: "Erreur",
         description: "Veuillez sélectionner un fichier vidéo.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     try {
       setIsUploading(true);
+      setUploadProgress(10);
 
       // Upload video file to Supabase Storage
-      const videoFileName = `${crypto.randomUUID()}-${data.videoFile.name}`;
+      const videoFileName = `${crypto.randomUUID()}-${videoFile.name}`;
       const { data: videoUploadData, error: videoUploadError } = await supabase.storage
         .from('videos')
-        .upload(videoFileName, data.videoFile, {
+        .upload(videoFileName, videoFile, {
           cacheControl: '3600',
           upsert: false
         });
@@ -74,17 +163,19 @@ const useVideoUpload = () => {
         throw videoUploadError;
       }
 
+      setUploadProgress(50);
+
       // Get the public URL for the uploaded video
       const { data: videoPublicUrl } = supabase.storage.from('videos').getPublicUrl(videoFileName);
       const videoUrl = videoPublicUrl.publicUrl;
 
       // Upload thumbnail if provided
       let thumbnailUrl: string | undefined;
-      if (data.thumbnailFile) {
-        const thumbnailFileName = `${crypto.randomUUID()}-${data.thumbnailFile.name}`;
+      if (thumbnailFile) {
+        const thumbnailFileName = `${crypto.randomUUID()}-${thumbnailFile.name}`;
         const { data: thumbnailUploadData, error: thumbnailUploadError } = await supabase.storage
           .from('thumbnails')
-          .upload(thumbnailFileName, data.thumbnailFile, {
+          .upload(thumbnailFileName, thumbnailFile, {
             cacheControl: '3600',
             upsert: false
           });
@@ -98,22 +189,29 @@ const useVideoUpload = () => {
         thumbnailUrl = thumbnailPublicUrl.publicUrl;
       }
 
+      setUploadProgress(75);
+
+      // Determine if video is premium based on type
+      const isPremium = values.type === 'premium' || values.type === 'vip';
+
+      // Create a unique string ID for the video
+      const videoId = crypto.randomUUID();
+
       // Create metadata object
       const videoMetadata: VideoMetadata = {
-        id: crypto.randomUUID(),
-        title: data.title,
-        description: data.description || '',
-        type: data.contentType,
-        videoFile: data.videoFile,
+        id: videoId,
+        title: values.title,
+        description: values.description || '',
+        type: values.type,
+        videoFile: videoFile,
         thumbnailUrl: thumbnailUrl,
-        format: data.format,
-        isPremium: data.isPremium,
-        tokenPrice: data.isPremium ? data.tokenPrice : undefined,
-        restrictions: data.isPremium ? {
-          tier: data.tier,
-          sharingAllowed: data.sharingAllowed,
-          downloadsAllowed: data.downloadsAllowed,
-          expiresAt: data.expiresAt
+        format: videoFormat,
+        isPremium: isPremium,
+        tokenPrice: isPremium ? values.tokenPrice : undefined,
+        restrictions: isPremium ? {
+          tier: values.tier,
+          sharingAllowed: values.sharingAllowed,
+          downloadsAllowed: values.downloadsAllowed
         } : undefined
       };
 
@@ -121,21 +219,20 @@ const useVideoUpload = () => {
       const { data: insertData, error: insertError } = await supabase
         .from('videos')
         .insert({
-          id: parseInt(videoMetadata.id) || undefined, // Convert to number or use default
+          id: videoId, // Use string ID
           user_id: user.id,
-          title: data.title,
-          description: data.description,
-          type: data.contentType,
+          title: values.title,
+          description: values.description,
+          type: values.type,
           video_url: videoUrl,
           thumbnail_url: thumbnailUrl,
-          format: data.format,
-          is_premium: data.isPremium,
-          token_price: data.tokenPrice,
-          restrictions: data.isPremium ? {
-            tier: data.tier,
-            sharingAllowed: data.sharingAllowed,
-            downloadsAllowed: data.downloadsAllowed,
-            expiresAt: data.expiresAt?.toISOString()
+          format: videoFormat,
+          is_premium: isPremium,
+          token_price: values.tokenPrice,
+          restrictions: isPremium ? {
+            tier: values.tier,
+            sharingAllowed: values.sharingAllowed,
+            downloadsAllowed: values.downloadsAllowed
           } : null,
           uploadedat: new Date().toISOString()
         });
@@ -143,6 +240,8 @@ const useVideoUpload = () => {
       if (insertError) {
         throw insertError;
       }
+
+      setUploadProgress(100);
 
       toast({
         title: "Succès",
@@ -163,7 +262,20 @@ const useVideoUpload = () => {
     }
   };
 
-  return { isUploading, handleSubmit };
+  return { 
+    videoFile,
+    thumbnailFile,
+    videoPreviewUrl,
+    thumbnailPreviewUrl,
+    videoFormat,
+    isUploading,
+    uploadProgress,
+    handleVideoChange,
+    handleThumbnailChange,
+    generateThumbnail,
+    resetForm,
+    uploadToSupabase
+  };
 };
 
 export default useVideoUpload;

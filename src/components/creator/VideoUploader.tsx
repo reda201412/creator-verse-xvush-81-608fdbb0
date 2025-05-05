@@ -1,10 +1,10 @@
+
 import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
@@ -39,7 +39,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     generateThumbnail,
     resetForm,
     uploadToSupabase
-  } = useVideoUpload({ toast, user });
+  } = useVideoUpload();
 
   const handleUploadComplete = (metadata: VideoMetadata) => {
     onUploadComplete(metadata);

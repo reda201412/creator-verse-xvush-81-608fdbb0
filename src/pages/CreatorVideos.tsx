@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { VideoMetadata } from '@/types/video';
@@ -94,18 +93,11 @@ const CreatorVideos: React.FC = () => {
   };
 
   const handleEditVideo = (videoId: string) => {
-    // This would open the edit modal in a real implementation
-    toast({
-      title: "Modifier la vidéo",
-      description: "Fonctionnalité à venir.",
-    });
+    console.log("Edit video:", videoId);
   };
 
   const handlePromoteVideo = (videoId: string) => {
-    toast({
-      title: "Promotion de vidéo",
-      description: "Fonctionnalité à venir.",
-    });
+    console.log("Promote video:", videoId);
   };
 
   const handleAnalyticsVideo = (videoId: string) => {
