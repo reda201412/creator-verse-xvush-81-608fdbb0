@@ -72,23 +72,53 @@ export type Database = {
       videos: {
         Row: {
           creatorId: number | null
+          description: string | null
+          format: string | null
           id: number
+          is_premium: boolean | null
           isFree: boolean | null
+          restrictions: Json | null
+          thumbnail_url: string | null
+          title: string | null
+          token_price: number | null
+          type: string | null
           uploadedat: string | null
+          user_id: string | null
+          video_url: string | null
           videoUrl: string | null
         }
         Insert: {
           creatorId?: number | null
+          description?: string | null
+          format?: string | null
           id?: number
+          is_premium?: boolean | null
           isFree?: boolean | null
+          restrictions?: Json | null
+          thumbnail_url?: string | null
+          title?: string | null
+          token_price?: number | null
+          type?: string | null
           uploadedat?: string | null
+          user_id?: string | null
+          video_url?: string | null
           videoUrl?: string | null
         }
         Update: {
           creatorId?: number | null
+          description?: string | null
+          format?: string | null
           id?: number
+          is_premium?: boolean | null
           isFree?: boolean | null
+          restrictions?: Json | null
+          thumbnail_url?: string | null
+          title?: string | null
+          token_price?: number | null
+          type?: string | null
           uploadedat?: string | null
+          user_id?: string | null
+          video_url?: string | null
           videoUrl?: string | null
         }
         Relationships: [
