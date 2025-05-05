@@ -216,10 +216,10 @@ const useVideoUpload = () => {
       };
 
       // Save video metadata to Supabase database
+      // Omit the 'id' field to let Supabase auto-generate it
       const { data: insertData, error: insertError } = await supabase
         .from('videos')
         .insert({
-          id: videoId, // Use string ID
           user_id: user.id,
           title: values.title,
           description: values.description,
@@ -240,6 +240,20 @@ const useVideoUpload = () => {
       if (insertError) {
         throw insertError;
       }
+
+      // Get the newly created video with its database-generated ID
+      const { data: newVideo, error: fetchError } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('video_url', videoUrl)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Update the metadata with the database-generated ID
+      videoMetadata.id = newVideo.id.toString();
 
       setUploadProgress(100);
 
