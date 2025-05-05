@@ -11,6 +11,7 @@ import { ContentType } from '@/types/content';
 import { encryptMessage, decryptMessage, EncryptedContent } from '@/utils/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { cn } from '@/lib/utils';
 
 export interface ExclusiveContent {
   id: string;
@@ -95,7 +96,7 @@ const ExclusiveContentViewer: React.FC<ExclusiveContentViewerProps> = ({
   const isAccessible = canAccess() || hasEnoughTokens();
   
   // Simuler le chargement et déverrouillage du contenu
-  const handleUnlock = async () => {
+  const handleUnlock = () => {
     if (!isAccessible) return;
     
     setIsUnlocking(true);
@@ -112,11 +113,23 @@ const ExclusiveContentViewer: React.FC<ExclusiveContentViewerProps> = ({
         // Si le contenu est chiffré et nous avons une clé de session
         if (content.encryption?.isEncrypted && sessionKey && content.encryption.encryptedData) {
           try {
-            const decryptedContent = await decryptMessage(
-              content.encryption.encryptedData,
-              sessionKey
-            );
-            setDecryptedUrl(decryptedContent);
+            // Utiliser un IIFE pour une fonction asynchrone
+            (async () => {
+              try {
+                const decrypted = await decryptMessage(
+                  content.encryption!.encryptedData!,
+                  sessionKey
+                );
+                setDecryptedUrl(decrypted);
+              } catch (error) {
+                console.error('Erreur de déchiffrement:', error);
+                toast({
+                  title: "Erreur de déchiffrement",
+                  description: "Impossible de déchiffrer ce contenu.",
+                  variant: "destructive",
+                });
+              }
+            })();
           } catch (error) {
             console.error('Erreur de déchiffrement:', error);
             toast({
@@ -130,7 +143,7 @@ const ExclusiveContentViewer: React.FC<ExclusiveContentViewerProps> = ({
         setIsUnlocked(true);
         setIsUnlocking(false);
         onUnlock();
-        triggerMicroReward('success');
+        triggerMicroReward('navigate');
         
         toast({
           title: "Contenu déverrouillé",
@@ -144,7 +157,7 @@ const ExclusiveContentViewer: React.FC<ExclusiveContentViewerProps> = ({
     setHasLiked(!hasLiked);
     if (!hasLiked) {
       onLike();
-      triggerMicroReward('like');
+      triggerMicroReward('navigate');
       toast({
         title: "Vous aimez ce contenu",
         description: "Merci pour votre appréciation!",

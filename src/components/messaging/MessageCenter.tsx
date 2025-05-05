@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +105,7 @@ const MessageCenter = ({
     }
   }, [activeThread?.messages]);
   
-  const sendMessage = async (content: string, type: 'text' | 'voice' | 'media') => {
+  const handleSendMessage = (content: string, to: string) => {
     if (!activeThreadId || !content.trim()) return;
     
     let finalContent = content;
@@ -135,7 +134,7 @@ const MessageCenter = ({
       senderAvatar: userAvatar,
       recipientId: activeThread?.participants.filter(p => p !== userId) || [],
       content: finalContent,
-      type,
+      type: 'text',
       timestamp: new Date().toISOString(),
       status: 'sent',
       isEncrypted,
@@ -183,7 +182,7 @@ const MessageCenter = ({
       toast({
         title: "Message chiffré",
         description: "Votre message a été chiffré avant l'envoi.",
-        variant: "success",
+        variant: "default",
       });
     }
     
@@ -461,7 +460,7 @@ const MessageCenter = ({
                 
                 <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
                   <MessageInput 
-                    onSendMessage={(content) => sendMessage(content, 'text')}
+                    onSendMessage={(content) => handleSendMessage(content, 'text')}
                     isComposing={isComposing}
                     setIsComposing={setIsComposing}
                     monetizationEnabled={monetizationEnabled}

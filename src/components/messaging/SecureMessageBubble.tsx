@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
-import { Shield, Lock, Eye, EyeOff, Unlock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { Shield, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EncryptedContent, decryptMessage, isEncrypted } from '@/utils/encryption';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { AnimatePresence, motion } from 'framer-motion';
+import { decryptMessage } from '@/utils/encryption';
 
 interface SecureMessageBubbleProps {
   content: string | EncryptedContent;
@@ -48,8 +47,8 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
       
       toast({
         title: "Message déchiffré",
-        description: "Le message a été déchiffré avec succès.",
-        variant: "success",
+        description: "Le message a été déchiffré avec succès",
+        variant: "default",
       });
     } catch (error) {
       console.error('Erreur de déchiffrement:', error);

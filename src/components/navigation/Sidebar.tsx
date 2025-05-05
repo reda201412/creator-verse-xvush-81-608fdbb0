@@ -13,7 +13,7 @@ import {
   LogOut,
   Coins,
   Shield,
-  Lock,
+  Video,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export const DesktopSidebar = () => {
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés" },
     { to: "/tokens", icon: <Coins size={22} />, label: "Tokens" },
     { to: "/exclusive", icon: <Shield size={22} />, label: "Contenu Exclusif" },
+    { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos" },
   ];
 
   const userName = "Sarah K.";

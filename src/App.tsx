@@ -22,6 +22,7 @@ const CreatorsFeed = lazy(() => import("./pages/CreatorsFeed"));
 const XvushDesignSystem = lazy(() => import("./components/XvushDesignSystem"));
 const TokensPage = lazy(() => import("./pages/TokensPage"));
 const ExclusiveContent = lazy(() => import("./pages/ExclusiveContent"));
+const CreatorVideos = lazy(() => import("./pages/CreatorVideos"));
 
 // Create QueryClient with better caching settings to improve navigation fluidity
 const queryClient = new QueryClient({
@@ -62,6 +63,7 @@ const AppContent = () => {
             <Route path="/messages" element={<Messages />} />
             <Route path="/tokens" element={<TokensPage />} />
             <Route path="/exclusive" element={<ExclusiveContent />} />
+            <Route path="/videos" element={<CreatorVideos />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
