@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
-  Send, Image, Gift, Mic, Zap, Lock, Eye, Video, CircleDollarSign, 
-  Camera, Smile, Paperclip
+  Send, Image, Gift, Mic, Heart, Lock, Eye, Video, 
+  Camera, Smile, Paperclip, Star
 } from 'lucide-react';
 import { MessageThread, Message } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
@@ -20,11 +20,12 @@ interface ConversationViewProps {
   thread: MessageThread;
   userId: string;
   userName: string;
-  onSendMessage: (content: string, monetizationData?: any) => void;
+  onSendMessage: (content: string, supportData?: any) => void;
   sessionKey: string;
   isSecurityEnabled: boolean;
-  onOpenMonetization: () => void;
+  onOpenSupport: () => void;
   onOpenGifts: () => void;
+  userType: 'creator' | 'fan';
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({
@@ -34,8 +35,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   onSendMessage,
   sessionKey,
   isSecurityEnabled,
-  onOpenMonetization,
-  onOpenGifts
+  onOpenSupport,
+  onOpenGifts,
+  userType
 }) => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -203,31 +205,31 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-gray-50">
       {/* En-tête du chat */}
-      <div className="p-4 backdrop-blur-md bg-black/30 border-b border-white/10">
+      <div className="p-4 backdrop-blur-md bg-white/80 border-b border-gray-200">
         <div className="flex items-center">
           <div className="relative mr-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20">
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
               <img 
                 src={other.avatar}
                 alt={other.name}
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black"></span>
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
           </div>
           
           <div className="flex-1">
-            <h3 className="font-medium">{other.name}</h3>
-            <p className="text-xs text-white/60">En ligne maintenant</p>
+            <h3 className="font-medium text-gray-900">{other.name}</h3>
+            <p className="text-xs text-gray-500">En ligne maintenant</p>
           </div>
           
           <div className="flex gap-2">
             <Button 
               variant="ghost" 
               size="icon"
-              className="rounded-full text-white hover:bg-white/10"
+              className="rounded-full text-gray-700 hover:bg-gray-100"
               onClick={() => {
                 toast({
                   title: "Appel vidéo",
@@ -241,7 +243,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="rounded-full text-white hover:bg-white/10"
+              className="rounded-full text-gray-700 hover:bg-gray-100"
               onClick={() => {
                 toast({
                   title: "Appel audio",
@@ -289,13 +291,13 @@ const ConversationView: React.FC<ConversationViewProps> = ({
                     decryptMessage={handleDecrypt}
                   />
                   
-                  {/* Indicateur visuel pour les messages éphémères ou monétisés */}
+                  {/* Indicateur visuel pour les messages éphémères ou soutenus */}
                   {isEphemeral && !showEphemeral && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => revealEphemeralMessage(msg.id)}
-                      className="text-xs mt-1 text-white/60 hover:text-white"
+                      className="text-xs mt-1 text-gray-500 hover:text-gray-700"
                     >
                       <Eye size={12} className="mr-1" />
                       Appuyer pour voir
@@ -305,17 +307,19 @@ const ConversationView: React.FC<ConversationViewProps> = ({
                   {/* Indicateur pour les messages chiffrés */}
                   {msg.isEncrypted && (
                     <div className="flex items-center justify-end mt-0.5">
-                      <Lock size={10} className="text-green-400 mr-1" />
-                      <span className="text-[10px] text-green-400">Chiffré</span>
+                      <Lock size={10} className="text-green-600 mr-1" />
+                      <span className="text-[10px] text-green-600">Chiffré</span>
                     </div>
                   )}
                   
-                  {/* Indicateur pour les messages monétisés */}
+                  {/* Indicateur pour les messages soutenus */}
                   {hasMonetization && (
                     <div className="flex items-center justify-end mt-0.5">
-                      <Zap size={10} className="text-amber-400 mr-1" />
-                      <span className="text-[10px] text-amber-400">
-                        {msg.monetization?.tier} · {msg.monetization?.price}€
+                      <Heart size={10} className="text-pink-500 mr-1" />
+                      <span className="text-[10px] text-pink-500">
+                        {msg.monetization?.tier === 'basic' ? 'Encouragement' :
+                         msg.monetization?.tier === 'premium' ? 'Soutien' :
+                         msg.monetization?.tier === 'vip' ? 'Super Fan' : 'Champion'} · {msg.monetization?.price}€
                       </span>
                     </div>
                   )}
@@ -334,7 +338,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/10 bg-red-900/20 p-4 flex items-center justify-between"
+            className="border-t border-gray-200 bg-red-50 p-4 flex items-center justify-between"
           >
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse mr-3" />
@@ -352,36 +356,38 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Barre d'outils - cadeaux et monétisation */}
-      <div className="p-2 bg-black/30 border-t border-white/10 flex gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-          onClick={onOpenGifts}
-        >
-          <Gift size={18} className="mr-2" /> Cadeaux
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-green-400 hover:bg-green-500/10 hover:text-green-300"
-          onClick={onOpenMonetization}
-        >
-          <CircleDollarSign size={18} className="mr-2" /> Monétiser
-        </Button>
-      </div>
+      {/* Barre d'outils - options de soutien (uniquement pour les fans) */}
+      {userType === 'fan' && (
+        <div className="p-2 bg-gray-50 border-t border-gray-200 flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+            onClick={onOpenGifts}
+          >
+            <Gift size={18} className="mr-2" /> Offrir un cadeau
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-pink-600 hover:bg-pink-50 hover:text-pink-700"
+            onClick={onOpenSupport}
+          >
+            <Heart size={18} className="mr-2" /> Soutenir
+          </Button>
+        </div>
+      )}
       
       {/* Zone de saisie */}
-      <div className="p-4 backdrop-blur-md bg-black/30 border-t border-white/10">
+      <div className="p-4 backdrop-blur-md bg-white border-t border-gray-200">
         <div className="flex items-end gap-2">
           <div className="relative flex-1">
             <Textarea
               ref={textAreaRef}
               placeholder="Écrivez un message..."
               className={cn(
-                "resize-none min-h-[60px] pr-10 bg-white/5 border border-white/20 placeholder:text-white/40 text-white",
+                "resize-none min-h-[60px] pr-10 bg-white border border-gray-300 placeholder:text-gray-400 text-gray-800",
                 isSecurityEnabled && "border-green-500/30"
               )}
               value={message}
@@ -397,7 +403,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 rounded-full text-white/60 hover:text-white hover:bg-white/10"
+                className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                 onClick={() => {
                   toast({
                     title: "Appareil photo",
@@ -431,20 +437,20 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         {/* Options additionnelles */}
         <div className="flex mt-2 items-center justify-between">
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-white/60 hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100">
               <Smile size={16} />
             </Button>
-            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-white/60 hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100">
               <Paperclip size={16} />
             </Button>
-            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-white/60 hover:bg-white/10">
+            <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-full text-gray-500 hover:bg-gray-100">
               <Image size={16} />
             </Button>
           </div>
           
           {/* Indicateur de chiffrement */}
           {isSecurityEnabled && (
-            <div className="flex items-center text-xs text-green-400">
+            <div className="flex items-center text-xs text-green-600">
               <Lock size={12} className="mr-1" />
               <span>Chiffré</span>
             </div>

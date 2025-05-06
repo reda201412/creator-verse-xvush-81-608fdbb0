@@ -8,14 +8,14 @@ import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
   ArrowLeft, X, Shield, Users, Lock, Star, Zap, 
   MessageSquare, Camera, Gift, Key, ChevronDown,
-  Eye, EyeOff, CircleDollarSign
+  Eye, EyeOff, Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import ConversationList from './ConversationList';
 import ConversationView from './ConversationView';
-import { MonetizationPanel } from './MonetizationPanel';
+import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/messaging';
@@ -31,11 +31,12 @@ const SecureMessaging = () => {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [threads, setThreads] = useState<ThreadType[]>(mockMessageThreads);
   const [showConversationList, setShowConversationList] = useState(true);
-  const [showMonetizationPanel, setShowMonetizationPanel] = useState(false);
+  const [showSupportPanel, setShowSupportPanel] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
-  const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'monetized'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
+  const [userType, setUserType] = useState<'creator' | 'fan'>('fan'); // Détermine le type d'utilisateur
 
   const userId = "current_user_id"; // En réalité proviendrait d'un context d'authentification
   const userName = "Julie Sky"; // De même
@@ -78,7 +79,7 @@ const SecureMessaging = () => {
     }
   };
 
-  const handleSendMessage = (content: string, monetizationData?: any) => {
+  const handleSendMessage = (content: string, supportData?: any) => {
     if (!activeThreadId) return;
     
     const newMessage: Message = {
@@ -92,7 +93,7 @@ const SecureMessaging = () => {
       timestamp: new Date().toISOString(),
       status: 'sent',
       isEncrypted: isSecurityEnabled,
-      monetization: monetizationData,
+      monetization: supportData,
       emotional: {
         primaryEmotion: 'neutral',
         intensity: 50,
@@ -112,11 +113,11 @@ const SecureMessaging = () => {
       )
     );
 
-    if (monetizationData) {
+    if (supportData) {
       triggerHaptic('strong');
       toast({
-        title: "Message monétisé envoyé",
-        description: `${monetizationData.tier} - ${monetizationData.price}€`,
+        title: "Message de soutien envoyé",
+        description: `${supportData.tier} - ${supportData.price}€`,
       });
     }
   };
@@ -126,7 +127,7 @@ const SecureMessaging = () => {
     if (filterMode === 'unread') {
       return thread.messages.some(m => m.status !== 'read' && m.senderId !== userId);
     }
-    if (filterMode === 'monetized') {
+    if (filterMode === 'supported') {
       return thread.messages.some(m => m.monetization);
     }
     return true;
@@ -145,20 +146,20 @@ const SecureMessaging = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 text-white flex flex-col h-full w-full">
+    <div className="fixed inset-0 bg-white/95 text-gray-800 flex flex-col h-full w-full">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 backdrop-blur-md bg-black/50 border-b border-white/10">
+      <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
             size="icon"
-            className="text-white hover:bg-white/10 rounded-full"
+            className="text-gray-700 hover:bg-gray-100 rounded-full"
             onClick={handleBack}
           >
             <ArrowLeft size={24} />
           </Button>
           
-          <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+          <h1 className="text-xl font-semibold bg-clip-text text-gray-800">
             {showConversationList ? "Messagerie" : activeThread?.name || "Chat"}
           </h1>
         </div>
@@ -169,7 +170,7 @@ const SecureMessaging = () => {
             size="icon"
             className={cn(
               "rounded-full",
-              isSecurityEnabled ? "text-green-400 hover:text-green-300" : "text-red-400 hover:text-red-300"
+              isSecurityEnabled ? "text-green-600 hover:text-green-700" : "text-red-600 hover:text-red-700"
             )}
             onClick={toggleSecurityMode}
           >
@@ -179,7 +180,7 @@ const SecureMessaging = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            className="rounded-full text-white hover:bg-white/10"
+            className="rounded-full text-gray-700 hover:bg-gray-100"
             onClick={() => navigate('/')}
           >
             <X size={22} />
@@ -202,16 +203,16 @@ const SecureMessaging = () => {
               onValueChange={(value) => setFilterMode(value as any)}
               className="w-full"
             >
-              <TabsList className="w-full bg-white/5 border border-white/10">
-                <TabsTrigger value="all" className="data-[state=active]:bg-white/10">
+              <TabsList className="w-full bg-gray-100 border border-gray-200">
+                <TabsTrigger value="all" className="data-[state=active]:bg-white/80">
                   Tous
                 </TabsTrigger>
-                <TabsTrigger value="unread" className="data-[state=active]:bg-white/10">
+                <TabsTrigger value="unread" className="data-[state=active]:bg-white/80">
                   Non lus
                 </TabsTrigger>
-                <TabsTrigger value="monetized" className="data-[state=active]:bg-white/10">
-                  <Zap size={14} className="text-amber-400 mr-1" />
-                  Premium
+                <TabsTrigger value="supported" className="data-[state=active]:bg-white/80">
+                  <Zap size={14} className="text-amber-500 mr-1" />
+                  Soutenus
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -255,8 +256,9 @@ const SecureMessaging = () => {
                   onSendMessage={handleSendMessage}
                   sessionKey={sessionKeys[activeThread.id]}
                   isSecurityEnabled={isSecurityEnabled}
-                  onOpenMonetization={() => setShowMonetizationPanel(true)}
-                  onOpenGifts={() => setShowGiftPanel(true)}
+                  onOpenSupport={() => userType === 'fan' && setShowSupportPanel(true)}
+                  onOpenGifts={() => userType === 'fan' && setShowGiftPanel(true)}
+                  userType={userType}
                 />
               )}
             </motion.div>
@@ -264,31 +266,35 @@ const SecureMessaging = () => {
         </AnimatePresence>
       </div>
 
-      {/* Panels pour la monétisation et les cadeaux */}
-      <MonetizationPanel 
-        isOpen={showMonetizationPanel} 
-        onClose={() => setShowMonetizationPanel(false)}
-        onApply={(data) => {
-          handleSendMessage("Ce message est monétisé", data);
-          setShowMonetizationPanel(false);
-        }}
-      />
-      
-      <GiftPanel 
-        isOpen={showGiftPanel} 
-        onClose={() => setShowGiftPanel(false)}
-        onSendGift={(gift) => {
-          handleSendMessage(`🎁 ${gift.name}`, {
-            tier: 'premium' as MonetizationTier,
-            price: gift.price,
-            currency: 'EUR',
-            instantPayoutEnabled: true,
-            accessControl: { isGated: true },
-            analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
-          });
-          setShowGiftPanel(false);
-        }}
-      />
+      {/* Panels pour le soutien et les cadeaux - uniquement visibles pour les fans */}
+      {userType === 'fan' && (
+        <>
+          <SupportPanel 
+            isOpen={showSupportPanel} 
+            onClose={() => setShowSupportPanel(false)}
+            onApply={(data) => {
+              handleSendMessage("Je soutiens votre contenu", data);
+              setShowSupportPanel(false);
+            }}
+          />
+          
+          <GiftPanel 
+            isOpen={showGiftPanel} 
+            onClose={() => setShowGiftPanel(false)}
+            onSendGift={(gift) => {
+              handleSendMessage(`🎁 ${gift.name}`, {
+                tier: 'premium' as MonetizationTier,
+                price: gift.price,
+                currency: 'EUR',
+                instantPayoutEnabled: true,
+                accessControl: { isGated: true },
+                analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
+              });
+              setShowGiftPanel(false);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };
