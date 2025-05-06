@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, X, Filter, Download, Video, Image, Check } from 'lucide-react';
@@ -559,7 +558,7 @@ const QuickStoryPublisher: React.FC = () => {
       toast({
         title: "Succès",
         description: "Votre story a été publiée",
-        variant: "success",
+        variant: "default", 
       });
       
       // Réinitialiser l'état
