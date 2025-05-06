@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -255,8 +254,8 @@ const Index = () => {
           </div>
         </motion.div>
         
-        {/* Trending content section - Maintenant en premier */}
-        <section className="mb-8">
+        {/* Trending content section */}
+        <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Trending Content</h2>
             <Button 
@@ -344,14 +343,122 @@ const Index = () => {
                     toast(`Vous suivez maintenant ${creator.name}`, {
                       description: "Découvrez son contenu exclusif"
                     });
-                    triggerMicroReward('achievement');
+                    triggerMicroReward('like');
+                    trackInteraction('follow', { creatorId: creator.id });
                   }}
                 >
-                  Suivre
+                  {user ? 'Suivre' : 'Se connecter pour suivre'}
                 </Button>
               </motion.div>
             ))}
           </div>
+        </section>
+        
+        {/* Neuro-aesthetic controls */}
+        <section className="bg-muted/30 backdrop-blur-sm p-6 rounded-xl">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Neuro-Aesthetic Experience Controls</h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setShowCognitivePanel(!showCognitivePanel);
+                trackInteraction('toggle' as InteractionType, { feature: 'cognitivePanel', state: !showCognitivePanel });
+              }}
+              className="flex items-center gap-1.5"
+            >
+              <Settings className="h-4 w-4" />
+              {showCognitivePanel ? "Masquer avancé" : "Paramètres avancés"}
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <h3 className="text-sm font-medium mb-2">Ambiance visuelle</h3>
+              <div className="flex gap-2">
+                {(['energetic', 'calm', 'creative', 'focused'] as const).map(mood => (
+                  <Button
+                    key={mood}
+                    variant={config.adaptiveMood === mood ? "default" : "outline"}
+                    size="sm"
+                    className="capitalize"
+                    onClick={() => {
+                      updateConfig({ adaptiveMood: mood });
+                      trackInteraction('select' as InteractionType, { feature: 'mood', value: mood });
+                      triggerMicroReward('select');
+                    }}
+                  >
+                    {mood}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Change l'ambiance lumineuse de l'interface
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Intensité visuelle</h3>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) });
+                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'decrease' });
+                  }}
+                >
+                  -
+                </Button>
+                <div className="flex-grow text-center">{config.moodIntensity}%</div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) });
+                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'increase' });
+                  }}
+                >
+                  +
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ajuste la densité des effets visuels
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium mb-2">Micro-récompenses</h3>
+              <Button
+                variant={config.microRewardsEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  updateConfig({ microRewardsEnabled: !config.microRewardsEnabled });
+                  trackInteraction('toggle' as InteractionType, { feature: 'microRewards', state: !config.microRewardsEnabled });
+                  if (!config.microRewardsEnabled) {
+                    triggerMicroReward('click');
+                  }
+                }}
+              >
+                {config.microRewardsEnabled ? "Activées" : "Désactivées"}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">
+                Animations subtiles pour renforcer l'engagement
+              </p>
+            </div>
+          </div>
+          
+          {/* Cognitive Profile Panel (conditionally shown) */}
+          {showCognitivePanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-6 overflow-hidden"
+            >
+              <CognitiveProfilePanel />
+            </motion.div>
+          )}
         </section>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,16 +16,13 @@ import {
   LogOut,
   Coins,
   Video,
-  Upload,
-  Image,
-  Plus
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import StoryPublisher from "@/components/stories/StoryPublisher";
 
 interface NavItemProps {
   to: string;
@@ -81,7 +77,6 @@ export const HamburgerMenu = () => {
   let navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil", role: "all" },
     { to: "/creators", icon: <Users size={22} />, label: "Créateurs", role: "all" },
-    { to: "/stories", icon: <Image size={22} />, label: "Stories", role: "all" }, // Ajout Stories au menu principal
     { to: "/creator", icon: <User size={22} />, label: "Profil créateur", role: "all" },
     { to: "/tokens", icon: <Coins size={22} />, label: "Tokens", role: "all" },
     { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages", role: "all" },
@@ -131,12 +126,6 @@ export const HamburgerMenu = () => {
 
   const handleQuickUpload = () => {
     navigate('/videos');
-    closeMenu();
-    triggerMicroReward('navigate');
-  };
-
-  const handleCreateStory = () => {
-    navigate('/stories');
     closeMenu();
     triggerMicroReward('navigate');
   };
@@ -194,30 +183,13 @@ export const HamburgerMenu = () => {
                 </div>
                 
                 {isCreator && (
-                  <div className="mb-4 flex flex-col gap-2">
-                    <Button 
-                      onClick={handleQuickUpload}
-                      className="bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
-                    >
-                      <Upload size={16} />
-                      Créer une vidéo
-                    </Button>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleCreateStory}
-                        variant="outline"
-                        className="flex-1 flex items-center justify-center gap-2"
-                      >
-                        <Image size={16} />
-                        Voir les stories
-                      </Button>
-                      
-                      <div className="flex-shrink-0">
-                        <StoryPublisher />
-                      </div>
-                    </div>
-                  </div>
+                  <Button 
+                    onClick={handleQuickUpload}
+                    className="mb-4 bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
+                  >
+                    <Upload size={16} />
+                    Créer du contenu
+                  </Button>
                 )}
                 
                 <div className="mt-4 space-y-1">

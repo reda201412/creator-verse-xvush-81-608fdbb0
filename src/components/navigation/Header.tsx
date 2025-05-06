@@ -14,15 +14,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Upload, ChevronDown } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   className?: string;
@@ -48,27 +42,14 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
       
       <div className="flex items-center gap-4">
         {isCreator && !isMobile && (
-          <div className="flex items-center gap-2">
-            {/* Menu déroulant pour la création de contenu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  size="sm"
-                  className="bg-xvush-pink hover:bg-xvush-pink-dark"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Créer
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background border border-border w-48">
-                <DropdownMenuItem onClick={handleQuickUpload}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  <span>Vidéo</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <Button 
+            size="sm"
+            onClick={handleQuickUpload}
+            className="bg-xvush-pink hover:bg-xvush-pink-dark"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Créer
+          </Button>
         )}
         
         {!isMobile && (

@@ -1,7 +1,6 @@
 
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast as sonnerToast, type ToastT } from "sonner"
-import { CheckCircle } from "lucide-react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -22,8 +21,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          success: 
-            "group toast group-[.toaster]:border-green-500/30 group-[.toaster]:bg-green-50 group-[.toaster]:text-green-800 dark:group-[.toaster]:bg-green-950/50 dark:group-[.toaster]:text-green-300 dark:group-[.toaster]:border-green-500/20 group-[.toast]:animate-in group-[.toast]:animate-scale-in",
         },
       }}
       {...props}
@@ -56,14 +53,9 @@ const toast = Object.assign(
   },
   {
     ...sonnerToast,
-    // Enhance success method with icon and styling
+    // Add success and error methods
     success: (message: React.ReactNode, options?: Parameters<typeof sonnerToast.success>[1]) => {
-      const enhancedOptions = {
-        ...options,
-        className: 'success',
-        icon: <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-      };
-      return sonnerToast.success(message, enhancedOptions);
+      return sonnerToast.success(message, options);
     },
     error: (message: React.ReactNode, options?: Parameters<typeof sonnerToast.error>[1]) => {
       return sonnerToast.error(message, options);

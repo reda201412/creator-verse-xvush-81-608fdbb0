@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen } from 'lucide-react';
+import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import StoryPublisher from '@/components/stories/StoryPublisher';
 
 interface NavItem {
   href: string;
@@ -16,7 +16,7 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const commonNavItems = [
+const navItems: NavItem[] = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/creators', label: 'Créateurs', icon: Users },
 ];
@@ -34,6 +34,13 @@ const accountNavItems: NavItem[] = [
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/tokens', label: 'Tokens', icon: Wallet },
   { href: '/settings', label: 'Paramètres', icon: Settings },
+];
+
+// Add Stories to the navItems arrays
+const commonNavItems = [
+  { href: '/', label: 'Accueil', icon: Home },
+  { href: '/creators', label: 'Créateurs', icon: Users },
+  { href: '/stories', label: 'Stories', icon: Image },
 ];
 
 export const DesktopSidebar: React.FC = () => {
@@ -71,7 +78,6 @@ export const DesktopSidebar: React.FC = () => {
             <span>{item.label}</span>
           </NavLink>
         ))}
-        
         {isCreator && (
           <>
             <Separator className="my-2" />

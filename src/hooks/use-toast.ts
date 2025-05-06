@@ -169,20 +169,20 @@ function toast({ ...props }: Toast) {
   }
 }
 
-// Enhanced success method with proper variant
+// Add success and error methods
 toast.success = (message: React.ReactNode, options?: Omit<Toast, "variant">) => {
   return toast({
     ...options,
-    title: options?.title || "Succès",
+    title: options?.title || "Success",
     description: message,
-    variant: "success",
+    variant: "default",
   })
 }
 
 toast.error = (message: React.ReactNode, options?: Omit<Toast, "variant">) => {
   return toast({
     ...options,
-    title: options?.title || "Erreur",
+    title: options?.title || "Error",
     description: message,
     variant: "destructive",
   })
