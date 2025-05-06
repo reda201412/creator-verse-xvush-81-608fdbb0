@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
@@ -44,8 +43,9 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
     
     try {
       setIsDecrypting(true);
-      // Déchiffrement du message
-      const message = await decryptMessage(content as EncryptedContent, sessionKey);
+      // Déchiffrement du message avec le contenu typé correctement
+      const encryptedContent = content as EncryptedContent;
+      const message = await decryptMessage(encryptedContent, sessionKey);
       setDecryptedContent(message);
       setIsRevealed(true);
       if (onDecrypt) onDecrypt(message);

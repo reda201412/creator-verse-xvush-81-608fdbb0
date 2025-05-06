@@ -176,7 +176,7 @@ export function useTronWallet() {
     }
 
     try {
-      // Using our new edge function instead of RPC
+      // Using our edge function instead of RPC
       const { data, error } = await supabase.functions.invoke('check-content-access', {
         body: { contentId }
       });
