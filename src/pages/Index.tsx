@@ -16,14 +16,15 @@ import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from
 import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 
-// Sample content data similar to the CreatorProfile page
+// Sample content data with more premium and VIP content
 const trendingContent = [
   {
     id: "trend1",
     imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
     title: "Morning Coffee Routine",
     type: "premium" as const,
-    format: "image" as const,
+    format: "video" as const,
+    duration: 345,
     metrics: {
       likes: 1200,
       comments: 89,
@@ -34,8 +35,9 @@ const trendingContent = [
     id: "trend2",
     imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
     title: "Spring Fashion Look",
-    type: "standard" as const,
-    format: "image" as const,
+    type: "vip" as const,
+    format: "video" as const,
+    duration: 520,
     metrics: {
       likes: 950,
       comments: 63,
@@ -68,6 +70,32 @@ const trendingContent = [
       views: 15600,
     }
   },
+  {
+    id: "trend5",
+    imageUrl: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&auto=format&fit=crop",
+    title: "Backstage Fashion Week",
+    type: "premium" as const,
+    format: "video" as const,
+    duration: 652,
+    metrics: {
+      likes: 4100,
+      comments: 215,
+      views: 18900,
+    }
+  },
+  {
+    id: "trend6",
+    imageUrl: "https://images.unsplash.com/photo-1605812276723-c31bb1a68285?w=800&auto=format&fit=crop",
+    title: "Exclusive Interview",
+    type: "vip" as const,
+    format: "video" as const,
+    duration: 1245,
+    metrics: {
+      likes: 5800,
+      comments: 420,
+      views: 23500,
+    }
+  }
 ];
 
 const recommendedCreators = [
@@ -261,7 +289,10 @@ const Index = () => {
             <Button 
               variant="link" 
               className="gap-2"
-              onClick={() => trackInteraction('navigate', { to: 'allTrending' })}
+              onClick={() => {
+                navigate('/trending');
+                trackInteraction('navigate', { to: 'trending' });
+              }}
             >
               Voir tout <ArrowRight className="h-4 w-4" />
             </Button>

@@ -18,7 +18,7 @@ import SubscribersManagement from '@/pages/SubscribersManagement';
 import CalendarView from '@/pages/CalendarView';
 import ProfileSettings from '@/pages/ProfileSettings';
 import NotFound from '@/pages/NotFound';
-import Stories from '@/pages/Stories';
+import TrendingContent from '@/pages/TrendingContent';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
@@ -74,7 +74,7 @@ function App() {
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/creators" element={<CreatorsFeed />} />
                     <Route path="/creator" element={<CreatorProfile />} />
-                    <Route path="/stories" element={<Stories />} />
+                    <Route path="/trending" element={<TrendingContent />} />
                     
                     {/* Creator-only routes */}
                     <Route 
