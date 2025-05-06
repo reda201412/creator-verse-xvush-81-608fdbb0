@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Story, StoryFilter } from '@/types/stories';
-import { MediaCacheService } from '@/services/media-cache.service';
+import { StoryCacheService } from '@/services/story-cache.service';
 
 export const StoriesCoreService = {
   // Récupérer les stories actives (non expirées)
@@ -27,7 +27,7 @@ export const StoriesCoreService = {
     })) as Story[];
     
     // Pre-cache thumbnails for better performance
-    MediaCacheService.preCacheStoryMedia(stories);
+    StoryCacheService.preCacheStoryMedia(stories);
     
     return stories;
   },
@@ -55,7 +55,7 @@ export const StoriesCoreService = {
     })) as Story[];
     
     // Pre-cache thumbnails for better performance
-    MediaCacheService.preCacheStoryMedia(stories);
+    StoryCacheService.preCacheStoryMedia(stories);
     
     return stories;
   },
@@ -89,7 +89,7 @@ export const StoriesCoreService = {
       })) as Story[];
     
     // Pre-cache thumbnails for better performance
-    MediaCacheService.preCacheStoryMedia(stories);
+    StoryCacheService.preCacheStoryMedia(stories);
     
     return stories;
   },
