@@ -76,7 +76,7 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
           X
         </motion.span>
         <motion.span 
-          className={`${colors[(randomColor + 2) % colors.length]} bg-clip-text text-transparent`}
+          className="text-gray-800" // Changed to dark gray for better contrast on white backgrounds
         >
           Dose
         </motion.span>

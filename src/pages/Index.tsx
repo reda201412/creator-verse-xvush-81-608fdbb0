@@ -206,14 +206,14 @@ const Index = () => {
 
       {/* Main content */}
       <div className="container px-4 mx-auto py-8 space-y-8">
-        {/* Hero section - Updated to use XDoseLogo instead of text */}
+        {/* Hero section - Logo centered better */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center space-y-4 max-w-3xl mx-auto mb-4"
+          className="text-center space-y-6 max-w-3xl mx-auto mb-6"
         >
-          <div className="flex justify-center">
+          <div className="flex justify-center py-4">
             <XDoseLogo size="xl" animated={true} />
           </div>
           
