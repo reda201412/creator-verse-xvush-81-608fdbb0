@@ -5,13 +5,10 @@ import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { decryptMessage } from '@/utils/encryption';
+import { decryptMessage, EncryptedContent } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
 
-interface EncryptedContent {
-  iv: string;
-  encryptedData: string;
-}
+// We're removing our local EncryptedContent interface and importing it from utils/encryption instead
 
 interface SecureMessageBubbleProps {
   content: string | EncryptedContent;
@@ -40,7 +37,7 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
   const { toast } = useToast();
   
   // Déterminer si le contenu est chiffré
-  const encrypted = typeof content === 'object' && 'iv' in content && 'encryptedData' in content;
+  const encrypted = typeof content === 'object' && 'data' in content && 'iv' in content && 'salt' in content;
   
   const handleDecrypt = useCallback(async () => {
     if (!encrypted || !sessionKey) return;

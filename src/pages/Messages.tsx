@@ -10,14 +10,21 @@ const Messages = () => {
   useEffect(() => {
     const redirectTimeout = setTimeout(() => {
       navigate('/secure-messaging');
-    }, 500); // Petit délai pour l'animation
+    }, 1000); // Un délai plus long pour une meilleure expérience utilisateur
     
     return () => clearTimeout(redirectTimeout);
   }, [navigate]);
   
   return (
     <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-      <Spinner size="lg" color="primary" label="Redirection vers la messagerie sécurisée..." />
+      <Spinner 
+        size="xl" 
+        color="primary" 
+        label="Redirection vers la messagerie sécurisée..." 
+      />
+      <p className="text-sm text-muted-foreground animate-pulse">
+        Mise à jour vers notre nouvelle expérience de messagerie...
+      </p>
     </div>
   );
 };

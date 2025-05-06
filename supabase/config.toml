@@ -7,3 +7,6 @@ verify_jwt = true
 
 [functions.decrement_balance]
 verify_jwt = true
+
+[functions.check-content-access]
+verify_jwt = true
