@@ -52,21 +52,28 @@
   width: 100%;
   max-width: 450px;
   margin: 0 auto;
+  background: #000;
+  overflow: hidden;
 }
 
 .xtease-video {
   aspect-ratio: 9/16;
   max-height: 80vh;
   object-fit: contain;
+  width: 100%;
 }
 
 /* Fullscreen video styles */
 .xtease-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   max-height: none;
   object-fit: contain;
   background-color: black;
+  z-index: 50;
 }
 
 /* Mobile video player optimizations */
@@ -82,6 +89,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  
+  /* Ensure vertical video takes appropriate space on mobile */
+  .xtease-video-container {
+    height: 100%;
+    max-width: 100%;
+  }
+  
+  .xtease-video {
+    height: 100%;
+    max-width: 100%;
   }
   
   .video-controls-mobile {

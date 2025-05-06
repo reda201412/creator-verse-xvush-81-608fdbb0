@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -278,7 +279,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       ref={containerRef}
       className={cn(
         "relative overflow-hidden bg-black group",
-        isFullscreen ? "fixed inset-0 z-50" : "max-w-md mx-auto",
+        isFullscreen ? "fixed inset-0 z-50" : "max-w-[450px] mx-auto",
         className
       )}
     >
