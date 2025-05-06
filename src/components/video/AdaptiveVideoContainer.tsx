@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useMediaQuery, useIsMobileDevice } from '@/hooks/use-media-query';
 import EnhancedVideoPlayer from './EnhancedVideoPlayer';
+import VideoQualityIndicator from './components/VideoQualityIndicator';
+import VideoLoadingView from './components/VideoLoadingView';
 import { cn } from '@/lib/utils';
 import { MediaCacheService } from '@/services/media-cache.service';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
@@ -182,18 +184,13 @@ const AdaptiveVideoContainer: React.FC<AdaptiveVideoContainerProps> = ({
       />
       
       {/* Quality indicator - only show briefly when quality changes */}
-      {playbackQuality !== 'auto' && (
-        <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
-          {playbackQuality}
-        </div>
-      )}
+      <VideoQualityIndicator 
+        quality={playbackQuality} 
+        show={playbackQuality !== 'auto'} 
+      />
       
       {/* Buffering indicator */}
-      {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-        </div>
-      )}
+      {isBuffering && <VideoLoadingView />}
     </div>
   );
 };
