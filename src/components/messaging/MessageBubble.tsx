@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Eye, Heart, Star, Trophy, ThumbsUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/messaging';
-import { formatRelativeTime } from '@/lib/utils';
+import { Lock, Zap, Eye, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { isEncrypted } from '@/utils/encryption';
+import { Spinner } from '@/components/ui/spinner';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,7 +14,7 @@ interface MessageBubbleProps {
   isEphemeral?: boolean;
   isRevealed?: boolean;
   onReveal?: () => void;
-  sessionKey?: string;
+  sessionKey: string;
   decryptMessage?: (message: Message) => Promise<string>;
 }
 
@@ -26,183 +27,155 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   sessionKey,
   decryptMessage
 }) => {
-  const [content, setContent] = useState<string>(message.content);
-  const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
+  const [showDecrypted, setShowDecrypted] = useState(false);
+  const hasMonetization = !!message.monetization;
   
-  // Vérifier si ce message est soutenu
-  const hasSupport = !!message.monetization;
-  // Détermine si le message est un cadeau
-  const isGift = content.startsWith('🎁');
-  
-  // Décrypter le message si nécessaire
-  useEffect(() => {
-    const handleDecrypt = async () => {
-      if (message.isEncrypted && decryptMessage && !isEphemeral) {
-        setIsDecrypting(true);
-        try {
-          const decryptedContent = await decryptMessage(message);
-          setContent(decryptedContent);
-        } catch (error) {
-          console.error("Erreur de déchiffrement", error);
-          setContent("Message chiffré (impossible à déchiffrer)");
-        } finally {
-          setIsDecrypting(false);
-        }
-      }
-    };
+  const handleDecrypt = async () => {
+    if (!decryptMessage || !isEncrypted(message.content)) return;
     
-    handleDecrypt();
-  }, [message, decryptMessage, isEphemeral]);
-  
-  // Obtenir l'icône du niveau de soutien
-  const getSupportIcon = () => {
-    if (!hasSupport) return null;
-    
-    const tier = message.monetization?.tier;
-    switch (tier) {
-      case 'basic':
-        return <ThumbsUp size={12} className="text-blue-600" />;
-      case 'premium':
-        return <Heart size={12} className="text-pink-600" />;
-      case 'vip':
-        return <Star size={12} className="text-amber-600" />;
-      case 'exclusive':
-        return <Trophy size={12} className="text-purple-600" />;
-      default:
-        return <Heart size={12} className="text-pink-600" />;
+    setIsDecrypting(true);
+    try {
+      const content = await decryptMessage(message);
+      setDecryptedContent(content);
+      setShowDecrypted(true);
+    } catch (error) {
+      console.error("Error decrypting:", error);
+    } finally {
+      setIsDecrypting(false);
     }
   };
-  
-  // Obtenir les couleurs basées sur le niveau de soutien
-  const getSupportColors = () => {
-    if (!hasSupport) return {};
-    
-    const tier = message.monetization?.tier;
-    switch (tier) {
-      case 'basic':
-        return {
-          bgColor: 'bg-blue-100',
-          borderColor: 'border-blue-200',
-          textColor: 'text-blue-800'
-        };
-      case 'premium':
-        return {
-          bgColor: 'bg-pink-100',
-          borderColor: 'border-pink-200',
-          textColor: 'text-pink-800'
-        };
-      case 'vip':
-        return {
-          bgColor: 'bg-amber-100',
-          borderColor: 'border-amber-200',
-          textColor: 'text-amber-800'
-        };
-      case 'exclusive':
-        return {
-          bgColor: 'bg-purple-100',
-          borderColor: 'border-purple-200',
-          textColor: 'text-purple-800'
-        };
-      default:
-        return {
-          bgColor: 'bg-pink-100',
-          borderColor: 'border-pink-200',
-          textColor: 'text-pink-800'
-        };
+
+  const renderContent = () => {
+    // If content is encrypted and we have decrypted it
+    if (isEncrypted(message.content) && decryptedContent && showDecrypted) {
+      return <p className="text-sm whitespace-pre-wrap">{decryptedContent}</p>;
     }
+    
+    // If content is encrypted but not yet decrypted
+    if (isEncrypted(message.content)) {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 text-green-500 dark:text-green-400">
+            <Lock size={14} />
+            <span className="text-xs font-medium">Message chiffré</span>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={handleDecrypt}
+            disabled={isDecrypting}
+            className="w-full"
+          >
+            {isDecrypting ? (
+              <Spinner size="sm" className="mr-2" />
+            ) : (
+              <Eye size={14} className="mr-2" />
+            )}
+            Déchiffrer
+          </Button>
+        </div>
+      );
+    }
+    
+    // Regular content
+    return <p className="text-sm whitespace-pre-wrap">{message.content as string}</p>;
   };
-  
-  const supportColors = getSupportColors();
 
   return (
-    <div>
-      <div 
-        className={cn(
-          "px-4 py-2 rounded-2xl max-w-[320px] relative",
-          isCurrentUser 
-            ? hasSupport 
-              ? `${supportColors.bgColor} ${supportColors.borderColor} border rounded-br-none`
-              : "bg-purple-100 rounded-br-none" 
-            : hasSupport
-              ? `${supportColors.bgColor} ${supportColors.borderColor} border rounded-bl-none`
-              : "bg-gray-100 rounded-bl-none",
-          isEphemeral && !isRevealed && "bg-opacity-50 backdrop-blur-sm"
-        )}
-      >
-        {/* Indicateur de message chiffré */}
-        {message.isEncrypted && (
-          <div className="absolute top-1 right-1">
-            <Lock size={12} className="text-green-600" />
+    <div className={cn(
+      "flex mb-2",
+      isCurrentUser ? "justify-end" : "justify-start"
+    )}>
+      <div className={cn(
+        "max-w-[80%] flex",
+        isCurrentUser ? "flex-row-reverse" : "flex-row"
+      )}>
+        {!isCurrentUser && (
+          <div className="mr-2 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white overflow-hidden">
+              {message.senderAvatar ? (
+                <img 
+                  src={message.senderAvatar} 
+                  alt={message.senderName} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                message.senderName.charAt(0).toUpperCase()
+              )}
+            </div>
           </div>
         )}
         
-        {/* Contenu du message */}
         <div className={cn(
-          "text-sm break-words",
-          isCurrentUser ? "text-gray-800" : "text-gray-800",
-          isEphemeral && !isRevealed && "filter blur-sm select-none",
-          hasSupport && supportColors.textColor
+          "flex flex-col",
+          isCurrentUser ? "items-end" : "items-start"
         )}>
-          {isDecrypting ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse animation-delay-200"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse animation-delay-400"></div>
-              <span className="ml-1 text-xs text-gray-500">Déchiffrement...</span>
-            </div>
-          ) : isEphemeral && !isRevealed ? (
-            <div className="text-center py-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onReveal}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <Eye size={14} className="mr-1" />
-                Appuyer pour voir
-              </Button>
-            </div>
-          ) : (
-            <div className="whitespace-pre-wrap">
-              {/* Afficher le contenu du cadeau de manière spéciale */}
-              {isGift ? (
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-1">🎁</span>
-                  <span className="font-medium">{content.replace('🎁 ', '')}</span>
-                  <span className="text-xs mt-1">Cadeau offert</span>
+          {!isCurrentUser && (
+            <span className="text-xs text-muted-foreground mb-1">{message.senderName}</span>
+          )}
+          
+          <div className={cn(
+            "rounded-2xl py-2 px-3 group relative",
+            isCurrentUser 
+              ? "bg-primary text-primary-foreground dark:bg-primary/90 rounded-tr-none" 
+              : "bg-muted/60 dark:bg-muted/30 backdrop-blur-sm rounded-tl-none",
+            hasMonetization && (isCurrentUser 
+              ? "border-l-4 border-amber-400" 
+              : "border-r-4 border-amber-400"
+            ),
+            message.isEncrypted && "border border-green-400/20",
+            "transition-all duration-300"
+          )}>
+            {/* Indicateurs de sécurité et premium */}
+            <div className={cn(
+              "absolute -top-2",
+              isCurrentUser ? "-left-2" : "-right-2",
+              "flex space-x-1"
+            )}>
+              {message.isEncrypted && (
+                <div className="bg-green-500 rounded-full p-1 shadow-lg">
+                  <Lock size={10} className="text-white" />
                 </div>
-              ) : (
-                content
               )}
+              {hasMonetization && (
+                <div className="bg-amber-400 rounded-full p-1 shadow-lg">
+                  <Heart size={10} className="text-amber-900" />
+                </div>
+              )}
+            </div>
+            
+            {/* Contenu du message */}
+            <motion.div
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderContent()}
+            </motion.div>
+          </div>
+          
+          <span className="text-[10px] text-muted-foreground mt-1">
+            {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            {message.isEncrypted && <span className="ml-1">• {showDecrypted ? "Déchiffré" : "Chiffré"}</span>}
+          </span>
+          
+          {hasMonetization && (
+            <div className={cn(
+              "flex items-center mt-1",
+              isCurrentUser ? "justify-end" : "justify-start"
+            )}>
+              <span className="text-xs text-amber-500 flex items-center">
+                <Zap size={10} className="mr-1" />
+                {message.monetization?.tier} · {message.monetization?.price} USDT
+              </span>
             </div>
           )}
         </div>
-
-        {/* Indicateur de soutien */}
-        {hasSupport && !isEphemeral && (
-          <div className={cn(
-            "absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center",
-            message.monetization?.tier === 'basic' ? "bg-blue-500" :
-            message.monetization?.tier === 'premium' ? "bg-pink-500" :
-            message.monetization?.tier === 'vip' ? "bg-amber-500" :
-            "bg-purple-500",
-          )}>
-            {getSupportIcon()}
-          </div>
-        )}
-      </div>
-      
-      {/* Timestamp du message */}
-      <div className={cn(
-        "text-[10px] mt-1",
-        isCurrentUser ? "text-right mr-1" : "ml-1", 
-        "text-gray-500"
-      )}>
-        {formatRelativeTime ? formatRelativeTime(new Date(message.timestamp)) : 
-          new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
       </div>
     </div>
   );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);

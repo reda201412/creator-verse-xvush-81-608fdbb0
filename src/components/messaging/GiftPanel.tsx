@@ -1,19 +1,18 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose, DrawerFooter } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Gift, Star, Diamond, Crown, Heart, CircleDollarSign, Trophy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { Gift, Diamond, Crown, Gem, Heart, Star, Trophy, Sparkles } from 'lucide-react';
 
 interface Gift {
   id: string;
   name: string;
-  price: number;
   icon: React.ReactNode;
+  price: number;
+  description: string;
   color: string;
-  animation?: string;
 }
 
 interface GiftPanelProps {
@@ -22,150 +21,133 @@ interface GiftPanelProps {
   onSendGift: (gift: Gift) => void;
 }
 
-export const GiftPanel: React.FC<GiftPanelProps> = ({
-  isOpen,
-  onClose,
-  onSendGift
-}) => {
+export const GiftPanel: React.FC<GiftPanelProps> = ({ isOpen, onClose, onSendGift }) => {
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
+  const { toast } = useToast();
   
   const gifts: Gift[] = [
     {
-      id: "gift-1",
-      name: "Cœur",
-      price: 0.99,
-      icon: <Heart size={24} />,
-      color: "text-red-400",
-      animation: "animate-pulse"
+      id: 'heart',
+      name: 'Cœur',
+      icon: <Heart className="h-6 w-6 text-red-500" />,
+      price: 1.99,
+      description: "Montrez votre appréciation",
+      color: "bg-red-100 dark:bg-red-900/30 text-red-500 border-red-300"
     },
     {
-      id: "gift-2",
-      name: "Étoile",
-      price: 2.99,
-      icon: <Star size={24} />,
-      color: "text-amber-400",
-      animation: "animate-spin"
-    },
-    {
-      id: "gift-3",
-      name: "Trophée",
+      id: 'star',
+      name: 'Étoile',
+      icon: <Star className="h-6 w-6 text-amber-500" />,
       price: 4.99,
-      icon: <Trophy size={24} />,
-      color: "text-yellow-400"
+      description: "Pour les contenus qui brillent",
+      color: "bg-amber-100 dark:bg-amber-900/30 text-amber-500 border-amber-300"
     },
     {
-      id: "gift-4",
-      name: "Diamant",
+      id: 'gem',
+      name: 'Gemme',
+      icon: <Gem className="h-6 w-6 text-blue-500" />,
       price: 9.99,
-      icon: <Diamond size={24} />,
-      color: "text-blue-400",
-      animation: "animate-pulse"
+      description: "Un contenu de grande valeur",
+      color: "bg-blue-100 dark:bg-blue-900/30 text-blue-500 border-blue-300"
     },
     {
-      id: "gift-5",
-      name: "Couronne",
+      id: 'diamond',
+      name: 'Diamant',
+      icon: <Diamond className="h-6 w-6 text-cyan-500" />,
       price: 19.99,
-      icon: <Crown size={24} />,
-      color: "text-purple-400"
+      description: "Pour les créations exceptionnelles",
+      color: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-500 border-cyan-300"
     },
     {
-      id: "gift-6",
-      name: "Superstar",
+      id: 'crown',
+      name: 'Couronne',
+      icon: <Crown className="h-6 w-6 text-purple-500" />,
       price: 29.99,
-      icon: <CircleDollarSign size={24} />,
-      color: "text-green-400",
-      animation: "animate-bounce"
+      description: "Récompensez la royauté du contenu",
+      color: "bg-purple-100 dark:bg-purple-900/30 text-purple-500 border-purple-300"
+    },
+    {
+      id: 'sparkles',
+      name: 'Étincelles',
+      icon: <Sparkles className="h-6 w-6 text-yellow-500" />,
+      price: 49.99,
+      description: "Pour les moments magiques",
+      color: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500 border-yellow-300"
+    },
+    {
+      id: 'trophy',
+      name: 'Trophée',
+      icon: <Trophy className="h-6 w-6 text-emerald-500" />,
+      price: 99.99,
+      description: "Pour les plus grands achievements",
+      color: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 border-emerald-300"
     }
   ];
   
   const handleSendGift = () => {
-    if (selectedGift) {
-      onSendGift(selectedGift);
+    if (!selectedGift) {
+      toast({
+        title: "Aucun cadeau sélectionné",
+        description: "Veuillez sélectionner un cadeau à envoyer",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    onSendGift(selectedGift);
+    
+    toast({
+      title: "Cadeau envoyé",
+      description: `Vous avez envoyé un(e) ${selectedGift.name} (${selectedGift.price} USDT)`,
+    });
   };
   
   return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="bg-black text-white border-t border-white/10 max-h-[85vh]">
-        <DrawerHeader className="border-b border-white/10">
-          <DrawerTitle className="flex items-center gap-2">
-            <Gift size={20} className="text-amber-400" />
-            <span>Envoyer un cadeau</span>
-          </DrawerTitle>
-        </DrawerHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Envoyer un cadeau</DialogTitle>
+        </DialogHeader>
         
-        <div className="p-4">
-          <p className="text-sm text-white/70 mb-4">
-            Envoyez un cadeau pour montrer votre appréciation et soutenir votre créateur préféré.
-          </p>
-          
-          <div className="grid grid-cols-3 gap-3">
-            {gifts.map((gift) => (
-              <motion.div
-                key={gift.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={cn(
-                  "p-3 rounded-lg flex flex-col items-center justify-center cursor-pointer",
-                  selectedGift?.id === gift.id 
-                    ? "bg-white/20 border-2 border-amber-500" 
-                    : "bg-white/5 border border-white/10",
-                  "transition-all duration-200"
-                )}
-                onClick={() => setSelectedGift(gift)}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-2",
-                  gift.color,
-                  gift.animation
-                )}>
-                  {gift.icon}
+        <div className="py-4">
+          <ScrollArea className="h-80">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {gifts.map((gift) => (
+                <div 
+                  key={gift.id}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex flex-col items-center ${
+                    selectedGift?.id === gift.id 
+                      ? `${gift.color} border-2` 
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                  onClick={() => setSelectedGift(gift)}
+                >
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-gray-800 mb-2 shadow-md">
+                    {gift.icon}
+                  </div>
+                  <h3 className="font-medium text-center">{gift.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-1 text-center">{gift.description}</p>
+                  <span className="font-bold">{gift.price} USDT</span>
                 </div>
-                <span className="text-xs font-medium">{gift.name}</span>
-                <span className="text-xs text-amber-400">{gift.price}€</span>
-              </motion.div>
-            ))}
-          </div>
-          
-          {selectedGift && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-purple-900/30 to-amber-900/30 rounded-lg border border-amber-500/30">
-              <h4 className="text-center text-lg font-medium mb-2">Aperçu du cadeau</h4>
-              
-              <div className="flex flex-col items-center">
-                <div className={cn(
-                  "w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3",
-                  selectedGift.color,
-                  selectedGift.animation
-                )}>
-                  {selectedGift.icon}
-                </div>
-                
-                <div className="text-center">
-                  <p className="font-medium">{selectedGift.name}</p>
-                  <p className="text-sm text-amber-400">{selectedGift.price}€</p>
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+          </ScrollArea>
         </div>
         
-        <DrawerFooter className="border-t border-white/10 pt-4">
-          <Button 
-            onClick={handleSendGift}
-            className="bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 text-white"
-            disabled={!selectedGift}
-          >
-            {selectedGift 
-              ? `Envoyer ${selectedGift.name} (${selectedGift.price}€)` 
-              : "Sélectionnez un cadeau"}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            Annuler
           </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" className="border-white/20 text-white">
-              Annuler
-            </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+          <Button 
+            onClick={handleSendGift} 
+            disabled={!selectedGift}
+            className="w-full sm:w-auto"
+          >
+            <Gift className="mr-2 h-4 w-4" />
+            Envoyer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

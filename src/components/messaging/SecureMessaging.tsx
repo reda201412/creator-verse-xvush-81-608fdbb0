@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +18,7 @@ import ConversationView from './ConversationView';
 import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Message, MessageThread as ThreadType, MonetizationTier, EmotionType, MessageEmotionalData, MessageMonetizationData } from '@/types/messaging';
+import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
@@ -25,20 +26,27 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Spinner } from '@/components/ui/spinner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
+import { fetchUserThreads, sendMessage, markMessagesAsRead } from '@/utils/messaging-utils';
+import { useModals } from '@/hooks/use-modals';
 
-const SecureMessaging = () => {
+interface SecureMessagingProps {
+  userId: string;
+  userName: string;
+  userAvatar: string;
+}
+
+const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const { getWalletInfo, walletInfo } = useTronWallet();
+  const { openModal, closeModal, openModals } = useModals();
   
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [threads, setThreads] = useState<ThreadType[]>([]);
   const [showConversationList, setShowConversationList] = useState(true);
-  const [showSupportPanel, setShowSupportPanel] = useState(false);
-  const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
@@ -47,99 +55,54 @@ const SecureMessaging = () => {
 
   // Use the actual user role from authentication context
   const userType = profile?.role || 'fan';
-  const userId = user?.id || ""; // Real user ID from auth context
-  const userName = profile?.display_name || profile?.username || "User"; // Use actual user name from profile
 
   // Load real conversation threads when component mounts
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
     loadConversations();
     getWalletInfo(); // Load wallet information for transactions
-  }, [user, navigate]);
+  }, [userId]);
 
   // Load real conversations from Supabase
   const loadConversations = async () => {
+    if (!userId) return;
+    
     setIsLoading(true);
     try {
-      // For creators, fetch all threads where they are participants or creator
-      // For fans, fetch threads they're participating in
-      const { data, error } = await supabase
-        .from('message_threads')
-        .select('*, messages:message_thread_messages(*)')
-        .or(`participants.cs.{${userId}},creator_id.eq.${userId}`)
-        .order('last_activity', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
+      const threadsData = await fetchUserThreads(userId);
+      
+      if (threadsData.length > 0) {
         // Transform the data to match our ThreadType format
-        const formattedThreads: ThreadType[] = data.map(thread => ({
-          id: String(thread.id), // Ensure ID is a string
+        const formattedThreads: ThreadType[] = threadsData.map(thread => ({
+          id: String(thread.id),
           participants: thread.participants || [],
-          messages: (Array.isArray(thread.messages) ? thread.messages : []).map(msg => {
-            // Map database message to our strongly typed Message interface
-            const messageEmotion: MessageEmotionalData = msg.emotional_data ? {
-              primaryEmotion: (msg.emotional_data as any)?.primaryEmotion as EmotionType || 'neutral',
-              intensity: (msg.emotional_data as any)?.intensity || 50,
-              threadMapping: (msg.emotional_data as any)?.threadMapping || []
-            } : {
-              primaryEmotion: 'neutral',
-              intensity: 50,
-              threadMapping: []
-            };
-            
-            const messageMonetization: MessageMonetizationData | undefined = msg.monetization_data ? {
-              tier: (msg.monetization_data as any)?.tier as MonetizationTier || 'free',
-              price: (msg.monetization_data as any)?.price || 0,
-              currency: (msg.monetization_data as any)?.currency || 'USDT',
-              instantPayoutEnabled: (msg.monetization_data as any)?.instantPayoutEnabled || false,
-              accessControl: {
-                isGated: (msg.monetization_data as any)?.accessControl?.isGated || false,
-                requiredTier: (msg.monetization_data as any)?.accessControl?.requiredTier as MonetizationTier | undefined,
-                individualAccess: (msg.monetization_data as any)?.accessControl?.individualAccess || []
-              },
-              analytics: {
-                views: (msg.monetization_data as any)?.analytics?.views || 0,
-                revenue: (msg.monetization_data as any)?.analytics?.revenue || 0,
-                conversionRate: (msg.monetization_data as any)?.analytics?.conversionRate || 0,
-                engagementTime: (msg.monetization_data as any)?.analytics?.engagementTime || 0
-              }
-            } : undefined;
-            
-            return {
-              id: String(msg.id),
-              senderId: msg.sender_id,
-              senderName: msg.sender_name,
-              senderAvatar: msg.sender_avatar,
-              recipientId: msg.recipient_id,
-              content: msg.content,
-              type: msg.type as any,
-              timestamp: msg.created_at,
-              status: msg.status as any,
-              isEncrypted: msg.is_encrypted,
-              emotional: messageEmotion,
-              monetization: messageMonetization,
-              mediaUrl: msg.media_url
-            };
-          }),
+          messages: (thread.messages || []).map(msg => ({
+            id: String(msg.id),
+            senderId: msg.sender_id,
+            senderName: msg.sender_name,
+            senderAvatar: msg.sender_avatar || '',
+            recipientId: msg.recipient_id,
+            content: msg.content,
+            type: msg.type,
+            timestamp: msg.created_at,
+            status: msg.status,
+            isEncrypted: msg.is_encrypted,
+            emotional: msg.emotional_data,
+            monetization: msg.monetization_data,
+            mediaUrl: msg.media_url
+          })),
           name: thread.name,
           isGated: thread.is_gated,
-          requiredTier: thread.required_tier as MonetizationTier,
+          requiredTier: thread.required_tier,
           lastActivity: thread.last_activity,
-          emotionalMap: thread.emotional_map ? {
-            dominantEmotion: (thread.emotional_map as any)?.dominantEmotion as EmotionType || 'neutral',
-            volatility: (thread.emotional_map as any)?.volatility || 0,
-            affinity: (thread.emotional_map as any)?.affinity || 0
-          } : undefined
+          emotionalMap: thread.emotional_map
         }));
         
         setThreads(formattedThreads);
+        
+        // If there are threads but no active thread, select the first one
+        if (formattedThreads.length > 0 && !activeThreadId) {
+          setActiveThreadId(formattedThreads[0].id);
+        }
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -161,23 +124,17 @@ const SecureMessaging = () => {
     });
   }, [threads]);
 
-  // Handle back navigation
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
   // Setup real-time message notifications
   useEffect(() => {
+    if (!userId) return;
+    
     const channel = supabase
       .channel('message-notifications')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
         table: 'message_thread_messages',
-        filter: `recipient_id.cs.{${userId}}`
+        filter: `recipient_id=cs.{${userId}}`
       }, handleRealTimeMessage)
       .subscribe();
 
@@ -193,64 +150,43 @@ const SecureMessaging = () => {
     // Find the thread this message belongs to
     const threadId = newMessage.thread_id;
     
-    // Create properly typed emotional and monetization data
-    const messageEmotion: MessageEmotionalData = newMessage.emotional_data ? {
-      primaryEmotion: (newMessage.emotional_data as any)?.primaryEmotion as EmotionType || 'neutral',
-      intensity: (newMessage.emotional_data as any)?.intensity || 50,
-      threadMapping: (newMessage.emotional_data as any)?.threadMapping || []
-    } : {
-      primaryEmotion: 'neutral',
-      intensity: 50,
-      threadMapping: []
-    };
-    
-    const messageMonetization: MessageMonetizationData | undefined = newMessage.monetization_data ? {
-      tier: (newMessage.monetization_data as any)?.tier as MonetizationTier || 'free',
-      price: (newMessage.monetization_data as any)?.price || 0,
-      currency: (newMessage.monetization_data as any)?.currency || 'USDT',
-      instantPayoutEnabled: (newMessage.monetization_data as any)?.instantPayoutEnabled || false,
-      accessControl: {
-        isGated: (newMessage.monetization_data as any)?.accessControl?.isGated || false,
-        requiredTier: (newMessage.monetization_data as any)?.accessControl?.requiredTier as MonetizationTier | undefined,
-        individualAccess: (newMessage.monetization_data as any)?.accessControl?.individualAccess || []
-      },
-      analytics: {
-        views: (newMessage.monetization_data as any)?.analytics?.views || 0,
-        revenue: (newMessage.monetization_data as any)?.analytics?.revenue || 0,
-        conversionRate: (newMessage.monetization_data as any)?.analytics?.conversionRate || 0,
-        engagementTime: (newMessage.monetization_data as any)?.analytics?.engagementTime || 0
-      }
-    } : undefined;
-    
     // Format the message to match our Message type
     const formattedMessage: Message = {
       id: String(newMessage.id),
       senderId: newMessage.sender_id,
       senderName: newMessage.sender_name,
-      senderAvatar: newMessage.sender_avatar,
+      senderAvatar: newMessage.sender_avatar || '',
       recipientId: newMessage.recipient_id,
       content: newMessage.content,
-      type: newMessage.type as any,
+      type: newMessage.type,
       timestamp: newMessage.created_at,
       status: 'sent',
       isEncrypted: newMessage.is_encrypted,
-      emotional: messageEmotion,
-      monetization: messageMonetization,
+      emotional: newMessage.emotional_data,
+      monetization: newMessage.monetization_data,
       mediaUrl: newMessage.media_url
     };
 
     // Update the threads with this new message
-    setThreads(prev => 
-      prev.map(thread => 
-        thread.id === threadId 
-          ? { 
-              ...thread, 
-              messages: [...thread.messages, formattedMessage],
-              lastActivity: formattedMessage.timestamp 
-            }
-          : thread
-      )
-    );
+    setThreads(prev => {
+      const existingThread = prev.find(t => t.id === threadId);
+      
+      if (existingThread) {
+        return prev.map(thread => 
+          thread.id === threadId 
+            ? { 
+                ...thread, 
+                messages: [...thread.messages, formattedMessage],
+                lastActivity: formattedMessage.timestamp 
+              }
+            : thread
+        );
+      } else {
+        // If the thread doesn't exist in our state, we need to reload conversations
+        loadConversations();
+        return prev;
+      }
+    });
     
     // Show notification if the user is not currently viewing this thread
     if (!activeThreadId || activeThreadId !== threadId) {
@@ -275,52 +211,14 @@ const SecureMessaging = () => {
 
   // Handle thread selection
   const handleThreadSelect = (threadId: string) => {
-    triggerHaptic('medium');
+    triggerHaptic('light');
     setActiveThreadId(threadId);
     setShowConversationList(false);
     setHasNewMessages(false);
     
     // Mark messages as read in this thread
-    markMessagesAsRead(threadId);
-  };
-
-  // Mark messages as read
-  const markMessagesAsRead = async (threadId: string) => {
-    try {
-      const thread = threads.find(t => t.id === threadId);
-      if (!thread) return;
-      
-      const unreadMessages = thread.messages
-        .filter(m => m.status !== 'read' && m.senderId !== userId)
-        .map(m => m.id);
-      
-      if (unreadMessages.length === 0) return;
-      
-      // Update message status in database
-      const { error } = await supabase
-        .from('message_thread_messages')
-        .update({ status: 'read' })
-        .in('id', unreadMessages);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setThreads(prev => 
-        prev.map(t => 
-          t.id === threadId 
-            ? { 
-                ...t, 
-                messages: t.messages.map(m => 
-                  unreadMessages.includes(m.id) 
-                    ? { ...m, status: 'read' } 
-                    : m
-                ) 
-              }
-            : t
-        )
-      );
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
+    if (threadId) {
+      markMessagesAsRead(threadId, userId);
     }
   };
 
@@ -328,116 +226,46 @@ const SecureMessaging = () => {
     if (!showConversationList && activeThreadId) {
       triggerHaptic('light');
       setShowConversationList(true);
-      setActiveThreadId(null);
     } else {
-      navigate('/');
+      navigate(-1);
     }
   };
 
   // Send message with real data saving
   const handleSendMessage = async (content: string, supportData?: any) => {
-    if (!activeThreadId) return;
-    if (!user) {
-      toast({
-        title: "Authentification requise",
-        description: "Vous devez être connecté pour envoyer des messages",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!activeThreadId || !content.trim()) return;
     
     try {
-      // Create the message object
-      const timestamp = new Date().toISOString();
-      const messageData = {
-        thread_id: activeThreadId,
-        sender_id: userId,
-        sender_name: userName,
-        sender_avatar: profile?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200",
-        recipient_id: activeThread?.participants.filter(p => p !== userId) || [],
-        content: content,
-        type: 'text',
-        created_at: timestamp,
-        status: 'sent',
-        is_encrypted: isSecurityEnabled,
-        monetization_data: supportData ? {
-          tier: supportData.tier,
-          price: supportData.price,
-          currency: 'USDT',
-          instantPayoutEnabled: true,
-          accessControl: { isGated: true },
-          analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
-        } : null
-      };
-
-      // Save to Supabase
-      const { data: savedMessage, error } = await supabase
-        .from('message_thread_messages')
-        .insert(messageData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Update the thread's last activity
-      await supabase
-        .from('message_threads')
-        .update({ last_activity: timestamp })
-        .eq('id', activeThreadId);
-
-      // If there's monetization data, process the transaction
-      if (supportData) {
-        // Process USDT transaction
-        await processUsdtTransaction(supportData.price, activeThread?.participants[0], supportData.tier);
-        
-        triggerHaptic('strong');
-        toast({
-          title: "Message de soutien envoyé",
-          description: `${supportData.tier} - ${supportData.price} USDT`,
-        });
-      }
-
-      // Properly type our emotional and monetization data
-      const messageEmotion: MessageEmotionalData = {
-        primaryEmotion: 'neutral',
-        intensity: 50,
-        threadMapping: []
-      };
+      const recipientIds = activeThread?.participants.filter(p => p !== userId) || [];
       
-      const messageMonetization: MessageMonetizationData | undefined = supportData ? {
-        tier: supportData.tier as MonetizationTier,
-        price: supportData.price,
-        currency: 'USDT',
-        instantPayoutEnabled: true,
-        accessControl: { 
-          isGated: true,
-          requiredTier: undefined,
-          individualAccess: []
-        },
-        analytics: { 
-          views: 0, 
-          revenue: 0, 
-          conversionRate: 0, 
-          engagementTime: 0 
-        }
-      } : undefined;
-
-      // Format message for local state update
-      const newMessage: Message = {
-        id: String(savedMessage.id),
+      // Send message using utility function
+      const message = await sendMessage({
+        threadId: activeThreadId,
         senderId: userId,
         senderName: userName,
-        senderAvatar: profile?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200",
-        recipientId: activeThread?.participants.filter(p => p !== userId) || [],
-        content: content,
+        senderAvatar: userAvatar,
+        recipientIds,
+        content,
+        isEncrypted: isSecurityEnabled,
+        monetizationData: supportData
+      });
+      
+      // Format message for local state update
+      const newMessage: Message = {
+        id: String(message.id),
+        senderId: userId,
+        senderName: userName,
+        senderAvatar: userAvatar,
+        recipientId: recipientIds,
+        content,
         type: 'text',
-        timestamp: timestamp,
+        timestamp: message.created_at,
         status: 'sent',
         isEncrypted: isSecurityEnabled,
-        emotional: messageEmotion,
-        monetization: messageMonetization,
+        emotional: message.emotional_data,
+        monetization: supportData,
       };
-
+      
       // Update local state
       setThreads(prev => 
         prev.map(thread => 
@@ -450,6 +278,14 @@ const SecureMessaging = () => {
             : thread
         )
       );
+      
+      if (supportData) {
+        triggerHaptic('strong');
+        toast({
+          title: "Message de soutien envoyé",
+          description: `${supportData.tier} - ${supportData.price} USDT`,
+        });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -457,74 +293,6 @@ const SecureMessaging = () => {
         description: "Impossible d'envoyer le message",
         variant: "destructive",
       });
-    }
-  };
-
-  // Process USDT transaction via the Edge Function
-  const processUsdtTransaction = async (amount: number, recipientId: string, tier: string) => {
-    try {
-      // Verify wallet exists
-      if (!walletInfo?.wallet) {
-        toast({
-          title: "Portefeuille requis",
-          description: "Vous devez avoir un portefeuille pour effectuer cette opération",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Check balance
-      if ((walletInfo.wallet.balance_usdt || 0) < amount) {
-        toast({
-          title: "Solde insuffisant",
-          description: `Vous avez besoin de ${amount} USDT pour cette opération`,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Call the decrement_balance Edge Function
-      const { data, error } = await supabase.functions.invoke("decrement_balance", {
-        body: { userId: userId, amount: amount }
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Create transaction record
-      const { data: transaction, error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: userId,
-          amount_usdt: amount,
-          transaction_type: 'message_support',
-          status: 'completed',
-          tron_tx_id: `tx_${Date.now()}`
-        })
-        .select()
-        .single();
-
-      if (transactionError) throw transactionError;
-
-      // Update recipient's balance - use RPC call
-      await supabase.rpc('increment_balance', { 
-        user_id_param: recipientId, 
-        amount_param: amount * 0.9  // 10% platform fee
-      });
-
-      // Get updated wallet info
-      await getWalletInfo();
-
-      return true;
-    } catch (error) {
-      console.error('Error processing USDT transaction:', error);
-      toast({
-        title: "Erreur de transaction",
-        description: "Impossible de traiter la transaction USDT",
-        variant: "destructive",
-      });
-      return false;
     }
   };
 
@@ -542,7 +310,7 @@ const SecureMessaging = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white">
+      <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
         <div className="text-center">
           <Spinner size="lg" />
           <p className="mt-4 text-lg">Chargement de vos conversations...</p>
@@ -563,14 +331,14 @@ const SecureMessaging = () => {
   });
 
   return (
-    <div className="fixed inset-0 bg-white/95 text-gray-800 flex flex-col h-full w-full">
+    <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 border-b border-gray-200">
+      <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
             size="icon"
-            className="text-gray-700 hover:bg-gray-100 rounded-full"
+            className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
             onClick={handleBack}
           >
             <ArrowLeft size={24} />
@@ -591,7 +359,7 @@ const SecureMessaging = () => {
             size="icon"
             className={cn(
               "rounded-full",
-              isSecurityEnabled ? "text-green-600 hover:text-green-700" : "text-red-600 hover:text-red-700"
+              isSecurityEnabled ? "text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400" : "text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
             )}
             onClick={toggleSecurityMode}
           >
@@ -601,7 +369,7 @@ const SecureMessaging = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            className="rounded-full text-gray-700 hover:bg-gray-100"
+            className="rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={() => navigate('/')}
           >
             <X size={22} />
@@ -624,14 +392,14 @@ const SecureMessaging = () => {
               onValueChange={(value) => setFilterMode(value as any)}
               className="w-full"
             >
-              <TabsList className="w-full bg-gray-100 border border-gray-200">
-                <TabsTrigger value="all" className="data-[state=active]:bg-white/80">
+              <TabsList className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <TabsTrigger value="all" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
                   Tous
                 </TabsTrigger>
-                <TabsTrigger value="unread" className="data-[state=active]:bg-white/80">
+                <TabsTrigger value="unread" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
                   Non lus
                 </TabsTrigger>
-                <TabsTrigger value="supported" className="data-[state=active]:bg-white/80">
+                <TabsTrigger value="supported" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
                   <Zap size={14} className="text-amber-500 mr-1" />
                   Soutenus
                 </TabsTrigger>
@@ -658,6 +426,13 @@ const SecureMessaging = () => {
                 userId={userId}
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
+                userType={userType}
+                onNewConversation={() => {
+                  toast({
+                    title: "Bientôt disponible",
+                    description: "La création de nouvelles conversations sera bientôt disponible"
+                  });
+                }}
               />
             </motion.div>
           ) : (
@@ -675,10 +450,10 @@ const SecureMessaging = () => {
                   userId={userId}
                   userName={userName}
                   onSendMessage={handleSendMessage}
-                  sessionKey={sessionKeys[activeThread.id]}
+                  sessionKey={sessionKeys[activeThread.id] || generateSessionKey()}
                   isSecurityEnabled={isSecurityEnabled}
-                  onOpenSupport={() => userType === 'fan' && setShowSupportPanel(true)}
-                  onOpenGifts={() => userType === 'fan' && setShowGiftPanel(true)}
+                  onOpenSupport={() => openModal('supportCreator')}
+                  onOpenGifts={() => openModal('giftCreator')}
                   userType={userType}
                 />
               )}
@@ -687,35 +462,31 @@ const SecureMessaging = () => {
         </AnimatePresence>
       </div>
 
-      {/* Panels pour le soutien et les cadeaux - uniquement visibles pour les fans */}
-      {userType === 'fan' && (
-        <>
-          <SupportPanel 
-            isOpen={showSupportPanel} 
-            onClose={() => setShowSupportPanel(false)}
-            onApply={(data) => {
-              handleSendMessage("Je soutiens votre contenu", data);
-              setShowSupportPanel(false);
-            }}
-          />
-          
-          <GiftPanel 
-            isOpen={showGiftPanel} 
-            onClose={() => setShowGiftPanel(false)}
-            onSendGift={(gift) => {
-              handleSendMessage(`🎁 ${gift.name}`, {
-                tier: 'premium' as MonetizationTier,
-                price: gift.price,
-                currency: 'USDT',
-                instantPayoutEnabled: true,
-                accessControl: { isGated: true },
-                analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
-              });
-              setShowGiftPanel(false);
-            }}
-          />
-        </>
-      )}
+      {/* Panels pour le soutien et les cadeaux */}
+      <SupportPanel 
+        isOpen={openModals.supportCreator} 
+        onClose={() => closeModal('supportCreator')}
+        onApply={(data) => {
+          handleSendMessage("Je soutiens votre contenu", data);
+          closeModal('supportCreator');
+        }}
+      />
+      
+      <GiftPanel 
+        isOpen={openModals.giftCreator} 
+        onClose={() => closeModal('giftCreator')}
+        onSendGift={(gift) => {
+          handleSendMessage(`🎁 ${gift.name}`, {
+            tier: 'premium' as MonetizationTier,
+            price: gift.price,
+            currency: 'USDT',
+            instantPayoutEnabled: true,
+            accessControl: { isGated: true },
+            analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
+          });
+          closeModal('giftCreator');
+        }}
+      />
     </div>
   );
 };

@@ -1,62 +1,61 @@
 
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Send, 
-  Mic, 
-  Image, 
-  Smile,
-  Paperclip,
-  Zap,
-  Volume,
-  Video,
-  Lock
-} from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { SendHorizontal, Image, Smile, Paperclip, HeartHandshake, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { MonetizationTier } from '@/types/messaging';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
-  isComposing: boolean;
-  setIsComposing: (isComposing: boolean) => void;
-  monetizationEnabled: boolean;
-  onToggleMonetization: () => void;
-  monetizationTier: MonetizationTier;
-  setMonetizationTier: (tier: MonetizationTier) => void;
-  monetizationAmount: number;
-  setMonetizationAmount: (amount: number) => void;
+  isComposing?: boolean;
+  setIsComposing?: (isComposing: boolean) => void;
+  monetizationEnabled?: boolean;
+  onToggleMonetization?: () => void;
+  monetizationTier?: MonetizationTier;
+  setMonetizationTier?: (tier: MonetizationTier) => void;
+  monetizationAmount?: number;
+  setMonetizationAmount?: (amount: number) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  isEncrypted?: boolean;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
-  isComposing,
+  isComposing = false,
   setIsComposing,
-  monetizationEnabled,
+  monetizationEnabled = false,
   onToggleMonetization,
-  monetizationTier,
+  monetizationTier = 'basic',
   setMonetizationTier,
-  monetizationAmount,
-  setMonetizationAmount
+  monetizationAmount = 0,
+  setMonetizationAmount,
+  disabled = false,
+  placeholder = "Écrivez un message...",
+  isEncrypted = false,
 }) => {
   const [message, setMessage] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [showEffects, setShowEffects] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recordingInterval = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
+  
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    if (setIsComposing) {
+      setIsComposing(e.target.value.length > 0);
+    }
+  };
   
   const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage('');
-      inputRef.current?.focus();
+    if (!message.trim()) return;
+    
+    onSendMessage(message);
+    setMessage('');
+    
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
   
@@ -67,216 +66,122 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
   
-  const startRecording = () => {
-    setIsRecording(true);
-    let seconds = 0;
-    recordingInterval.current = window.setInterval(() => {
-      seconds += 1;
-      setRecordingTime(seconds);
-    }, 1000);
-  };
-  
-  const stopRecording = () => {
-    if (recordingInterval.current) {
-      clearInterval(recordingInterval.current);
-      recordingInterval.current = null;
-    }
-    setIsRecording(false);
-    setRecordingTime(0);
-    // In a real app, we would process the recorded audio here
-    onSendMessage("🎤 Message vocal (0:00)");
-  };
-  
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const handleImageUpload = () => {
+    toast({
+      title: "Bientôt disponible",
+      description: "L'envoi d'images sera bientôt disponible",
+    });
   };
   
   return (
-    <div className="space-y-2">
-      {/* Monetization indicator */}
-      <AnimatePresence>
-        {monetizationEnabled && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-amber-500/10 rounded-lg p-2 border border-amber-500/30"
+    <div className="flex flex-col space-y-2">
+      {monetizationEnabled && (
+        <div className="px-2 py-1 bg-amber-500/10 rounded-lg flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Zap size={16} className="text-amber-500" />
+            <span className="text-sm font-medium text-amber-500">
+              Message monétisé ({monetizationTier}) - {monetizationAmount} USDT
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleMonetization}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap size={14} className="text-amber-500" />
-                <span className="text-xs font-medium">Message monétisé</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold">{monetizationAmount}€</span>
-                <Select 
-                  value={monetizationTier} 
-                  onValueChange={(value) => setMonetizationTier(value as MonetizationTier)}
-                >
-                  <SelectTrigger className="h-6 text-xs w-24">
-                    <SelectValue placeholder="Tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                    <SelectItem value="exclusive">Exclusive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="mt-2">
-              <Slider 
-                min={0.99}
-                max={49.99}
-                step={0.5}
-                value={[monetizationAmount]}
-                onValueChange={(values) => setMonetizationAmount(values[0])}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Annuler
+          </Button>
+        </div>
+      )}
       
-      {/* Voice recording UI */}
-      <AnimatePresence>
-        {isRecording && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-primary/10 rounded-lg p-3 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm font-medium">Enregistrement {formatTime(recordingTime)}</span>
-            </div>
-            
-            <Button variant="destructive" size="sm" onClick={stopRecording}>
-              Terminer
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Main input area */}
-      <div className="flex items-end gap-2">
-        <div className="flex-1 relative">
+      <div className="relative flex items-end gap-2">
+        <div className="relative flex-1">
           <Textarea
-            ref={inputRef}
-            placeholder="Écrivez un message..."
-            className={cn(
-              "resize-none min-h-[60px] pr-12 transition-all",
-              monetizationEnabled && "border-amber-500/50"
-            )}
+            ref={textareaRef}
             value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              setIsComposing(e.target.value.length > 0);
-            }}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
-            onBlur={() => setIsComposing(false)}
+            placeholder={placeholder}
+            className={cn(
+              "resize-none min-h-[60px] pr-10 pt-3 bg-white dark:bg-gray-800",
+              "border border-gray-300 dark:border-gray-700",
+              "placeholder:text-gray-500 dark:placeholder:text-gray-400",
+              "focus:ring-1",
+              isEncrypted && "border-green-500/30 focus:ring-green-500/20",
+              disabled && "opacity-60 cursor-not-allowed"
+            )}
+            disabled={disabled}
+            rows={1}
+            style={{ height: 'auto', maxHeight: '120px' }}
           />
           
-          <div className="absolute bottom-2 right-2 flex items-center">
+          <div className="absolute right-2 bottom-2 flex space-x-1">
             <Button 
-              type="button" 
-              size="icon" 
+              type="button"
               variant="ghost"
-              className={cn(
-                "rounded-full w-8 h-8",
-                monetizationEnabled && "text-amber-500"
-              )}
-              onClick={onToggleMonetization}
+              size="icon"
+              className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              onClick={handleImageUpload}
+              disabled={disabled}
             >
-              <Zap size={16} />
+              <Image size={16} />
             </Button>
           </div>
         </div>
         
-        {message ? (
-          <Button 
-            type="button" 
-            size="icon" 
-            className="rounded-full h-10 w-10"
-            onClick={handleSend}
-          >
-            <Send size={18} />
-          </Button>
-        ) : (
-          <Button 
-            type="button" 
-            size="icon" 
-            className="rounded-full h-10 w-10"
-            onClick={startRecording}
-            disabled={isRecording}
-          >
-            <Mic size={18} />
-          </Button>
-        )}
+        <Button
+          onClick={handleSend}
+          disabled={!message.trim() || disabled}
+          className={cn(
+            "rounded-full h-10 w-10 flex items-center justify-center",
+            message.trim() ? "bg-primary hover:bg-primary/90" : "bg-gray-300 dark:bg-gray-700"
+          )}
+          aria-label="Envoyer"
+        >
+          <SendHorizontal size={18} />
+        </Button>
       </div>
       
-      {/* Advanced options */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Image size={16} />
-          </Button>
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Video size={16} />
-          </Button>
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Paperclip size={16} />
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            onClick={() => toast({
+              title: "Bientôt disponible",
+              description: "Les émojis seront bientôt disponibles",
+            })}
+            disabled={disabled}
+          >
+            <Smile size={18} />
           </Button>
           
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-                <Smile size={16} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-60">
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Effets visuels</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['✨', '💖', '🔥', '🎉', '🌈', '💫', '🌟', '🎵', '🌈'].map((effect, i) => (
-                    <Button 
-                      key={i} 
-                      size="sm" 
-                      variant="outline" 
-                      className="h-8 w-8 p-0"
-                      onClick={() => setMessage(message + ' ' + effect)}
-                    >
-                      {effect}
-                    </Button>
-                  ))}
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="encrypted" className="text-xs">Chiffrement</Label>
-                    <Switch id="encrypted" defaultChecked />
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="whisper-mode" className="text-xs">Mode Whisper</Label>
-                    <Switch id="whisper-mode" />
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Button
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            onClick={() => toast({
+              title: "Bientôt disponible",
+              description: "Les pièces jointes seront bientôt disponibles",
+            })}
+            disabled={disabled}
+          >
+            <Paperclip size={18} />
+          </Button>
         </div>
         
-        <div className="text-xs text-muted-foreground">
-          {isComposing ? "En train d'écrire..." : ""}
-        </div>
+        {!monetizationEnabled && onToggleMonetization && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleMonetization}
+            className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/30 dark:text-amber-500 dark:hover:text-amber-400 dark:hover:bg-amber-900/30"
+            disabled={disabled}
+          >
+            <HeartHandshake size={16} className="mr-1" />
+            <span>Soutenir</span>
+          </Button>
+        )}
       </div>
     </div>
   );

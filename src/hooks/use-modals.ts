@@ -6,6 +6,8 @@ interface Modals {
   security: boolean;
   subscriptions: boolean;
   contentPurchase: boolean;
+  supportCreator: boolean;
+  giftCreator: boolean;
 }
 
 export function useModals() {
@@ -14,6 +16,8 @@ export function useModals() {
     security: false,
     subscriptions: false,
     contentPurchase: false,
+    supportCreator: false,
+    giftCreator: false
   });
 
   const openModal = (modalName: keyof Modals) => {

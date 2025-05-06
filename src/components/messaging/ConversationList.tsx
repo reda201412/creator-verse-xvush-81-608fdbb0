@@ -1,26 +1,42 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Zap, Lock } from 'lucide-react';
+import { Zap, Lock, Search, Plus, UserPlus } from 'lucide-react';
 import { MessageThread } from '@/types/messaging';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ConversationListProps {
   threads: MessageThread[];
   userId: string;
   onSelectThread: (threadId: string) => void;
   activeThreadId: string | null;
+  userType: 'creator' | 'fan';
+  onNewConversation?: () => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
   threads,
   userId,
   onSelectThread,
-  activeThreadId
+  activeThreadId,
+  userType,
+  onNewConversation
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
+  
+  // Filter threads based on search term
+  const filteredThreads = threads.filter(thread => {
+    const displayName = getDisplayName(thread);
+    return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
   // Conversations avec activité récente pour la grille du haut
-  const activeThreads = threads
+  const activeThreads = filteredThreads
     .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
     .slice(0, 6);
 
@@ -66,8 +82,35 @@ const ConversationList: React.FC<ConversationListProps> = ({
     return thread.messages[thread.messages.length - 1];
   };
 
+  const handleNewConversation = () => {
+    if (onNewConversation) {
+      onNewConversation();
+    } else {
+      toast({
+        title: "Bientôt disponible",
+        description: "La création de nouvelles conversations sera bientôt disponible"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Barre de recherche */}
+      <div className="p-4 flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input
+            placeholder="Rechercher une conversation..."
+            className="pl-9 bg-background"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button size="icon" variant="outline" onClick={handleNewConversation}>
+          <UserPlus size={18} />
+        </Button>
+      </div>
+      
       {/* Grille des conversations actives */}
       <motion.div
         variants={containerVariants}
@@ -125,7 +168,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
           animate="show"
           className="p-4 space-y-2"
         >
-          {threads.map(thread => {
+          {filteredThreads.map(thread => {
             const lastMessage = getLastMessage(thread);
             const isUnread = hasUnreadMessages(thread);
             const isPremium = hasPremiumContent(thread);
@@ -208,6 +251,22 @@ const ConversationList: React.FC<ConversationListProps> = ({
               </motion.div>
             );
           })}
+          
+          {filteredThreads.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? "Aucun résultat pour votre recherche" : "Aucune conversation trouvée"}
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={handleNewConversation}
+                className="flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Nouvelle conversation
+              </Button>
+            </div>
+          )}
         </motion.div>
       </ScrollArea>
     </div>

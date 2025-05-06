@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WalletConnect from '@/components/wallet/WalletConnect';
 import WalletBalance from '@/components/wallet/WalletBalance';
 import TransactionList from '@/components/wallet/TransactionList';
+import { TransactionData, WalletResponse } from '@/types/messaging';
 
 interface WalletModalProps {
   open: boolean;
@@ -16,7 +17,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
   onOpenChange 
 }) => {
   // Simulation de données pour le portefeuille avec la structure correcte des transactions
-  const walletInfo = {
+  const walletInfo: WalletResponse = {
     wallet: {
       tron_address: 'TFFJ1DP6J97j6nGBjPufkru9Eu1FBpkCFF',
       balance_usdt: 125.75,
