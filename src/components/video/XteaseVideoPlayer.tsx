@@ -225,6 +225,12 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     const handleCanPlay = () => {
       setIsLoading(false);
       trackEvent('buffer_end');
+      
+      // Auto-play when can play
+      if (autoPlay && video.paused) {
+        video.play().catch(e => console.error("Auto-play failed:", e));
+        setIsPlaying(true);
+      }
     };
 
     const handleError = (error: any) => {
@@ -247,7 +253,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
     };
-  }, [trackEvent, updateProgress]);
+  }, [trackEvent, updateProgress, autoPlay]);
 
   // Handle fullscreen change
   useEffect(() => {
@@ -280,12 +286,24 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
   
-  // Auto go fullscreen on mobile when video starts playing
+  // Auto go fullscreen on mobile when modal opens
   useEffect(() => {
-    if (isMobile && isPlaying && !isFullscreen) {
-      toggleFullscreen();
+    if (isMobile && autoPlay && containerRef.current) {
+      // Short delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (containerRef.current) {
+          if (containerRef.current.requestFullscreen) {
+            containerRef.current.requestFullscreen();
+          } else if ((containerRef.current as any).webkitRequestFullscreen) {
+            (containerRef.current as any).webkitRequestFullscreen();
+          }
+          setIsFullscreen(true);
+        }
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isMobile, isPlaying]);
+  }, [isMobile, autoPlay]);
 
   // Handle double-tap for like (on mobile)
   const handleDoubleTap = () => {
@@ -299,17 +317,20 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       ref={containerRef}
       className={cn(
         "relative overflow-hidden bg-black group touch-manipulation",
-        isFullscreen ? "fixed inset-0 z-50" : "max-w-[450px] mx-auto",
+        isFullscreen ? "fixed inset-0 z-50" : "xtease-video-container",
         className
       )}
     >
-      <AspectRatio ratio={9/16} className="relative">
+      <div className={cn("relative w-full h-full", isFullscreen ? "" : "aspect-[9/16]")}>
         {/* Video element */}
         <video
           ref={videoRef}
           src={src}
           poster={thumbnailUrl}
-          className="w-full h-full object-contain"
+          className={cn(
+            "w-full h-full object-contain xtease-video",
+            isFullscreen && "xtease-fullscreen"
+          )}
           autoPlay={autoPlay}
           loop={loop}
           muted={muted}
@@ -380,7 +401,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
             isLiked={isLiked}
           />
         </div>
-      </AspectRatio>
+      </div>
     </div>
   );
 };

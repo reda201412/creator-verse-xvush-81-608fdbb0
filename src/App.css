@@ -1,3 +1,4 @@
+
 /* Styles pour les filtres de stories */
 .filter-none {
   filter: none;
@@ -47,7 +48,8 @@
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 450px;
+  height: 100%;
+  max-width: 100%;
   margin: 0 auto;
   background: #000;
   overflow: hidden;
@@ -55,7 +57,7 @@
 
 .xtease-video {
   aspect-ratio: 9/16;
-  max-height: 80vh;
+  height: 100%;
   object-fit: contain;
   width: 100%;
 }
@@ -92,11 +94,14 @@
   .xtease-video-container {
     height: 100%;
     max-width: 100%;
+    width: 100vw;
+    margin: 0;
   }
   
   .xtease-video {
     height: 100%;
-    max-width: 100%;
+    width: auto;
+    max-height: 100vh;
   }
   
   .video-controls-mobile {
