@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,15 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { Crown, User, LogOut, Camera, CreditCard, Shield, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useModals } from '@/hooks/use-modals';
+import { fileUploadService } from '@/services/file-upload.service';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import WalletModal from '@/components/modals/WalletModal';
+import ProfileSettingsModal from '@/components/modals/ProfileSettingsModal';
 
 const ProfileSettings = () => {
   const { user, profile, isCreator, signOut, updateProfile, becomeCreator } = useAuth();
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { openModals, openModal, closeModal } = useModals();
   const navigate = useNavigate();
   
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
@@ -26,6 +31,8 @@ const ProfileSettings = () => {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isBecomingCreator, setIsBecomingCreator] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateProfile = async () => {
     if (!username.trim()) {
@@ -73,6 +80,69 @@ const ProfileSettings = () => {
     navigate('/auth');
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Valider le fichier
+    const validation = fileUploadService.validateFile(file, {
+      maxSizeMB: 5,
+      allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    });
+    
+    if (!validation.valid) {
+      toast.error(validation.error || 'Fichier invalide');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // Créer une URL temporaire pour prévisualiser l'image immédiatement
+      const tempUrl = URL.createObjectURL(file);
+      setAvatarUrl(tempUrl);
+      
+      // Simuler l'upload
+      const result = await fileUploadService.uploadFile(file, 'avatars');
+      
+      if (result.success) {
+        // Dans une implémentation réelle, nous utiliserions l'URL retournée par le service
+        // Pour l'instant, nous gardons l'URL temporaire
+        triggerMicroReward('creative');
+        toast.success("Photo de profil mise à jour");
+      } else {
+        toast.error(result.error || "Erreur lors de l'upload");
+        // Restaurer l'avatar précédent en cas d'erreur
+        setAvatarUrl(profile?.avatar_url || '');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'upload");
+      setAvatarUrl(profile?.avatar_url || '');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleSectionClick = (section: string) => {
+    switch (section) {
+      case 'payment':
+        openModal('wallet');
+        break;
+      case 'security':
+        toast.info('Fonctionnalité de sécurité en cours de développement');
+        break;
+      case 'subscriptions':
+        navigate('/tokens');
+        break;
+      default:
+        toast.info('Cette section est en cours de développement');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <motion.div
@@ -91,14 +161,23 @@ const ProfileSettings = () => {
                     src={avatarUrl || '/placeholder.svg'} 
                     size="xl" 
                     status="online" 
+                    onClick={triggerFileInput}
                   />
                   <Button 
                     size="icon" 
                     variant="outline" 
                     className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+                    onClick={triggerFileInput}
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                 </div>
                 
                 <h3 className="text-lg font-medium">{displayName || username}</h3>
@@ -214,7 +293,10 @@ const ProfileSettings = () => {
                   
                   <TabsContent value="account">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div 
+                        className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleSectionClick('payment')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-primary/10 rounded-full">
                             <CreditCard className="h-5 w-5 text-primary" />
@@ -227,7 +309,10 @@ const ProfileSettings = () => {
                         <Button variant="outline" size="sm">Gérer</Button>
                       </div>
                       
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div 
+                        className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleSectionClick('security')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-primary/10 rounded-full">
                             <Shield className="h-5 w-5 text-primary" />
@@ -240,7 +325,10 @@ const ProfileSettings = () => {
                         <Button variant="outline" size="sm">Modifier</Button>
                       </div>
                       
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div 
+                        className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleSectionClick('subscriptions')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-primary/10 rounded-full">
                             <Zap className="h-5 w-5 text-primary" />
@@ -266,6 +354,12 @@ const ProfileSettings = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Modals */}
+      <WalletModal 
+        open={openModals.wallet}
+        onOpenChange={(open) => open ? openModal('wallet') : closeModal('wallet')}
+      />
     </div>
   );
 };

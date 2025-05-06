@@ -7,16 +7,23 @@ interface XDoseLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   animated?: boolean;
+  hideInHeader?: boolean; // Nouvelle propriété pour cacher le logo dans l'en-tête
 }
 
 const XDoseLogo: React.FC<XDoseLogoProps> = ({ 
   size = 'md', 
   className = '',
-  animated = true
+  animated = true,
+  hideInHeader = false
 }) => {
   const { triggerMicroReward } = useNeuroAesthetic();
   const [isHovered, setIsHovered] = useState(false);
   const [randomColor, setRandomColor] = useState(0);
+  
+  // Si hideInHeader est true et que la classe contient 'header', ne pas rendre le composant
+  if (hideInHeader && className.includes('header')) {
+    return null;
+  }
   
   const colors = [
     'from-purple-500 to-pink-500',

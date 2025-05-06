@@ -70,21 +70,19 @@ const CreatorHeader = ({
         <div className="flex flex-col items-center gap-3">
           <ProfileSection avatar={avatar} isOnline={isOnline} />
           
-          {/* Message button that links to the messages page */}
-          {!isCreator && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full flex items-center gap-2"
-              asChild
-              onClick={handleMessageClick}
-            >
-              <Link to="/messages">
-                <MessageSquare size={16} />
-                Envoyer un message
-              </Link>
-            </Button>
-          )}
+          {/* Message button that links to the messages page with creator username in state */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full flex items-center gap-2"
+            asChild
+            onClick={handleMessageClick}
+          >
+            <Link to={`/messages?username=${username}`}>
+              <MessageSquare size={16} />
+              Envoyer un message
+            </Link>
+          </Button>
         </div>
 
         <div className="flex-grow space-y-4">

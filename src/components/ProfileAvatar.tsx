@@ -57,18 +57,20 @@ const ProfileAvatar = ({
       src={src} 
       alt={alt}
       whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.2 }}
       className={cn(
         "rounded-full object-cover", 
         hasStory ? "" : "border-2 border-white dark:border-gray-800",
-        sizeMap[size]
+        sizeMap[size],
+        onClick ? "cursor-pointer hover:shadow-lg" : ""
       )}
     />
   );
 
   return (
     <div 
-      className={cn("relative inline-block cursor-pointer", className)}
+      className={cn("relative inline-block", onClick ? "cursor-pointer" : "", className)}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -83,6 +85,18 @@ const ProfileAvatar = ({
         imageComponent
       )}
       {renderStatus()}
+      
+      {/* Si onClick est défini, afficher un indicateur visuel au survol */}
+      {onClick && (
+        <div className="absolute inset-0 rounded-full bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+          <div className="text-white bg-black/30 p-1 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
