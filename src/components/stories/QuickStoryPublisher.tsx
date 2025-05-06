@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, X, Filter, Download, Video, Image, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserBehavior } from '@/hooks/use-user-behavior';
@@ -12,12 +13,13 @@ import { StoryFilter } from '@/types/stories';
 import { useStories } from '@/hooks/use-stories';
 import { useMediaProcessor } from '@/hooks/use-media-processor';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { StoryCacheService } from '@/services/story-cache.service';
 
 /**
  * Version optimisée du StoryPublisher avec prévisualisation des filtres en temps réel
  * utilisant WebGL pour une meilleure performance
  */
-const QuickStoryPublisher: React.FC = () => {
+const QuickStoryPublisher = ({ onClose, onPublished }) => {
   const { isCreator } = useAuth();
   const { triggerMicroReward } = useNeuroAesthetic();
   const { trackInteraction } = useUserBehavior();
@@ -517,7 +519,7 @@ const QuickStoryPublisher: React.FC = () => {
   };
   
   // Publier la story capturée avec gestion optimisée des erreurs
-  const publishCapturedMedia = async () => {
+  const handlePublish = async () => {
     if (!capturedMedia) {
       toast({
         title: "Erreur",
@@ -555,10 +557,11 @@ const QuickStoryPublisher: React.FC = () => {
         metadata: {}
       });
       
+      // Update this toast to use the success variant
       toast({
         title: "Succès",
         description: "Votre story a été publiée",
-        variant: "default", 
+        variant: "success",
       });
       
       // Réinitialiser l'état
@@ -890,7 +893,7 @@ const QuickStoryPublisher: React.FC = () => {
                     Reprendre
                   </Button>
                   <Button
-                    onClick={publishCapturedMedia}
+                    onClick={handlePublish}
                     className="rounded-full bg-green-500 hover:bg-green-600"
                   >
                     <Check className="mr-2 h-4 w-4" />
