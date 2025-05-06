@@ -1,19 +1,38 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ContentGrid from "@/components/ContentGrid";
+import ContentCreatorCard from "@/components/ContentCreatorCard";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useUserBehavior } from "@/hooks/use-user-behavior";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Filter } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, Filter, Users } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import XteasePlayerModal from "@/components/video/XteasePlayerModal";
+import { fetchAvailableCreators } from "@/utils/create-conversation-utils";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Plus de contenu trending avec des vidéos premium et VIP
+// Types pour les créateurs
+interface Creator {
+  id: number;
+  user_id: string;
+  username: string;
+  name: string | null;
+  avatar: string | null;
+  bio: string | null;
+  metrics?: {
+    followers?: number;
+    likes?: number;
+    rating?: number;
+  };
+  isPremium?: boolean;
+}
+
+// Contenu trending avec des vidéos premium et VIP
 const allTrendingContent = [
   // Contenu de la page d'accueil
   {
@@ -201,16 +220,71 @@ const allTrendingContent = [
 
 const TrendingContent = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [creatorTab, setCreatorTab] = useState<string>("content");
   const { config } = useNeuroAesthetic();
   const { trackInteraction, trackContentPreference } = useUserBehavior();
   const { triggerMicroReward } = useNeuroAesthetic();
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Track page view on mount
     trackInteraction("view", { page: "trending" });
+    
+    // Charger les créateurs
+    loadCreators();
+    
+    // Charger les contenus à partir de Supabase
+    loadContentFromVideosTable();
   }, [trackInteraction]);
+  
+  const loadCreators = async () => {
+    setIsLoadingCreators(true);
+    try {
+      const creatorData = await fetchAvailableCreators();
+      
+      // Ajouter des métriques fictives pour l'UI
+      const creatorsWithMetrics = creatorData.map(creator => ({
+        ...creator,
+        metrics: {
+          followers: Math.floor(Math.random() * 10000),
+          likes: Math.floor(Math.random() * 5000),
+          rating: 4 + Math.random(),
+        },
+        isPremium: Math.random() > 0.5
+      }));
+      
+      setCreators(creatorsWithMetrics);
+    } catch (error) {
+      console.error("Erreur lors du chargement des créateurs:", error);
+    } finally {
+      setIsLoadingCreators(false);
+    }
+  };
+  
+  // Charger le contenu depuis la table videos de Supabase
+  const loadContentFromVideosTable = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('uploadedat', { ascending: false });
+        
+      if (error) throw error;
+      
+      // Les données sont chargées mais on garde aussi le contenu statique pour l'instant
+      console.log("Vidéos chargées depuis Supabase:", data);
+      
+      // On pourrait remplacer allTrendingContent par ces données
+      // Mais pour l'instant, on garde le contenu statique
+    } catch (error) {
+      console.error("Erreur lors du chargement des vidéos:", error);
+    }
+  };
 
   const handleContentClick = (contentId: string) => {
     triggerMicroReward('click');
@@ -221,6 +295,14 @@ const TrendingContent = () => {
       setSelectedVideo(selectedContent);
       setIsPlayerOpen(true);
     }
+  };
+
+  const handleCreatorClick = (creator: Creator) => {
+    triggerMicroReward('click');
+    trackInteraction('click', { creatorId: creator.user_id });
+    
+    // Naviguer vers la page de messagerie avec ce créateur
+    navigate('/secure-messaging', { state: { creatorId: creator.user_id } });
   };
 
   const filteredContent = activeTab === 'all' 
@@ -254,26 +336,80 @@ const TrendingContent = () => {
             Filtres
           </Button>
         </div>
-
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        
+        <Tabs defaultValue="content" value={creatorTab} onValueChange={setCreatorTab}>
           <TabsList className="mb-6">
-            <TabsTrigger value="all">Tous</TabsTrigger>
-            <TabsTrigger value="standard">Standard</TabsTrigger>
-            <TabsTrigger value="premium">Premium</TabsTrigger>
-            <TabsTrigger value="vip">VIP</TabsTrigger>
+            <TabsTrigger value="content">Contenu</TabsTrigger>
+            <TabsTrigger value="creators" className="flex items-center gap-1">
+              <Users size={14} />
+              Créateurs
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value={activeTab} className="mt-0">
+          <TabsContent value="content">
+            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-6">
+                <TabsTrigger value="all">Tous</TabsTrigger>
+                <TabsTrigger value="standard">Standard</TabsTrigger>
+                <TabsTrigger value="premium">Premium</TabsTrigger>
+                <TabsTrigger value="vip">VIP</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value={activeTab} className="mt-0">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <ContentGrid 
+                    contents={filteredContent} 
+                    layout="masonry"
+                    onItemClick={handleContentClick}
+                  />
+                </motion.div>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="creators">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <ContentGrid 
-                contents={filteredContent} 
-                layout="masonry"
-                onItemClick={handleContentClick}
-              />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {creators.map((creator) => (
+                  <ContentCreatorCard
+                    key={creator.id} 
+                    creator={{
+                      id: creator.id,
+                      userId: creator.user_id,
+                      username: creator.username,
+                      name: creator.name || creator.username,
+                      avatar: creator.avatar || `https://i.pravatar.cc/300?u=${creator.user_id}`,
+                      bio: creator.bio || undefined,
+                      metrics: creator.metrics,
+                      isPremium: creator.isPremium
+                    }}
+                    onClick={() => handleCreatorClick(creator)}
+                  />
+                ))}
+                
+                {isLoadingCreators && (
+                  <div className="col-span-full flex justify-center py-10">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                )}
+                
+                {!isLoadingCreators && creators.length === 0 && (
+                  <div className="col-span-full text-center py-10">
+                    <p className="text-lg text-muted-foreground">Aucun créateur disponible</p>
+                    <Button variant="outline" className="mt-4" onClick={loadCreators}>
+                      Actualiser
+                    </Button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

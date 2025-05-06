@@ -8,26 +8,39 @@ import { MessageThread } from '@/types/messaging';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import CreatorSelector from './CreatorSelector';
+import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
+import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
 interface ConversationListProps {
   threads: MessageThread[];
   userId: string;
+  userName: string;
+  userAvatar: string;
   onSelectThread: (threadId: string) => void;
   activeThreadId: string | null;
   userType: 'creator' | 'fan';
   onNewConversation?: () => void;
+  onConversationCreated?: (threadId: string) => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
   threads,
   userId,
+  userName,
+  userAvatar,
   onSelectThread,
   activeThreadId,
   userType,
-  onNewConversation
+  onNewConversation,
+  onConversationCreated
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCreatorSelectorOpen, setIsCreatorSelectorOpen] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const { toast } = useToast();
+  const { triggerHaptic } = useHapticFeedback();
   
   // Filter threads based on search term
   const filteredThreads = threads.filter(thread => {
@@ -83,13 +96,49 @@ const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   const handleNewConversation = () => {
-    if (onNewConversation) {
-      onNewConversation();
-    } else {
-      toast({
-        title: "Bientôt disponible",
-        description: "La création de nouvelles conversations sera bientôt disponible"
+    triggerHaptic('light');
+    setIsCreatorSelectorOpen(true);
+  };
+
+  const handleCreatorSelected = async (creator: any) => {
+    if (!creator || !creator.user_id || isCreatingConversation) return;
+    
+    setIsCreatingConversation(true);
+    
+    try {
+      const result = await createNewConversationWithCreator({
+        userId,
+        userName,
+        userAvatar,
+        creatorId: creator.user_id,
+        creatorName: creator.name || creator.username,
       });
+      
+      if (result.success && result.threadId) {
+        toast({
+          title: "Conversation créée",
+          description: `Vous pouvez maintenant discuter avec ${creator.name || creator.username}`
+        });
+        
+        // Fermer le sélecteur et informer le parent de la nouvelle conversation
+        setIsCreatorSelectorOpen(false);
+        if (onConversationCreated) {
+          onConversationCreated(result.threadId);
+        }
+        
+        triggerHaptic('medium');
+      } else {
+        throw new Error("Échec de création de la conversation");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création de la conversation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer une conversation. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingConversation(false);
     }
   };
 
@@ -106,8 +155,17 @@ const ConversationList: React.FC<ConversationListProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button size="icon" variant="outline" onClick={handleNewConversation}>
-          <UserPlus size={18} />
+        <Button 
+          size="icon" 
+          variant="outline" 
+          onClick={handleNewConversation}
+          disabled={isCreatingConversation}
+        >
+          {isCreatingConversation ? (
+            <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+          ) : (
+            <UserPlus size={18} />
+          )}
         </Button>
       </div>
       
@@ -260,6 +318,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               <Button 
                 variant="outline" 
                 onClick={handleNewConversation}
+                disabled={isCreatingConversation}
                 className="flex items-center gap-2"
               >
                 <Plus size={16} />
@@ -269,6 +328,16 @@ const ConversationList: React.FC<ConversationListProps> = ({
           )}
         </motion.div>
       </ScrollArea>
+      
+      {/* Dialog pour sélectionner un créateur */}
+      <Dialog open={isCreatorSelectorOpen} onOpenChange={setIsCreatorSelectorOpen}>
+        <DialogContent className="sm:max-w-md h-4/5 flex flex-col">
+          <CreatorSelector 
+            onSelectCreator={handleCreatorSelected}
+            onCancel={() => setIsCreatorSelectorOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

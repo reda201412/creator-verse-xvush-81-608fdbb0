@@ -316,6 +316,16 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
     });
   };
 
+  // Gérer la création d'une nouvelle conversation
+  const handleNewConversationCreated = (threadId: string) => {
+    // Recharger les conversations pour obtenir la nouvelle
+    loadConversations().then(() => {
+      // Sélectionner la nouvelle conversation
+      setActiveThreadId(threadId);
+      setShowConversationList(false);
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
@@ -432,15 +442,12 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
               <ConversationList 
                 threads={filteredThreads}
                 userId={userId}
+                userName={userName}
+                userAvatar={userAvatar}
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
                 userType={userType}
-                onNewConversation={() => {
-                  toast({
-                    title: "Bientôt disponible",
-                    description: "La création de nouvelles conversations sera bientôt disponible"
-                  });
-                }}
+                onConversationCreated={handleNewConversationCreated}
               />
             </motion.div>
           ) : (
