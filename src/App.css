@@ -1,53 +1,61 @@
 
 /* ... keep existing code */
 
-/* Styles pour les filtres de stories optimisés */
+/* Styles pour les filtres de stories optimisés avec GPU */
 .filter-none {
   filter: none !important;
   -webkit-filter: none !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-sepia {
   filter: sepia(0.7) !important;
   -webkit-filter: sepia(0.7) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-grayscale {
   filter: grayscale(1) !important;
   -webkit-filter: grayscale(1) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-blur {
   filter: blur(1px) !important;
   -webkit-filter: blur(1px) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-vintage {
   filter: sepia(0.3) contrast(1.1) brightness(0.9) !important;
   -webkit-filter: sepia(0.3) contrast(1.1) brightness(0.9) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-neon {
   filter: brightness(1.2) contrast(1.2) saturate(1.5) !important;
   -webkit-filter: brightness(1.2) contrast(1.2) saturate(1.5) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-vibrant {
   filter: saturate(1.8) contrast(1.1) !important;
   -webkit-filter: saturate(1.8) contrast(1.1) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .filter-minimal {
   filter: contrast(1.1) brightness(1.1) saturate(0.8) !important;
   -webkit-filter: contrast(1.1) brightness(1.1) saturate(0.8) !important;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Optimisations de performance */
@@ -64,6 +72,7 @@ video, canvas, img {
   backface-visibility: hidden;
   transform: translate3d(0, 0, 0);
   -webkit-transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* Supprimer la barre de défilement pour la timeline des stories */
@@ -106,4 +115,82 @@ video.preload-auto {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
+}
+
+/* Nouvelles optimisations pour l'affichage des stories */
+.story-container {
+  position: relative;
+  overflow: hidden;
+  contain: content;
+  contain-intrinsic-size: 100%;
+}
+
+.transform-gpu {
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.video-optimized {
+  object-fit: contain;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.filter-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Animation d'entrée des filtres */
+.filter-item {
+  transition: transform 0.2s ease-out, border-color 0.2s ease;
+}
+
+.filter-item-active {
+  transform: scale(1.1);
+  border-color: white;
+}
+
+/* Styles pour les boutons du camera UI */
+.camera-btn {
+  position: relative;
+  transition: all 0.2s ease;
+  transform: translateZ(0);
+}
+
+.camera-btn:active {
+  transform: scale(0.95) translateZ(0);
+}
+
+.camera-btn::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, #ff5a5a, #ff9a5a, #ffcf5a, #5aff8f, #5ab5ff, #a55aff);
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.camera-btn:hover::before {
+  opacity: 0.8;
+}
+
+/* Animation de battement pour le bouton d'enregistrement */
+@keyframes pulse-record {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse-record {
+  animation: pulse-record 1s ease-in-out infinite;
 }
