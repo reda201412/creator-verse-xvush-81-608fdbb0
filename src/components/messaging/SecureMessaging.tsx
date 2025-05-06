@@ -66,14 +66,11 @@ const SecureMessaging = () => {
   const loadConversations = async () => {
     setIsLoading(true);
     try {
-      // For creators, fetch all threads where they are participants
+      // For creators, fetch all threads where they are participants or creator
       // For fans, fetch threads they're participating in
       const { data, error } = await supabase
         .from('message_threads')
-        .select(`
-          *,
-          messages:message_thread_messages(*)
-        `)
+        .select('*, messages:message_thread_messages(*)')
         .or(`participants.cs.{${userId}},creator_id.eq.${userId}`)
         .order('last_activity', { ascending: false });
 
@@ -84,10 +81,10 @@ const SecureMessaging = () => {
       if (data) {
         // Transform the data to match our ThreadType format
         const formattedThreads: ThreadType[] = data.map(thread => ({
-          id: thread.id,
+          id: String(thread.id), // Ensure ID is a string
           participants: thread.participants || [],
-          messages: thread.messages.map(msg => ({
-            id: msg.id,
+          messages: (Array.isArray(thread.messages) ? thread.messages : []).map(msg => ({
+            id: String(msg.id),
             senderId: msg.sender_id,
             senderName: msg.sender_name,
             senderAvatar: msg.sender_avatar,
@@ -146,7 +143,7 @@ const SecureMessaging = () => {
         event: 'INSERT', 
         schema: 'public', 
         table: 'message_thread_messages',
-        filter: `recipient_id=eq.${userId}`
+        filter: `recipient_id.cs.{${userId}}`
       }, handleRealTimeMessage)
       .subscribe();
 
@@ -164,7 +161,7 @@ const SecureMessaging = () => {
     
     // Format the message to match our Message type
     const formattedMessage: Message = {
-      id: newMessage.id,
+      id: String(newMessage.id),
       senderId: newMessage.sender_id,
       senderName: newMessage.sender_name,
       senderAvatar: newMessage.sender_avatar,
@@ -237,11 +234,13 @@ const SecureMessaging = () => {
       if (unreadMessages.length === 0) return;
       
       // Update message status in database
-      await supabase
+      const { error } = await supabase
         .from('message_thread_messages')
         .update({ status: 'read' })
         .in('id', unreadMessages);
         
+      if (error) throw error;
+      
       // Update local state
       setThreads(prev => 
         prev.map(t => 
@@ -337,7 +336,7 @@ const SecureMessaging = () => {
 
       // Format message for local state update
       const newMessage: Message = {
-        id: savedMessage.id,
+        id: String(savedMessage.id),
         senderId: userId,
         senderName: userName,
         senderAvatar: profile?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200",
@@ -384,7 +383,7 @@ const SecureMessaging = () => {
     }
   };
 
-  // Process USDT transaction via Tron
+  // Process USDT transaction via the Edge Function
   const processUsdtTransaction = async (amount: number, recipientId: string, tier: string) => {
     try {
       // Verify wallet exists
@@ -407,20 +406,13 @@ const SecureMessaging = () => {
         return false;
       }
 
-      // Get recipient data
-      const { data: recipientData, error: recipientError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', recipientId)
-        .single();
+      // Call the decrement_balance Edge Function
+      const { data, error } = await supabase.functions.invoke("decrement_balance", {
+        body: { userId: userId, amount: amount }
+      });
 
-      if (recipientError || !recipientData) {
-        toast({
-          title: "Destinataire introuvable",
-          description: "Impossible de trouver le destinataire du paiement",
-          variant: "destructive",
-        });
-        return false;
+      if (error) {
+        throw new Error(error.message);
       }
 
       // Create transaction record
@@ -431,28 +423,18 @@ const SecureMessaging = () => {
           amount_usdt: amount,
           transaction_type: 'message_support',
           status: 'completed',
-          tron_tx_id: `sim_tx_${Date.now()}` // In real implementation, this would be the actual Tron transaction ID
+          tron_tx_id: `tx_${Date.now()}`
         })
         .select()
         .single();
 
       if (transactionError) throw transactionError;
 
-      // Update wallet balance
-      await supabase
-        .from('wallet_addresses')
-        .update({ 
-          balance_usdt: supabase.rpc('decrement_balance', { user_id_param: userId, amount_param: amount })
-        })
-        .eq('user_id', userId);
-
-      // Update recipient's balance
-      await supabase
-        .from('wallet_addresses')
-        .update({ 
-          balance_usdt: supabase.rpc('increment_balance', { user_id_param: recipientId, amount_param: amount * 0.9 }) // 10% platform fee
-        })
-        .eq('user_id', recipientId);
+      // Update recipient's balance - use RPC call
+      await supabase.rpc('increment_balance', { 
+        user_id_param: recipientId, 
+        amount_param: amount * 0.9  // 10% platform fee
+      });
 
       // Get updated wallet info
       await getWalletInfo();

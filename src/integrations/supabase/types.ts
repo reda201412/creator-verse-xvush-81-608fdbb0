@@ -125,6 +125,101 @@ export type Database = {
         }
         Relationships: []
       }
+      message_thread_messages: {
+        Row: {
+          content: string
+          created_at: string
+          emotional_data: Json | null
+          id: string
+          is_encrypted: boolean
+          media_url: string | null
+          monetization_data: Json | null
+          recipient_id: string[] | null
+          sender_avatar: string | null
+          sender_id: string
+          sender_name: string
+          status: string
+          thread_id: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          emotional_data?: Json | null
+          id?: string
+          is_encrypted?: boolean
+          media_url?: string | null
+          monetization_data?: Json | null
+          recipient_id?: string[] | null
+          sender_avatar?: string | null
+          sender_id: string
+          sender_name: string
+          status?: string
+          thread_id: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          emotional_data?: Json | null
+          id?: string
+          is_encrypted?: boolean
+          media_url?: string | null
+          monetization_data?: Json | null
+          recipient_id?: string[] | null
+          sender_avatar?: string | null
+          sender_id?: string
+          sender_name?: string
+          status?: string
+          thread_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_thread_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_threads: {
+        Row: {
+          created_at: string
+          creator_id: string | null
+          emotional_map: Json | null
+          id: string
+          is_gated: boolean
+          last_activity: string
+          name: string | null
+          participants: string[]
+          required_tier: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id?: string | null
+          emotional_map?: Json | null
+          id?: string
+          is_gated?: boolean
+          last_activity?: string
+          name?: string | null
+          participants: string[]
+          required_tier?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string | null
+          emotional_map?: Json | null
+          id?: string
+          is_gated?: boolean
+          last_activity?: string
+          name?: string | null
+          participants?: string[]
+          required_tier?: string | null
+        }
+        Relationships: []
+      }
       site_wallet: {
         Row: {
           commission_percentage: number | null
@@ -505,6 +600,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_balance: {
+        Args: { user_id_param: string; amount_param: number }
+        Returns: number
+      }
+      increment_balance: {
+        Args: { user_id_param: string; amount_param: number }
+        Returns: number
+      }
       is_creator: {
         Args: Record<PropertyKey, never>
         Returns: boolean
