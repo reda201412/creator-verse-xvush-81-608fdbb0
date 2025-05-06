@@ -6,21 +6,15 @@ import {
   Mic, 
   Image, 
   Smile,
-  Paperclip,
+  Camera,
   Zap,
-  Volume,
-  Video,
+  X,
   Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonetizationTier } from '@/types/messaging';
+import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -48,26 +42,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [showEffects, setShowEffects] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const recordingInterval = useRef<number | null>(null);
+  const { triggerHaptic } = useHapticFeedback();
   
   const handleSend = () => {
     if (message.trim()) {
+      triggerHaptic('medium');
       onSendMessage(message);
       setMessage('');
-      inputRef.current?.focus();
-    }
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
   
   const startRecording = () => {
+    triggerHaptic('medium');
     setIsRecording(true);
     let seconds = 0;
     recordingInterval.current = window.setInterval(() => {
@@ -83,8 +72,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
     setIsRecording(false);
     setRecordingTime(0);
-    // In a real app, we would process the recorded audio here
-    onSendMessage("🎤 Message vocal (0:00)");
+    
+    // Simulate sending a voice message
+    onSendMessage("🎤 Message vocal");
+    triggerHaptic('strong');
+  };
+  
+  const toggleCamera = () => {
+    triggerHaptic('medium');
+    setShowCamera(!showCamera);
   };
   
   const formatTime = (seconds: number): string => {
@@ -94,49 +90,43 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
   
   return (
-    <div className="space-y-2">
-      {/* Monetization indicator */}
+    <div>
+      {/* Camera mode overlay */}
       <AnimatePresence>
-        {monetizationEnabled && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-amber-500/10 rounded-lg p-2 border border-amber-500/30"
+        {showCamera && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-0 left-0 right-0 top-0 bg-black z-10 flex flex-col"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap size={14} className="text-amber-500" />
-                <span className="text-xs font-medium">Message monétisé</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold">{monetizationAmount}€</span>
-                <Select 
-                  value={monetizationTier} 
-                  onValueChange={(value) => setMonetizationTier(value as MonetizationTier)}
-                >
-                  <SelectTrigger className="h-6 text-xs w-24">
-                    <SelectValue placeholder="Tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                    <SelectItem value="exclusive">Exclusive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex justify-between items-center p-4 border-b border-white/10">
+              <h3 className="text-sm font-medium">Camera</h3>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full h-8 w-8" 
+                onClick={toggleCamera}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
             
-            <div className="mt-2">
-              <Slider 
-                min={0.99}
-                max={49.99}
-                step={0.5}
-                value={[monetizationAmount]}
-                onValueChange={(values) => setMonetizationAmount(values[0])}
-              />
+            <div className="flex-1 flex items-center justify-center bg-gray-900">
+              <Camera className="h-16 w-16 text-gray-600" />
+            </div>
+            
+            <div className="p-4 flex justify-center">
+              <Button 
+                size="icon" 
+                className="h-16 w-16 rounded-full bg-white"
+                onClick={() => {
+                  triggerHaptic('strong');
+                  toggleCamera();
+                }}
+              >
+                <div className="h-14 w-14 rounded-full border-2 border-gray-900" />
+              </Button>
             </div>
           </motion.div>
         )}
@@ -149,28 +139,47 @@ const MessageInput: React.FC<MessageInputProps> = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-primary/10 rounded-lg p-3 flex items-center justify-between"
+            className="bg-gray-900 rounded-lg p-3 flex items-center justify-between mb-2"
           >
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm font-medium">Enregistrement {formatTime(recordingTime)}</span>
+              <span className="text-sm">{formatTime(recordingTime)}</span>
             </div>
             
-            <Button variant="destructive" size="sm" onClick={stopRecording}>
-              Terminer
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="rounded-full bg-red-500/10 text-red-500"
+              onClick={stopRecording}
+            >
+              Envoyer
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
       
       {/* Main input area */}
-      <div className="flex items-end gap-2">
+      <div className="flex items-center gap-2">
+        <div className="flex-shrink-0">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon" 
+            className="rounded-full h-10 w-10"
+            onClick={toggleCamera}
+          >
+            <Camera className="h-5 w-5" />
+          </Button>
+        </div>
+        
         <div className="flex-1 relative">
-          <Textarea
+          <input
             ref={inputRef}
-            placeholder="Écrivez un message..."
+            type="text"
+            placeholder="Message..."
             className={cn(
-              "resize-none min-h-[60px] pr-12 transition-all",
+              "w-full bg-gray-800 text-white rounded-full py-2 px-4 pr-10 outline-none",
+              "border border-white/10 focus:border-purple-500/50",
               monetizationEnabled && "border-amber-500/50"
             )}
             value={message}
@@ -178,22 +187,29 @@ const MessageInput: React.FC<MessageInputProps> = ({
               setMessage(e.target.value);
               setIsComposing(e.target.value.length > 0);
             }}
-            onKeyDown={handleKeyDown}
-            onBlur={() => setIsComposing(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
           />
           
-          <div className="absolute bottom-2 right-2 flex items-center">
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
             <Button 
               type="button" 
+              variant="ghost" 
               size="icon" 
-              variant="ghost"
               className={cn(
-                "rounded-full w-8 h-8",
+                "h-7 w-7 rounded-full",
                 monetizationEnabled && "text-amber-500"
               )}
-              onClick={onToggleMonetization}
+              onClick={() => {
+                triggerHaptic('light');
+                onToggleMonetization();
+              }}
             >
-              <Zap size={16} />
+              <Zap className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -201,81 +217,42 @@ const MessageInput: React.FC<MessageInputProps> = ({
         {message ? (
           <Button 
             type="button" 
+            variant="ghost"
             size="icon" 
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 bg-purple-600 text-white hover:bg-purple-700"
             onClick={handleSend}
           >
-            <Send size={18} />
+            <Send className="h-5 w-5" />
           </Button>
         ) : (
           <Button 
             type="button" 
+            variant="ghost"
             size="icon" 
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 bg-purple-600 text-white hover:bg-purple-700"
             onClick={startRecording}
             disabled={isRecording}
           >
-            <Mic size={18} />
+            <Mic className="h-5 w-5" />
           </Button>
         )}
       </div>
       
-      {/* Advanced options */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Image size={16} />
-          </Button>
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Video size={16} />
-          </Button>
-          <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-            <Paperclip size={16} />
-          </Button>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
-                <Smile size={16} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-60">
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Effets visuels</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['✨', '💖', '🔥', '🎉', '🌈', '💫', '🌟', '🎵', '🌈'].map((effect, i) => (
-                    <Button 
-                      key={i} 
-                      size="sm" 
-                      variant="outline" 
-                      className="h-8 w-8 p-0"
-                      onClick={() => setMessage(message + ' ' + effect)}
-                    >
-                      {effect}
-                    </Button>
-                  ))}
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="encrypted" className="text-xs">Chiffrement</Label>
-                    <Switch id="encrypted" defaultChecked />
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="whisper-mode" className="text-xs">Mode Whisper</Label>
-                    <Switch id="whisper-mode" />
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <div className="text-xs text-muted-foreground">
-          {isComposing ? "En train d'écrire..." : ""}
+      {/* Emoji row */}
+      <div className="flex justify-center mt-2 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2">
+          {['❤️', '👍', '🔥', '😂', '😍', '🎉', '💫'].map((emoji, i) => (
+            <button 
+              key={i} 
+              className="text-lg hover:scale-125 transition-transform"
+              onClick={() => {
+                setMessage(prev => prev + emoji);
+                triggerHaptic('light');
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
       </div>
     </div>
