@@ -78,7 +78,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             <QuickStoryPublisher 
               onClose={() => {}} 
               onPublished={() => {
-                triggerMicroReward('publish');
+                triggerMicroReward('creative');
               }} 
             />
           </div>

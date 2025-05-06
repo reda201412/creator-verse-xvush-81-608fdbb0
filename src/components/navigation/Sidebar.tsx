@@ -83,7 +83,7 @@ export const DesktopSidebar: React.FC = () => {
             <QuickStoryPublisher 
               onClose={() => {}} 
               onPublished={() => {
-                triggerMicroReward('publish');
+                triggerMicroReward('creative');
               }} 
             />
             <span className="text-sm font-medium">Créer une story</span>
