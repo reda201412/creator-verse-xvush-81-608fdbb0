@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -22,12 +23,14 @@ import { mockMessageThreads } from '@/data/mockMessages';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SecureMessaging = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
+  const { profile } = useAuth();
   
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [threads, setThreads] = useState<ThreadType[]>(mockMessageThreads);
@@ -37,11 +40,12 @@ const SecureMessaging = () => {
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
-  const [userType, setUserType] = useState<'creator' | 'fan'>('fan'); // Set to 'fan' by default
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
+  // Use the actual user role from authentication context
+  const userType = profile?.role || 'fan';
   const userId = "current_user_id"; // En réalité proviendrait d'un context d'authentification
-  const userName = "Julie Sky"; // De même
+  const userName = profile?.display_name || profile?.username || "User"; // Use actual user name from profile
 
   // Effet pour générer des clés de session pour chaque conversation si nécessaire
   useEffect(() => {
@@ -233,27 +237,6 @@ const SecureMessaging = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Toggle for switching between fan and creator mode - for demo purposes */}
-          <div className="mr-2 flex items-center">
-            <span className="text-xs mr-2">Mode:</span>
-            <Button 
-              variant={userType === 'fan' ? "default" : "outline"} 
-              size="sm"
-              className="text-xs h-7 rounded-r-none"
-              onClick={() => setUserType('fan')}
-            >
-              Fan
-            </Button>
-            <Button 
-              variant={userType === 'creator' ? "default" : "outline"} 
-              size="sm"
-              className="text-xs h-7 rounded-l-none"
-              onClick={() => setUserType('creator')}
-            >
-              Créateur
-            </Button>
-          </div>
-          
           <Button 
             variant="ghost" 
             size="icon"
