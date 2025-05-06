@@ -12,9 +12,12 @@ import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
-import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
+import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings, Image, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
+import StoriesTimeline from "@/components/stories/StoriesTimeline";
+import { useStories } from "@/hooks/use-stories";
+import StoryPublisher from "@/components/stories/StoryPublisher";
 
 // Sample content data similar to the CreatorProfile page
 const trendingContent = [
@@ -121,16 +124,18 @@ const Index = () => {
   const isMobile = useIsMobile();
   const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic();
   const { trackInteraction, trackContentPreference } = useUserBehavior();
+  const { stories, loading: storiesLoading, loadStories } = useStories();
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
   const [showCognitivePanel, setShowCognitivePanel] = useState(false);
   const { user, profile, isCreator } = useAuth();
   const navigate = useNavigate();
 
-  // Track page view on component mount
+  // Track page view on component mount and load stories
   useEffect(() => {
     trackInteraction('view', { page: 'index' });
-  }, [trackInteraction]);
+    loadStories();
+  }, [trackInteraction, loadStories]);
 
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);
@@ -253,6 +258,57 @@ const Index = () => {
             )}
           </div>
         </motion.div>
+        
+        {/* Nouvelle section Stories */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-2xl font-bold">Stories</h2>
+            {isCreator && (
+              <div className="flex items-center gap-2">
+                <StoryPublisher />
+                <Button 
+                  variant="link"
+                  onClick={() => {
+                    navigate('/stories');
+                    trackInteraction('navigate', { to: 'stories' });
+                  }}
+                >
+                  Voir tout <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {!isCreator && (
+              <Button 
+                variant="link"
+                onClick={() => {
+                  navigate('/stories');
+                  trackInteraction('navigate', { to: 'stories' });
+                }}
+              >
+                Voir tout <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          
+          <div className="bg-accent/10 rounded-lg p-4">
+            <StoriesTimeline />
+            
+            {stories.length === 0 && !storiesLoading && (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-3">Aucune story pour le moment</p>
+                {isCreator && (
+                  <div className="flex justify-center gap-2">
+                    <StoryPublisher />
+                    <Button variant="outline" onClick={() => navigate('/stories')}>
+                      <Image className="mr-2 h-4 w-4" />
+                      Explorer les stories
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
         
         {/* Trending content section */}
         <section>

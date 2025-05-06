@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image } from 'lucide-react';
+import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, Camera } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,11 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navItems: NavItem[] = [
+// Ajoutons une section dédiée pour les stories
+const commonNavItems = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/creators', label: 'Créateurs', icon: Users },
+  { href: '/stories', label: 'Stories', icon: Image },
 ];
 
 const creatorNavItems: NavItem[] = [
@@ -34,13 +36,6 @@ const accountNavItems: NavItem[] = [
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/tokens', label: 'Tokens', icon: Wallet },
   { href: '/settings', label: 'Paramètres', icon: Settings },
-];
-
-// Add Stories to the navItems arrays
-const commonNavItems = [
-  { href: '/', label: 'Accueil', icon: Home },
-  { href: '/creators', label: 'Créateurs', icon: Users },
-  { href: '/stories', label: 'Stories', icon: Image },
 ];
 
 export const DesktopSidebar: React.FC = () => {
@@ -78,6 +73,15 @@ export const DesktopSidebar: React.FC = () => {
             <span>{item.label}</span>
           </NavLink>
         ))}
+        
+        {/* Ajout d'un item pour la création rapide de story pour les créateurs */}
+        {isCreator && (
+          <div className="flex items-center space-x-2 rounded-md p-2">
+            <StoryPublisher />
+            <span className="text-sm font-medium">Créer une story</span>
+          </div>
+        )}
+        
         {isCreator && (
           <>
             <Separator className="my-2" />
