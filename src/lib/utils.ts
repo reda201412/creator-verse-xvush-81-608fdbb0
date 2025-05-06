@@ -41,3 +41,31 @@ export function formatRelativeTime(date: Date): string {
   // Format standard pour les dates plus anciennes
   return date.toLocaleDateString();
 }
+
+// Add the missing formatNumber function
+export function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k';
+  } else {
+    return num.toString();
+  }
+}
+
+// Add the missing triggerHapticFeedback function
+export function triggerHapticFeedback(intensity: 'light' | 'medium' | 'strong' = 'light') {
+  if (!('vibrate' in navigator)) return;
+  
+  switch (intensity) {
+    case 'light':
+      navigator.vibrate(10);
+      break;
+    case 'medium':
+      navigator.vibrate(20);
+      break;
+    case 'strong':
+      navigator.vibrate([30, 10, 30]);
+      break;
+  }
+}
