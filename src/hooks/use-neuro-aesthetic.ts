@@ -42,7 +42,6 @@ export interface NeuroAestheticConfig {
   microRewardsEnabled: boolean;
   microRewardsIntensity: number;
   environmentalAdaptation: boolean;
-  // Add the missing properties that are used in Index.tsx
   goldenRatioVisible?: boolean;
   ambientSoundsEnabled?: boolean;
   ambientVolume?: number;
@@ -70,54 +69,7 @@ interface CircadianState {
   suggestedMood: AdaptiveMood;
 }
 
-export function useNeuroAesthetic(options: { enableCircadian?: boolean } = {}) {
-  const { enableCircadian = true } = options;
-  const [config, setConfig] = useLocalStorage<NeuroAestheticConfig>('xvush_aesthetic_config', defaultConfig);
-  const [circadian, setCircadian] = useState<CircadianState>(getCircadianState());
-  
-  // Update config
-  const updateConfig = useCallback((newConfig: Partial<NeuroAestheticConfig>) => {
-    setConfig(prevConfig => ({ ...prevConfig, ...newConfig }));
-  }, [setConfig]);
-  
-  // Micro-rewards trigger
-  const triggerMicroReward = useCallback((type: MicroRewardType, details: any = {}) => {
-    if (!config.microRewardsEnabled) return;
-    
-    // Simulate reward effect
-    console.log(`Micro-reward triggered: ${type}`, details);
-    
-    // Play subtle animation or sound
-    // Adjust interface elements slightly
-    
-    // Log the reward event
-    // trackEvent('micro-reward', { type, ...details });
-  }, [config.microRewardsEnabled]);
-  
-  // Circadian rhythm
-  useEffect(() => {
-    if (!enableCircadian) return;
-    
-    const updateCircadianState = () => {
-      setCircadian(getCircadianState());
-    };
-    
-    updateCircadianState();
-    
-    const intervalId = setInterval(updateCircadianState, 60 * 60 * 1000); // Update every hour
-    
-    return () => clearInterval(intervalId);
-  }, [enableCircadian]);
-  
-  return {
-    config,
-    updateConfig,
-    circadian,
-    triggerMicroReward
-  };
-}
-
-// Helper functions
+// Déplacer cette fonction en dehors du hook pour éviter qu'elle soit recréée à chaque rendu
 function getCircadianState(): CircadianState {
   const now = new Date();
   const hour = now.getHours();
@@ -164,5 +116,52 @@ function getCircadianState(): CircadianState {
     timeOfDay,
     circadianPhase,
     suggestedMood
+  };
+}
+
+export function useNeuroAesthetic(options: { enableCircadian?: boolean } = {}) {
+  const { enableCircadian = true } = options;
+  const [config, setConfig] = useLocalStorage<NeuroAestheticConfig>('xvush_aesthetic_config', defaultConfig);
+  const [circadian, setCircadian] = useState<CircadianState>(getCircadianState());
+  
+  // Update config
+  const updateConfig = useCallback((newConfig: Partial<NeuroAestheticConfig>) => {
+    setConfig(prevConfig => ({ ...prevConfig, ...newConfig }));
+  }, [setConfig]);
+  
+  // Micro-rewards trigger
+  const triggerMicroReward = useCallback((type: MicroRewardType, details: any = {}) => {
+    if (!config.microRewardsEnabled) return;
+    
+    // Simulate reward effect
+    console.log(`Micro-reward triggered: ${type}`, details);
+    
+    // Play subtle animation or sound
+    // Adjust interface elements slightly
+    
+    // Log the reward event
+    // trackEvent('micro-reward', { type, ...details });
+  }, [config.microRewardsEnabled]);
+  
+  // Circadian rhythm
+  useEffect(() => {
+    if (!enableCircadian) return;
+    
+    const updateCircadianState = () => {
+      setCircadian(getCircadianState());
+    };
+    
+    updateCircadianState();
+    
+    const intervalId = setInterval(updateCircadianState, 60 * 60 * 1000); // Update every hour
+    
+    return () => clearInterval(intervalId);
+  }, [enableCircadian]);
+  
+  return {
+    config,
+    updateConfig,
+    circadian,
+    triggerMicroReward
   };
 }
