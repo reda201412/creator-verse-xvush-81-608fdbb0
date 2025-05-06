@@ -20,7 +20,9 @@ export interface VideoMetrics {
 }
 
 export interface PlaybackEvent {
-  type: 'play' | 'pause' | 'seek' | 'buffer_start' | 'buffer_end' | 'error' | 'quality_change' | 'speed_change' | 'fullscreen';
+  type: 'play' | 'pause' | 'seek' | 'buffer_start' | 'buffer_end' | 'error' | 
+        'quality_change' | 'speed_change' | 'fullscreen' | 'mute' | 'volume_change' | 
+        'skip' | 'ended';
   timestamp: number;
   data?: any;
 }
@@ -141,6 +143,15 @@ export function useVideoMetrics(videoId: string) {
             averagePlaybackSpeed: average 
           }));
         }
+        break;
+        
+      // Handle new event types we're adding
+      case 'mute':
+      case 'volume_change':
+      case 'skip':
+      case 'ended':
+      case 'fullscreen':
+        // Just track these events without specific metric updates
         break;
     }
   };
