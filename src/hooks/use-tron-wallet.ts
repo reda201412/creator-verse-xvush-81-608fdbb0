@@ -83,7 +83,8 @@ export function useTronWallet() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+      // Utiliser la nouvelle fonction Edge pour vérifier la transaction sur la blockchain
+      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
         body: { 
           operation: 'verify_transaction',
           data: params
@@ -189,6 +190,66 @@ export function useTronWallet() {
     }
   };
 
+  // Nouvelle fonction pour obtenir des informations sur une transaction
+  const getTransactionInfo = async (txHash: string) => {
+    if (!user) {
+      setError("Vous devez être connecté pour accéder aux informations de transaction");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
+        body: { 
+          operation: 'get_transaction',
+          data: { txHash }
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations de transaction";
+      setError(message);
+      console.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Nouvelle fonction pour obtenir des informations sur un compte TRON
+  const getAccountInfo = async (address: string) => {
+    if (!user) {
+      setError("Vous devez être connecté pour accéder aux informations de compte");
+      return null;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
+        body: { 
+          operation: 'get_account',
+          data: { address }
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations de compte";
+      setError(message);
+      console.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     walletInfo,
     loading,
@@ -198,6 +259,8 @@ export function useTronWallet() {
     verifyTransaction,
     decrementBalance,
     requestWithdrawal,
-    checkContentAccess
+    checkContentAccess,
+    getTransactionInfo,
+    getAccountInfo
   };
 }
