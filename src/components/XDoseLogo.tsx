@@ -45,7 +45,7 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
   
   const handleHover = () => {
     setIsHovered(true);
-    triggerMicroReward('aesthetic');
+    triggerMicroReward('creative'); // Using a valid MicroRewardType
   };
 
   return (
@@ -76,16 +76,7 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
           X
         </motion.span>
         <motion.span 
-          className={`bg-gradient-to-r ${colors[(randomColor + 2) % colors.length]} bg-clip-text text-transparent`}
-          animate={animated ? { 
-            opacity: [0.9, 1, 0.9],
-          } : {}}
-          transition={{ 
-            duration: 3, 
-            repeat: Infinity,
-            repeatType: "reverse",
-            delay: 0.5 
-          }}
+          className={`${colors[(randomColor + 2) % colors.length]} bg-clip-text text-transparent`}
         >
           Dose
         </motion.span>

@@ -15,6 +15,7 @@ import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
+import XDoseLogo from "@/components/XDoseLogo";
 
 // Sample content data with more premium and VIP content
 const trendingContent = [
@@ -205,16 +206,16 @@ const Index = () => {
 
       {/* Main content */}
       <div className="container px-4 mx-auto py-8 space-y-8">
-        {/* Hero section - Simplified without the encircled elements */}
+        {/* Hero section - Updated to use XDoseLogo instead of text */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="text-center space-y-4 max-w-3xl mx-auto mb-4"
         >
-          <h1 className="text-4xl md:text-6xl font-bold font-display">
-            <span className="text-gradient-primary">CreatorVerse</span>
-          </h1>
+          <div className="flex justify-center">
+            <XDoseLogo size="xl" animated={true} />
+          </div>
           
           <div className="flex flex-wrap gap-4 justify-center">
             {!user ? (
