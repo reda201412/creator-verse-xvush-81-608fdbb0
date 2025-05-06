@@ -68,7 +68,7 @@ function App() {
               <Sidebar />
               <div className="flex-1 flex flex-col">
                 <Header />
-                <main className="flex-1 pb-16 md:pb-0">
+                <main className="flex-1 pb-16 md:pb-0 main-content pb-bottom-nav">
                   <Routes>
                     {/* Public routes */}
                     <Route path="/" element={<Index />} />

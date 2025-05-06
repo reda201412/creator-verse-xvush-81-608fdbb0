@@ -1,5 +1,3 @@
-/* ... keep existing code */
-
 /* Styles pour les filtres de stories */
 .filter-none {
   filter: none;
@@ -133,12 +131,12 @@
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
   
-  /* Prevent overscrolling bounce effect on iOS */
+  /* MODIFIED: Remove the fixed position that was preventing scrolling */
   html {
-    position: fixed;
+    /* position: fixed; - removed this line */
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 }
@@ -192,4 +190,15 @@
 /* Haptic feedback helper class */
 .haptic-feedback:active {
   transform: scale(0.98);
+}
+
+/* Fix for bottom navigation to ensure content isn't hidden */
+.pb-bottom-nav {
+  padding-bottom: 80px; /* Add padding to content so it's not hidden under the nav */
+}
+
+/* Ensure the main content area can scroll properly */
+.main-content {
+  overflow-y: auto;
+  flex: 1;
 }
