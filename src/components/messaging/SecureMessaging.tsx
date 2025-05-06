@@ -89,17 +89,17 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
             senderAvatar: msg.sender_avatar || '',
             recipientId: msg.recipient_id,
             content: msg.content,
-            type: (msg.type || 'text') as MessageType, // Correction ici: cast en MessageType
+            type: (msg.type || 'text') as MessageType,
             timestamp: msg.created_at,
-            status: (msg.status || 'sent') as MessageStatus, // Assurer que status est du bon type
+            status: (msg.status || 'sent') as MessageStatus,
             isEncrypted: msg.is_encrypted,
-            emotional: msg.emotional_data as JsonData | MessageEmotionalData, // Correction du cast
+            emotional: msg.emotional_data as JsonData | MessageEmotionalData,
             monetization: msg.monetization_data as JsonData,
             mediaUrl: msg.media_url
           })),
           name: thread.name,
           isGated: thread.is_gated,
-          requiredTier: thread.required_tier,
+          requiredTier: thread.required_tier as MonetizationTier | undefined,
           lastActivity: thread.last_activity,
           emotionalMap: thread.emotional_map as JsonData
         }));
@@ -165,11 +165,11 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
       senderAvatar: newMessage.sender_avatar || '',
       recipientId: newMessage.recipient_id,
       content: newMessage.content,
-      type: (newMessage.type || 'text') as MessageType, // Correction ici
+      type: (newMessage.type || 'text') as MessageType,
       timestamp: newMessage.created_at,
       status: 'sent' as MessageStatus,
       isEncrypted: newMessage.is_encrypted,
-      emotional: newMessage.emotional_data as JsonData | MessageEmotionalData, // Correction ici
+      emotional: newMessage.emotional_data as JsonData | MessageEmotionalData,
       monetization: newMessage.monetization_data as JsonData,
       mediaUrl: newMessage.media_url
     };
