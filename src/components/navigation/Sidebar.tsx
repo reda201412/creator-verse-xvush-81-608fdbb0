@@ -43,23 +43,40 @@ const accountNavItems: NavItem[] = [
 export const DesktopSidebar: React.FC = () => {
   const location = useLocation();
   const { user, profile, isCreator } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Added a state to ensure the sidebar is active
-  const [isActive, setIsActive] = useState(true);
-
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed z-10">
-      <div className="p-4">
-        {profile && profile.avatar_url ? (
-          <ProfileAvatar 
-            src={profile.avatar_url} 
-            alt={profile.display_name || profile.username} 
-          />
-        ) : (
-          <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
-            {profile?.display_name?.charAt(0) || profile?.username?.charAt(0) || '?'}
-          </div>
-        )}
+    <aside className={cn(
+      "hidden md:flex flex-col border-r bg-secondary/10 h-screen sticky top-0 z-10 transition-all duration-300",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      <div className="p-4 flex items-center justify-between">
+        <div className={cn("flex items-center gap-2", isCollapsed && "justify-center")}>
+          {profile && profile.avatar_url ? (
+            <ProfileAvatar 
+              src={profile.avatar_url} 
+              alt={profile.display_name || profile.username} 
+            />
+          ) : (
+            <div className="rounded-full bg-muted w-10 h-10 flex items-center justify-center">
+              {profile?.display_name?.charAt(0) || profile?.username?.charAt(0) || '?'}
+            </div>
+          )}
+          {!isCollapsed && profile && (
+            <div className="text-sm font-medium truncate">
+              {profile.display_name || profile.username || 'Utilisateur'}
+            </div>
+          )}
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          className="hover:bg-secondary"
+          aria-label={isCollapsed ? "Développer" : "Réduire"}
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
       </div>
       <Separator />
       <nav className="flex flex-col flex-1 p-2 space-y-1 overflow-y-auto">
@@ -69,13 +86,15 @@ export const DesktopSidebar: React.FC = () => {
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
+                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
+                isCollapsed && "justify-center px-2",
                 isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
               )
             }
+            title={item.label}
           >
-            <item.icon className="h-4 w-4" />
-            <span>{item.label}</span>
+            <item.icon className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
         {isCreator && (
@@ -87,13 +106,15 @@ export const DesktopSidebar: React.FC = () => {
                 to={item.href}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
+                    "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
+                    isCollapsed && "justify-center px-2",
                     isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
                   )
                 }
+                title={item.label}
               >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span>{item.label}</span>}
               </NavLink>
             ))}
           </>
@@ -105,16 +126,32 @@ export const DesktopSidebar: React.FC = () => {
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
+                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
+                isCollapsed && "justify-center px-2",
                 isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
               )
             }
+            title={item.label}
           >
-            <item.icon className="h-4 w-4" />
-            <span>{item.label}</span>
+            <item.icon className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
       </nav>
+      <div className={cn("p-4", isCollapsed ? "hidden" : "block")}>
+        <NavLink
+          to="/secure-messaging"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center justify-center space-x-2 rounded-md p-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer transition-colors w-full",
+              isActive ? "bg-primary/90" : ""
+            )
+          }
+        >
+          <MessageCircle className="h-5 w-5 mr-2" />
+          <span>Messagerie sécurisée</span>
+        </NavLink>
+      </div>
     </aside>
   );
 };
@@ -212,6 +249,20 @@ export const MobileSidebar: React.FC = () => {
               <span>{item.label}</span>
             </NavLink>
           ))}
+          <Separator className="my-2" />
+          <NavLink
+            to="/secure-messaging"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90",
+                isActive ? "bg-primary/90" : ""
+              )
+            }
+            onClick={() => setIsOpen(false)}
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>Messagerie sécurisée</span>
+          </NavLink>
         </nav>
       </SheetContent>
     </Sheet>

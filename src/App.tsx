@@ -67,9 +67,9 @@ function App() {
           <XvushDesignSystem>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col w-full">
                 <Header />
-                <main className="flex-1 pb-16 md:pb-0 main-content pb-bottom-nav">
+                <main className="flex-1 pb-16 md:pb-0 main-content md:pl-4 lg:pl-6 pr-4 lg:pr-6 pt-4">
                   <Routes>
                     {/* Public routes */}
                     <Route path="/" element={<Index />} />
