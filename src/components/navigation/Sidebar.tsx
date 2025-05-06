@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, Camera } from 'lucide-react';
+import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import QuickStoryPublisher from '@/components/stories/QuickStoryPublisher';
 
 interface NavItem {
   href: string;
@@ -18,11 +16,9 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-// Ajoutons une section dédiée pour les stories
 const commonNavItems = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/creators', label: 'Créateurs', icon: Users },
-  { href: '/stories', label: 'Stories', icon: Image },
 ];
 
 const creatorNavItems: NavItem[] = [
@@ -43,7 +39,6 @@ const accountNavItems: NavItem[] = [
 export const DesktopSidebar: React.FC = () => {
   const location = useLocation();
   const { user, profile, isCreator } = useAuth();
-  const { triggerMicroReward } = useNeuroAesthetic();
 
   return (
     <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed">
@@ -76,19 +71,6 @@ export const DesktopSidebar: React.FC = () => {
             <span>{item.label}</span>
           </NavLink>
         ))}
-        
-        {/* Ajout d'un item pour la création rapide de story pour les créateurs avec le composant optimisé */}
-        {isCreator && (
-          <div className="flex items-center space-x-2 rounded-md p-2">
-            <QuickStoryPublisher 
-              onClose={() => {}} 
-              onPublished={() => {
-                triggerMicroReward('creative');
-              }} 
-            />
-            <span className="text-sm font-medium">Créer une story</span>
-          </div>
-        )}
         
         {isCreator && (
           <>

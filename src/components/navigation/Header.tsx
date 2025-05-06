@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Upload, Image, ChevronDown } from 'lucide-react';
+import { Upload, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import {
@@ -23,7 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import QuickStoryPublisher from '@/components/stories/QuickStoryPublisher';
 
 interface HeaderProps {
   className?: string;
@@ -67,20 +66,8 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                   <Upload className="mr-2 h-4 w-4" />
                   <span>Vidéo</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/stories')}>
-                  <Image className="mr-2 h-4 w-4" />
-                  <span>Story</span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
-            {/* Composant optimisé de création rapide de story */}
-            <QuickStoryPublisher 
-              onClose={() => {}} 
-              onPublished={() => {
-                triggerMicroReward('creative');
-              }} 
-            />
           </div>
         )}
         
@@ -109,19 +96,6 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                     )}
                   >
                     Créateurs
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <Link to="/stories">
-                  <NavigationMenuLink 
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      location.pathname === "/stories" ? "bg-accent" : ""
-                    )}
-                  >
-                    Stories
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>

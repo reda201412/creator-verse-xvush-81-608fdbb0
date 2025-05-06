@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,12 +13,9 @@ import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
-import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings, Image, Plus } from "lucide-react";
+import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
-import StoriesTimeline from "@/components/stories/StoriesTimeline";
-import { useStories } from "@/hooks/use-stories";
-import StoryPublisher from "@/components/stories/StoryPublisher";
 
 // Sample content data similar to the CreatorProfile page
 const trendingContent = [
@@ -124,18 +122,16 @@ const Index = () => {
   const isMobile = useIsMobile();
   const { config, updateConfig, triggerMicroReward } = useNeuroAesthetic();
   const { trackInteraction, trackContentPreference } = useUserBehavior();
-  const { stories, loading: storiesLoading, loadStories } = useStories();
 
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
   const [showCognitivePanel, setShowCognitivePanel] = useState(false);
   const { user, profile, isCreator } = useAuth();
   const navigate = useNavigate();
 
-  // Track page view on component mount and load stories
+  // Track page view on component mount
   useEffect(() => {
     trackInteraction('view', { page: 'index' });
-    loadStories();
-  }, [trackInteraction, loadStories]);
+  }, [trackInteraction]);
 
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);
@@ -259,59 +255,8 @@ const Index = () => {
           </div>
         </motion.div>
         
-        {/* Nouvelle section Stories */}
+        {/* Trending content section - Maintenant en premier */}
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-bold">Stories</h2>
-            {isCreator && (
-              <div className="flex items-center gap-2">
-                <StoryPublisher />
-                <Button 
-                  variant="link"
-                  onClick={() => {
-                    navigate('/stories');
-                    trackInteraction('navigate', { to: 'stories' });
-                  }}
-                >
-                  Voir tout <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            {!isCreator && (
-              <Button 
-                variant="link"
-                onClick={() => {
-                  navigate('/stories');
-                  trackInteraction('navigate', { to: 'stories' });
-                }}
-              >
-                Voir tout <ArrowRight className="ml-1 h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          
-          <div className="bg-accent/10 rounded-lg p-4">
-            <StoriesTimeline />
-            
-            {stories.length === 0 && !storiesLoading && (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-3">Aucune story pour le moment</p>
-                {isCreator && (
-                  <div className="flex justify-center gap-2">
-                    <StoryPublisher />
-                    <Button variant="outline" onClick={() => navigate('/stories')}>
-                      <Image className="mr-2 h-4 w-4" />
-                      Explorer les stories
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-        
-        {/* Trending content section */}
-        <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Trending Content</h2>
             <Button 
@@ -399,122 +344,14 @@ const Index = () => {
                     toast(`Vous suivez maintenant ${creator.name}`, {
                       description: "Découvrez son contenu exclusif"
                     });
-                    triggerMicroReward('like');
-                    trackInteraction('follow', { creatorId: creator.id });
+                    triggerMicroReward('achievement');
                   }}
                 >
-                  {user ? 'Suivre' : 'Se connecter pour suivre'}
+                  Suivre
                 </Button>
               </motion.div>
             ))}
           </div>
-        </section>
-        
-        {/* Neuro-aesthetic controls */}
-        <section className="bg-muted/30 backdrop-blur-sm p-6 rounded-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Neuro-Aesthetic Experience Controls</h2>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setShowCognitivePanel(!showCognitivePanel);
-                trackInteraction('toggle' as InteractionType, { feature: 'cognitivePanel', state: !showCognitivePanel });
-              }}
-              className="flex items-center gap-1.5"
-            >
-              <Settings className="h-4 w-4" />
-              {showCognitivePanel ? "Masquer avancé" : "Paramètres avancés"}
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-sm font-medium mb-2">Ambiance visuelle</h3>
-              <div className="flex gap-2">
-                {(['energetic', 'calm', 'creative', 'focused'] as const).map(mood => (
-                  <Button
-                    key={mood}
-                    variant={config.adaptiveMood === mood ? "default" : "outline"}
-                    size="sm"
-                    className="capitalize"
-                    onClick={() => {
-                      updateConfig({ adaptiveMood: mood });
-                      trackInteraction('select' as InteractionType, { feature: 'mood', value: mood });
-                      triggerMicroReward('select');
-                    }}
-                  >
-                    {mood}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Change l'ambiance lumineuse de l'interface
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium mb-2">Intensité visuelle</h3>
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) });
-                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'decrease' });
-                  }}
-                >
-                  -
-                </Button>
-                <div className="flex-grow text-center">{config.moodIntensity}%</div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) });
-                    trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'increase' });
-                  }}
-                >
-                  +
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Ajuste la densité des effets visuels
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium mb-2">Micro-récompenses</h3>
-              <Button
-                variant={config.microRewardsEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  updateConfig({ microRewardsEnabled: !config.microRewardsEnabled });
-                  trackInteraction('toggle' as InteractionType, { feature: 'microRewards', state: !config.microRewardsEnabled });
-                  if (!config.microRewardsEnabled) {
-                    triggerMicroReward('click');
-                  }
-                }}
-              >
-                {config.microRewardsEnabled ? "Activées" : "Désactivées"}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-1">
-                Animations subtiles pour renforcer l'engagement
-              </p>
-            </div>
-          </div>
-          
-          {/* Cognitive Profile Panel (conditionally shown) */}
-          {showCognitivePanel && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-6 overflow-hidden"
-            >
-              <CognitiveProfilePanel />
-            </motion.div>
-          )}
         </section>
       </div>
     </div>
