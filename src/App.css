@@ -1,37 +1,69 @@
 
 /* ... keep existing code */
 
-/* Styles pour les filtres de stories */
+/* Styles pour les filtres de stories optimisés */
 .filter-none {
-  filter: none;
+  filter: none !important;
+  -webkit-filter: none !important;
+  transform: translateZ(0);
 }
 
 .filter-sepia {
-  filter: sepia(0.7);
+  filter: sepia(0.7) !important;
+  -webkit-filter: sepia(0.7) !important;
+  transform: translateZ(0);
 }
 
 .filter-grayscale {
-  filter: grayscale(1);
+  filter: grayscale(1) !important;
+  -webkit-filter: grayscale(1) !important;
+  transform: translateZ(0);
 }
 
 .filter-blur {
-  filter: blur(1px);
+  filter: blur(1px) !important;
+  -webkit-filter: blur(1px) !important;
+  transform: translateZ(0);
 }
 
 .filter-vintage {
-  filter: sepia(0.3) contrast(1.1) brightness(0.9);
+  filter: sepia(0.3) contrast(1.1) brightness(0.9) !important;
+  -webkit-filter: sepia(0.3) contrast(1.1) brightness(0.9) !important;
+  transform: translateZ(0);
 }
 
 .filter-neon {
-  filter: brightness(1.2) contrast(1.2) saturate(1.5);
+  filter: brightness(1.2) contrast(1.2) saturate(1.5) !important;
+  -webkit-filter: brightness(1.2) contrast(1.2) saturate(1.5) !important;
+  transform: translateZ(0);
 }
 
 .filter-vibrant {
-  filter: saturate(1.8) contrast(1.1);
+  filter: saturate(1.8) contrast(1.1) !important;
+  -webkit-filter: saturate(1.8) contrast(1.1) !important;
+  transform: translateZ(0);
 }
 
 .filter-minimal {
-  filter: contrast(1.1) brightness(1.1) saturate(0.8);
+  filter: contrast(1.1) brightness(1.1) saturate(0.8) !important;
+  -webkit-filter: contrast(1.1) brightness(1.1) saturate(0.8) !important;
+  transform: translateZ(0);
+}
+
+/* Optimisations de performance */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Optimisation du rendu des médias */
+video, canvas, img {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
 }
 
 /* Supprimer la barre de défilement pour la timeline des stories */
@@ -42,4 +74,36 @@
 
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
+}
+
+/* Optimiser le chargement des vidéos avec preload */
+video.preload-auto {
+  preload: auto;
+}
+
+/* Animation de chargement fluide */
+.loading-spinner {
+  animation: spinner 1.2s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Transition fluide entre les médias */
+.media-transition {
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+/* Bouton flottant avec animation */
+.floating-button {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
