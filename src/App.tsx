@@ -23,6 +23,7 @@ import TrendingContent from '@/pages/TrendingContent';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
+import SecureMessaging from '@/components/messaging/SecureMessaging';
 import './App.css';
 
 // Protected route wrapper that checks authentication using useAuth hook
@@ -77,6 +78,9 @@ function App() {
                     <Route path="/creator" element={<CreatorProfile />} />
                     <Route path="/trending" element={<TrendingContent />} />
                     <Route path="/stories" element={<Index />} /> {/* Temporary route for Stories */}
+                    
+                    {/* Messagerie moderne en plein écran */}
+                    <Route path="/secure-messaging" element={<SecureMessaging />} />
                     
                     {/* Creator-only routes */}
                     <Route 
