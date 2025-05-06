@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import StoryPublisher from '@/components/stories/StoryPublisher';
+import QuickStoryPublisher from '@/components/stories/QuickStoryPublisher';
 
 interface HeaderProps {
   className?: string;
@@ -50,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
       <div className="flex items-center gap-4">
         {isCreator && !isMobile && (
           <div className="flex items-center gap-2">
-            {/* Remplaçons le bouton existant par un menu déroulant */}
+            {/* Menu déroulant pour la création de contenu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -74,8 +74,8 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Ajout du bouton de création de story directement */}
-            <StoryPublisher />
+            {/* Composant optimisé de création rapide de story */}
+            <QuickStoryPublisher />
           </div>
         )}
         

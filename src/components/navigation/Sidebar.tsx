@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import StoryPublisher from '@/components/stories/StoryPublisher';
+import QuickStoryPublisher from '@/components/stories/QuickStoryPublisher';
 
 interface NavItem {
   href: string;
@@ -74,10 +74,10 @@ export const DesktopSidebar: React.FC = () => {
           </NavLink>
         ))}
         
-        {/* Ajout d'un item pour la création rapide de story pour les créateurs */}
+        {/* Ajout d'un item pour la création rapide de story pour les créateurs avec le composant optimisé */}
         {isCreator && (
           <div className="flex items-center space-x-2 rounded-md p-2">
-            <StoryPublisher />
+            <QuickStoryPublisher />
             <span className="text-sm font-medium">Créer une story</span>
           </div>
         )}
