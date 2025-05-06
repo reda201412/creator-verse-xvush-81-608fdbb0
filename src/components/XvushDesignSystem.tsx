@@ -4,7 +4,6 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useUserBehavior } from '@/hooks/use-user-behavior';
 import { useNeuroML } from '@/hooks/use-neuro-ml';
 import { prefersReducedMotion } from '@/lib/utils';
-import MicroRewardsEnhanced from './effects/MicroRewardsEnhanced';
 import { useToast } from '@/components/ui/use-toast';
 
 interface XvushDesignSystemProps {
@@ -63,6 +62,22 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
       circadianPhase: circadian.circadianPhase
     });
     
+    // Ajouter des écouteurs d'événements pour les retours haptiques
+    const addHapticFeedbackToInteractiveElements = () => {
+      const interactiveElements = document.querySelectorAll('button, a, [role="button"]');
+      
+      interactiveElements.forEach(element => {
+        element.addEventListener('click', () => {
+          if ('vibrate' in navigator) {
+            navigator.vibrate(10); // Légère vibration
+          }
+        });
+      });
+    };
+    
+    // Appliquer les retours haptiques après un court délai pour laisser le DOM se construire
+    setTimeout(addHapticFeedbackToInteractiveElements, 1000);
+    
     // Clean up when unmounted
     return () => {
       document.documentElement.classList.remove(
@@ -88,15 +103,17 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   // Welcome experience
   useEffect(() => {
     if (!hasShownWelcome) {
-      // Trigger welcome micro-reward after a short delay
+      // Trigger welcome haptic feedback after a short delay
       const timer = setTimeout(() => {
-        triggerMicroReward('wellbeing', { welcome: true });
+        if ('vibrate' in navigator) {
+          navigator.vibrate([20, 50, 20]); // Séquence de bienvenue subtile
+        }
         setHasShownWelcome(true);
       }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [hasShownWelcome, triggerMicroReward]);
+  }, [hasShownWelcome]);
   
   // Update focus mode class when it changes
   useEffect(() => {
@@ -179,13 +196,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   
   return (
     <div className={className}>
-      {/* Enhanced micro-rewards system */}
-      <MicroRewardsEnhanced 
-        enable={config.microRewardsEnabled}
-        rewardIntensity={config.microRewardsIntensity}
-        adaptToContext={config.environmentalAdaptation}
-        reducedMotion={prefersReducedMotion()}
-      />
+      {/* Les micro-récompenses ont été retirées */}
       
       {/* Main content */}
       {children}

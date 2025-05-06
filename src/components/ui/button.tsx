@@ -1,7 +1,7 @@
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -40,12 +40,27 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    
+    // Fonction pour gérer le clic avec retour haptique
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      // Ajouter retour haptique
+      if ('vibrate' in navigator) {
+        navigator.vibrate(10);
+      }
+      
+      // Appeler le gestionnaire onClick d'origine s'il existe
+      if (onClick) {
+        onClick(event);
+      }
+    };
+    
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        onClick={handleClick}
         {...props}
       />
     )

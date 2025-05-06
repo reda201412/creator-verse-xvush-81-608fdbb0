@@ -3,6 +3,7 @@ import React from 'react';
 import ContentCard from './ContentCard';
 import { cn } from '@/lib/utils';
 import { useMobile } from '@/hooks/useMobile';
+import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
 export interface ContentGridProps {
   contents: Array<any>;
@@ -20,6 +21,7 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   isCreator = false
 }) => {
   const { isMobile } = useMobile();
+  const { withHapticFeedback } = useHapticFeedback();
   
   if (!contents || contents.length === 0) {
     return <div className="text-center p-8 text-muted-foreground">Aucun contenu à afficher</div>;
@@ -60,6 +62,16 @@ const ContentGrid: React.FC<ContentGridProps> = ({
       );
   }
 
+  const handleItemClick = (id: string) => {
+    if (onItemClick) {
+      // Utiliser le hook de retour haptique pour ajouter une vibration
+      if ('vibrate' in navigator) {
+        navigator.vibrate(15); // Vibration moyenne pour clic sur contenu
+      }
+      onItemClick(id);
+    }
+  };
+
   return (
     <div className={gridClassName}>
       {contents.map((item) => (
@@ -74,11 +86,11 @@ const ContentGrid: React.FC<ContentGridProps> = ({
           isCreator={isCreator}
           className={cn(
             layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : "",
-            isMobile ? "touch-manipulation" : "" // Improve touch responsiveness
+            isMobile ? "touch-manipulation haptic-feedback" : "" // Improve touch responsiveness with haptic feedback
           )}
           isTrending={item.isTrending}
           collectionName={item.collectionName}
-          onClick={() => onItemClick && onItemClick(item.id)}
+          onClick={() => handleItemClick(item.id)}
         />
       ))}
     </div>
