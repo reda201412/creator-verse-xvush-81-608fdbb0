@@ -205,13 +205,15 @@
 .main-content {
   overflow-y: auto;
   flex: 1;
-  transition: padding-left 0.3s ease;
+  width: 100%;
+  transition: margin-left 0.3s ease;
 }
 
 /* Amélioration de l'espacement pour la version desktop */
 @media (min-width: 768px) {
   .main-content {
     padding-top: 1rem;
+    width: calc(100% - 64px); /* Pour la version avec sidebar collapse */
   }
 }
 
@@ -272,4 +274,60 @@
   width: 3px;
   background: linear-gradient(to bottom, #9b87f5, #7E69AB);
   border-radius: 0 2px 2px 0;
+}
+
+/* Fix pour l'espacement spécifique à la barre latérale */
+.sidebar-fixed {
+  position: fixed;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  z-index: 40;
+}
+
+/* Transitions fluides */
+.smooth-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Améliorations pour la messagerie */
+.message-bubble {
+  transition: transform 0.2s ease;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+}
+
+/* Styles pour l'optimisation des performances */
+.lazy-load {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.lazy-load.loaded {
+  opacity: 1;
+}
+
+/* Styles pour les modales et dialogues */
+.modal-animation-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-animation-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.modal-animation-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal-animation-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }

@@ -1,5 +1,9 @@
 
+# Reference: https://supabase.com/docs/guides/functions/local-development
 project_id = "ryuczcsiiyghdnxanofq"
 
-[functions.increment-story-views]
+[functions.tron-wallet]
+verify_jwt = true
+
+[functions.decrement_balance]
 verify_jwt = true

@@ -1,11 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { decryptMessage, EncryptedContent } from '@/utils/encryption';
+import { decryptMessage } from '@/utils/encryption';
+import { Spinner } from '@/components/ui/spinner';
+
+interface EncryptedContent {
+  iv: string;
+  encryptedData: string;
+}
 
 interface SecureMessageBubbleProps {
   content: string | EncryptedContent;
@@ -33,9 +39,10 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
   const [isDecrypting, setIsDecrypting] = useState(false);
   const { toast } = useToast();
   
-  const encrypted = typeof content !== 'string';
+  // Déterminer si le contenu est chiffré
+  const encrypted = typeof content === 'object' && 'iv' in content && 'encryptedData' in content;
   
-  const handleDecrypt = async () => {
+  const handleDecrypt = useCallback(async () => {
     if (!encrypted || !sessionKey) return;
     
     try {
@@ -61,15 +68,15 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
     } finally {
       setIsDecrypting(false);
     }
-  };
+  }, [content, sessionKey, onDecrypt, toast]);
   
-  const toggleReveal = () => {
+  const toggleReveal = useCallback(() => {
     if (!decryptedContent && encrypted) {
       handleDecrypt();
     } else {
       setIsRevealed(!isRevealed);
     }
-  };
+  }, [decryptedContent, encrypted, handleDecrypt, isRevealed]);
   
   return (
     <div className={cn(
@@ -98,7 +105,7 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
           )}
           
           <div className={cn(
-            "rounded-2xl py-2 px-3 group relative",
+            "rounded-2xl py-2 px-3 group relative message-bubble",
             isCurrentUser 
               ? "bg-primary text-primary-foreground rounded-tr-none" 
               : "bg-muted/60 backdrop-blur-sm rounded-tl-none",
@@ -156,7 +163,7 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
                         className="w-full"
                       >
                         {isDecrypting ? (
-                          <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin mr-2"></div>
+                          <Spinner size="sm" className="mr-2" />
                         ) : (
                           <Eye size={14} className="mr-2" />
                         )}
@@ -172,7 +179,7 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
           </div>
           
           <span className="text-[10px] text-muted-foreground mt-1">
-            {timestamp}
+            {new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             {encrypted && <span className="ml-1">• {isRevealed ? "Déchiffré" : "Chiffré"}</span>}
           </span>
         </div>
@@ -181,4 +188,4 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
   );
 };
 
-export default SecureMessageBubble;
+export default React.memo(SecureMessageBubble);

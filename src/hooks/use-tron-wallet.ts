@@ -3,36 +3,11 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface WalletInfo {
-  wallet: {
-    id: string;
-    user_id: string;
-    tron_address: string | null;
-    is_verified: boolean;
-    balance_usdt: number;
-  } | null;
-  subscription: {
-    id: string;
-    is_active: boolean;
-    expires_at: string;
-    subscription_tiers: {
-      name: string;
-      price_usdt: number;
-    };
-  } | null;
-  transactions: Array<{
-    id: string;
-    amount_usdt: number;
-    transaction_type: string;
-    status: string;
-    created_at: string;
-  }>;
-}
+import { WalletResponse, WalletData, TransactionData } from '@/types/messaging';
 
 export function useTronWallet() {
   const { user } = useAuth();
-  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [walletInfo, setWalletInfo] = useState<WalletResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,9 +69,10 @@ export function useTronWallet() {
   const verifyTransaction = async (params: {
     txHash: string;
     amount: number;
-    purpose: 'purchase' | 'subscription';
+    purpose: 'purchase' | 'subscription' | 'message_support';
     contentId?: string;
     tierId?: string;
+    recipientId?: string;
   }) => {
     if (!user) {
       setError("Vous devez être connecté pour vérifier une transaction");
@@ -123,6 +99,37 @@ export function useTronWallet() {
       setError(message);
       toast.error(message);
       return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const decrementBalance = async (amount: number) => {
+    if (!user) {
+      setError("Vous devez être connecté pour effectuer cette opération");
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('decrement_balance', {
+        body: { 
+          userId: user.id,
+          amount: amount
+        }
+      });
+
+      if (error) throw new Error(error.message);
+      toast.success(`Solde débité de ${amount} USDT`);
+      await getWalletInfo(); // Refresh wallet info
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors du débit du solde";
+      setError(message);
+      toast.error(message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -168,12 +175,13 @@ export function useTronWallet() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('content-access', {
-        body: { contentId },
+      const { data, error } = await supabase.rpc('check_content_access', {
+        content_id: contentId,
+        user_id: user.id
       });
 
       if (error) throw new Error(error.message);
-      return data;
+      return data || { hasAccess: false, reason: 'unknown' };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur lors de la vérification de l'accès au contenu";
       toast.error(message);
@@ -188,6 +196,7 @@ export function useTronWallet() {
     getWalletInfo,
     createWallet,
     verifyTransaction,
+    decrementBalance,
     requestWithdrawal,
     checkContentAccess
   };

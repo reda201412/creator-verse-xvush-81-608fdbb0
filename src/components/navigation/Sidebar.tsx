@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -8,7 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import StoryPublisher from '@/components/stories/StoryPublisher';
 
 interface NavItem {
   href: string;
@@ -61,7 +61,7 @@ export const DesktopSidebar: React.FC = () => {
   
   return (
     <aside className={cn(
-      "hidden md:flex flex-col border-r bg-secondary/10 h-screen sticky top-0 z-10 transition-all duration-300",
+      "hidden md:flex flex-col border-r bg-secondary/10 h-screen fixed left-0 top-0 z-40 transition-all duration-300",
       isCollapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4 flex items-center justify-between">
@@ -205,7 +205,7 @@ export const MobileSidebar: React.FC = () => {
               />
             ) : (
               <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
-                {profile.display_name?.charAt(0) || profile.username.charAt(0)}
+                {profile.display_name?.charAt(0) || profile.username?.charAt(0) || '?'}
               </div>
             )}
           </div>
