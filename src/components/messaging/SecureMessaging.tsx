@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/messaging';
 import { mockMessageThreads } from '@/data/mockMessages';
 import { generateSessionKey } from '@/utils/encryption';
+import XDoseLogo from '@/components/XDoseLogo';
 
 const SecureMessaging = () => {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ const SecureMessaging = () => {
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
-  const [userType, setUserType] = useState<'creator' | 'fan'>('fan'); // Détermine le type d'utilisateur
+  const [userType, setUserType] = useState<'creator' | 'fan'>('creator'); // Définir le type d'utilisateur comme 'creator' par défaut
 
   const userId = "current_user_id"; // En réalité proviendrait d'un context d'authentification
   const userName = "Julie Sky"; // De même
@@ -159,9 +159,7 @@ const SecureMessaging = () => {
             <ArrowLeft size={24} />
           </Button>
           
-          <h1 className="text-xl font-semibold bg-clip-text text-gray-800">
-            {showConversationList ? "Messagerie" : activeThread?.name || "Chat"}
-          </h1>
+          <XDoseLogo size="md" />
         </div>
         
         <div className="flex items-center gap-2">
