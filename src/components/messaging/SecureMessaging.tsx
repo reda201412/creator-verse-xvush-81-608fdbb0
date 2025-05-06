@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,7 @@ import ConversationView from './ConversationView';
 import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/messaging';
+import { Message, MessageThread as ThreadType, MonetizationTier, EmotionType, MessageEmotionalData, MessageMonetizationData } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
@@ -83,26 +82,61 @@ const SecureMessaging = () => {
         const formattedThreads: ThreadType[] = data.map(thread => ({
           id: String(thread.id), // Ensure ID is a string
           participants: thread.participants || [],
-          messages: (Array.isArray(thread.messages) ? thread.messages : []).map(msg => ({
-            id: String(msg.id),
-            senderId: msg.sender_id,
-            senderName: msg.sender_name,
-            senderAvatar: msg.sender_avatar,
-            recipientId: msg.recipient_id,
-            content: msg.content,
-            type: msg.type as any,
-            timestamp: msg.created_at,
-            status: msg.status as any,
-            isEncrypted: msg.is_encrypted,
-            emotional: msg.emotional_data,
-            monetization: msg.monetization_data,
-            mediaUrl: msg.media_url
-          })),
+          messages: (Array.isArray(thread.messages) ? thread.messages : []).map(msg => {
+            // Map database message to our strongly typed Message interface
+            const messageEmotion: MessageEmotionalData = msg.emotional_data ? {
+              primaryEmotion: (msg.emotional_data as any)?.primaryEmotion as EmotionType || 'neutral',
+              intensity: (msg.emotional_data as any)?.intensity || 50,
+              threadMapping: (msg.emotional_data as any)?.threadMapping || []
+            } : {
+              primaryEmotion: 'neutral',
+              intensity: 50,
+              threadMapping: []
+            };
+            
+            const messageMonetization: MessageMonetizationData | undefined = msg.monetization_data ? {
+              tier: (msg.monetization_data as any)?.tier as MonetizationTier || 'free',
+              price: (msg.monetization_data as any)?.price || 0,
+              currency: (msg.monetization_data as any)?.currency || 'USDT',
+              instantPayoutEnabled: (msg.monetization_data as any)?.instantPayoutEnabled || false,
+              accessControl: {
+                isGated: (msg.monetization_data as any)?.accessControl?.isGated || false,
+                requiredTier: (msg.monetization_data as any)?.accessControl?.requiredTier as MonetizationTier | undefined,
+                individualAccess: (msg.monetization_data as any)?.accessControl?.individualAccess || []
+              },
+              analytics: {
+                views: (msg.monetization_data as any)?.analytics?.views || 0,
+                revenue: (msg.monetization_data as any)?.analytics?.revenue || 0,
+                conversionRate: (msg.monetization_data as any)?.analytics?.conversionRate || 0,
+                engagementTime: (msg.monetization_data as any)?.analytics?.engagementTime || 0
+              }
+            } : undefined;
+            
+            return {
+              id: String(msg.id),
+              senderId: msg.sender_id,
+              senderName: msg.sender_name,
+              senderAvatar: msg.sender_avatar,
+              recipientId: msg.recipient_id,
+              content: msg.content,
+              type: msg.type as any,
+              timestamp: msg.created_at,
+              status: msg.status as any,
+              isEncrypted: msg.is_encrypted,
+              emotional: messageEmotion,
+              monetization: messageMonetization,
+              mediaUrl: msg.media_url
+            };
+          }),
           name: thread.name,
           isGated: thread.is_gated,
           requiredTier: thread.required_tier as MonetizationTier,
           lastActivity: thread.last_activity,
-          emotionalMap: thread.emotional_map
+          emotionalMap: thread.emotional_map ? {
+            dominantEmotion: (thread.emotional_map as any)?.dominantEmotion as EmotionType || 'neutral',
+            volatility: (thread.emotional_map as any)?.volatility || 0,
+            affinity: (thread.emotional_map as any)?.affinity || 0
+          } : undefined
         }));
         
         setThreads(formattedThreads);
@@ -159,6 +193,35 @@ const SecureMessaging = () => {
     // Find the thread this message belongs to
     const threadId = newMessage.thread_id;
     
+    // Create properly typed emotional and monetization data
+    const messageEmotion: MessageEmotionalData = newMessage.emotional_data ? {
+      primaryEmotion: (newMessage.emotional_data as any)?.primaryEmotion as EmotionType || 'neutral',
+      intensity: (newMessage.emotional_data as any)?.intensity || 50,
+      threadMapping: (newMessage.emotional_data as any)?.threadMapping || []
+    } : {
+      primaryEmotion: 'neutral',
+      intensity: 50,
+      threadMapping: []
+    };
+    
+    const messageMonetization: MessageMonetizationData | undefined = newMessage.monetization_data ? {
+      tier: (newMessage.monetization_data as any)?.tier as MonetizationTier || 'free',
+      price: (newMessage.monetization_data as any)?.price || 0,
+      currency: (newMessage.monetization_data as any)?.currency || 'USDT',
+      instantPayoutEnabled: (newMessage.monetization_data as any)?.instantPayoutEnabled || false,
+      accessControl: {
+        isGated: (newMessage.monetization_data as any)?.accessControl?.isGated || false,
+        requiredTier: (newMessage.monetization_data as any)?.accessControl?.requiredTier as MonetizationTier | undefined,
+        individualAccess: (newMessage.monetization_data as any)?.accessControl?.individualAccess || []
+      },
+      analytics: {
+        views: (newMessage.monetization_data as any)?.analytics?.views || 0,
+        revenue: (newMessage.monetization_data as any)?.analytics?.revenue || 0,
+        conversionRate: (newMessage.monetization_data as any)?.analytics?.conversionRate || 0,
+        engagementTime: (newMessage.monetization_data as any)?.analytics?.engagementTime || 0
+      }
+    } : undefined;
+    
     // Format the message to match our Message type
     const formattedMessage: Message = {
       id: String(newMessage.id),
@@ -171,8 +234,8 @@ const SecureMessaging = () => {
       timestamp: newMessage.created_at,
       status: 'sent',
       isEncrypted: newMessage.is_encrypted,
-      emotional: newMessage.emotional_data,
-      monetization: newMessage.monetization_data,
+      emotional: messageEmotion,
+      monetization: messageMonetization,
       mediaUrl: newMessage.media_url
     };
 
@@ -334,6 +397,31 @@ const SecureMessaging = () => {
         });
       }
 
+      // Properly type our emotional and monetization data
+      const messageEmotion: MessageEmotionalData = {
+        primaryEmotion: 'neutral',
+        intensity: 50,
+        threadMapping: []
+      };
+      
+      const messageMonetization: MessageMonetizationData | undefined = supportData ? {
+        tier: supportData.tier as MonetizationTier,
+        price: supportData.price,
+        currency: 'USDT',
+        instantPayoutEnabled: true,
+        accessControl: { 
+          isGated: true,
+          requiredTier: undefined,
+          individualAccess: []
+        },
+        analytics: { 
+          views: 0, 
+          revenue: 0, 
+          conversionRate: 0, 
+          engagementTime: 0 
+        }
+      } : undefined;
+
       // Format message for local state update
       const newMessage: Message = {
         id: String(savedMessage.id),
@@ -346,19 +434,8 @@ const SecureMessaging = () => {
         timestamp: timestamp,
         status: 'sent',
         isEncrypted: isSecurityEnabled,
-        monetization: supportData ? {
-          tier: supportData.tier as MonetizationTier,
-          price: supportData.price,
-          currency: 'USDT',
-          instantPayoutEnabled: true,
-          accessControl: { isGated: true },
-          analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
-        } : undefined,
-        emotional: {
-          primaryEmotion: 'neutral',
-          intensity: 50,
-          threadMapping: []
-        }
+        emotional: messageEmotion,
+        monetization: messageMonetization,
       };
 
       // Update local state
