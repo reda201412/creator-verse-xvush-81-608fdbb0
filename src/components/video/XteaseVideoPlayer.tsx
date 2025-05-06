@@ -10,6 +10,7 @@ import VideoProgress from './components/VideoProgress';
 import VideoLoadingView from './components/VideoLoadingView';
 import VideoErrorView from './components/VideoErrorView';
 import { useVideoMetrics } from '@/hooks/use-video-metrics';
+import { useMobile } from '@/hooks/useMobile';
 
 export interface XteaseVideoPlayerProps {
   src: string;
@@ -45,7 +46,8 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [isLiked, setIsLiked] = useState(false);
+  const { isMobile, isTouch } = useMobile();
   const { showControls, setupControlsTimer } = useControlsVisibility(true);
   const { trackEvent, updateProgress } = useVideoMetrics(src);
 
@@ -174,11 +176,22 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       trackEvent('skip', { direction: 'backward', seconds: 10 });
     }
   };
+  
+  // Handle like
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    trackEvent('like', { isLiked: !isLiked });
+    
+    // Add haptic feedback if available
+    if (navigator.vibrate && isTouch) {
+      navigator.vibrate(50);
+    }
+  };
 
   // Setup mobile gestures for seeking
   useVideoGestures({
     containerRef,
-    isMobile,
+    isMobile: isTouch,
     onSeekForward: skipForward,
     onSeekBackward: skipBackward
   });
@@ -274,11 +287,18 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     }
   }, [isMobile, isPlaying]);
 
+  // Handle double-tap for like (on mobile)
+  const handleDoubleTap = () => {
+    if (isTouch) {
+      handleLike();
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
       className={cn(
-        "relative overflow-hidden bg-black group",
+        "relative overflow-hidden bg-black group touch-manipulation",
         isFullscreen ? "fixed inset-0 z-50" : "max-w-[450px] mx-auto",
         className
       )}
@@ -295,6 +315,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
           muted={muted}
           playsInline
           onClick={() => togglePlay()}
+          onDoubleClick={handleDoubleTap}
         />
 
         {/* Loading indicator */}
@@ -319,7 +340,8 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
           className={cn(
             "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300",
             showControls ? "opacity-100" : "opacity-0 pointer-events-none",
-            "group-hover:opacity-100"
+            "group-hover:opacity-100",
+            isTouch ? "pb-safe" : "" // Add safe area padding on touch devices
           )}
         >
           {/* Title */}
@@ -354,6 +376,8 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
             onSkipForward={skipForward}
             onFullscreenToggle={toggleFullscreen}
             onQualityChange={setQuality}
+            onLike={handleLike}
+            isLiked={isLiked}
           />
         </div>
       </AspectRatio>

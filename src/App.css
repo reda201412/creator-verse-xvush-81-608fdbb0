@@ -1,4 +1,3 @@
-
 /* ... keep existing code */
 
 /* Styles pour les filtres de stories */
@@ -110,4 +109,87 @@
     padding: 0 16px;
     z-index: 110;
   }
+}
+
+/* Mobile-friendly styles */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  button, 
+  a,
+  .interactive,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improved mobile spacing */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Adjust for bottom nav */
+  .pb-safe {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Prevent overscrolling bounce effect on iOS */
+  html {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Safe area spacing for iOS */
+.h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* Enhanced touch handling */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Focus states for better accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Improve contrast for better readability on mobile */
+@media (max-width: 768px) {
+  .text-muted-foreground {
+    opacity: 0.8;
+  }
+}
+
+/* Overscroll behavior for full-screen vertical content */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}
+
+/* Optimized video player for mobile */
+@media (max-width: 768px) {
+  .xtease-video-container {
+    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+  }
+  
+  .video-controls-mobile {
+    padding: 1rem;
+  }
+  
+  .xtease-video {
+    height: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Haptic feedback helper class */
+.haptic-feedback:active {
+  transform: scale(0.98);
 }

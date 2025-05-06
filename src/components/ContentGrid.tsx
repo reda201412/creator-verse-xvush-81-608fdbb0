@@ -2,6 +2,7 @@
 import React from 'react';
 import ContentCard from './ContentCard';
 import { cn } from '@/lib/utils';
+import { useMobile } from '@/hooks/useMobile';
 
 export interface ContentGridProps {
   contents: Array<any>;
@@ -18,10 +19,13 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   onItemClick,
   isCreator = false
 }) => {
+  const { isMobile } = useMobile();
+  
   if (!contents || contents.length === 0) {
     return <div className="text-center p-8 text-muted-foreground">Aucun contenu à afficher</div>;
   }
 
+  // Mobile-optimized grid classes
   let gridClassName = "grid gap-4";
 
   switch (layout) {
@@ -68,7 +72,10 @@ const ContentGrid: React.FC<ContentGridProps> = ({
           duration={item.duration}
           metrics={item.metrics}
           isCreator={isCreator}
-          className={layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : ""}
+          className={cn(
+            layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : "",
+            isMobile ? "touch-manipulation" : "" // Improve touch responsiveness
+          )}
           isTrending={item.isTrending}
           collectionName={item.collectionName}
           onClick={() => onItemClick && onItemClick(item.id)}

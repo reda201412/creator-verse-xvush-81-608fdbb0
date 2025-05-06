@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
+import BottomNavigation from '@/components/navigation/BottomNavigation';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import CreatorProfile from '@/pages/CreatorProfile';
@@ -67,7 +68,7 @@ function App() {
               <Sidebar />
               <div className="flex-1 flex flex-col">
                 <Header />
-                <main className="flex-1">
+                <main className="flex-1 pb-16 md:pb-0">
                   <Routes>
                     {/* Public routes */}
                     <Route path="/" element={<Index />} />
@@ -157,6 +158,7 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
+                <BottomNavigation />
               </div>
             </div>
             <Toaster />
