@@ -15,7 +15,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
   open, 
   onOpenChange 
 }) => {
-  // Simulation de données pour le portefeuille
+  // Simulation de données pour le portefeuille avec la structure correcte des transactions
   const walletInfo = {
     wallet: {
       tron_address: 'TFFJ1DP6J97j6nGBjPufkru9Eu1FBpkCFF',
@@ -26,21 +26,19 @@ const WalletModal: React.FC<WalletModalProps> = ({
     transactions: [
       {
         id: 'tx1',
-        type: 'deposit',
-        amount: 50,
-        currency: 'USDT',
+        transaction_type: 'deposit',
+        amount_usdt: 50,
         status: 'completed',
-        timestamp: new Date().getTime() - 86400000, // 1 day ago
-        tx_hash: '0x123456789abcdef...',
+        created_at: new Date(new Date().getTime() - 86400000).toISOString(), // 1 day ago
+        tron_tx_id: '0x123456789abcdef...',
       },
       {
         id: 'tx2',
-        type: 'purchase',
-        amount: 10,
-        currency: 'USDT',
+        transaction_type: 'purchase',
+        amount_usdt: 10,
         status: 'completed',
-        timestamp: new Date().getTime() - 172800000, // 2 days ago
-        tx_hash: '0xabcdef123456789...',
+        created_at: new Date(new Date().getTime() - 172800000).toISOString(), // 2 days ago
+        tron_tx_id: '0xabcdef123456789...',
       }
     ]
   };
