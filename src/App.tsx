@@ -75,6 +75,7 @@ function App() {
                     <Route path="/creators" element={<CreatorsFeed />} />
                     <Route path="/creator" element={<CreatorProfile />} />
                     <Route path="/trending" element={<TrendingContent />} />
+                    <Route path="/stories" element={<Index />} /> {/* Temporary route for Stories */}
                     
                     {/* Creator-only routes */}
                     <Route 

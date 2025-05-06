@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image } from 'lucide-react';
+import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, TrendingUp } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,9 +17,12 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navItems: NavItem[] = [
+// Updated common navigation items with Trending
+const commonNavItems: NavItem[] = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/creators', label: 'Créateurs', icon: Users },
+  { href: '/trending', label: 'Tendances', icon: TrendingUp },
+  { href: '/stories', label: 'Stories', icon: Image },
 ];
 
 const creatorNavItems: NavItem[] = [
@@ -36,19 +40,15 @@ const accountNavItems: NavItem[] = [
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
-// Add Stories to the navItems arrays
-const commonNavItems = [
-  { href: '/', label: 'Accueil', icon: Home },
-  { href: '/creators', label: 'Créateurs', icon: Users },
-  { href: '/stories', label: 'Stories', icon: Image },
-];
-
 export const DesktopSidebar: React.FC = () => {
   const location = useLocation();
   const { user, profile, isCreator } = useAuth();
+  
+  // Added a state to ensure the sidebar is active
+  const [isActive, setIsActive] = useState(true);
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed">
+    <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed z-10">
       <div className="p-4">
         {profile && profile.avatar_url ? (
           <ProfileAvatar 
@@ -62,14 +62,14 @@ export const DesktopSidebar: React.FC = () => {
         )}
       </div>
       <Separator />
-      <nav className="flex flex-col flex-1 p-2 space-y-1">
+      <nav className="flex flex-col flex-1 p-2 space-y-1 overflow-y-auto">
         {commonNavItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
+                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
                 isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
               )
             }
@@ -87,7 +87,7 @@ export const DesktopSidebar: React.FC = () => {
                 to={item.href}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
+                    "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
                     isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
                   )
                 }
@@ -105,7 +105,7 @@ export const DesktopSidebar: React.FC = () => {
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
+                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer",
                 isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
               )
             }

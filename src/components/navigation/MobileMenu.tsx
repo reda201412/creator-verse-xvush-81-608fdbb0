@@ -16,7 +16,8 @@ import {
   LogOut,
   Coins,
   Video,
-  Upload
+  Upload,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -88,6 +89,7 @@ export const HamburgerMenu = () => {
     { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier", role: "creator" },
     { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés", role: "creator" },
     { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos", role: "creator" },
+    { to: "/revenue", icon: <DollarSign size={22} />, label: "Revenus", role: "creator" },
   ];
 
   // Combine navigation items based on user role
