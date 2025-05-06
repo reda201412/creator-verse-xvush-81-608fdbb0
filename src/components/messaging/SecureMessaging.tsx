@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,15 @@ import ConversationView from './ConversationView';
 import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/messaging';
+import { 
+  Message, 
+  MessageThread as ThreadType, 
+  MonetizationTier, 
+  MessageType, 
+  JsonData,
+  MessageEmotionalData,
+  MessageStatus
+} from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
@@ -82,19 +89,19 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
             senderAvatar: msg.sender_avatar || '',
             recipientId: msg.recipient_id,
             content: msg.content,
-            type: msg.type,
+            type: (msg.type || 'text') as MessageType, // Correction ici: cast en MessageType
             timestamp: msg.created_at,
-            status: msg.status,
+            status: (msg.status || 'sent') as MessageStatus, // Assurer que status est du bon type
             isEncrypted: msg.is_encrypted,
-            emotional: msg.emotional_data,
-            monetization: msg.monetization_data,
+            emotional: msg.emotional_data as JsonData | MessageEmotionalData, // Correction du cast
+            monetization: msg.monetization_data as JsonData,
             mediaUrl: msg.media_url
           })),
           name: thread.name,
           isGated: thread.is_gated,
           requiredTier: thread.required_tier,
           lastActivity: thread.last_activity,
-          emotionalMap: thread.emotional_map
+          emotionalMap: thread.emotional_map as JsonData
         }));
         
         setThreads(formattedThreads);
@@ -158,12 +165,12 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
       senderAvatar: newMessage.sender_avatar || '',
       recipientId: newMessage.recipient_id,
       content: newMessage.content,
-      type: newMessage.type,
+      type: (newMessage.type || 'text') as MessageType, // Correction ici
       timestamp: newMessage.created_at,
-      status: 'sent',
+      status: 'sent' as MessageStatus,
       isEncrypted: newMessage.is_encrypted,
-      emotional: newMessage.emotional_data,
-      monetization: newMessage.monetization_data,
+      emotional: newMessage.emotional_data as JsonData | MessageEmotionalData, // Correction ici
+      monetization: newMessage.monetization_data as JsonData,
       mediaUrl: newMessage.media_url
     };
 

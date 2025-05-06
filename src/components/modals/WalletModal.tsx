@@ -21,8 +21,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
     wallet: {
       tron_address: 'TFFJ1DP6J97j6nGBjPufkru9Eu1FBpkCFF',
       balance_usdt: 125.75,
-      balance_native: 18.32,
-      native_currency: 'TRX',
+      is_verified: true
     },
     transactions: [
       {
@@ -31,7 +30,6 @@ const WalletModal: React.FC<WalletModalProps> = ({
         amount_usdt: 50,
         status: 'completed',
         created_at: new Date(new Date().getTime() - 86400000).toISOString(), // 1 day ago
-        tron_tx_id: '0x123456789abcdef...',
       },
       {
         id: 'tx2',
@@ -39,7 +37,6 @@ const WalletModal: React.FC<WalletModalProps> = ({
         amount_usdt: 10,
         status: 'completed',
         created_at: new Date(new Date().getTime() - 172800000).toISOString(), // 2 days ago
-        tron_tx_id: '0xabcdef123456789...',
       }
     ]
   };
