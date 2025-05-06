@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, TrendingUp } from 'lucide-react';
+import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +44,21 @@ export const DesktopSidebar: React.FC = () => {
   const { user, profile, isCreator } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
+  // Ajout d'effet pour mémoriser l'état du sidebar
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebarCollapsed');
+    if (savedState !== null) {
+      setIsCollapsed(savedState === 'true');
+    }
+  }, []);
+  
+  // Enregistrer l'état dans localStorage
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('sidebarCollapsed', String(newState));
+  };
+  
   return (
     <aside className={cn(
       "hidden md:flex flex-col border-r bg-secondary/10 h-screen sticky top-0 z-10 transition-all duration-300",
@@ -71,11 +85,11 @@ export const DesktopSidebar: React.FC = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => setIsCollapsed(!isCollapsed)} 
+          onClick={toggleCollapse} 
           className="hover:bg-secondary"
           aria-label={isCollapsed ? "Développer" : "Réduire"}
         >
-          <Menu className="h-4 w-4" />
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
       <Separator />
@@ -88,7 +102,8 @@ export const DesktopSidebar: React.FC = () => {
               cn(
                 "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
                 isCollapsed && "justify-center px-2",
-                isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
+                isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
+                isActive && "sidebar-active-link"
               )
             }
             title={item.label}
@@ -108,7 +123,8 @@ export const DesktopSidebar: React.FC = () => {
                   cn(
                     "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
                     isCollapsed && "justify-center px-2",
-                    isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
+                    isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
+                    isActive && "sidebar-active-link"
                   )
                 }
                 title={item.label}
@@ -128,7 +144,8 @@ export const DesktopSidebar: React.FC = () => {
               cn(
                 "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
                 isCollapsed && "justify-center px-2",
-                isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
+                isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
+                isActive && "sidebar-active-link"
               )
             }
             title={item.label}
@@ -268,3 +285,5 @@ export const MobileSidebar: React.FC = () => {
     </Sheet>
   );
 };
+
+export default DesktopSidebar;

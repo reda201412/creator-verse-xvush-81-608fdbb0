@@ -32,6 +32,15 @@ export interface MessageMonetizationData {
   };
 }
 
+// Ajout d'interfaces pour gérer les types Json de Supabase
+export interface JsonEmotionalData {
+  [key: string]: any;
+}
+
+export interface JsonMonetizationData {
+  [key: string]: any;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -42,8 +51,8 @@ export interface Message {
   type: MessageType;
   timestamp: string;
   status: MessageStatus;
-  emotional?: MessageEmotionalData;
-  monetization?: MessageMonetizationData;
+  emotional?: MessageEmotionalData | JsonEmotionalData | null;
+  monetization?: MessageMonetizationData | JsonMonetizationData | null;
   mediaUrl?: string;
   replyToId?: string;
   isEncrypted: boolean;
@@ -66,7 +75,7 @@ export interface MessageThread {
     dominantEmotion: EmotionType;
     volatility: number; // 0-100
     affinity: number; // 0-100
-  };
+  } | null | any; // Ajout de types plus flexibles pour la compatibilité avec Supabase
 }
 
 export interface MessagingState {

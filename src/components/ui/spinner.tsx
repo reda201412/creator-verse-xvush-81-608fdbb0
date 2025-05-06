@@ -21,6 +21,10 @@ export const Spinner = ({ size = "md", className }: SpinnerProps) => {
         sizeClasses[size],
         className
       )}
+      aria-label="Chargement en cours"
+      role="status"
     />
   );
 };
+
+export default Spinner;

@@ -69,7 +69,8 @@ function App() {
               <Sidebar />
               <div className="flex-1 flex flex-col w-full">
                 <Header />
-                <main className="flex-1 pb-16 md:pb-0 main-content md:pl-4 lg:pl-6 pr-4 lg:pr-6 pt-4">
+                {/* Ajout d'une classe pl-0 md:pl-64 pour compenser l'espace de la barre latérale sur desktop */}
+                <main className="flex-1 pb-16 md:pb-0 main-content pl-0 md:pl-64 pr-4 lg:pr-6 pt-4 transition-all duration-300">
                   <Routes>
                     {/* Public routes */}
                     <Route path="/" element={<Index />} />
