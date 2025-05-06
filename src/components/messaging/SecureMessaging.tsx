@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -269,7 +270,7 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
         timestamp: message.created_at,
         status: 'sent',
         isEncrypted: isSecurityEnabled,
-        emotional: message.emotional_data,
+        emotional: message.emotional_data as JsonData | MessageEmotionalData,
         monetization: supportData,
       };
       
