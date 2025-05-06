@@ -43,3 +43,53 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Style de vidéo 9:16 pour les Xtease */
+.xtease-video-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.xtease-video {
+  aspect-ratio: 9/16;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+/* Fullscreen video styles */
+.xtease-fullscreen {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  background-color: black;
+}
+
+/* Mobile video player optimizations */
+@media (max-width: 768px) {
+  .fullscreen-video-player {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background-color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .video-controls-mobile {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+    z-index: 110;
+  }
+}

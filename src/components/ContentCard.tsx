@@ -20,6 +20,7 @@ interface ContentCardProps {
   isCreator?: boolean;
   isTrending?: boolean;
   collectionName?: string;
+  onClick?: () => void; // Added onClick prop
 }
 
 const ContentCard = ({ 
@@ -33,7 +34,8 @@ const ContentCard = ({
   size = 'md',
   isCreator = false,
   isTrending = false,
-  collectionName
+  collectionName,
+  onClick // Include onClick in props
 }: ContentCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -124,6 +126,7 @@ const ContentCard = ({
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick} // Add onClick handler
     >
       {/* Preview with hover animation */}
       <div className="w-full h-full overflow-hidden">

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import XteasePlayerModal from "@/components/video/XteasePlayerModal";
 
 // Plus de contenu trending avec des vidéos premium et VIP
 const allTrendingContent = [
@@ -22,6 +23,8 @@ const allTrendingContent = [
     type: "premium" as const,
     format: "video" as const,
     duration: 345,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-taking-cold-pictures-33355-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 1200,
       comments: 89,
@@ -35,6 +38,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 520,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-through-a-mountain-range-41576-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 950,
       comments: 63,
@@ -48,6 +53,8 @@ const allTrendingContent = [
     type: "standard" as const,
     format: "video" as const,
     duration: 187,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 2300,
       comments: 156,
@@ -61,6 +68,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 845,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-flipping-her-egg-with-a-kick-1728-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 3200,
       comments: 278,
@@ -74,6 +83,8 @@ const allTrendingContent = [
     type: "premium" as const,
     format: "video" as const,
     duration: 652,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-running-above-the-camera-on-a-running-track-32807-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 4100,
       comments: 215,
@@ -87,6 +98,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 1245,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-model-walking-and-talking-on-a-city-street-43027-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 5800,
       comments: 420,
@@ -101,6 +114,8 @@ const allTrendingContent = [
     type: "premium" as const,
     format: "video" as const,
     duration: 732,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-fashion-woman-with-silver-makeup-39875-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 2700,
       comments: 185,
@@ -114,6 +129,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 1054,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-modeling-fashion-clothes-outdoors-34908-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 3900,
       comments: 320,
@@ -127,6 +144,8 @@ const allTrendingContent = [
     type: "premium" as const,
     format: "video" as const,
     duration: 428,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-dancing-to-the-rhythm-of-music-42816-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 1900,
       comments: 110,
@@ -140,6 +159,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 2250,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-woman-with-a-blue-background-39669-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 4700,
       comments: 350,
@@ -153,6 +174,8 @@ const allTrendingContent = [
     type: "premium" as const,
     format: "video" as const,
     duration: 875,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-modeling-a-dress-outdoors-34932-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 3100,
       comments: 210,
@@ -166,6 +189,8 @@ const allTrendingContent = [
     type: "vip" as const,
     format: "video" as const,
     duration: 1640,
+    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-photos-on-a-rooftop-34421-large.mp4",
+    videoFormat: "9:16" as const,
     metrics: {
       likes: 5200,
       comments: 410,
@@ -179,16 +204,23 @@ const TrendingContent = () => {
   const { config } = useNeuroAesthetic();
   const { trackInteraction, trackContentPreference } = useUserBehavior();
   const { triggerMicroReward } = useNeuroAesthetic();
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
   useEffect(() => {
     // Track page view on mount
     trackInteraction("view", { page: "trending" });
   }, [trackInteraction]);
 
-  const handleContentClick = (contentId: string, contentType: string) => {
+  const handleContentClick = (contentId: string) => {
     triggerMicroReward('click');
-    trackInteraction('click', { contentId, contentType });
-    trackContentPreference(contentType);
+    trackInteraction('click', { contentId });
+    
+    const selectedContent = allTrendingContent.find(item => item.id === contentId);
+    if (selectedContent && selectedContent.format === 'video') {
+      setSelectedVideo(selectedContent);
+      setIsPlayerOpen(true);
+    }
   };
 
   const filteredContent = activeTab === 'all' 
@@ -240,12 +272,21 @@ const TrendingContent = () => {
               <ContentGrid 
                 contents={filteredContent} 
                 layout="masonry"
-                onItemClick={(id) => handleContentClick(id, 'trending')}
+                onItemClick={handleContentClick}
               />
             </motion.div>
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Vertical 9:16 Video Player Modal */}
+      <XteasePlayerModal
+        isOpen={isPlayerOpen}
+        onClose={() => setIsPlayerOpen(false)}
+        videoSrc={selectedVideo?.video_url || ''}
+        thumbnailUrl={selectedVideo?.imageUrl}
+        title={selectedVideo?.title}
+      />
     </div>
   );
 };
