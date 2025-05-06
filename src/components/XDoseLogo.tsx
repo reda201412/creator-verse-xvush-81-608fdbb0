@@ -76,7 +76,7 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
           X
         </motion.span>
         <motion.span 
-          className="text-gray-800" // Changed to dark gray for better contrast on white backgrounds
+          className="text-gray-800" // Dark gray for better contrast on white backgrounds
         >
           Dose
         </motion.span>

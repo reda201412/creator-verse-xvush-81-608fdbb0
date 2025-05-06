@@ -13,6 +13,7 @@ import {
 import { MessageThread, Message } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
 import EphemeralIndicator from './EphemeralIndicator';
+import { MonetizationPanel } from './MonetizationPanel';
 import { decryptMessage, isEncrypted } from '@/utils/encryption';
 
 interface ConversationViewProps {
@@ -43,6 +44,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [showEphemeralMessages, setShowEphemeralMessages] = useState<Record<string, boolean>>({});
   const [isComposing, setIsComposing] = useState(false);
+  const [showMonetizationPanel, setShowMonetizationPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const recordingInterval = useRef<number | null>(null);
@@ -375,6 +377,15 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           >
             <Heart size={18} className="mr-2" /> Soutenir
           </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-purple-600 hover:bg-purple-50 hover:text-purple-700 ml-auto"
+            onClick={() => setShowMonetizationPanel(true)}
+          >
+            <Star size={18} className="mr-2" /> Contenu premium
+          </Button>
         </div>
       )}
       
@@ -456,6 +467,16 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Monetization Panel */}
+      <MonetizationPanel
+        isOpen={showMonetizationPanel}
+        onClose={() => setShowMonetizationPanel(false)}
+        onApply={(data) => {
+          onSendMessage(`💰 Contenu premium (${data.tier})`, data);
+          setShowMonetizationPanel(false);
+        }}
+      />
     </div>
   );
 };

@@ -21,6 +21,7 @@ import { Message, MessageThread as ThreadType, MonetizationTier } from '@/types/
 import { mockMessageThreads } from '@/data/mockMessages';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
+import { toast as sonnerToast } from 'sonner';
 
 const SecureMessaging = () => {
   const navigate = useNavigate();
@@ -36,7 +37,8 @@ const SecureMessaging = () => {
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
-  const [userType, setUserType] = useState<'creator' | 'fan'>('creator'); // Définir le type d'utilisateur comme 'creator' par défaut
+  const [userType, setUserType] = useState<'creator' | 'fan'>('fan'); // Set to 'fan' by default
+  const [hasNewMessages, setHasNewMessages] = useState(false);
 
   const userId = "current_user_id"; // En réalité proviendrait d'un context d'authentification
   const userName = "Julie Sky"; // De même
@@ -61,12 +63,74 @@ const SecureMessaging = () => {
     };
   }, []);
 
+  // Simulate receiving new messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const shouldSendMessage = Math.random() > 0.7;
+      
+      if (shouldSendMessage && threads.length > 0) {
+        const randomThreadIndex = Math.floor(Math.random() * threads.length);
+        const threadId = threads[randomThreadIndex].id;
+        
+        const newMessage: Message = {
+          id: `msg_${Date.now()}`,
+          senderId: `other_user_${randomThreadIndex}`,
+          senderName: `User_${randomThreadIndex}`,
+          senderAvatar: `https://i.pravatar.cc/150?img=${10 + randomThreadIndex}`,
+          recipientId: userId,
+          content: "Hey, j'adore ton contenu! 😍",
+          type: 'text',
+          timestamp: new Date().toISOString(),
+          status: 'sent',
+          isEncrypted: false,
+          emotional: {
+            primaryEmotion: 'joy',
+            intensity: 80,
+            threadMapping: []
+          }
+        };
+
+        setThreads(prev => 
+          prev.map(thread => 
+            thread.id === threadId 
+              ? { 
+                  ...thread, 
+                  messages: [...thread.messages, newMessage],
+                  lastActivity: newMessage.timestamp 
+                }
+              : thread
+          )
+        );
+        
+        if (!activeThreadId || activeThreadId !== threadId) {
+          setHasNewMessages(true);
+          triggerHaptic('medium');
+          
+          sonnerToast("Nouveau message", {
+            description: `${newMessage.senderName} vous a envoyé un message`,
+            action: {
+              label: 'Voir',
+              onClick: () => {
+                setActiveThreadId(threadId);
+                setShowConversationList(false);
+                setHasNewMessages(false);
+              }
+            }
+          });
+        }
+      }
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [threads, activeThreadId, triggerHaptic]);
+
   const activeThread = threads.find(t => t.id === activeThreadId);
 
   const handleThreadSelect = (threadId: string) => {
     triggerHaptic('medium');
     setActiveThreadId(threadId);
     setShowConversationList(false);
+    setHasNewMessages(false);
   };
 
   const handleBack = () => {
@@ -160,9 +224,36 @@ const SecureMessaging = () => {
           </Button>
           
           <XDoseLogo size="md" />
+          {hasNewMessages && (
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Toggle for switching between fan and creator mode - for demo purposes */}
+          <div className="mr-2 flex items-center">
+            <span className="text-xs mr-2">Mode:</span>
+            <Button 
+              variant={userType === 'fan' ? "default" : "outline"} 
+              size="sm"
+              className="text-xs h-7 rounded-r-none"
+              onClick={() => setUserType('fan')}
+            >
+              Fan
+            </Button>
+            <Button 
+              variant={userType === 'creator' ? "default" : "outline"} 
+              size="sm"
+              className="text-xs h-7 rounded-l-none"
+              onClick={() => setUserType('creator')}
+            >
+              Créateur
+            </Button>
+          </div>
+          
           <Button 
             variant="ghost" 
             size="icon"
