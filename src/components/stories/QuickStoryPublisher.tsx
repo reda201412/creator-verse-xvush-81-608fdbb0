@@ -19,7 +19,12 @@ import { StoryCacheService } from '@/services/story-cache.service';
  * Version optimisée du StoryPublisher avec prévisualisation des filtres en temps réel
  * utilisant WebGL pour une meilleure performance
  */
-const QuickStoryPublisher = ({ onClose, onPublished }) => {
+interface QuickStoryPublisherProps {
+  onClose?: () => void;
+  onPublished?: () => void;
+}
+
+const QuickStoryPublisher: React.FC<QuickStoryPublisherProps> = ({ onClose, onPublished }) => {
   const { isCreator } = useAuth();
   const { triggerMicroReward } = useNeuroAesthetic();
   const { trackInteraction } = useUserBehavior();

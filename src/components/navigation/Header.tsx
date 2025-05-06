@@ -75,7 +75,12 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             </DropdownMenu>
             
             {/* Composant optimisé de création rapide de story */}
-            <QuickStoryPublisher />
+            <QuickStoryPublisher 
+              onClose={() => {}} 
+              onPublished={() => {
+                triggerMicroReward('publish');
+              }} 
+            />
           </div>
         )}
         

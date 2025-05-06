@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, Camera } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import QuickStoryPublisher from '@/components/stories/QuickStoryPublisher';
 
@@ -41,6 +43,7 @@ const accountNavItems: NavItem[] = [
 export const DesktopSidebar: React.FC = () => {
   const location = useLocation();
   const { user, profile, isCreator } = useAuth();
+  const { triggerMicroReward } = useNeuroAesthetic();
 
   return (
     <aside className="hidden md:flex flex-col w-64 border-r bg-secondary/10 h-screen fixed">
@@ -77,7 +80,12 @@ export const DesktopSidebar: React.FC = () => {
         {/* Ajout d'un item pour la création rapide de story pour les créateurs avec le composant optimisé */}
         {isCreator && (
           <div className="flex items-center space-x-2 rounded-md p-2">
-            <QuickStoryPublisher />
+            <QuickStoryPublisher 
+              onClose={() => {}} 
+              onPublished={() => {
+                triggerMicroReward('publish');
+              }} 
+            />
             <span className="text-sm font-medium">Créer une story</span>
           </div>
         )}
