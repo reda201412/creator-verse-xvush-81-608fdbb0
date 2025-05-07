@@ -1,8 +1,13 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/sonner';
+import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface ContentCreatorCardProps {
   creator: {
@@ -24,6 +29,92 @@ interface ContentCreatorCardProps {
 }
 
 const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardProps) => {
+  const { user } = useAuth();
+  const { triggerHaptic } = useHapticFeedback();
+  const { triggerMicroReward } = useNeuroAesthetic();
+  const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Check if already following
+      const { data: existingFollow } = await supabase
+        .from('user_follows')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('creator_id', creator.userId)
+        .single();
+      
+      if (existingFollow) {
+        // Unfollow
+        await supabase
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('creator_id', creator.userId);
+          
+        setIsFollowing(false);
+        toast(`Vous ne suivez plus ${creator.name}`);
+      } else {
+        // Follow
+        await supabase
+          .from('user_follows')
+          .insert([
+            { follower_id: user.id, creator_id: creator.userId }
+          ]);
+          
+        setIsFollowing(true);
+        toast(`Vous suivez maintenant ${creator.name}`, {
+          description: "Découvrez son contenu exclusif"
+        });
+        triggerMicroReward('like');
+      }
+      
+      triggerHaptic('medium');
+    } catch (error) {
+      console.error('Error following creator:', error);
+      toast('Une erreur est survenue', {
+        description: 'Veuillez réessayer plus tard',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Check if the user is following this creator on mount
+  React.useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from('user_follows')
+          .select('*')
+          .eq('follower_id', user.id)
+          .eq('creator_id', creator.userId)
+          .single();
+          
+        setIsFollowing(!!data);
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+    
+    checkFollowStatus();
+  }, [user, creator.userId]);
+
   return (
     <div 
       className={cn(
@@ -99,14 +190,25 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
             Profil
           </Link>
           
-          <Link 
-            to={`/secure-messaging`}
-            className="flex-1 text-center text-xs font-medium bg-primary/80 hover:bg-primary rounded-full py-2"
-            onClick={(e) => e.stopPropagation()}
-            state={{ creatorId: creator.userId }}
+          <button 
+            className={cn(
+              "flex-1 text-center text-xs font-medium rounded-full py-2",
+              isFollowing 
+                ? "bg-white/20 hover:bg-white/30" 
+                : "bg-primary/80 hover:bg-primary"
+            )}
+            onClick={handleFollow}
+            disabled={isLoading}
           >
-            Message
-          </Link>
+            {isLoading ? (
+              <span className="flex items-center justify-center">
+                <span className="w-3 h-3 border-2 border-t-transparent border-white rounded-full animate-spin mr-1"></span>
+                {isFollowing ? "Désabonnement..." : "Abonnement..."}
+              </span>
+            ) : (
+              isFollowing ? "Ne plus suivre" : "Suivre"
+            )}
+          </button>
         </div>
       </div>
     </div>
