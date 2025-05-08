@@ -38,15 +38,17 @@ export const getVideoById = async (videoId: string | number) => {
 };
 
 // Helper functions for user follows - with type-safe approach
-type UserFollowsTable = {
+interface UserFollowsTable {
   id: string;
   follower_id: string;
   creator_id: string;
   created_at: string;
-};
+}
 
 export const checkUserFollowStatus = async (followerId: string, creatorId: string) => {
-  const { data, error } = await supabase
+  // Utiliser any pour contourner les contraintes de type 
+  // jusqu'à ce que les types Supabase soient mis à jour
+  const { data, error } = await (supabase as any)
     .from('user_follows')
     .select('*')
     .eq('follower_id', followerId)
@@ -57,7 +59,7 @@ export const checkUserFollowStatus = async (followerId: string, creatorId: strin
 };
 
 export const unfollowCreator = async (followerId: string, creatorId: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('user_follows')
     .delete()
     .eq('follower_id', followerId)
@@ -67,7 +69,7 @@ export const unfollowCreator = async (followerId: string, creatorId: string) => 
 };
 
 export const followCreator = async (followerId: string, creatorId: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('user_follows')
     .insert([
       { follower_id: followerId, creator_id: creatorId }
@@ -77,7 +79,7 @@ export const followCreator = async (followerId: string, creatorId: string) => {
 };
 
 export const getUserFollows = async (userId: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('user_follows')
     .select('creator_id')
     .eq('follower_id', userId);

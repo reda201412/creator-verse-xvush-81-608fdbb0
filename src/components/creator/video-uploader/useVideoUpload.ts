@@ -270,7 +270,7 @@ const useVideoUpload = () => {
       setUploadError(errorMessage);
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
   };
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata } from '@/types/video';
@@ -44,8 +44,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   // Check for authentication
   useEffect(() => {
     if (isOpen && !user) {
-      toast({
-        title: "Authentification requise",
+      toast("Authentification requise", {
         description: "Vous devez être connecté pour téléverser des vidéos."
       });
       setIsOpen(false);
@@ -56,8 +55,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     onUploadComplete(metadata);
     triggerMicroReward('interaction');
     
-    toast({
-      title: "Vidéo téléchargée avec succès",
+    toast("Vidéo téléchargée avec succès", {
       description: "Votre vidéo a été mise en ligne et est maintenant visible."
     });
     
@@ -109,8 +107,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               }}
               onSubmit={async (values) => {
                 if (!videoFile) {
-                  toast({
-                    title: "Information manquante",
+                  toast("Information manquante", {
                     description: "Veuillez fournir une vidéo et un titre."
                   });
                   return;
@@ -123,8 +120,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);
-                  toast({
-                    title: "Erreur de téléchargement",
+                  toast("Erreur de téléchargement", {
                     description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
                   });
                 }
