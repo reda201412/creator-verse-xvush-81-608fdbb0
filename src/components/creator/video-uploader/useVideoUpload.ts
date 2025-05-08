@@ -25,6 +25,7 @@ const useVideoUpload = () => {
   const [videoFormat, setVideoFormat] = useState<'16:9' | '9:16' | '1:1' | 'other'>('16:9');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const videoElement = useRef<HTMLVideoElement | null>(null);
   const { user } = useAuth();
 
@@ -49,6 +50,7 @@ const useVideoUpload = () => {
     if (!file) return;
 
     setVideoFile(file);
+    setUploadError(null);
 
     // Create object URL for preview
     const objectURL = URL.createObjectURL(file);
@@ -70,6 +72,7 @@ const useVideoUpload = () => {
     if (!file) return;
 
     setThumbnailFile(file);
+    setUploadError(null);
 
     // Clear previous thumbnail URL if it exists
     if (thumbnailPreviewUrl) {
@@ -136,6 +139,7 @@ const useVideoUpload = () => {
     setVideoFormat('16:9');
     setIsUploading(false);
     setUploadProgress(0);
+    setUploadError(null);
     videoElement.current = null;
   };
 
@@ -145,10 +149,15 @@ const useVideoUpload = () => {
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
 
     try {
+      console.log("Début de l'upload...");
+      
       // 1. Upload video file
       const videoFileName = `${user.id}/${Date.now()}-${videoFile.name.replace(/\s+/g, '-')}`;
+      console.log("Uploading video:", videoFileName);
+      
       const { error: videoUploadError, data: videoUploadData } = await supabase.storage
         .from('videos')
         .upload(videoFileName, videoFile, {
@@ -157,7 +166,12 @@ const useVideoUpload = () => {
           contentType: videoFile.type,
         });
 
-      if (videoUploadError) throw videoUploadError;
+      if (videoUploadError) {
+        console.error("Erreur d'upload vidéo:", videoUploadError);
+        throw new Error(`Erreur lors de l'upload de la vidéo: ${videoUploadError.message}`);
+      }
+      
+      console.log("Vidéo uploadée avec succès:", videoUploadData);
       setUploadProgress(50);
 
       // Get video URL
@@ -165,9 +179,12 @@ const useVideoUpload = () => {
         .from('videos')
         .getPublicUrl(videoFileName);
 
+      console.log("URL de la vidéo:", videoUrl.publicUrl);
+
       // 2. Upload thumbnail if provided
       let thumbnailUrl = null;
       if (thumbnailFile) {
+        console.log("Uploading thumbnail...");
         const thumbnailFileName = `${user.id}/${Date.now()}-thumbnail-${thumbnailFile.name.replace(/\s+/g, '-')}`;
         const { error: thumbnailUploadError, data: thumbnailUploadData } = await supabase.storage
           .from('thumbnails')
@@ -177,7 +194,12 @@ const useVideoUpload = () => {
             contentType: thumbnailFile.type,
           });
 
-        if (thumbnailUploadError) throw thumbnailUploadError;
+        if (thumbnailUploadError) {
+          console.error("Erreur d'upload miniature:", thumbnailUploadError);
+          throw new Error(`Erreur lors de l'upload de la miniature: ${thumbnailUploadError.message}`);
+        }
+        
+        console.log("Miniature uploadée avec succès:", thumbnailUploadData);
         
         // Get thumbnail URL
         const { data: thumbnailUrlData } = supabase.storage
@@ -185,11 +207,13 @@ const useVideoUpload = () => {
           .getPublicUrl(thumbnailFileName);
           
         thumbnailUrl = thumbnailUrlData.publicUrl;
+        console.log("URL de la miniature:", thumbnailUrl);
       }
       
       setUploadProgress(75);
 
       // 3. Add record to database
+      console.log("Ajout des informations à la base de données...");
       const { error: dbError, data: dbData } = await supabase
         .from('videos')
         .insert({
@@ -212,8 +236,12 @@ const useVideoUpload = () => {
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("Erreur d'insertion en base de données:", dbError);
+        throw new Error(`Erreur lors de l'enregistrement en base de données: ${dbError.message}`);
+      }
       
+      console.log("Vidéo enregistrée avec succès:", dbData);
       setUploadProgress(100);
 
       // Return metadata for the upload
@@ -237,10 +265,12 @@ const useVideoUpload = () => {
 
       return metadata;
     } catch (error) {
-      console.error('Error uploading video:', error);
+      console.error('Erreur complète d\'upload:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue lors de l\'upload';
+      setUploadError(errorMessage);
       throw error;
     } finally {
-      setIsUploading(false);
+      setIsLoading(false);
     }
   };
 
@@ -252,6 +282,7 @@ const useVideoUpload = () => {
     videoFormat,
     isUploading,
     uploadProgress,
+    uploadError,
     handleVideoChange,
     handleThumbnailChange,
     generateThumbnail,

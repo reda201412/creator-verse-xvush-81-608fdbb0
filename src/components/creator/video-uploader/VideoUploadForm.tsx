@@ -8,6 +8,8 @@ import { ThumbnailUpload } from './ThumbnailUpload';
 import VideoFormDetails from './VideoFormDetails';
 import VideoFormatInfo from './VideoFormatInfo';
 import FormFooterActions from './FormFooterActions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { videoSchema, VideoFormValues } from './useVideoUpload';
 
 interface VideoUploadFormProps {
@@ -18,6 +20,7 @@ interface VideoUploadFormProps {
   videoFormat: '16:9' | '9:16' | '1:1' | 'other';
   isUploading: boolean;
   uploadProgress: number;
+  uploadError: string | null;
   handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   generateThumbnail: () => void;
@@ -34,6 +37,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   videoFormat,
   isUploading,
   uploadProgress,
+  uploadError,
   handleVideoChange,
   handleThumbnailChange,
   generateThumbnail,
@@ -70,6 +74,13 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 py-4">
+        {uploadError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{uploadError}</AlertDescription>
+          </Alert>
+        )}
+        
         {/* Video Upload Section */}
         <VideoFileUpload
           ref={videoInputRef}

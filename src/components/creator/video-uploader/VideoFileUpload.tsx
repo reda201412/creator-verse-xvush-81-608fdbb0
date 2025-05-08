@@ -14,15 +14,15 @@ interface VideoFileUploadProps {
 export const VideoFileUpload = forwardRef<HTMLInputElement, VideoFileUploadProps>(
   ({ videoPreviewUrl, onVideoChange, onRemoveVideo }, ref) => {
     return (
-      <div>
+      <div className="w-full">
         <Label htmlFor="video">Fichier vidéo</Label>
         
         {!videoPreviewUrl ? (
           <div 
-            className="mt-2 border-2 border-dashed border-primary/30 rounded-lg p-8 text-center cursor-pointer hover:bg-primary/5 transition-colors"
+            className="mt-2 border-2 border-dashed border-primary/30 rounded-lg p-4 md:p-8 text-center cursor-pointer hover:bg-primary/5 transition-colors"
             onClick={() => (ref as React.RefObject<HTMLInputElement>)?.current?.click()}
           >
-            <Video className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+            <Video className="mx-auto h-8 md:h-12 w-8 md:w-12 text-muted-foreground mb-2" />
             <p className="text-sm font-medium">Cliquez pour sélectionner une vidéo</p>
             <p className="text-xs text-muted-foreground mt-1">
               MP4, MOV ou WebM. 1080p ou supérieur recommandé.

@@ -37,22 +37,28 @@ export const getVideoById = async (videoId: string | number) => {
     .maybeSingle();
 };
 
-// Helper functions for user follows since they're not in the generated types yet
+// Helper functions for user follows - with type-safe approach
+type UserFollowsTable = {
+  id: string;
+  follower_id: string;
+  creator_id: string;
+  created_at: string;
+};
+
 export const checkUserFollowStatus = async (followerId: string, creatorId: string) => {
-  // TypeScript thinks this table doesn't exist, so we need to use a workaround
   const { data, error } = await supabase
-    .from('user_follows' as any)
+    .from('user_follows')
     .select('*')
     .eq('follower_id', followerId)
     .eq('creator_id', creatorId)
-    .single();
+    .maybeSingle();
   
-  return { data, error };
+  return { data: data as UserFollowsTable | null, error };
 };
 
 export const unfollowCreator = async (followerId: string, creatorId: string) => {
   const { data, error } = await supabase
-    .from('user_follows' as any)
+    .from('user_follows')
     .delete()
     .eq('follower_id', followerId)
     .eq('creator_id', creatorId);
@@ -62,7 +68,7 @@ export const unfollowCreator = async (followerId: string, creatorId: string) => 
 
 export const followCreator = async (followerId: string, creatorId: string) => {
   const { data, error } = await supabase
-    .from('user_follows' as any)
+    .from('user_follows')
     .insert([
       { follower_id: followerId, creator_id: creatorId }
     ]);
@@ -72,9 +78,44 @@ export const followCreator = async (followerId: string, creatorId: string) => {
 
 export const getUserFollows = async (userId: string) => {
   const { data, error } = await supabase
-    .from('user_follows' as any)
+    .from('user_follows')
     .select('creator_id')
     .eq('follower_id', userId);
+    
+  return { data: data as Pick<UserFollowsTable, 'creator_id'>[] | null, error };
+};
+
+// Helper function to get all creators
+export const getAllCreators = async () => {
+  // Get users with 'creator' role
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(`
+      id,
+      username,
+      display_name,
+      avatar_url,
+      bio
+    `)
+    .eq('role', 'creator');
+    
+  return { data, error };
+};
+
+// Helper function to get a single creator profile
+export const getCreatorProfile = async (creatorId: string) => {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(`
+      id,
+      username,
+      display_name,
+      avatar_url,
+      bio
+    `)
+    .eq('id', creatorId)
+    .eq('role', 'creator')
+    .maybeSingle();
     
   return { data, error };
 };

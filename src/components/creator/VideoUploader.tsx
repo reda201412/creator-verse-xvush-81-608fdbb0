@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata } from '@/types/video';
@@ -22,7 +22,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   className 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast();
   const { triggerMicroReward } = useNeuroAesthetic();
   const { user } = useAuth();
   
@@ -34,6 +33,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     videoFormat,
     isUploading,
     uploadProgress,
+    uploadError,
     handleVideoChange,
     handleThumbnailChange,
     generateThumbnail,
@@ -46,12 +46,11 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     if (isOpen && !user) {
       toast({
         title: "Authentification requise",
-        description: "Vous devez être connecté pour téléverser des vidéos.",
-        variant: "destructive",
+        description: "Vous devez être connecté pour téléverser des vidéos."
       });
       setIsOpen(false);
     }
-  }, [isOpen, user, toast]);
+  }, [isOpen, user]);
 
   const handleUploadComplete = (metadata: VideoMetadata) => {
     onUploadComplete(metadata);
@@ -59,7 +58,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     
     toast({
       title: "Vidéo téléchargée avec succès",
-      description: "Votre vidéo a été mise en ligne et est maintenant visible.",
+      description: "Votre vidéo a été mise en ligne et est maintenant visible."
     });
     
     setTimeout(() => {
@@ -81,7 +80,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         </Button>
       )}
       
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Uploader une vidéo</DialogTitle>
@@ -96,6 +98,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               videoFormat={videoFormat}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
+              uploadError={uploadError}
               handleVideoChange={handleVideoChange}
               handleThumbnailChange={handleThumbnailChange}
               generateThumbnail={generateThumbnail}
@@ -108,8 +111,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 if (!videoFile) {
                   toast({
                     title: "Information manquante",
-                    description: "Veuillez fournir une vidéo et un titre.",
-                    variant: "destructive",
+                    description: "Veuillez fournir une vidéo et un titre."
                   });
                   return;
                 }
@@ -123,8 +125,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   console.error('Upload error:', error);
                   toast({
                     title: "Erreur de téléchargement",
-                    description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.",
-                    variant: "destructive",
+                    description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
                   });
                 }
               }}
