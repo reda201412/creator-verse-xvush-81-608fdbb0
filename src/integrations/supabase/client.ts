@@ -36,3 +36,45 @@ export const getVideoById = async (videoId: string | number) => {
     .eq('id', id)
     .maybeSingle();
 };
+
+// Helper functions for user follows since they're not in the generated types yet
+export const checkUserFollowStatus = async (followerId: string, creatorId: string) => {
+  // TypeScript thinks this table doesn't exist, so we need to use a workaround
+  const { data, error } = await supabase
+    .from('user_follows' as any)
+    .select('*')
+    .eq('follower_id', followerId)
+    .eq('creator_id', creatorId)
+    .single();
+  
+  return { data, error };
+};
+
+export const unfollowCreator = async (followerId: string, creatorId: string) => {
+  const { data, error } = await supabase
+    .from('user_follows' as any)
+    .delete()
+    .eq('follower_id', followerId)
+    .eq('creator_id', creatorId);
+    
+  return { data, error };
+};
+
+export const followCreator = async (followerId: string, creatorId: string) => {
+  const { data, error } = await supabase
+    .from('user_follows' as any)
+    .insert([
+      { follower_id: followerId, creator_id: creatorId }
+    ]);
+    
+  return { data, error };
+};
+
+export const getUserFollows = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('user_follows' as any)
+    .select('creator_id')
+    .eq('follower_id', userId);
+    
+  return { data, error };
+};

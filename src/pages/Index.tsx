@@ -17,123 +17,134 @@ import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 import XDoseLogo from "@/components/XDoseLogo";
 import { cn } from "@/lib/utils";
-import { supabase } from '@/integrations/supabase/client';
+import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client';
 
 // Sample content data with more premium and VIP content
-const trendingContent = [{
-  id: "trend1",
-  imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
-  title: "Morning Coffee Routine",
-  type: "premium" as const,
-  format: "video" as const,
-  duration: 345,
-  metrics: {
-    likes: 1200,
-    comments: 89,
-    views: 5600
+const trendingContent = [
+  {
+    id: "trend1",
+    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
+    title: "Morning Coffee Routine",
+    type: "premium" as const,
+    format: "video" as const,
+    duration: 345,
+    metrics: {
+      likes: 1200,
+      comments: 89,
+      views: 5600
+    }
+  }, {
+    id: "trend2",
+    imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
+    title: "Spring Fashion Look",
+    type: "vip" as const,
+    format: "video" as const,
+    duration: 520,
+    metrics: {
+      likes: 950,
+      comments: 63,
+      views: 4100
+    }
+  }, {
+    id: "trend3",
+    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
+    title: "Sunset at the Mountain",
+    type: "standard" as const,
+    format: "video" as const,
+    duration: 187,
+    metrics: {
+      likes: 2300,
+      comments: 156,
+      views: 12400
+    }
+  }, {
+    id: "trend4",
+    imageUrl: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=800&auto=format&fit=crop",
+    title: "Boulangerie Tour Paris",
+    type: "vip" as const,
+    format: "video" as const,
+    duration: 845,
+    metrics: {
+      likes: 3200,
+      comments: 278,
+      views: 15600
+    }
+  }, {
+    id: "trend5",
+    imageUrl: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&auto=format&fit=crop",
+    title: "Backstage Fashion Week",
+    type: "premium" as const,
+    format: "video" as const,
+    duration: 652,
+    metrics: {
+      likes: 4100,
+      comments: 215,
+      views: 18900
+    }
+  }, {
+    id: "trend6",
+    imageUrl: "https://images.unsplash.com/photo-1605812276723-c31bb1a68285?w=800&auto=format&fit=crop",
+    title: "Exclusive Interview",
+    type: "vip" as const,
+    format: "video" as const,
+    duration: 1245,
+    metrics: {
+      likes: 5800,
+      comments: 420,
+      views: 23500
+    }
   }
-}, {
-  id: "trend2",
-  imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
-  title: "Spring Fashion Look",
-  type: "vip" as const,
-  format: "video" as const,
-  duration: 520,
-  metrics: {
-    likes: 950,
-    comments: 63,
-    views: 4100
+];
+const recommendedCreators = [
+  {
+    id: "creator1",
+    name: "Sarah K.",
+    username: "sarahk.creative",
+    userId: "creator1",
+    imageUrl: "https://avatars.githubusercontent.com/u/124599?v=4",
+    type: "diamond",
+    metrics: {
+      followers: 21500,
+      content: 156
+    }
+  }, 
+  {
+    id: "creator2",
+    name: "Thomas R.",
+    username: "thomas.photo",
+    userId: "creator2",
+    imageUrl: "https://i.pravatar.cc/150?img=11",
+    type: "gold",
+    metrics: {
+      followers: 14200,
+      content: 87
+    }
+  }, 
+  {
+    id: "creator3",
+    name: "Camille D.",
+    username: "cam.style",
+    userId: "creator3",
+    imageUrl: "https://i.pravatar.cc/150?img=20",
+    type: "platinum",
+    metrics: {
+      followers: 18700,
+      content: 212
+    }
+  }, 
+  {
+    id: "creator4",
+    name: "Marc L.",
+    username: "marc.travels",
+    userId: "creator4",
+    imageUrl: "https://i.pravatar.cc/150?img=33",
+    type: "silver",
+    metrics: {
+      followers: 9800,
+      content: 63
+    }
   }
-}, {
-  id: "trend3",
-  imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
-  title: "Sunset at the Mountain",
-  type: "standard" as const,
-  format: "video" as const,
-  duration: 187,
-  metrics: {
-    likes: 2300,
-    comments: 156,
-    views: 12400
-  }
-}, {
-  id: "trend4",
-  imageUrl: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=800&auto=format&fit=crop",
-  title: "Boulangerie Tour Paris",
-  type: "vip" as const,
-  format: "video" as const,
-  duration: 845,
-  metrics: {
-    likes: 3200,
-    comments: 278,
-    views: 15600
-  }
-}, {
-  id: "trend5",
-  imageUrl: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&auto=format&fit=crop",
-  title: "Backstage Fashion Week",
-  type: "premium" as const,
-  format: "video" as const,
-  duration: 652,
-  metrics: {
-    likes: 4100,
-    comments: 215,
-    views: 18900
-  }
-}, {
-  id: "trend6",
-  imageUrl: "https://images.unsplash.com/photo-1605812276723-c31bb1a68285?w=800&auto=format&fit=crop",
-  title: "Exclusive Interview",
-  type: "vip" as const,
-  format: "video" as const,
-  duration: 1245,
-  metrics: {
-    likes: 5800,
-    comments: 420,
-    views: 23500
-  }
-}];
-const recommendedCreators = [{
-  id: "creator1",
-  name: "Sarah K.",
-  username: "sarahk.creative",
-  imageUrl: "https://avatars.githubusercontent.com/u/124599?v=4",
-  type: "diamond",
-  metrics: {
-    followers: 21500,
-    content: 156
-  }
-}, {
-  id: "creator2",
-  name: "Thomas R.",
-  username: "thomas.photo",
-  imageUrl: "https://i.pravatar.cc/150?img=11",
-  type: "gold",
-  metrics: {
-    followers: 14200,
-    content: 87
-  }
-}, {
-  id: "creator3",
-  name: "Camille D.",
-  username: "cam.style",
-  imageUrl: "https://i.pravatar.cc/150?img=20",
-  type: "platinum",
-  metrics: {
-    followers: 18700,
-    content: 212
-  }
-}, {
-  id: "creator4",
-  name: "Marc L.",
-  username: "marc.travels",
-  imageUrl: "https://i.pravatar.cc/150?img=33",
-  type: "silver",
-  metrics: {
-    followers: 9800,
-    content: 63
-  }
-}];
+];
 const Index = () => {
   const isMobile = useIsMobile();
   const {
@@ -167,15 +178,14 @@ const Index = () => {
       if (!user) return;
       
       try {
-        const { data } = await supabase
-          .from('user_follows')
-          .select('creator_id')
-          .eq('follower_id', user.id);
-          
+        const { data, error } = await getUserFollows(user.id);
+        
         if (data) {
           const followStates: Record<string, boolean> = {};
-          data.forEach(follow => {
-            followStates[follow.creator_id] = true;
+          data.forEach((follow: any) => {
+            if (follow.creator_id) {
+              followStates[follow.creator_id] = true;
+            }
           });
           setCreatorFollowStates(followStates);
         }
@@ -219,27 +229,17 @@ const Index = () => {
     setFollowLoading(prev => ({ ...prev, [creator.id]: true }));
     
     try {
-      const isCurrentlyFollowing = creatorFollowStates[creator.id];
+      const isCurrentlyFollowing = creatorFollowStates[creator.userId];
       
       if (isCurrentlyFollowing) {
         // Unfollow
-        await supabase
-          .from('user_follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('creator_id', creator.id);
-          
-        setCreatorFollowStates(prev => ({ ...prev, [creator.id]: false }));
+        await unfollowCreator(user.id, creator.userId);
+        setCreatorFollowStates(prev => ({ ...prev, [creator.userId]: false }));
         toast(`Vous ne suivez plus ${creator.name}`);
       } else {
         // Follow
-        await supabase
-          .from('user_follows')
-          .insert([
-            { follower_id: user.id, creator_id: creator.id }
-          ]);
-          
-        setCreatorFollowStates(prev => ({ ...prev, [creator.id]: true }));
+        await followCreator(user.id, creator.userId);
+        setCreatorFollowStates(prev => ({ ...prev, [creator.userId]: true }));
         toast(`Vous suivez maintenant ${creator.name}`, {
           description: "Découvrez son contenu exclusif"
         });
@@ -252,8 +252,7 @@ const Index = () => {
     } catch (error) {
       console.error('Error following creator:', error);
       toast('Une erreur est survenue', {
-        description: 'Veuillez réessayer plus tard',
-        variant: 'destructive'
+        description: 'Veuillez réessayer plus tard'
       });
     } finally {
       setFollowLoading(prev => ({ ...prev, [creator.id]: false }));
@@ -419,7 +418,7 @@ const Index = () => {
                 <Button 
                   className={cn(
                     "w-full mt-3", 
-                    creatorFollowStates[creator.id] 
+                    creatorFollowStates[creator.userId] 
                       ? "bg-gray-600 hover:bg-gray-700" 
                       : "bg-xvush-pink hover:bg-xvush-pink-dark"
                   )}
@@ -433,10 +432,10 @@ const Index = () => {
                   {followLoading[creator.id] ? (
                     <span className="flex items-center justify-center">
                       <span className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></span>
-                      {creatorFollowStates[creator.id] ? "Désabonnement..." : "Abonnement..."}
+                      {creatorFollowStates[creator.userId] ? "Désabonnement..." : "Abonnement..."}
                     </span>
                   ) : (
-                    creatorFollowStates[creator.id] ? "Ne plus suivre" : (user ? "Suivre" : "Se connecter pour suivre")
+                    creatorFollowStates[creator.userId] ? "Ne plus suivre" : (user ? "Suivre" : "Se connecter pour suivre")
                   )}
                 </Button>
               </motion.div>

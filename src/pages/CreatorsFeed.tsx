@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,14 @@ import { Link } from 'react-router-dom';
 import { Heart, Eye, Search } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { toast } from '@/components/ui/sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { followCreator, unfollowCreator, checkUserFollowStatus } from '@/integrations/supabase/client';
 
 // Données des créateurs pour le feed
 const creators = [
   {
     id: "creator1",
+    userId: "creator1",
     name: "Sarah K.",
     username: "sarahk.creative",
     imageUrl: "https://avatars.githubusercontent.com/u/124599?v=4",
@@ -25,6 +28,7 @@ const creators = [
   },
   {
     id: "creator2",
+    userId: "creator2",
     name: "Thomas R.",
     username: "thomas.photo",
     imageUrl: "https://i.pravatar.cc/150?img=11",
@@ -38,6 +42,7 @@ const creators = [
   },
   {
     id: "creator3",
+    userId: "creator3",
     name: "Camille D.",
     username: "cam.style",
     imageUrl: "https://i.pravatar.cc/150?img=20",
@@ -51,6 +56,7 @@ const creators = [
   },
   {
     id: "creator4",
+    userId: "creator4",
     name: "Marc L.",
     username: "marc.travels",
     imageUrl: "https://i.pravatar.cc/150?img=33",
@@ -64,6 +70,7 @@ const creators = [
   },
   {
     id: "creator5",
+    userId: "creator5",
     name: "Julie P.",
     username: "julie.creates",
     imageUrl: "https://i.pravatar.cc/150?img=5",
@@ -77,6 +84,7 @@ const creators = [
   },
   {
     id: "creator6",
+    userId: "creator6",
     name: "Antoine B.",
     username: "antoine.films",
     imageUrl: "https://i.pravatar.cc/150?img=8",
@@ -92,12 +100,65 @@ const creators = [
 
 const CreatorsFeed: React.FC = () => {
   const { triggerMicroReward } = useNeuroAesthetic();
+  const { user } = useAuth();
+  const [followingStates, setFollowingStates] = useState<Record<string, boolean>>({});
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
 
-  const handleFollow = (creatorName: string) => {
-    triggerMicroReward('like');
-    toast(`Vous suivez maintenant ${creatorName}`, {
-      description: "Découvrez son contenu exclusif"
-    });
+  // Check follow status on component mount
+  React.useEffect(() => {
+    const loadFollowStatuses = async () => {
+      if (!user) return;
+      
+      const states: Record<string, boolean> = {};
+      
+      for (const creator of creators) {
+        try {
+          const { data } = await checkUserFollowStatus(user.id, creator.userId);
+          states[creator.userId] = !!data;
+        } catch (error) {
+          console.error(`Error checking follow status for ${creator.name}:`, error);
+        }
+      }
+      
+      setFollowingStates(states);
+    };
+    
+    loadFollowStatuses();
+  }, [user]);
+
+  const handleFollow = async (creatorId: string, creatorName: string) => {
+    if (!user) {
+      toast("Veuillez vous connecter pour suivre un créateur");
+      return;
+    }
+    
+    setLoadingStates(prev => ({ ...prev, [creatorId]: true }));
+    
+    try {
+      const isCurrentlyFollowing = followingStates[creatorId];
+      
+      if (isCurrentlyFollowing) {
+        // Unfollow
+        await unfollowCreator(user.id, creatorId);
+        setFollowingStates(prev => ({ ...prev, [creatorId]: false }));
+        toast(`Vous ne suivez plus ${creatorName}`);
+      } else {
+        // Follow
+        await followCreator(user.id, creatorId);
+        setFollowingStates(prev => ({ ...prev, [creatorId]: true }));
+        toast(`Vous suivez maintenant ${creatorName}`, {
+          description: "Découvrez son contenu exclusif"
+        });
+        triggerMicroReward('like');
+      }
+    } catch (error) {
+      console.error('Error following creator:', error);
+      toast('Une erreur est survenue', {
+        description: 'Veuillez réessayer plus tard'
+      });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [creatorId]: false }));
+    }
   };
 
   return (
@@ -173,9 +234,17 @@ const CreatorsFeed: React.FC = () => {
               <div className="flex gap-2">
                 <Button 
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => handleFollow(creator.name)}
+                  onClick={() => handleFollow(creator.userId, creator.name)}
+                  disabled={loadingStates[creator.userId]}
                 >
-                  Suivre
+                  {loadingStates[creator.userId] ? (
+                    <span className="flex items-center justify-center">
+                      <span className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></span>
+                      {followingStates[creator.userId] ? "Désabonnement..." : "Abonnement..."}
+                    </span>
+                  ) : (
+                    followingStates[creator.userId] ? "Ne plus suivre" : "Suivre"
+                  )}
                 </Button>
                 <Button 
                   variant="outline"

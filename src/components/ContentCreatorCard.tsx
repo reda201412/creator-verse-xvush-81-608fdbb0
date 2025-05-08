@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkUserFollowStatus, followCreator, unfollowCreator } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
@@ -48,32 +48,14 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     setIsLoading(true);
     
     try {
-      // Check if already following
-      const { data: existingFollow } = await supabase
-        .from('user_follows')
-        .select('*')
-        .eq('follower_id', user.id)
-        .eq('creator_id', creator.userId)
-        .single();
-      
-      if (existingFollow) {
+      if (isFollowing) {
         // Unfollow
-        await supabase
-          .from('user_follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('creator_id', creator.userId);
-          
+        await unfollowCreator(user.id, creator.userId);
         setIsFollowing(false);
         toast(`Vous ne suivez plus ${creator.name}`);
       } else {
         // Follow
-        await supabase
-          .from('user_follows')
-          .insert([
-            { follower_id: user.id, creator_id: creator.userId }
-          ]);
-          
+        await followCreator(user.id, creator.userId);
         setIsFollowing(true);
         toast(`Vous suivez maintenant ${creator.name}`, {
           description: "Découvrez son contenu exclusif"
@@ -85,8 +67,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     } catch (error) {
       console.error('Error following creator:', error);
       toast('Une erreur est survenue', {
-        description: 'Veuillez réessayer plus tard',
-        variant: 'destructive'
+        description: 'Veuillez réessayer plus tard'
       });
     } finally {
       setIsLoading(false);
@@ -99,13 +80,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
       if (!user) return;
       
       try {
-        const { data } = await supabase
-          .from('user_follows')
-          .select('*')
-          .eq('follower_id', user.id)
-          .eq('creator_id', creator.userId)
-          .single();
-          
+        const { data } = await checkUserFollowStatus(user.id, creator.userId);
         setIsFollowing(!!data);
       } catch (error) {
         console.error('Error checking follow status:', error);
