@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
-import StoryTimeline from '@/components/stories/StoryTimeline';
+import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
 import { getAllCreators, CreatorProfile } from '@/services/creatorService';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,7 +77,7 @@ const CreatorsFeed: React.FC = () => {
         <StoryPublisher />
       </div>
       
-      <StoryTimeline className="mb-8" />
+      <StoriesTimeline />
       
       <div className="relative mb-6">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
