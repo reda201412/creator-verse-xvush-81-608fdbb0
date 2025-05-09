@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata } from '@/types/video';
+import { VideoMetadata, ContentType } from '@/types/video';
 import { z } from 'zod';
 
 // Define VideoFormat to match expected types in VideoMetadata
@@ -143,16 +143,19 @@ const useVideoUpload = () => {
 
       // Step 1: Upload the video file to Storage
       const videoFileName = `${user.id}/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
+      
+      // Create custom progress handler function
+      const handleProgress = (progress: { loaded: number; total: number }) => {
+        const percent = Math.round((progress.loaded * 70) / progress.total);
+        setUploadProgress(percent); // Video upload is 70% of total progress
+      };
+      
+      // Use upload with standard options (no onProgress)
       const { error: videoUploadError } = await supabase.storage
         .from('videos')
         .upload(videoFileName, videoFile, {
           cacheControl: '3600',
-          upsert: false,
-          // Handle progress updates with custom function
-          onProgress: (progress: { loaded: number; total: number }) => {
-            const percent = Math.round((progress.loaded * 70) / progress.total);
-            setUploadProgress(percent); // Video upload is 70% of total progress
-          }
+          upsert: false
         });
 
       if (videoUploadError) {
@@ -191,6 +194,9 @@ const useVideoUpload = () => {
 
       setUploadProgress(90);
 
+      // Convert to proper ContentType
+      const videoType = values.type as ContentType;
+      
       // Step 3: Insert the video metadata into the 'videos' table
       const { data: videoData, error: insertError } = await supabase
         .from('videos')
@@ -204,7 +210,7 @@ const useVideoUpload = () => {
           is_premium: ['premium', 'vip'].includes(values.type),
           token_price: ['premium', 'vip'].includes(values.type) ? values.tokenPrice || 0 : 0,
           uploadedat: new Date().toISOString(),
-          type: values.type,
+          type: videoType,
           restrictions: {
             tier: values.tier,
             sharingAllowed: values.sharingAllowed,
@@ -229,11 +235,16 @@ const useVideoUpload = () => {
         thumbnailUrl: thumbnailUrl,
         video_url: videoUrl,
         format: videoFormat,
-        type: videoData.type,
+        type: videoType,
         isPremium: videoData.is_premium,
         tokenPrice: videoData.token_price,
         videoFile: videoFile,
-        restrictions: videoData.restrictions
+        restrictions: {
+          tier: values.tier,
+          sharingAllowed: values.sharingAllowed,
+          downloadsAllowed: values.downloadsAllowed,
+          expiresAt: undefined
+        }
       };
     } catch (error: any) {
       const errorMessage = error.message || 'Une erreur est survenue lors du téléchargement';
