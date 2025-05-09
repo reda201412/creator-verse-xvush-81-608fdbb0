@@ -54,6 +54,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
       tier: 'free',
       sharingAllowed: false,
       downloadsAllowed: false,
+      tokenPrice: 0
     },
   });
 
