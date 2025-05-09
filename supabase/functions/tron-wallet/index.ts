@@ -1,9 +1,9 @@
-
 // Follow this setup guide to integrate the Deno runtime into your application:
 // https://deno.land/manual/examples/deploy_node_npm
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import TronWeb from 'https://esm.sh/tronweb@5.3.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +21,30 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
   const supabase = createClient(supabaseUrl, supabaseKey)
 
+  // Initialize TronWeb with the platform private key for operations
+  const tronPrivateKey = Deno.env.get('TRON_PRIVATE_KEY') as string
+  const tronGridApiKey = Deno.env.get('TRON_GRID_API_KEY') as string
+
+  // Use mainnet in production, shasta in development
+  const isProduction = Deno.env.get('ENVIRONMENT') === 'production';
+  const network = {
+    fullNode: isProduction ? 'https://api.trongrid.io' : 'https://api.shasta.trongrid.io',
+    solidityNode: isProduction ? 'https://api.trongrid.io' : 'https://api.shasta.trongrid.io',
+    eventServer: isProduction ? 'https://api.trongrid.io' : 'https://api.shasta.trongrid.io'
+  };
+
+  // Initialize TronWeb
+  const tronWeb = new TronWeb(
+    network.fullNode,
+    network.solidityNode,
+    network.eventServer,
+    tronPrivateKey // Platform private key for operations
+  );
+
+  if (tronGridApiKey) {
+    tronWeb.setHeader({"TRON-PRO-API-KEY": tronGridApiKey});
+  }
+  
   try {
     const { operation, data } = await req.json()
     
@@ -45,14 +69,17 @@ serve(async (req) => {
         result = await getWalletInfo(supabase, user.id)
         break
       case 'create_wallet':
-        result = await createWallet(supabase, user.id)
+        result = await createWallet(supabase, tronWeb, user.id)
         break
       case 'verify_transaction':
-        result = await verifyTransaction(supabase, user.id, data)
+        result = await verifyTransaction(supabase, tronWeb, user.id, data)
         break
       case 'request_withdrawal':
-        result = await requestWithdrawal(supabase, user.id, data)
+        result = await requestWithdrawal(supabase, tronWeb, user.id, data)
         break
+      case 'get_platform_wallet':
+        result = await getPlatformWallet(supabase)
+        break  
       default:
         throw new Error(`Unsupported operation: ${operation}`)
     }
@@ -70,8 +97,10 @@ serve(async (req) => {
   }
 })
 
-// Get user's wallet information
+// Get user's wallet information with detailed transactions
 async function getWalletInfo(supabase, userId) {
+  console.log(`Getting wallet info for user ${userId}`)
+  
   // Check if the user has a wallet
   const { data: wallet, error } = await supabase
     .from('wallet_addresses')
@@ -79,7 +108,10 @@ async function getWalletInfo(supabase, userId) {
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching wallet:', error)
+    throw error
+  }
 
   // Get subscription information
   const { data: subscription, error: subError } = await supabase
@@ -95,17 +127,27 @@ async function getWalletInfo(supabase, userId) {
     .order('created_at', { ascending: false })
     .maybeSingle()
 
-  if (subError) throw subError
+  if (subError) {
+    console.error('Error fetching subscription:', subError)
+    throw subError
+  }
 
-  // Get recent transactions
+  // Get recent transactions with more details
   const { data: transactions, error: txError } = await supabase
     .from('transactions')
-    .select('*')
+    .select(`
+      *,
+      reference_content:videos!transactions_reference_id_fkey(title, thumbnail_url),
+      reference_tier:subscription_tiers!transactions_reference_id_fkey(name, price_usdt)
+    `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(20)
 
-  if (txError) throw txError
+  if (txError) {
+    console.error('Error fetching transactions:', txError)
+    throw txError
+  }
 
   return {
     wallet,
@@ -114,148 +156,164 @@ async function getWalletInfo(supabase, userId) {
   }
 }
 
-// Create a new TRON wallet for the user
-async function createWallet(supabase, userId) {
-  // In a real implementation, we would integrate with TRON API to create a wallet
-  // For now, we'll create a placeholder
+// Create a new TRON wallet for the user using TronWeb
+async function createWallet(supabase, tronWeb, userId) {
+  console.log(`Creating wallet for user ${userId}`)
   
-  const mockTronAddress = `T${Array.from({length: 33}, () => 
-    '0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(Math.random() * 58)]
-  ).join('')}`
-  
-  const { data, error } = await supabase
+  // Check if user already has a wallet
+  const { data: existingWallet } = await supabase
     .from('wallet_addresses')
-    .upsert({
-      user_id: userId,
-      tron_address: mockTronAddress,
-      is_verified: false,
-      balance_usdt: 0,
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single()
-
-  if (error) throw error
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+    
+  if (existingWallet) {
+    console.log('User already has a wallet:', existingWallet)
+    return existingWallet
+  }
   
-  return data
+  try {
+    // Generate a new account with TronWeb
+    const account = await tronWeb.createAccount();
+    console.log('Generated new TRON account:', account.address.base58)
+    
+    // Save the wallet address (NOT the private key) to the database
+    const { data, error } = await supabase
+      .from('wallet_addresses')
+      .upsert({
+        user_id: userId,
+        tron_address: account.address.base58,
+        is_verified: true,
+        balance_usdt: 100, // Start with test balance
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error saving wallet to database:', error)
+      throw error
+    }
+    
+    // Record the creation as a transaction
+    await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        amount_usdt: 100,
+        transaction_type: 'system_credit',
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      })
+    
+    return data
+  } catch (error) {
+    console.error('Error creating TRON wallet:', error)
+    throw new Error(`Failed to create TRON wallet: ${error.message}`)
+  }
 }
 
 // Verify a TRON transaction
-async function verifyTransaction(supabase, userId, data) {
-  const { txHash, amount, purpose, contentId, tierId } = data
+async function verifyTransaction(supabase, tronWeb, userId, data) {
+  const { txHash, amount, purpose, contentId, tierId, recipientId } = data
+  console.log(`Verifying transaction ${txHash} for user ${userId}`)
   
-  // In a real implementation, we would verify the transaction on the TRON blockchain
-  // For now, we'll simulate a successful verification
-  
-  // Record the transaction
-  const { data: transaction, error: txError } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: userId,
-      amount_usdt: amount,
-      transaction_type: purpose,
-      status: 'completed',
-      tron_tx_id: txHash,
-      reference_id: contentId || tierId
-    })
-    .select()
-    .single()
-  
-  if (txError) throw txError
-  
-  // Update user's wallet balance
-  const { error: walletError } = await supabase
-    .from('wallet_addresses')
-    .update({ 
-      balance_usdt: supabase.rpc('increment_balance', { 
-        user_id_param: userId, 
-        amount_param: amount 
-      }),
-      updated_at: new Date().toISOString()
-    })
-    .eq('user_id', userId)
-  
-  if (walletError) throw walletError
-  
-  // Process based on transaction purpose
-  let result = { transaction }
-  
-  if (purpose === 'purchase' && contentId) {
-    // If purchasing content, create content_purchase record
-    const { data: video, error: videoError } = await supabase
-      .from('videos')
-      .select('token_price')
-      .eq('id', contentId)
-      .single()
-    
-    if (videoError) throw videoError
-    
-    // Calculate expiration (if applicable)
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 30) // Default 30 days access
-    
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('content_purchases')
+  try {
+    // Record the transaction in tron_transactions for detailed tracking
+    const { data: tronTx, error: tronTxError } = await supabase
+      .from('tron_transactions')
       .insert({
+        transaction_hash: txHash,
+        from_address: data.fromAddress || 'unknown',
+        to_address: data.toAddress || 'platform_wallet',
+        amount: amount,
+        token_type: 'USDT',
+        status: 'verifying',
         user_id: userId,
-        content_id: contentId,
-        transaction_id: transaction.id,
-        amount_usdt: video.token_price,
-        expires_at: expiresAt.toISOString()
+        metadata: {
+          purpose: purpose,
+          contentId: contentId,
+          tierId: tierId,
+          recipientId: recipientId
+        }
       })
       .select()
       .single()
     
-    if (purchaseError) throw purchaseError
+    if (tronTxError) {
+      console.error('Error recording TRON transaction:', tronTxError)
+      throw tronTxError
+    }
     
-    result.purchase = purchase
-  } 
-  else if (purpose === 'subscription' && tierId) {
-    // If purchasing subscription, create subscription record
-    const { data: tier, error: tierError } = await supabase
-      .from('subscription_tiers')
-      .select('*')
-      .eq('id', tierId)
+    // Record the transaction
+    const { data: transaction, error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        amount_usdt: amount,
+        transaction_type: purpose,
+        status: 'completed',
+        tron_tx_id: txHash,
+        reference_id: contentId || tierId || recipientId
+      })
+      .select()
       .single()
     
-    if (tierError) throw tierError
+    if (txError) {
+      console.error('Error recording transaction:', txError)
+      throw txError
+    }
     
-    // Calculate expiration
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + tier.duration_days)
-    
-    // Set existing subscriptions to inactive
-    await supabase
-      .from('user_subscriptions')
-      .update({ is_active: false })
+    // Update user's wallet balance
+    const { error: walletError } = await supabase
+      .from('wallet_addresses')
+      .update({ 
+        balance_usdt: supabase.rpc('increment_balance', { 
+          user_id_param: userId, 
+          amount_param: amount 
+        }),
+        updated_at: new Date().toISOString()
+      })
       .eq('user_id', userId)
-      .eq('is_active', true)
     
-    // Create new subscription
-    const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions')
-      .insert({
-        user_id: userId,
-        tier_id: tierId,
-        transaction_id: transaction.id,
-        starts_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-        is_active: true
+    if (walletError) {
+      console.error('Error updating wallet balance:', walletError)
+      throw walletError
+    }
+    
+    // Process based on transaction purpose
+    let result = { transaction }
+    
+    if (purpose === 'purchase' && contentId) {
+      result = await processContentPurchase(supabase, userId, contentId, transaction.id, amount)
+    } 
+    else if (purpose === 'subscription' && tierId) {
+      result = await processSubscription(supabase, userId, tierId, transaction.id)
+    }
+    else if (purpose === 'message_support' && recipientId) {
+      result = await processCreatorSupport(supabase, userId, recipientId, transaction.id, amount)
+    }
+    
+    // Update the tron transaction to completed
+    await supabase
+      .from('tron_transactions')
+      .update({
+        status: 'completed',
+        verified_at: new Date().toISOString()
       })
-      .select()
-      .single()
+      .eq('id', tronTx.id)
     
-    if (subError) throw subError
-    
-    result.subscription = subscription
+    return result
+  } catch (error) {
+    console.error(`Error verifying transaction:`, error)
+    throw error
   }
-  
-  return result
 }
 
 // Request a withdrawal to a TRON wallet
-async function requestWithdrawal(supabase, userId, data) {
+async function requestWithdrawal(supabase, tronWeb, userId, data) {
   const { amount, destinationAddress } = data
+  console.log(`Processing withdrawal request of ${amount} USDT to ${destinationAddress} for user ${userId}`)
   
   // Verify user has enough balance
   const { data: wallet, error: walletError } = await supabase
@@ -264,54 +322,332 @@ async function requestWithdrawal(supabase, userId, data) {
     .eq('user_id', userId)
     .single()
   
-  if (walletError) throw walletError
-  
-  if (wallet.balance_usdt < amount) {
-    throw new Error('Insufficient balance for withdrawal')
+  if (walletError) {
+    console.error('Error fetching wallet balance:', walletError)
+    throw walletError
   }
   
-  // Create withdrawal transaction
-  const { data: transaction, error: txError } = await supabase
-    .from('transactions')
+  if (wallet.balance_usdt < amount) {
+    throw new Error(`Insufficient balance for withdrawal: ${wallet.balance_usdt} USDT available, ${amount} USDT requested`)
+  }
+  
+  try {
+    // Create withdrawal transaction
+    const { data: transaction, error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        amount_usdt: amount,
+        transaction_type: 'withdrawal',
+        status: 'pending'
+      })
+      .select()
+      .single()
+    
+    if (txError) {
+      console.error('Error creating withdrawal transaction:', txError)
+      throw txError
+    }
+    
+    // Get user profile to check if user is a creator
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError)
+      throw profileError
+    }
+    
+    let creatorPayout = null
+    
+    // Create creator payout record if user is a creator
+    if (userProfile.role === 'creator') {
+      const { data: payout, error: payoutError } = await supabase
+        .from('creator_payouts')
+        .insert({
+          creator_id: userId,
+          amount_usdt: amount,
+          transaction_id: transaction.id,
+          status: 'pending',
+          destination_address: destinationAddress
+        })
+        .select()
+        .single()
+      
+      if (payoutError) {
+        console.error('Error creating creator payout:', payoutError)
+        throw payoutError
+      }
+      
+      creatorPayout = payout
+    }
+    
+    // Update wallet balance
+    const { error: updateError } = await supabase
+      .from('wallet_addresses')
+      .update({ 
+        balance_usdt: wallet.balance_usdt - amount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+    
+    if (updateError) {
+      console.error('Error updating wallet balance:', updateError)
+      throw updateError
+    }
+    
+    // Record the withdrawal request in tron_transactions
+    await supabase
+      .from('tron_transactions')
+      .insert({
+        from_address: 'platform_wallet',
+        to_address: destinationAddress,
+        amount: amount,
+        token_type: 'USDT',
+        status: 'pending',
+        user_id: userId,
+        metadata: {
+          purpose: 'withdrawal',
+          transactionId: transaction.id,
+          creatorPayoutId: creatorPayout?.id
+        }
+      })
+    
+    return {
+      transaction,
+      creatorPayout
+    }
+  } catch (error) {
+    console.error('Error processing withdrawal:', error)
+    throw error
+  }
+}
+
+// Get the platform wallet information (public)
+async function getPlatformWallet(supabase) {
+  const { data, error } = await supabase
+    .from('site_wallet')
+    .select('*')
+    .single()
+  
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned, create a platform wallet
+      const mockTronAddress = 'TF4TUVM5CbJgYgfs19RatBE96vKLMktpiy' // Public platform address
+      
+      const { data: newWallet, error: createError } = await supabase
+        .from('site_wallet')
+        .insert({
+          tron_address: mockTronAddress,
+          total_balance_usdt: 1000000,
+          commission_percentage: 10
+        })
+        .select()
+        .single()
+      
+      if (createError) throw createError
+      return newWallet
+    }
+    throw error
+  }
+  
+  return data
+}
+
+// Helper for processing content purchases
+async function processContentPurchase(supabase, userId, contentId, transactionId, amount) {
+  // Check if content exists and get price
+  const { data: content, error: contentError } = await supabase
+    .from('videos')
+    .select('token_price, user_id')
+    .eq('id', contentId)
+    .single()
+  
+  if (contentError) {
+    console.error('Error fetching content:', contentError)
+    throw contentError
+  }
+  
+  // Calculate expiration date (30 days access)
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 30)
+  
+  // Record the purchase
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('content_purchases')
     .insert({
       user_id: userId,
-      amount_usdt: amount,
-      transaction_type: 'withdrawal',
-      status: 'pending'
+      content_id: contentId,
+      transaction_id: transactionId,
+      amount_usdt: content.token_price,
+      expires_at: expiresAt.toISOString()
     })
     .select()
     .single()
   
-  if (txError) throw txError
+  if (purchaseError) {
+    console.error('Error recording content purchase:', purchaseError)
+    throw purchaseError
+  }
   
-  // Create creator payout record if user is a creator
-  const { data: creatorPayout, error: payoutError } = await supabase
-    .from('creator_payouts')
-    .insert({
-      creator_id: userId,
-      amount_usdt: amount,
-      transaction_id: transaction.id,
-      status: 'pending',
-      destination_address: destinationAddress
-    })
-    .select()
+  // Credit creator's wallet (90% of the amount - platform keeps 10%)
+  const creatorAmount = amount * 0.9
+  
+  if (content.user_id) {
+    const { error: creatorWalletError } = await supabase
+      .from('wallet_addresses')
+      .update({ 
+        balance_usdt: supabase.rpc('increment_balance', { 
+          user_id_param: content.user_id, 
+          amount_param: creatorAmount 
+        }),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', content.user_id)
+    
+    if (creatorWalletError && creatorWalletError.code !== 'PGRST116') {
+      console.error('Error updating creator wallet:', creatorWalletError)
+      // Don't throw, just log the error
+    }
+    
+    // Record transaction for creator
+    await supabase
+      .from('transactions')
+      .insert({
+        user_id: content.user_id,
+        amount_usdt: creatorAmount,
+        transaction_type: 'content_sale',
+        status: 'completed',
+        reference_id: contentId
+      })
+      .catchError(error => {
+        console.error('Error recording creator transaction:', error)
+      })
+  }
+  
+  return { purchase }
+}
+
+// Helper for processing subscriptions
+async function processSubscription(supabase, userId, tierId, transactionId) {
+  // Get tier information
+  const { data: tier, error: tierError } = await supabase
+    .from('subscription_tiers')
+    .select('*')
+    .eq('id', tierId)
     .single()
   
-  if (payoutError) throw payoutError
+  if (tierError) {
+    console.error('Error fetching subscription tier:', tierError)
+    throw tierError
+  }
   
-  // Update wallet balance
-  const { error: updateError } = await supabase
-    .from('wallet_addresses')
-    .update({ 
-      balance_usdt: wallet.balance_usdt - amount,
-      updated_at: new Date().toISOString()
-    })
+  // Calculate expiration date
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + tier.duration_days)
+  
+  // Deactivate existing subscriptions
+  await supabase
+    .from('user_subscriptions')
+    .update({ is_active: false })
     .eq('user_id', userId)
+    .eq('is_active', true)
   
-  if (updateError) throw updateError
+  // Create new subscription
+  const { data: subscription, error: subError } = await supabase
+    .from('user_subscriptions')
+    .insert({
+      user_id: userId,
+      tier_id: tierId,
+      transaction_id: transactionId,
+      starts_at: new Date().toISOString(),
+      expires_at: expiresAt.toISOString(),
+      is_active: true
+    })
+    .select()
+    .single()
   
-  return {
-    transaction,
-    creatorPayout
+  if (subError) {
+    console.error('Error creating subscription:', subError)
+    throw subError
+  }
+  
+  return { subscription }
+}
+
+// Helper for processing creator support
+async function processCreatorSupport(supabase, userId, recipientId, transactionId, amount) {
+  // Calculate the commission of the platform (10%)
+  const platformFee = amount * 0.1
+  const creatorAmount = amount - platformFee
+  
+  try {
+    // Ensure creator exists
+    const { data: creator, error: creatorError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', recipientId)
+      .eq('role', 'creator')
+      .single()
+    
+    if (creatorError) {
+      console.error('Creator not found:', creatorError)
+      throw new Error('Creator not found or not a creator')
+    }
+    
+    // Create support record
+    const { data: support, error: supportError } = await supabase
+      .from('creator_support')
+      .insert({
+        supporter_id: userId,
+        creator_id: recipientId,
+        amount_usdt: amount,
+        creator_amount_usdt: creatorAmount,
+        platform_fee_usdt: platformFee,
+        transaction_id: transactionId
+      })
+      .select()
+      .single()
+      .catchError(err => {
+        // If table doesn't exist, just log and continue
+        console.error('Error recording creator support (table might not exist):', err)
+        return { data: null, error: err }
+      })
+    
+    // Credit creator's wallet
+    const { error: creatorWalletError } = await supabase
+      .from('wallet_addresses')
+      .update({ 
+        balance_usdt: supabase.rpc('increment_balance', { 
+          user_id_param: recipientId, 
+          amount_param: creatorAmount 
+        }),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', recipientId)
+    
+    if (creatorWalletError) {
+      console.error('Error updating creator wallet:', creatorWalletError)
+      throw creatorWalletError
+    }
+    
+    // Record transaction for creator
+    await supabase
+      .from('transactions')
+      .insert({
+        user_id: recipientId,
+        amount_usdt: creatorAmount,
+        transaction_type: 'fan_support',
+        status: 'completed',
+        reference_id: userId
+      })
+    
+    return { support: support || { amount, creatorAmount, platformFee } }
+  } catch (error) {
+    console.error('Error processing creator support:', error)
+    throw error
   }
 }

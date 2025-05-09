@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WalletConnect from '@/components/wallet/WalletConnect';
 import WalletBalance from '@/components/wallet/WalletBalance';
 import TransactionList from '@/components/wallet/TransactionList';
-import { TransactionData, WalletResponse } from '@/types/messaging';
+import { useTronWallet } from '@/hooks/use-tron-wallet';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface WalletModalProps {
   open: boolean;
@@ -16,31 +18,17 @@ const WalletModal: React.FC<WalletModalProps> = ({
   open, 
   onOpenChange 
 }) => {
-  // Simulation de données pour le portefeuille avec la structure correcte des transactions
-  const walletInfo: WalletResponse = {
-    wallet: {
-      tron_address: 'TFFJ1DP6J97j6nGBjPufkru9Eu1FBpkCFF',
-      balance_usdt: 125.75,
-      is_verified: true
-    },
-    transactions: [
-      {
-        id: 'tx1',
-        transaction_type: 'deposit',
-        amount_usdt: 50,
-        status: 'completed',
-        created_at: new Date(new Date().getTime() - 86400000).toISOString(), // 1 day ago
-      },
-      {
-        id: 'tx2',
-        transaction_type: 'purchase',
-        amount_usdt: 10,
-        status: 'completed',
-        created_at: new Date(new Date().getTime() - 172800000).toISOString(), // 2 days ago
-      }
-    ]
-  };
-
+  const { user } = useAuth();
+  const { walletInfo, getWalletInfo, loading } = useTronWallet();
+  const [activeTab, setActiveTab] = useState('balance');
+  
+  // Fetch wallet info when modal opens
+  useEffect(() => {
+    if (open && user) {
+      getWalletInfo();
+    }
+  }, [open, user]);
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -48,25 +36,31 @@ const WalletModal: React.FC<WalletModalProps> = ({
           <DialogTitle>Portefeuille</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="balance" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="balance">Solde</TabsTrigger>
-            <TabsTrigger value="connect">Connecter</TabsTrigger>
-            <TabsTrigger value="history">Historique</TabsTrigger>
-          </TabsList>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="balance">Solde</TabsTrigger>
+              <TabsTrigger value="connect">Connecter</TabsTrigger>
+              <TabsTrigger value="history">Historique</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="balance" className="space-y-4 py-4">
-            <WalletBalance walletInfo={walletInfo} />
-          </TabsContent>
+            <TabsContent value="balance" className="space-y-4 py-4">
+              <WalletBalance walletInfo={walletInfo} />
+            </TabsContent>
 
-          <TabsContent value="connect" className="space-y-4 py-4">
-            <WalletConnect walletInfo={walletInfo} />
-          </TabsContent>
+            <TabsContent value="connect" className="space-y-4 py-4">
+              <WalletConnect walletInfo={walletInfo} />
+            </TabsContent>
 
-          <TabsContent value="history" className="space-y-4 py-4">
-            <TransactionList transactions={walletInfo.transactions} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="history" className="space-y-4 py-4">
+              <TransactionList transactions={walletInfo?.transactions || []} />
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

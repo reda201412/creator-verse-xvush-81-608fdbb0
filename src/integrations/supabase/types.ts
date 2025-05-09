@@ -422,6 +422,72 @@ export type Database = {
         }
         Relationships: []
       }
+      tron_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          from_address: string
+          id: string
+          metadata: Json | null
+          status: string
+          to_address: string
+          token_type: string
+          transaction_hash: string | null
+          updated_at: string
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          from_address: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          to_address: string
+          token_type?: string
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          from_address?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          to_address?: string
+          token_type?: string
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          creator_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null

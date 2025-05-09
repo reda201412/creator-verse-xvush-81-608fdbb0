@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { WalletResponse, WalletData, TransactionData } from '@/types/messaging';
+import { WalletResponse } from '@/types/messaging';
 
 export function useTronWallet() {
   const { user } = useAuth();
@@ -11,7 +11,7 @@ export function useTronWallet() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getWalletInfo = async () => {
+  const getWalletInfo = useCallback(async () => {
     if (!user) {
       setError("Vous devez être connecté pour accéder à votre portefeuille");
       return null;
@@ -36,7 +36,7 @@ export function useTronWallet() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const createWallet = async () => {
     if (!user) {
@@ -73,6 +73,7 @@ export function useTronWallet() {
     contentId?: string;
     tierId?: string;
     recipientId?: string;
+    fromAddress?: string;
   }) => {
     if (!user) {
       setError("Vous devez être connecté pour vérifier une transaction");
@@ -83,7 +84,7 @@ export function useTronWallet() {
     setError(null);
 
     try {
-      // Utiliser la nouvelle fonction Edge pour vérifier la transaction sur la blockchain
+      // Use the Edge Function to verify the transaction on the blockchain
       const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
         body: { 
           operation: 'verify_transaction',
@@ -190,7 +191,7 @@ export function useTronWallet() {
     }
   };
 
-  // Nouvelle fonction pour obtenir des informations sur une transaction
+  // Function to get information about a transaction
   const getTransactionInfo = async (txHash: string) => {
     if (!user) {
       setError("Vous devez être connecté pour accéder aux informations de transaction");
@@ -220,7 +221,7 @@ export function useTronWallet() {
     }
   };
 
-  // Nouvelle fonction pour obtenir des informations sur un compte TRON
+  // Function to get information about a TRON account
   const getAccountInfo = async (address: string) => {
     if (!user) {
       setError("Vous devez être connecté pour accéder aux informations de compte");
@@ -250,6 +251,30 @@ export function useTronWallet() {
     }
   };
 
+  // Function to get platform wallet
+  const getPlatformWallet = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('tron-wallet', {
+        body: { 
+          operation: 'get_platform_wallet'
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations du portefeuille de la plateforme";
+      setError(message);
+      console.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     walletInfo,
     loading,
@@ -261,6 +286,7 @@ export function useTronWallet() {
     requestWithdrawal,
     checkContentAccess,
     getTransactionInfo,
-    getAccountInfo
+    getAccountInfo,
+    getPlatformWallet
   };
 }

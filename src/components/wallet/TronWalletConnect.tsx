@@ -1,16 +1,13 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Wallet, Copy, ExternalLink, Send, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Wallet, Send, ExternalLink, RefreshCw, Shield, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTronWeb, TronWalletState } from '@/hooks/use-tronweb';
-import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTronWeb } from '@/hooks/use-tronweb';
 
 interface TronWalletConnectProps {
-  onWalletConnect?: (address: string) => void;
+  onWalletConnect: (address: string) => void;
 }
 
 const TronWalletConnect: React.FC<TronWalletConnectProps> = ({ onWalletConnect }) => {
@@ -20,274 +17,188 @@ const TronWalletConnect: React.FC<TronWalletConnectProps> = ({ onWalletConnect }
     loading, 
     error, 
     connectWallet, 
-    refreshBalance,
+    disconnectWallet, 
+    refreshBalance, 
     checkNetwork 
   } = useTronWeb();
   
-  const { walletInfo, getWalletInfo, createWallet } = useTronWallet();
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [destinationAddress, setDestinationAddress] = useState('');
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const { requestWithdrawal } = useTronWallet();
-  
-  const tronAddress = walletInfo?.wallet?.tron_address || '';
-  const balance = walletInfo?.wallet?.balance_usdt || 0;
+  const [copied, setCopied] = useState(false);
   
   useEffect(() => {
-    if (walletState.address && onWalletConnect) {
+    if (walletState.address && walletState.loggedIn) {
       onWalletConnect(walletState.address);
     }
-  }, [walletState.address, onWalletConnect]);
-
-  const handleConnectWallet = async () => {
-    const success = await connectWallet();
-    if (success) {
-      toast.success("Portefeuille TRON connecté avec succès");
-      if (checkNetwork()) {
-        getWalletInfo();
+  }, [walletState.address, walletState.loggedIn, onWalletConnect]);
+  
+  const handleConnect = async () => {
+    try {
+      const success = await connectWallet();
+      if (success && walletState.address) {
+        toast.success("Portefeuille TronLink connecté avec succès");
       }
+    } catch (err) {
+      console.error("Connection error:", err);
+      toast.error("Erreur lors de la connexion à TronLink");
+    }
+  };
+  
+  const handleDisconnect = () => {
+    disconnectWallet();
+    toast.info("Portefeuille TronLink déconnecté");
+  };
+  
+  const handleRefresh = async () => {
+    const balance = await refreshBalance();
+    if (balance !== null) {
+      toast.success(`Solde mis à jour: ${balance} TRX`);
+    } else {
+      toast.error("Impossible de récupérer le solde");
     }
   };
   
   const handleCopyAddress = () => {
-    if (tronAddress) {
-      navigator.clipboard.writeText(tronAddress);
-      toast.success("Adresse TRON copiée dans le presse-papier");
-    } else if (walletState.address) {
-      navigator.clipboard.writeText(walletState.address);
-      toast.success("Adresse TRON copiée dans le presse-papier");
-    }
-  };
-  
-  const handleRefreshBalance = async () => {
     if (walletState.address) {
-      const newBalance = await refreshBalance();
-      if (newBalance !== null) {
-        toast.success(`Solde rafraîchi: ${newBalance} TRX`);
-      } else {
-        toast.error("Impossible de rafraîchir le solde");
-      }
+      navigator.clipboard.writeText(walletState.address);
+      setCopied(true);
+      toast.success("Adresse copiée dans le presse-papier");
+      setTimeout(() => setCopied(false), 2000);
     }
-    
-    // Rafraîchir également le solde USDT via l'API
-    getWalletInfo();
   };
   
-  const handleWithdraw = async () => {
-    if (!destinationAddress) {
-      toast.error("Veuillez entrer une adresse de destination");
-      return;
-    }
-    
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("Veuillez entrer un montant valide");
-      return;
-    }
-    
-    if (amount > balance) {
-      toast.error("Solde insuffisant pour effectuer ce retrait");
-      return;
-    }
-    
-    setIsWithdrawing(true);
-    try {
-      await requestWithdrawal({
-        amount,
-        destinationAddress
-      });
-      
-      setWithdrawAmount('');
-      setDestinationAddress('');
-      toast.success("Demande de retrait soumise avec succès");
-    } catch (err) {
-      toast.error("Erreur lors de la demande de retrait");
-      console.error(err);
-    } finally {
-      setIsWithdrawing(false);
-    }
-  };
-
-  // Afficher l'état de connexion du portefeuille
-  const renderWalletStatus = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center p-4">
-          <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full mr-2" />
-          <span>Chargement du portefeuille...</span>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <Alert variant="destructive" className="mb-4">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      );
-    }
-
-    if (!walletState.installed) {
-      return (
-        <Alert className="mb-4">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>TronLink non détecté</AlertTitle>
-          <AlertDescription>
-            <p className="mb-2">Pour utiliser toutes les fonctionnalités du portefeuille TRON, veuillez installer l'extension TronLink.</p>
+  if (!walletState.installed) {
+    return (
+      <Card className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800">
+        <CardContent className="p-6 text-center">
+          <div className="flex flex-col items-center justify-center p-4">
+            <Wallet className="h-12 w-12 text-amber-500 mb-4" />
+            <h3 className="text-lg font-medium mb-2">TronLink n'est pas installé</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Pour connecter votre portefeuille TRON, vous devez d'abord installer l'extension TronLink.
+            </p>
             <Button 
-              variant="outline" 
-              size="sm" 
+              className="bg-amber-500 hover:bg-amber-600"
               onClick={() => window.open('https://www.tronlink.org/', '_blank')}
             >
+              <Shield className="h-4 w-4 mr-2" />
               Installer TronLink
             </Button>
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
-    if (!walletState.loggedIn) {
-      return (
-        <div className="flex flex-col items-center justify-center p-4">
-          <Button onClick={handleConnectWallet} className="mb-2">
-            <Wallet className="h-4 w-4 mr-2" />
-            Connecter TronLink
-          </Button>
-          <p className="text-sm text-muted-foreground mt-2">
-            Connectez votre portefeuille TRON pour accéder à toutes les fonctionnalités.
-          </p>
-        </div>
-      );
-    }
-
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium">Portefeuille connecté</div>
-          <Button variant="ghost" size="sm" onClick={handleRefreshBalance}>
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Actualiser
-          </Button>
-        </div>
-        
-        <div className="bg-muted p-3 rounded-lg flex flex-col space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Adresse:</span>
-            <div className="flex items-center">
-              <span className="font-mono text-xs truncate max-w-[150px]">
-                {walletState.address}
-              </span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyAddress}>
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
-                <a
-                  href={`https://tronscan.org/#/address/${walletState.address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Réseau:</span>
-            <span className="text-sm">{walletState.network}</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Solde TRX:</span>
-            <span className="text-sm font-medium">{walletState.balance?.toFixed(6)} TRX</span>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
-  };
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-destructive/20 text-destructive p-4 rounded-lg">
+        <p className="font-medium">Erreur de connexion:</p>
+        <p className="text-sm">{error}</p>
+        <Button variant="destructive" className="mt-2" size="sm" onClick={handleConnect}>
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+  
+  if (!walletState.loggedIn) {
+    return (
+      <Card className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800">
+        <CardContent className="p-6 text-center">
+          <div className="flex flex-col items-center justify-center p-4">
+            <Wallet className="h-12 w-12 text-amber-500 mb-4" />
+            <h3 className="text-lg font-medium mb-2">Connecter TronLink</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Connectez votre portefeuille TronLink pour interagir avec la blockchain TRON.
+            </p>
+            <Button 
+              className="bg-amber-500 hover:bg-amber-600"
+              onClick={handleConnect}
+            >
+              Connecter TronLink
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const isMainnet = walletState.network === 'Mainnet';
+  const networkColor = isMainnet ? 'text-green-500' : 'text-amber-500';
   
   return (
-    <div className="space-y-6">
-      {renderWalletStatus()}
-      
+    <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-medium mb-4">Adresse TRON plateforme</h3>
-        <div className="flex items-center gap-2">
-          <div className="bg-secondary p-3 rounded-md flex-1 font-mono text-sm overflow-hidden">
-            {tronAddress || 'Non disponible'}
-          </div>
-          <Button variant="outline" size="icon" onClick={handleCopyAddress} disabled={!tronAddress}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            asChild
-            disabled={!tronAddress}
-          >
-            <a href={`https://tronscan.org/#/address/${tronAddress}`} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
-        </div>
-      </div>
-      
-      <div>
-        <h3 className="text-lg font-medium mb-4">Retrait</h3>
+        <h3 className="text-lg font-medium mb-4">Portefeuille TronLink connecté</h3>
+        
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="withdrawAmount">Montant (USDT)</Label>
-              <Input
-                id="withdrawAmount"
-                type="number"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-              />
+          <div className="bg-secondary/30 p-4 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Adresse</span>
+              <div className="flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={handleCopyAddress}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  asChild
+                >
+                  <a 
+                    href={`https://tronscan.org/#/address/${walletState.address}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxAmount">Solde disponible</Label>
-              <div className="bg-secondary p-2 rounded-md h-10 flex items-center">
-                {balance} USDT
+            
+            <div className="font-mono text-xs bg-primary/10 p-2 rounded break-all">
+              {walletState.address}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-muted-foreground">Réseau</div>
+                <div className={`font-medium ${networkColor}`}>{walletState.network}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Solde TRX</div>
+                <div className="font-medium">{walletState.balance} TRX</div>
               </div>
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="destinationAddress">Adresse de destination</Label>
-            <Input
-              id="destinationAddress"
-              value={destinationAddress}
-              onChange={(e) => setDestinationAddress(e.target.value)}
-              placeholder="Adresse TRON (commence par T)"
-            />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="flex-1">
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Actualiser
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDisconnect} className="flex-1">
+              Déconnecter
+            </Button>
           </div>
           
-          <Button 
-            onClick={handleWithdraw} 
-            disabled={isWithdrawing || !destinationAddress || !withdrawAmount || parseFloat(withdrawAmount) <= 0}
-            className="w-full"
-          >
-            {isWithdrawing ? (
-              <>
-                <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full" />
-                Traitement en cours...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Retirer les tokens
-              </>
-            )}
-          </Button>
-          
-          <div className="text-xs text-muted-foreground">
-            Note: Les retraits sont généralement traités dans un délai de 24 heures. Des frais de réseau peuvent s'appliquer.
+          <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded">
+            <p className="font-medium mb-1">Note importante:</p>
+            <p>
+              Utilisez cette connexion TronLink pour vérifier votre portefeuille de la plateforme ou effectuer des paiements directs vers le portefeuille de la plateforme.
+            </p>
           </div>
         </div>
       </div>

@@ -46,8 +46,7 @@ interface UserFollowsTable {
 }
 
 export const checkUserFollowStatus = async (followerId: string, creatorId: string) => {
-  // Utiliser any pour contourner les contraintes de type 
-  // jusqu'à ce que les types Supabase soient mis à jour
+  // Use any to bypass type constraints temporarily
   const { data, error } = await (supabase as any)
     .from('user_follows')
     .select('*')

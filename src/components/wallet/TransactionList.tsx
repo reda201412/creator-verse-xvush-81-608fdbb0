@@ -1,16 +1,36 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  CreditCard, 
+  DollarSign, 
+  ExternalLink,
+  ShoppingCart,
+  Users
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownLeft, Check, Clock, AlertCircle } from 'lucide-react';
 
 interface Transaction {
   id: string;
-  amount_usdt: number;
   transaction_type: string;
+  amount_usdt: number;
   status: string;
   created_at: string;
+  tron_tx_id?: string;
+  reference_content?: { title: string; thumbnail_url: string; };
+  reference_tier?: { name: string; price_usdt: number; };
 }
 
 interface TransactionListProps {
@@ -18,22 +38,26 @@ interface TransactionListProps {
 }
 
 const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
-  const getTypeIcon = (type: string) => {
+  const getTransactionTypeIcon = (type: string) => {
     switch (type) {
       case 'deposit':
         return <ArrowDownLeft className="h-4 w-4 text-green-500" />;
       case 'withdrawal':
-        return <ArrowUpRight className="h-4 w-4 text-red-500" />;
+        return <ArrowUpRight className="h-4 w-4 text-amber-500" />;
       case 'purchase':
-        return <ArrowUpRight className="h-4 w-4 text-orange-500" />;
+        return <ShoppingCart className="h-4 w-4 text-blue-500" />;
       case 'subscription':
-        return <ArrowUpRight className="h-4 w-4 text-purple-500" />;
+        return <Users className="h-4 w-4 text-purple-500" />;
+      case 'content_sale':
+        return <DollarSign className="h-4 w-4 text-green-500" />;
+      case 'system_credit':
+        return <CreditCard className="h-4 w-4 text-primary" />;
       default:
-        return <ArrowDownLeft className="h-4 w-4 text-blue-500" />;
+        return <CreditCard className="h-4 w-4 text-gray-500" />;
     }
   };
   
-  const getTypeLabel = (type: string) => {
+  const getTransactionTypeLabel = (type: string) => {
     switch (type) {
       case 'deposit':
         return 'Dépôt';
@@ -43,85 +67,123 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
         return 'Achat de contenu';
       case 'subscription':
         return 'Abonnement';
+      case 'content_sale':
+        return 'Vente de contenu';
+      case 'system_credit':
+        return 'Crédit système';
+      case 'message_support':
+        return 'Support créateur';
+      case 'fan_support':
+        return 'Support reçu';
       default:
         return type;
     }
   };
-
-  const getStatusIcon = (status: string) => {
+  
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Check className="h-4 w-4 text-green-500" />;
+        return <Badge variant="outline" className="bg-green-500/20 text-green-600 border-0">Complété</Badge>;
       case 'pending':
-        return <Clock className="h-4 w-4 text-amber-500" />;
+        return <Badge variant="outline" className="bg-amber-500/20 text-amber-600 border-0">En attente</Badge>;
       case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <Badge variant="outline" className="bg-red-500/20 text-red-600 border-0">Échoué</Badge>;
       default:
-        return null;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
   
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Terminé';
-      case 'pending':
-        return 'En attente';
-      case 'failed':
-        return 'Échec';
-      default:
-        return status;
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { 
+        addSuffix: true,
+        locale: fr
+      });
+    } catch (error) {
+      return 'Date invalide';
     }
   };
   
-  if (transactions.length === 0) {
+  const getTransactionDetails = (transaction: Transaction) => {
+    if (transaction.reference_content) {
+      return transaction.reference_content.title;
+    }
+    
+    if (transaction.reference_tier) {
+      return `Abonnement ${transaction.reference_tier.name}`;
+    }
+    
+    return '';
+  };
+  
+  if (!transactions || transactions.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium">Aucune transaction</h3>
-        <p className="text-muted-foreground mt-1 max-w-md mx-auto">
-          Vos transactions apparaîtront ici une fois que vous commencerez à utiliser vos tokens.
+      <div className="text-center p-8">
+        <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Aucune transaction</h3>
+        <p className="text-sm text-muted-foreground">
+          Vous n'avez pas encore effectué de transaction.
         </p>
       </div>
     );
   }
-
+  
   return (
-    <div className="space-y-4">
-      {transactions.map((tx, index) => (
-        <motion.div
-          key={tx.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-          className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-secondary rounded-full">
-              {getTypeIcon(tx.transaction_type)}
-            </div>
-            <div>
-              <div className="font-medium">{getTypeLabel(tx.transaction_type)}</div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true, locale: fr })}
-                <span className="inline-flex items-center ml-2">
-                  {getStatusIcon(tx.status)}
-                  <span className="ml-1">{getStatusLabel(tx.status)}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className={`font-medium ${tx.transaction_type === 'deposit' ? 'text-green-500' : ''}`}>
-              {tx.transaction_type === 'deposit' ? '+' : '-'}{tx.amount_usdt} USDT
-            </div>
-          </div>
-        </motion.div>
-      ))}
+    <div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Type</TableHead>
+            <TableHead>Montant</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead className="text-right">Détails</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.map((tx) => (
+            <TableRow key={tx.id}>
+              <TableCell>
+                <div className="flex items-center">
+                  {getTransactionTypeIcon(tx.transaction_type)}
+                  <span className="ml-2">{getTransactionTypeLabel(tx.transaction_type)}</span>
+                </div>
+                {getTransactionDetails(tx) && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {getTransactionDetails(tx)}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell className={tx.transaction_type.includes('withdrawal') ? 'text-amber-500' : 'text-green-500'}>
+                {tx.transaction_type.includes('withdrawal') ? '-' : '+'}{tx.amount_usdt} USDT
+              </TableCell>
+              <TableCell className="text-muted-foreground text-sm">
+                {formatDate(tx.created_at)}
+              </TableCell>
+              <TableCell>{getStatusBadge(tx.status)}</TableCell>
+              <TableCell className="text-right">
+                {tx.tron_tx_id && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    asChild
+                  >
+                    <a 
+                      href={`https://tronscan.org/#/transaction/${tx.tron_tx_id}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Blockchain
+                    </a>
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 };
