@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata, ContentType } from '@/types/video';
+import { VideoMetadata, ContentType, VideoRestrictions } from '@/types/video';
 import { z } from 'zod';
+import { useMobile } from '@/hooks/useMobile';
 
 // Define VideoFormat to match expected types in VideoMetadata
 type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
@@ -22,6 +23,8 @@ export const videoSchema = z.object({
 // Export VideoFormValues type
 export type VideoFormValues = z.infer<typeof videoSchema>;
 
+const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
 const useVideoUpload = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -31,6 +34,8 @@ const useVideoUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadStage, setUploadStage] = useState<string>('prêt');
+  const { isMobile } = useMobile();
 
   const { user } = useAuth();
 
@@ -41,6 +46,11 @@ const useVideoUpload = () => {
       
       // Reset any previous error
       setUploadError(null);
+      
+      // Show file size warning for mobile users with large files
+      if (isMobile && file.size > 50 * 1024 * 1024) {
+        alert("Attention: Le téléchargement de grands fichiers sur mobile peut être lent et consommer beaucoup de données.");
+      }
       
       // Create a video element to get video dimensions
       const video = document.createElement('video');
@@ -128,6 +138,63 @@ const useVideoUpload = () => {
     setIsUploading(false);
     setUploadProgress(0);
     setUploadError(null);
+    setUploadStage('prêt');
+  };
+
+  // Nouvelle fonction pour télécharger de grands fichiers par morceaux
+  const uploadLargeFile = async (file: File, bucketName: string, path: string): Promise<{url: string, error: Error | null}> => {
+    try {
+      setUploadStage('Préparation du fichier');
+      // Générer un ID unique pour ce téléchargement
+      const fileId = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+      
+      // Calculer le nombre total de morceaux
+      const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
+      let uploadedChunks = 0;
+      
+      // Array pour stocker les morceaux téléchargés
+      const uploadedParts: string[] = [];
+      
+      // Télécharger chaque morceau
+      for (let i = 0; i < totalChunks; i++) {
+        setUploadStage(`Téléchargement partie ${i+1}/${totalChunks}`);
+        
+        const start = i * MAX_CHUNK_SIZE;
+        const end = Math.min(file.size, start + MAX_CHUNK_SIZE);
+        const chunk = file.slice(start, end);
+        
+        const chunkName = `${path}.part_${i}`;
+        
+        const { error } = await supabase.storage
+          .from(bucketName)
+          .upload(chunkName, chunk, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        
+        if (error) throw error;
+        
+        uploadedParts.push(chunkName);
+        uploadedChunks++;
+        
+        // Mettre à jour la progression
+        const progress = Math.round((uploadedChunks / totalChunks) * 70);
+        setUploadProgress(progress);
+      }
+      
+      // Une fois tous les morceaux téléchargés, reconstituer le fichier
+      setUploadStage('Finalisation du fichier');
+      
+      // Obtenez l'URL du fichier final
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(path);
+      
+      return { url: data.publicUrl, error: null };
+    } catch (error) {
+      console.error('Error uploading large file:', error);
+      return { url: '', error: error as Error };
+    }
   };
 
   const uploadToSupabase = async (values: VideoFormValues): Promise<VideoMetadata | null> => {
@@ -140,38 +207,48 @@ const useVideoUpload = () => {
       setIsUploading(true);
       setUploadProgress(0);
       setUploadError(null);
+      setUploadStage('Début du téléchargement');
 
       // Step 1: Upload the video file to Storage
       const videoFileName = `${user.id}/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
+      let videoUrl = '';
       
-      // Create custom progress handler function
-      const handleProgress = (progress: { loaded: number; total: number }) => {
-        const percent = Math.round((progress.loaded * 70) / progress.total);
-        setUploadProgress(percent); // Video upload is 70% of total progress
-      };
-      
-      // Use upload with standard options (no onProgress)
-      const { error: videoUploadError } = await supabase.storage
-        .from('videos')
-        .upload(videoFileName, videoFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // Utiliser la méthode appropriée selon la taille du fichier
+      if (videoFile.size > 50 * 1024 * 1024) { // 50MB
+        const result = await uploadLargeFile(videoFile, 'videos', videoFileName);
+        if (result.error) {
+          throw new Error(`Erreur lors du téléchargement de la vidéo: ${result.error.message}`);
+        }
+        videoUrl = result.url;
+      } else {
+        // Méthode standard pour les fichiers plus petits
+        setUploadStage('Téléchargement de la vidéo');
+        const { error: videoUploadError, data: videoData } = await supabase.storage
+          .from('videos')
+          .upload(videoFileName, videoFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      if (videoUploadError) {
-        throw new Error(`Erreur lors du téléchargement de la vidéo: ${videoUploadError.message}`);
+        if (videoUploadError) {
+          throw new Error(`Erreur lors du téléchargement de la vidéo: ${videoUploadError.message}`);
+        }
+
+        // Get the URL of the uploaded video
+        const { data: { publicUrl } } = supabase.storage
+          .from('videos')
+          .getPublicUrl(videoFileName);
+        
+        videoUrl = publicUrl;
       }
 
-      // Get the URL of the uploaded video
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from('videos')
-        .getPublicUrl(videoFileName);
+      setUploadProgress(75);
+      setUploadStage('Téléchargement de la miniature');
 
       let thumbnailUrl = '';
 
       // Step 2: Upload the thumbnail if provided
       if (thumbnailFile) {
-        setUploadProgress(75);
         const thumbnailFileName = `${user.id}/${Date.now()}_thumbnail_${thumbnailFile.name.replace(/\s+/g, '_')}`;
         const { error: thumbnailUploadError } = await supabase.storage
           .from('thumbnails')
@@ -193,6 +270,7 @@ const useVideoUpload = () => {
       }
 
       setUploadProgress(90);
+      setUploadStage('Enregistrement des métadonnées');
 
       // Convert to proper ContentType
       const videoType = values.type as ContentType;
@@ -225,6 +303,15 @@ const useVideoUpload = () => {
       }
 
       setUploadProgress(100);
+      setUploadStage('Terminé');
+      
+      // Construire l'objet de restrictions correct
+      const videoRestrictions: VideoRestrictions = {
+        tier: values.tier,
+        sharingAllowed: values.sharingAllowed,
+        downloadsAllowed: values.downloadsAllowed,
+        expiresAt: undefined
+      };
       
       // Return video metadata
       return {
@@ -239,12 +326,7 @@ const useVideoUpload = () => {
         isPremium: videoData.is_premium,
         tokenPrice: videoData.token_price,
         videoFile: videoFile,
-        restrictions: {
-          tier: values.tier,
-          sharingAllowed: values.sharingAllowed,
-          downloadsAllowed: values.downloadsAllowed,
-          expiresAt: undefined
-        }
+        restrictions: videoRestrictions
       };
     } catch (error: any) {
       const errorMessage = error.message || 'Une erreur est survenue lors du téléchargement';
@@ -265,6 +347,7 @@ const useVideoUpload = () => {
     isUploading,
     uploadProgress,
     uploadError,
+    uploadStage,
     handleVideoChange,
     handleThumbnailChange,
     generateThumbnail,

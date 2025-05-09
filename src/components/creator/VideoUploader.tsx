@@ -34,6 +34,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     isUploading,
     uploadProgress,
     uploadError,
+    uploadStage,
     handleVideoChange,
     handleThumbnailChange,
     generateThumbnail,
@@ -97,6 +98,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               isUploading={isUploading}
               uploadProgress={uploadProgress}
               uploadError={uploadError}
+              uploadStage={uploadStage}
               handleVideoChange={handleVideoChange}
               handleThumbnailChange={handleThumbnailChange}
               generateThumbnail={generateThumbnail}

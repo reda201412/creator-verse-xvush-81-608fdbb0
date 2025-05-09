@@ -21,6 +21,7 @@ interface VideoUploadFormProps {
   isUploading: boolean;
   uploadProgress: number;
   uploadError: string | null;
+  uploadStage?: string;
   handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   generateThumbnail: () => void;
@@ -38,6 +39,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   isUploading,
   uploadProgress,
   uploadError,
+  uploadStage,
   handleVideoChange,
   handleThumbnailChange,
   generateThumbnail,
@@ -114,6 +116,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
         <FormFooterActions
           isUploading={isUploading}
           uploadProgress={uploadProgress}
+          uploadStage={uploadStage}
           onClose={onClose}
           videoFile={videoFile}
         />
