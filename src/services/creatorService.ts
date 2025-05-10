@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -246,3 +245,46 @@ export const getAllCreators = async () => {
     return [];
   }
 };
+
+/**
+ * Check if a user follows a creator
+ * @param userId The user ID
+ * @param creatorId The creator ID
+ * @returns Boolean indicating if the user follows the creator
+ */
+export const checkUserFollowsCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_follows')
+      .select('*')
+      .eq('follower_id', userId)
+      .eq('creator_id', creatorId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking follow status:', error);
+      return false;
+    }
+
+    return !!data; // Convert to boolean (true if data exists, false otherwise)
+  } catch (error) {
+    console.error('Error in checkUserFollowsCreator:', error);
+    return false;
+  }
+};
+
+/**
+ * Interface for creator profile data
+ */
+export interface CreatorProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  metrics?: {
+    followers: number;
+    following: number;
+  };
+  isOnline?: boolean;
+}
