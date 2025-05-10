@@ -1,5 +1,22 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+/**
+ * Interface for creator profile data
+ */
+export interface CreatorProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  metrics?: {
+    followers: number;
+    following: number;
+  };
+  isOnline?: boolean;
+}
 
 /**
  * Fetch a creator by ID
@@ -36,8 +53,7 @@ export const getCreatorById = async (creatorId: string) => {
 
       // Return creator data with metrics
       return {
-        id: creatorData.id,
-        user_id: creatorData.user_id,
+        id: creatorData.user_id || String(creatorData.id),
         username: creatorData.username || 'creator',
         display_name: creatorData.name || 'Creator',
         avatar_url: creatorData.avatar || null,
@@ -208,7 +224,7 @@ export const unfollowCreator = async (userId: string, creatorId: string) => {
 /**
  * Get all creators
  */
-export const getAllCreators = async () => {
+export const getAllCreators = async (): Promise<CreatorProfile[]> => {
   try {
     // First try to get from user_profiles
     const { data: userProfileCreators, error: userProfileError } = await supabase
@@ -229,8 +245,9 @@ export const getAllCreators = async () => {
         throw creatorsError;
       }
       
+      // Ensure all IDs are strings
       return creatorsData.map(creator => ({
-        id: creator.user_id || creator.id,
+        id: (creator.user_id || creator.id).toString(),
         username: creator.username || 'creator',
         display_name: creator.name || 'Creator',
         avatar_url: creator.avatar || null,
@@ -238,7 +255,11 @@ export const getAllCreators = async () => {
       }));
     }
 
-    return userProfileCreators;
+    // Convert any non-string IDs to strings
+    return userProfileCreators.map(creator => ({
+      ...creator,
+      id: creator.id.toString()
+    }));
   } catch (error) {
     console.error('Error in getAllCreators:', error);
     toast.error('Erreur lors du chargement des créateurs');
@@ -272,19 +293,3 @@ export const checkUserFollowsCreator = async (userId: string, creatorId: string)
     return false;
   }
 };
-
-/**
- * Interface for creator profile data
- */
-export interface CreatorProfile {
-  id: string;
-  username: string;
-  display_name: string;
-  avatar_url: string | null;
-  bio: string | null;
-  metrics?: {
-    followers: number;
-    following: number;
-  };
-  isOnline?: boolean;
-}

@@ -40,17 +40,27 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
         console.log("Fetched video stats:", videoStats);
         
         if (videoStats) {
-          setStats(videoStats);
+          // Ensure we have a complete VideoStats object
+          const completeStats: VideoStats = {
+            video_id: typeof videoStats.video_id === 'number' ? videoStats.video_id : parseInt(videoId),
+            views: videoStats.views || 0,
+            likes: videoStats.likes || 0,
+            comments_count: videoStats.comments_count || 0,
+            avg_watch_time_seconds: videoStats.avg_watch_time_seconds || 0,
+            last_updated_at: videoStats.last_updated_at || new Date().toISOString()
+          };
+          setStats(completeStats);
         } else {
           // If no stats exist yet, create mock data for display
-          setStats({
+          const defaultStats: VideoStats = {
             video_id: parseInt(videoId),
             views: 0,
             likes: 0,
             comments_count: 0,
             avg_watch_time_seconds: 0,
             last_updated_at: new Date().toISOString()
-          });
+          };
+          setStats(defaultStats);
         }
       } catch (error) {
         console.error("Error fetching video stats:", error);

@@ -1,10 +1,11 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Increment the view count for a video
  * @param videoId The ID of the video
  */
-export const incrementVideoViews = async (videoId: string) => {
+export const incrementVideoViews = async (videoId: string | number) => {
   try {
     // Convert string ID to number if necessary
     const numericId = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
@@ -55,7 +56,7 @@ export const incrementVideoViews = async (videoId: string) => {
  * @param videoId The ID of the video
  * @param seconds The number of seconds watched
  */
-export const trackVideoWatchTime = async (videoId: string, seconds: number) => {
+export const trackVideoWatchTime = async (videoId: string | number, seconds: number) => {
   try {
     // Ensure seconds is a positive number
     if (seconds <= 0) return;
@@ -114,7 +115,7 @@ export const trackVideoWatchTime = async (videoId: string, seconds: number) => {
  * @param videoId The ID of the video
  * @param isLiked Whether the video is being liked (true) or unliked (false)
  */
-export const toggleVideoLike = async (videoId: string, isLiked: boolean) => {
+export const toggleVideoLike = async (videoId: string | number, isLiked: boolean) => {
   try {
     // Convert string ID to number if necessary
     const numericId = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
@@ -237,10 +238,12 @@ export const getVideoStats = async (videoId: string | number) => {
 
     if (!data) {
       return {
+        video_id: numericId,
         views: 0,
         likes: 0,
         comments_count: 0,
-        avg_watch_time_seconds: 0
+        avg_watch_time_seconds: 0,
+        last_updated_at: new Date().toISOString()
       };
     }
 
