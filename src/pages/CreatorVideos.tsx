@@ -1,17 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { VideoMetadata } from '@/types/video';
+// import { VideoMetadata } from '@/types/video'; // Remplacé par VideoFirestoreData
 import VideoHeader from '@/components/creator/videos/VideoHeader';
 import VideoFilterTabs from '@/components/creator/videos/VideoFilterTabs';
 import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useAuth } from '@/contexts/AuthContext';
 import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
+import { getCreatorVideos, VideoFirestoreData } from '@/services/creatorService'; // Import depuis le service Firebase
+import { doc, deleteDoc } from 'firebase/firestore'; // Import pour la suppression Firestore
+import { db } from '@/integrations/firebase/firebase'; // Import de l'instance db Firestore
 
 const CreatorVideos: React.FC = () => {
-  const [videos, setVideos] = useState<VideoMetadata[]>([]);
+  const [videos, setVideos] = useState<VideoFirestoreData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,46 +23,28 @@ const CreatorVideos: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch videos from Supabase when component mounts
+  // Fetch videos from Firestore when component mounts or user changes
   useEffect(() => {
     const fetchVideos = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        setVideos([]); // Vide les vidéos si pas d'utilisateur
+        return;
+      }
       
+      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('videos')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('uploadedat', { ascending: false });
-        
-        if (error) throw error;
-        
-        console.log("Vidéos récupérées:", data);
-        
-        // Transform Supabase data to VideoMetadata format
-        const transformedData: VideoMetadata[] = data.map(video => ({
-          id: video.id?.toString() || '',
-          title: video.title || 'Sans titre',
-          description: video.description || '',
-          type: video.type as VideoMetadata['type'],
-          videoFile: {} as File, // We don't have the actual file object from database
-          thumbnailUrl: video.thumbnail_url,
-          video_url: video.video_url, // Ajout de l'URL de la vidéo
-          format: video.format as '16:9' | '9:16' | '1:1' | 'other' || '16:9',
-          isPremium: video.is_premium || false,
-          tokenPrice: video.token_price || undefined,
-          restrictions: video.restrictions as VideoMetadata['restrictions']
-        }));
-        
-        console.log("Vidéos transformées:", transformedData);
-        setVideos(transformedData);
+        const fetchedVideos = await getCreatorVideos(user.uid); // Utilise le service avec UID Firebase
+        console.log("Vidéos récupérées de Firestore:", fetchedVideos);
+        setVideos(fetchedVideos);
       } catch (error) {
-        console.error('Error fetching videos:', error);
+        console.error('Error fetching videos from Firestore:', error);
         toast({
           title: "Erreur",
           description: "Impossible de charger vos vidéos. Veuillez réessayer.",
           variant: "destructive"
         });
+        setVideos([]); // S'assurer que videos est un tableau vide en cas d'erreur
       } finally {
         setLoading(false);
       }
@@ -68,54 +53,68 @@ const CreatorVideos: React.FC = () => {
     fetchVideos();
   }, [user, toast]);
 
-  const handleUploadComplete = (metadata: VideoMetadata) => {
+  const handleUploadComplete = (metadata: VideoFirestoreData) => {
+    // Cette fonction sera probablement appelée après un upload réussi sur MUX
+    // et la création du document correspondant dans Firestore.
+    // Pour l'instant, on l'ajoute au début de la liste pour un retour visuel.
     setVideos(prev => [metadata, ...prev]);
   };
 
   const handleDeleteVideo = async (videoId: string) => {
+    if (!videoId) {
+        toast({ title: "Erreur", description: "ID de vidéo invalide.", variant: "destructive" });
+        return;
+    }
     try {
-      // Convert string ID to number for Supabase query
-      const id = parseInt(videoId, 10);
-      
-      const { error } = await supabase
-        .from('videos')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
+      // Supprimer les métadonnées de la vidéo de Firestore
+      const videoRef = doc(db, 'videos', videoId);
+      await deleteDoc(videoRef);
       
       setVideos(prev => prev.filter(video => video.id !== videoId));
       
       toast({
-        title: "Vidéo supprimée",
-        description: "La vidéo a été supprimée avec succès."
+        title: "Métadonnées vidéo supprimées",
+        description: "Les informations de la vidéo ont été supprimées de la base de données. N'oubliez pas de supprimer le fichier vidéo de MUX si nécessaire.",
       });
     } catch (error) {
-      console.error('Error deleting video:', error);
+      console.error('Error deleting video metadata from Firestore:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer la vidéo. Veuillez réessayer.",
+        description: "Impossible de supprimer les métadonnées de la vidéo. Veuillez réessayer.",
         variant: "destructive"
       });
     }
   };
 
   const handleEditVideo = (videoId: string) => {
-    console.log("Edit video:", videoId);
+    // Logique pour éditer les métadonnées de la vidéo (ex: ouvrir un formulaire pré-rempli)
+    // Les données de la vidéo à éditer peuvent être trouvées dans l'état `videos` en utilisant `videoId`
+    console.log("Edit video metadata for ID:", videoId);
+    const videoToEdit = videos.find(v => v.id === videoId);
+    if (videoToEdit) {
+      // Ouvrir un modal/formulaire avec videoToEdit
+      toast({ title: "Fonctionnalité à implémenter", description: `Éditer la vidéo : ${videoToEdit.title}`});
+    } else {
+      toast({ title: "Erreur", description: "Vidéo non trouvée pour l'édition.", variant: "destructive"});
+    }
   };
 
   const handlePromoteVideo = (videoId: string) => {
-    console.log("Promote video:", videoId);
+    // Logique pour promouvoir une vidéo
+    console.log("Promote video ID:", videoId);
+    toast({ title: "Fonctionnalité à implémenter", description: `Promouvoir la vidéo ID: ${videoId}`});
   };
 
   const handleAnalyticsVideo = (videoId: string) => {
     setSelectedVideoId(videoId);
     setIsAnalyticsModalOpen(true);
+    // Les statistiques viendront de votre source de données (MUX ou Firestore)
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <VideoHeader onUploadComplete={handleUploadComplete} />
+      {/* onUploadComplete devra être mis à jour pour gérer le flux avec MUX et Firestore */}
+      <VideoHeader onUploadComplete={handleUploadComplete} /> 
       
       <div className="mb-6 space-y-4">
         <VideoSearch 
@@ -129,21 +128,22 @@ const CreatorVideos: React.FC = () => {
       </div>
 
       <VideoGrid
-        videos={videos}
+        videos={videos} // Doit être compatible avec VideoFirestoreData
         activeTab={activeTab}
         searchQuery={searchQuery}
         onDeleteVideo={handleDeleteVideo}
         onEditVideo={handleEditVideo}
         onPromoteVideo={handlePromoteVideo}
         onAnalyticsVideo={handleAnalyticsVideo}
-        onUploadComplete={handleUploadComplete}
+        // onUploadComplete={handleUploadComplete} // Déjà sur VideoHeader, à clarifier si besoin ici aussi
         isLoading={loading}
       />
 
       <VideoAnalyticsModal
-        videoId={selectedVideoId}
+        videoId={selectedVideoId} // L'ID du document Firestore
         isOpen={isAnalyticsModalOpen}
         onClose={() => setIsAnalyticsModalOpen(false)}
+        // Ce modal devra récupérer les stats depuis MUX ou les stats que vous stockez dans Firestore
       />
     </div>
   );

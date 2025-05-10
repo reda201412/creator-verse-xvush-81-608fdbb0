@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ContentGrid from "@/components/ContentGrid";
@@ -8,310 +9,164 @@ import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLight
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Filter, Users } from "lucide-react";
+import { ArrowLeft, Filter, Users, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import XteasePlayerModal from "@/components/video/XteasePlayerModal";
-import { fetchAvailableCreators } from "@/utils/create-conversation-utils";
-import { supabase } from '@/integrations/supabase/client';
+// import { fetchAvailableCreators } from "@/utils/create-conversation-utils"; // Supprimé (Supabase util)
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useToast } from '@/hooks/use-toast';
+import { getAllCreators, CreatorProfileData, getCreatorVideos, VideoFirestoreData } from "@/services/creatorService"; // Services Firebase
 
-// Types pour les créateurs
-interface Creator {
-  id: number;
-  user_id: string;
-  username: string;
-  name: string | null;
-  avatar: string | null;
-  bio: string | null;
-  metrics?: {
-    followers?: number;
+// Utiliser VideoFirestoreData pour le contenu aussi, en l'adaptant si besoin
+// ou créer un type spécifique pour le contenu "trending"
+interface TrendingContentItem extends VideoFirestoreData {
+  // Ajouter des champs spécifiques au trending si nécessaire, ex: score de tendance
+  // Pour l'instant, on se base sur VideoFirestoreData et on ajoute des données mockées pour l'UI
+  metrics?: { // Métriques mockées pour l'UI, car elles ne sont pas sur VideoFirestoreData par défaut
     likes?: number;
-    rating?: number;
+    comments?: number;
+    views?: number;
   };
-  isPremium?: boolean;
 }
 
-// Contenu trending avec des vidéos premium et VIP
-const allTrendingContent = [
-  // Contenu de la page d'accueil
+// Données statiques pour l'UI en attendant une logique de "tendance" plus avancée depuis Firestore
+// Ces données pourraient être enrichies ou remplacées par des données de Firestore
+const staticTrendingPlaceholders: TrendingContentItem[] = [
   {
     id: "trend1",
-    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
-    title: "Morning Coffee Routine",
-    type: "premium" as const,
-    format: "video" as const,
-    duration: 345,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-taking-cold-pictures-33355-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 1200,
-      comments: 89,
-      views: 5600,
-    }
+    userId: "mockUserId1",
+    uploadedAt: new Date(),
+    title: "Morning Coffee Routine (Placeholder)",
+    type: "premium",
+    format: "9:16",
+    thumbnailUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-taking-cold-pictures-33355-large.mp4",
+    metrics: { likes: 1200, comments: 89, views: 5600 }
   },
   {
     id: "trend2",
-    imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
-    title: "Spring Fashion Look",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 520,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-through-a-mountain-range-41576-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 950,
-      comments: 63,
-      views: 4100
-    }
+    userId: "mockUserId2",
+    uploadedAt: new Date(),
+    title: "Spring Fashion Look (Placeholder)",
+    type: "vip",
+    format: "9:16",
+    thumbnailUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-through-a-mountain-range-41576-large.mp4",
+    metrics: { likes: 950, comments: 63, views: 4100 }
   },
-  {
-    id: "trend3",
-    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
-    title: "Sunset at the Mountain",
-    type: "standard" as const,
-    format: "video" as const,
-    duration: 187,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 2300,
-      comments: 156,
-      views: 12400,
-    }
-  },
-  {
-    id: "trend4",
-    imageUrl: "https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=800&auto=format&fit=crop",
-    title: "Boulangerie Tour Paris",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 845,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-flipping-her-egg-with-a-kick-1728-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 3200,
-      comments: 278,
-      views: 15600,
-    }
-  },
-  {
-    id: "trend5",
-    imageUrl: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&auto=format&fit=crop",
-    title: "Backstage Fashion Week",
-    type: "premium" as const,
-    format: "video" as const,
-    duration: 652,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-running-above-the-camera-on-a-running-track-32807-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 4100,
-      comments: 215,
-      views: 18900,
-    }
-  },
-  {
-    id: "trend6",
-    imageUrl: "https://images.unsplash.com/photo-1605812276723-c31bb1a68285?w=800&auto=format&fit=crop",
-    title: "Exclusive Interview",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 1245,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-model-walking-and-talking-on-a-city-street-43027-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 5800,
-      comments: 420,
-      views: 23500,
-    }
-  },
-  // Contenu supplémentaire pour la page trending
-  {
-    id: "trend7",
-    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop",
-    title: "Styling Tips - Summer 2025",
-    type: "premium" as const,
-    format: "video" as const,
-    duration: 732,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-fashion-woman-with-silver-makeup-39875-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 2700,
-      comments: 185,
-      views: 9800,
-    }
-  },
-  {
-    id: "trend8",
-    imageUrl: "https://images.unsplash.com/photo-1485178575877-1a9987fcd40d?w=800&auto=format&fit=crop",
-    title: "Luxury Yacht Tour",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 1054,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-modeling-fashion-clothes-outdoors-34908-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 3900,
-      comments: 320,
-      views: 14500,
-    }
-  },
-  {
-    id: "trend9",
-    imageUrl: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=800&auto=format&fit=crop",
-    title: "Coastal Drone Footage",
-    type: "premium" as const,
-    format: "video" as const,
-    duration: 428,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-dancing-to-the-rhythm-of-music-42816-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 1900,
-      comments: 110,
-      views: 8200,
-    }
-  },
-  {
-    id: "trend10",
-    imageUrl: "https://images.unsplash.com/photo-1512484776495-a09d92e87c3b?w=800&auto=format&fit=crop",
-    title: "Photography Masterclass",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 2250,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-woman-with-a-blue-background-39669-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 4700,
-      comments: 350,
-      views: 19200,
-    }
-  },
-  {
-    id: "trend11",
-    imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&auto=format&fit=crop",
-    title: "Fashion Week Highlights",
-    type: "premium" as const,
-    format: "video" as const,
-    duration: 875,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-modeling-a-dress-outdoors-34932-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 3100,
-      comments: 210,
-      views: 13600,
-    }
-  },
-  {
-    id: "trend12",
-    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
-    title: "Backstage Access Pass",
-    type: "vip" as const,
-    format: "video" as const,
-    duration: 1640,
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-photos-on-a-rooftop-34421-large.mp4",
-    videoFormat: "9:16" as const,
-    metrics: {
-      likes: 5200,
-      comments: 410,
-      views: 21000,
-    }
-  }
+  // ... ajoutez plus de placeholders si nécessaire pour remplir l'UI initialement
 ];
 
 const TrendingContent = () => {
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [creatorTab, setCreatorTab] = useState<string>("content");
+  const [activeTab, setActiveTab] = useState<string>("all"); // Pour les types de contenu (standard, premium, vip)
+  const [pageTab, setPageTab] = useState<string>("content"); // Pour basculer entre Contenu et Créateurs
   const { config } = useNeuroAesthetic();
-  const { trackInteraction, trackContentPreference } = useUserBehavior();
+  const { trackInteraction } = useUserBehavior();
   const { triggerMicroReward } = useNeuroAesthetic();
-  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [selectedVideo, setSelectedVideo] = useState<TrendingContentItem | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
-  const [creators, setCreators] = useState<Creator[]>([]);
+  
+  const [creators, setCreators] = useState<CreatorProfileData[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+  const [creatorsError, setCreatorsError] = useState<string | null>(null);
+
+  const [trendingVideos, setTrendingVideos] = useState<TrendingContentItem[]>(staticTrendingPlaceholders);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [videosError, setVideosError] = useState<string | null>(null);
+
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Track page view on mount
-    trackInteraction("view", { page: "trending" });
-    
-    // Charger les créateurs
-    loadCreators();
-    
-    // Charger les contenus à partir de Supabase
-    loadContentFromVideosTable();
-  }, [trackInteraction]);
-  
+  // Charger les créateurs
   const loadCreators = async () => {
     setIsLoadingCreators(true);
+    setCreatorsError(null);
     try {
-      const creatorData = await fetchAvailableCreators();
-      
-      // Ajouter des métriques fictives pour l'UI
-      const creatorsWithMetrics = creatorData.map(creator => ({
-        ...creator,
+      // Pourrait être limité ou trié spécifiquement pour les créateurs "tendance"
+      const fetchedCreators = await getAllCreators(); 
+      // Simuler des métriques pour l'UI pour l'instant, car getAllCreators ne les charge pas en détail
+      const creatorsWithMetrics = fetchedCreators.map(c => ({
+        ...c,
         metrics: {
           followers: Math.floor(Math.random() * 10000),
           likes: Math.floor(Math.random() * 5000),
           rating: 4 + Math.random(),
         },
-        isPremium: Math.random() > 0.5
+        isPremium: Math.random() > 0.5 // Simulé
       }));
-      
       setCreators(creatorsWithMetrics);
     } catch (error) {
       console.error("Erreur lors du chargement des créateurs:", error);
+      setCreatorsError("Impossible de charger les créateurs.");
     } finally {
       setIsLoadingCreators(false);
     }
   };
   
-  // Charger le contenu depuis la table videos de Supabase
-  const loadContentFromVideosTable = async () => {
+  // Charger le contenu "tendance" depuis Firestore
+  const loadTrendingVideos = async () => {
+    setIsLoadingVideos(true);
+    setVideosError(null);
     try {
-      const { data, error } = await supabase
-        .from('videos')
-        .select('*')
-        .order('uploadedat', { ascending: false });
-        
-      if (error) throw error;
+      // TODO: Implémenter une vraie logique de "trending" dans Firestore.
+      // Pour l'instant, chargeons quelques vidéos récentes de n'importe quel créateur à titre d'exemple.
+      // Ou chargeons des vidéos d'un créateur spécifique si c'est plus pertinent.
+      // Une vraie fonction getTrendingVideos pourrait sélectionner des vidéos basées sur des vues récentes, likes, etc.
+      // et nécessiterait probablement une structure de données ou des fonctions backend dédiées.
       
-      // Les données sont chargées mais on garde aussi le contenu statique pour l'instant
-      console.log("Vidéos chargées depuis Supabase:", data);
+      // Exemple simple: charger les vidéos d'un créateur spécifique (vous devrez choisir un ID)
+      // const someCreatorId = "ID_DUN_CREATEUR_SPECIFIQUE"; 
+      // const videosFromDb = await getCreatorVideos(someCreatorId); 
       
-      // On pourrait remplacer allTrendingContent par ces données
-      // Mais pour l'instant, on garde le contenu statique
+      // Autre exemple: pour simuler, on peut juste utiliser les placeholders pour l'instant
+      // ou si vous avez une collection 'videos' avec un champ comme 'isTrending':
+      // const q = query(collection(db, 'videos'), where('isTrending', '==', true), limit(10));
+      // const snapshot = await getDocs(q);
+      // const videosFromDb = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoFirestoreData));
+      
+      // Pour cet exemple, je vais laisser les placeholders car la logique de "tendance" est complexe.
+      // Vous devrez remplacer ceci par votre propre logique de chargement.
+      console.log("Logique de chargement des vidéos tendance à implémenter avec Firestore.");
+      // setTrendingVideos(videosFromDb.map(v => ({...v, metrics: {views: Math.floor(Math.random()*1000)}}))); // Adaptez si vous chargez de vraies données
+      setTrendingVideos(staticTrendingPlaceholders); // Garder les placeholders pour l'instant
+
     } catch (error) {
-      console.error("Erreur lors du chargement des vidéos:", error);
+      console.error("Erreur lors du chargement des vidéos tendance:", error);
+      setVideosError("Impossible de charger les vidéos tendance.");
+    } finally {
+      setIsLoadingVideos(false);
     }
   };
 
-  const handleContentClick = (contentId: string) => {
+  useEffect(() => {
+    trackInteraction("view", { page: "trending" });
+    loadCreators();
+    loadTrendingVideos(); // Charger les vidéos tendance
+  }, [trackInteraction]); // Dépendance trackInteraction correcte ? Ou vide [] si chargement unique.
+
+  const handleContentClick = (content: TrendingContentItem) => {
     triggerMicroReward('click');
-    trackInteraction('click', { contentId });
+    trackInteraction('click', { contentId: content.id });
     
-    const selectedContent = allTrendingContent.find(item => item.id === contentId);
-    if (selectedContent && selectedContent.format === 'video') {
-      setSelectedVideo(selectedContent);
+    if (content.videoUrl) { // Assurez-vous que videoUrl est présent
+      setSelectedVideo(content);
       setIsPlayerOpen(true);
     }
   };
 
-  const handleCreatorClick = (creator: Creator) => {
+  const handleCreatorClick = (creator: CreatorProfileData) => {
     triggerMicroReward('click');
-    trackInteraction('click', { creatorId: creator.user_id });
-    
-    // Naviguer vers la page de messagerie avec ce créateur
-    navigate('/secure-messaging', { state: { creatorId: creator.user_id } });
+    trackInteraction('click', { creatorId: creator.uid });
+    navigate('/secure-messaging', { state: { creatorId: creator.uid } });
   };
 
-  const filteredContent = activeTab === 'all' 
-    ? allTrendingContent
-    : allTrendingContent.filter(content => content.type === activeTab);
+  const filteredContentByTab = activeTab === 'all' 
+    ? trendingVideos
+    : trendingVideos.filter(content => content.type === activeTab);
 
   return (
     <div className="relative z-10">
-      {/* Neuro-aesthetic elements */}
       <GoldenRatioGrid visible={config.goldenRatioVisible || false} opacity={0.05} />
       <AdaptiveMoodLighting currentMood={config.adaptiveMood} intensity={config.moodIntensity} />
       <MicroRewardsEnhanced 
@@ -329,15 +184,20 @@ const TrendingContent = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
-            <h1 className="text-3xl font-bold">Trending Content</h1>
+            <h1 className="text-3xl font-bold">Trending</h1>
           </div>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filtres
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2">
+              <Filter className="h-4 w-4" />
+              Filtres
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => { loadCreators(); loadTrendingVideos(); }} title="Actualiser">
+                <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
-        <Tabs defaultValue="content" value={creatorTab} onValueChange={setCreatorTab}>
+        <Tabs defaultValue="content" value={pageTab} onValueChange={setPageTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="content">Contenu</TabsTrigger>
             <TabsTrigger value="creators" className="flex items-center gap-1">
@@ -356,71 +216,67 @@ const TrendingContent = () => {
               </TabsList>
               
               <TabsContent value={activeTab} className="mt-0">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <ContentGrid 
-                    contents={filteredContent} 
-                    layout="masonry"
-                    onItemClick={handleContentClick}
-                  />
-                </motion.div>
+                {isLoadingVideos && <p>Chargement des vidéos...</p>}
+                {videosError && <p className="text-red-500">{videosError}</p>}
+                {!isLoadingVideos && !videosError && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <ContentGrid 
+                      contents={filteredContentByTab} 
+                      layout="masonry"
+                      onItemClick={handleContentClick} // Passez TrendingContentItem
+                    />
+                  </motion.div>
+                )}
               </TabsContent>
             </Tabs>
           </TabsContent>
           
           <TabsContent value="creators">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {creators.map((creator) => (
-                  <ContentCreatorCard
-                    key={creator.id} 
-                    creator={{
-                      id: creator.id,
-                      userId: creator.user_id,
-                      username: creator.username,
-                      name: creator.name || creator.username,
-                      avatar: creator.avatar || `https://i.pravatar.cc/300?u=${creator.user_id}`,
-                      bio: creator.bio || undefined,
-                      metrics: creator.metrics,
-                      isPremium: creator.isPremium
-                    }}
-                    onClick={() => handleCreatorClick(creator)}
-                  />
-                ))}
-                
-                {isLoadingCreators && (
-                  <div className="col-span-full flex justify-center py-10">
-                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            {isLoadingCreators && <p>Chargement des créateurs...</p>}
+            {creatorsError && <p className="text-red-500">{creatorsError}</p>}
+            {!isLoadingCreators && !creatorsError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                {creators.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {creators.map((creator) => (
+                      <ContentCreatorCard
+                        key={creator.uid} 
+                        creator={{
+                          id: creator.uid, // Utiliser uid
+                          userId: creator.uid,
+                          username: creator.username,
+                          name: creator.displayName || creator.username,
+                          avatar: creator.avatarUrl || `https://i.pravatar.cc/300?u=${creator.uid}`,
+                          bio: creator.bio || undefined,
+                          metrics: creator.metrics, // Métriques simulées ajoutées
+                          isPremium: creator.isPremium // Simulé
+                        }}
+                        onClick={() => handleCreatorClick(creator)}
+                      />
+                    ))}
                   </div>
+                ) : (
+                  <p>Aucun créateur trouvé.</p>
                 )}
-                
-                {!isLoadingCreators && creators.length === 0 && (
-                  <div className="col-span-full text-center py-10">
-                    <p className="text-lg text-muted-foreground">Aucun créateur disponible</p>
-                    <Button variant="outline" className="mt-4" onClick={loadCreators}>
-                      Actualiser
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
       
-      {/* Vertical 9:16 Video Player Modal */}
       <XteasePlayerModal
         isOpen={isPlayerOpen}
         onClose={() => setIsPlayerOpen(false)}
-        videoSrc={selectedVideo?.video_url || ''}
-        thumbnailUrl={selectedVideo?.imageUrl}
+        videoSrc={selectedVideo?.videoUrl || ''} // Assurez-vous que videoUrl est le bon champ
+        thumbnailUrl={selectedVideo?.thumbnailUrl}
         title={selectedVideo?.title}
       />
     </div>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { fetchAvailableCreators } from '@/utils/create-conversation-utils';
+// import { fetchAvailableCreators } from '@/utils/create-conversation-utils'; // Supprimé
+import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; // Modifié
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -9,22 +10,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
-interface Creator {
-  id: number;
-  user_id: string;
-  username: string;
-  name: string | null;
-  avatar: string | null;
-  bio: string | null;
-}
-
+// Utiliser CreatorProfileData ou une version simplifiée si nécessaire
+// Pour l'instant, on s'aligne sur CreatorProfileData pour les champs disponibles
 interface CreatorSelectorProps {
-  onSelectCreator: (creator: Creator) => void;
+  onSelectCreator: (creator: CreatorProfileData) => void;
   onCancel: () => void;
 }
 
 const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCancel }) => {
-  const [creators, setCreators] = useState<Creator[]>([]);
+  const [creators, setCreators] = useState<CreatorProfileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
@@ -33,22 +27,27 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
   useEffect(() => {
     const loadCreators = async () => {
       setIsLoading(true);
-      const result = await fetchAvailableCreators();
-      setCreators(result);
+      try {
+        const fetchedCreators = await getAllCreators(); // Utilise la fonction de service Firebase
+        setCreators(fetchedCreators);
+      } catch (error) {
+        console.error("Error loading creators for selector:", error);
+        toast({ title: "Erreur", description: "Impossible de charger les créateurs.", variant: "destructive" });
+      }
       setIsLoading(false);
     };
     
     loadCreators();
-  }, []);
+  }, [toast]);
   
   const filteredCreators = creators.filter(creator => {
     const searchLower = searchTerm.toLowerCase();
-    const nameLower = creator.name?.toLowerCase() || '';
+    const nameLower = creator.displayName?.toLowerCase() || creator.username?.toLowerCase() || '';
     const usernameLower = creator.username?.toLowerCase() || '';
     return nameLower.includes(searchLower) || usernameLower.includes(searchLower);
   });
   
-  const handleSelectCreator = (creator: Creator) => {
+  const handleSelectCreator = (creator: CreatorProfileData) => {
     triggerHaptic('light');
     onSelectCreator(creator);
   };
@@ -85,23 +84,24 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
           <div className="space-y-2">
             {filteredCreators.map((creator) => (
               <div
-                key={creator.id}
+                key={creator.uid} // Utiliser uid comme clé unique
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={() => handleSelectCreator(creator)}
               >
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
                     <img 
-                      src={creator.avatar || `https://i.pravatar.cc/150?u=${creator.user_id}`} 
-                      alt={creator.name || creator.username}
+                      src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.uid}`} 
+                      alt={creator.displayName || creator.username}
                       className="object-cover w-full h-full"
                     />
                   </div>
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                  {/* Le statut en ligne (pastille verte) nécessiterait une vraie gestion de présence */}
+                  {/* <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span> */}
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="font-semibold">{creator.name || creator.username}</h3>
+                  <h3 className="font-semibold">{creator.displayName || creator.username}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
                     {creator.bio || `@${creator.username}`}
                   </p>

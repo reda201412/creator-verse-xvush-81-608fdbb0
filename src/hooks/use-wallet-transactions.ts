@@ -3,8 +3,13 @@ import { useState } from 'react';
 import { useTronWallet } from './use-tron-wallet';
 import { useTronWeb } from './use-tronweb';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useAuth } from '@/contexts/AuthContext';
+import { getFunctions, httpsCallable } from 'firebase/functions'; // Ajout pour Firebase Functions
+
+const functions = getFunctions();
+// TODO: Assurez-vous que ce nom correspond à votre Firebase Function
+const callTronTransactionVerifyFunction = httpsCallable(functions, 'tronTransactionVerify');
 
 export function useWalletTransactions() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,34 +42,30 @@ export function useWalletTransactions() {
     try {
       setIsProcessing(true);
       
-      // Check if user has a wallet
       if (!walletInfo?.wallet) {
         toast.error("Vous n'avez pas encore de portefeuille");
         return null;
       }
       
-      // Check if user has enough balance
       if (walletInfo.wallet.balance_usdt < amount) {
         toast.error(`Solde insuffisant: ${walletInfo.wallet.balance_usdt} USDT disponible, ${amount} USDT requis`);
         return null;
       }
       
-      // Simulate a transaction using the Edge Function
-      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
-        body: {
-          operation: 'simulate_transaction',
-          data: {
-            amount,
-            purpose,
-            contentId: contentId?.toString(),
-            tierId,
-            recipientId,
-            fromAddress: walletInfo.wallet.tron_address,
-          }
+      // Remplacer par l'appel à la Firebase Function
+      const result = await callTronTransactionVerifyFunction({
+        operation: 'simulate_transaction', // Assurez-vous que votre Firebase Function gère cette opération
+        data: {
+          amount,
+          purpose,
+          contentId: contentId?.toString(),
+          tierId,
+          recipientId,
+          fromAddress: walletInfo.wallet.tron_address,
         }
       });
       
-      if (error) throw new Error(error.message || "Transaction failed");
+      const data = result.data; // Adapter le type de retour si nécessaire
       
       toast.success(`Paiement de ${amount} USDT effectué avec succès`);
       await getWalletInfo(); // Refresh wallet info
@@ -106,45 +107,36 @@ export function useWalletTransactions() {
     try {
       setIsProcessing(true);
       
-      // Check if TronLink is connected
       if (!walletState.loggedIn || !walletState.address) {
         toast.error("Vous devez connecter TronLink pour effectuer ce paiement");
         return null;
       }
       
-      // Check if on the right network
       if (!checkNetwork()) {
         toast.error("Veuillez vous connecter au réseau TRON correct");
         return null;
       }
       
-      // For this implementation, we'll simulate the TronLink transaction
       toast.loading("Traitement du paiement via TronLink...");
-      
-      // Simulate a short delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Generate a fake transaction hash
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
       const txHash = `tronlink_tx_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
       
-      // Verify transaction with our backend
-      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
-        body: {
-          operation: 'verify_transaction',
-          data: {
-            txHash,
-            amount,
-            purpose,
-            contentId: contentId?.toString(),
-            tierId,
-            recipientId,
-            fromAddress: walletState.address,
-            toAddress: platformAddress
-          }
+      // Remplacer par l'appel à la Firebase Function
+      const result = await callTronTransactionVerifyFunction({
+        operation: 'verify_transaction',
+        data: {
+          txHash,
+          amount,
+          purpose,
+          contentId: contentId?.toString(),
+          tierId,
+          recipientId,
+          fromAddress: walletState.address,
+          toAddress: platformAddress
         }
       });
       
-      if (error) throw new Error(error.message || "Transaction failed");
+      const data = result.data; // Adapter le type de retour
       
       toast.dismiss();
       toast.success(`Paiement de ${amount} USDT effectué avec succès via TronLink`);

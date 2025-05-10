@@ -1,338 +1,256 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
+// import { useIsMobile } from '@/hooks/use-mobile'; // Non utilisé, peut être réintroduit
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
-  ArrowLeft, X, Shield, Users, Lock, Star, Zap, 
-  MessageSquare, Camera, Gift, Key, ChevronDown,
-  Eye, EyeOff, Heart
+  ArrowLeft, X, Lock, Key, Zap 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
 import ConversationList from './ConversationList';
 import ConversationView from './ConversationView';
 import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Message, 
-  MessageThread as ThreadType, 
-  MonetizationTier, 
   MessageType, 
-  JsonData,
-  MessageEmotionalData,
-  MessageStatus
+  MonetizationTier, 
 } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
 import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Spinner } from '@/components/ui/spinner';
+import { db } from '@/integrations/firebase/firebase';
+import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
+import { Spinner, Loader2 } from '@/components/ui/spinner'; // Importer Loader2 aussi
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { fetchUserThreads, sendMessage, markMessagesAsRead } from '@/utils/messaging-utils';
+import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils'; 
+import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
+import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 
-interface SecureMessagingProps {
-  userId: string;
-  userName: string;
-  userAvatar: string;
-}
+interface SecureMessagingProps {}
 
-const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps) => {
+const SecureMessaging: React.FC<SecureMessagingProps> = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const location = useLocation();
   const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
-  const { profile } = useAuth();
-  const { getWalletInfo, walletInfo } = useTronWallet();
+  const { user, profile } = useAuth();
+  const { getWalletInfo } = useTronWallet();
   const { openModal, closeModal, openModals } = useModals();
   
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<ThreadType[]>([]);
+  const [threads, setThreads] = useState<FirestoreMessageThread[]>([]);
   const [showConversationList, setShowConversationList] = useState(true);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
-  const [hasNewMessages, setHasNewMessages] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingThreads, setIsLoadingThreads] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [lastVisibleMessageDoc, setLastVisibleMessageDoc] = useState<any>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
-  // Use the actual user role from authentication context
+  const userId = user?.uid;
+  const userName = profile?.displayName || profile?.username || "Utilisateur";
+  const userAvatar = profile?.avatarUrl || "";
   const userType = profile?.role || 'fan';
 
-  // Load real conversation threads when component mounts
-  useEffect(() => {
-    loadConversations();
-    getWalletInfo(); // Load wallet information for transactions
-  }, [userId]);
-
-  // Load real conversations from Supabase
-  const loadConversations = async () => {
+  const loadInitialConversationThreads = useCallback(async () => {
     if (!userId) return;
-    
-    setIsLoading(true);
+    console.log("SecureMessaging: Initial load of conversation threads for user:", userId);
+    setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(userId);
+      setThreads(threadsData.map(t => ({...t, messages: t.messages || [] })));
       
-      if (threadsData.length > 0) {
-        // Transform the data to match our ThreadType format
-        const formattedThreads: ThreadType[] = threadsData.map(thread => ({
-          id: String(thread.id),
-          participants: thread.participants || [],
-          messages: (thread.messages || []).map(msg => ({
-            id: String(msg.id),
-            senderId: msg.sender_id,
-            senderName: msg.sender_name,
-            senderAvatar: msg.sender_avatar || '',
-            recipientId: msg.recipient_id,
-            content: msg.content,
-            type: (msg.type || 'text') as MessageType,
-            timestamp: msg.created_at,
-            status: (msg.status || 'sent') as MessageStatus,
-            isEncrypted: msg.is_encrypted,
-            emotional: msg.emotional_data as JsonData | MessageEmotionalData,
-            monetization: msg.monetization_data as JsonData,
-            mediaUrl: msg.media_url
-          })),
-          name: thread.name,
-          isGated: thread.is_gated,
-          requiredTier: thread.required_tier as MonetizationTier | undefined,
-          lastActivity: thread.last_activity,
-          emotionalMap: thread.emotional_map as JsonData
-        }));
-        
-        setThreads(formattedThreads);
-        
-        // If there are threads but no active thread, select the first one
-        if (formattedThreads.length > 0 && !activeThreadId) {
-          setActiveThreadId(formattedThreads[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      sonnerToast.error('Erreur lors du chargement des conversations');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
+      let threadToActivate = null;
+      let shouldClearLocationState = false;
 
-  // Generate session keys for each conversation
-  useEffect(() => {
-    threads.forEach(thread => {
-      if (!sessionKeys[thread.id]) {
-        setSessionKeys(prev => ({
-          ...prev,
-          [thread.id]: generateSessionKey()
-        }));
-      }
-    });
-  }, [threads]);
-
-  // Setup real-time message notifications
-  useEffect(() => {
-    if (!userId) return;
-    
-    const channel = supabase
-      .channel('message-notifications')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'message_thread_messages',
-        filter: `recipient_id=cs.{${userId}}`
-      }, handleRealTimeMessage)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, activeThreadId]);
-
-  // Handle real-time message notifications
-  const handleRealTimeMessage = (payload: any) => {
-    const newMessage = payload.new;
-    
-    // Find the thread this message belongs to
-    const threadId = newMessage.thread_id;
-    
-    // Format the message to match our Message type
-    const formattedMessage: Message = {
-      id: String(newMessage.id),
-      senderId: newMessage.sender_id,
-      senderName: newMessage.sender_name,
-      senderAvatar: newMessage.sender_avatar || '',
-      recipientId: newMessage.recipient_id,
-      content: newMessage.content,
-      type: (newMessage.type || 'text') as MessageType,
-      timestamp: newMessage.created_at,
-      status: 'sent' as MessageStatus,
-      isEncrypted: newMessage.is_encrypted,
-      emotional: newMessage.emotional_data as JsonData | MessageEmotionalData,
-      monetization: newMessage.monetization_data as JsonData,
-      mediaUrl: newMessage.media_url
-    };
-
-    // Update the threads with this new message
-    setThreads(prev => {
-      const existingThread = prev.find(t => t.id === threadId);
-      
-      if (existingThread) {
-        return prev.map(thread => 
-          thread.id === threadId 
-            ? { 
-                ...thread, 
-                messages: [...thread.messages, formattedMessage],
-                lastActivity: formattedMessage.timestamp 
-              }
-            : thread
-        );
-      } else {
-        // If the thread doesn't exist in our state, we need to reload conversations
-        loadConversations();
-        return prev;
-      }
-    });
-    
-    // Show notification if the user is not currently viewing this thread
-    if (!activeThreadId || activeThreadId !== threadId) {
-      setHasNewMessages(true);
-      triggerHaptic('medium');
-      
-      sonnerToast("Nouveau message", {
-        description: `${formattedMessage.senderName} vous a envoyé un message`,
-        action: {
-          label: 'Voir',
-          onClick: () => {
-            setActiveThreadId(threadId);
-            setShowConversationList(false);
-            setHasNewMessages(false);
+      if (locationState?.threadId) {
+        threadToActivate = locationState.threadId;
+        shouldClearLocationState = true;
+      } else if (locationState?.creatorId) {
+        const existingThread = threadsData.find(t => t.participantIds.includes(locationState.creatorId!));
+        if (existingThread) {
+          threadToActivate = existingThread.id!;
+        } else {
+          if (userId && userName) {
+            console.log("SecureMessaging: No existing thread for creatorId, creating...");
+            const result = await createNewConversationWithCreator({
+              userId: userId!, userName: userName!, userAvatar: userAvatar!,
+              creatorId: locationState.creatorId!, creatorName: locationState.creatorName || "Créateur", creatorAvatar: locationState.creatorAvatar || null,
+            });
+            if (result.success && result.threadId) threadToActivate = result.threadId;
+            else sonnerToast.error("Impossible de démarrer la nouvelle conversation.");
           }
         }
+        shouldClearLocationState = true;
+      }
+
+      if (threadToActivate) {
+        setActiveThreadId(threadToActivate);
+        setShowConversationList(false); 
+      } else if (threadsData.length > 0 && !activeThreadId && showConversationList) {
+        // setActiveThreadId(threadsData[0].id!); // Laisser le listener des threads gérer ça ou une autre logique
+      }
+      if(shouldClearLocationState){
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    } catch (error) {
+      console.error('Error loading initial conversation threads:', error);
+      sonnerToast.error('Erreur de chargement des fils de discussion');
+    } finally {
+      setIsLoadingThreads(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, location.state, navigate]);
+
+  useEffect(() => {
+    if (userId) {
+      loadInitialConversationThreads();
+      getWalletInfo();
+    }
+  }, [userId, loadInitialConversationThreads, getWalletInfo]);
+
+  useEffect(() => {
+    if (!userId || !db) return () => {};
+    const threadsQuery = query(collection(db, 'messageThreads'), where('participantIds', 'array-contains', userId), orderBy('lastActivity', 'desc'));
+    const unsubscribeThreads = onSnapshot(threadsQuery, (snapshot) => {
+      setThreads(prevThreads => {
+        let newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
+        snapshot.docChanges().forEach((change) => {
+          const changedThreadData = { id: change.doc.id, ...change.doc.data(), messages: newThreadsMap.get(change.doc.id)?.messages || [] } as FirestoreMessageThread;
+          if (change.type === "added" || change.type === "modified") {
+            newThreadsMap.set(change.doc.id, changedThreadData);
+          } else if (change.type === "removed") {
+            newThreadsMap.delete(change.doc.id);
+          }
+        });
+        return Array.from(newThreadsMap.values()).sort((a, b) => (b.lastActivity as Timestamp).toMillis() - (a.lastActivity as Timestamp).toMillis());
       });
-    }
-  };
+      setIsLoadingThreads(false);
+    }, (error) => {
+      console.error("Error listening to real-time thread metadata:", error);
+      setIsLoadingThreads(false);
+    });
+    return () => unsubscribeThreads();
+  }, [userId]);
 
-  const activeThread = threads.find(t => t.id === activeThreadId);
-
-  // Handle thread selection
-  const handleThreadSelect = (threadId: string) => {
-    triggerHaptic('light');
-    setActiveThreadId(threadId);
-    setShowConversationList(false);
-    setHasNewMessages(false);
-    
-    // Mark messages as read in this thread
-    if (threadId) {
-      markMessagesAsRead(threadId, userId);
-    }
-  };
-
-  const handleBack = () => {
-    if (!showConversationList && activeThreadId) {
-      triggerHaptic('light');
-      setShowConversationList(true);
-    } else {
-      navigate(-1);
-    }
-  };
-
-  // Send message with real data saving
-  const handleSendMessage = async (content: string, supportData?: any) => {
-    if (!activeThreadId || !content.trim()) return;
-    
+  const loadMoreMessages = useCallback(async (isInitialLoad = false) => {
+    if (!activeThreadId || !userId) return;
+    if (!isInitialLoad && !hasMoreMessages) return;
+    setIsLoadingMessages(true);
     try {
-      const recipientIds = activeThread?.participants.filter(p => p !== userId) || [];
-      
-      // Send message using utility function
-      const message = await sendMessage({
-        threadId: activeThreadId,
-        senderId: userId,
-        senderName: userName,
-        senderAvatar: userAvatar,
-        recipientIds,
-        content,
-        isEncrypted: isSecurityEnabled,
-        monetizationData: supportData
-      });
-      
-      // Format message for local state update
-      const newMessage: Message = {
-        id: String(message.id),
-        senderId: userId,
-        senderName: userName,
-        senderAvatar: userAvatar,
-        recipientId: recipientIds,
-        content,
-        type: 'text',
-        timestamp: message.created_at,
-        status: 'sent',
-        isEncrypted: isSecurityEnabled,
-        emotional: message.emotional_data as JsonData | MessageEmotionalData,
-        monetization: supportData,
-      };
-      
-      // Update local state
-      setThreads(prev => 
-        prev.map(thread => 
-          thread.id === activeThreadId 
-            ? { 
-                ...thread, 
-                messages: [...thread.messages, newMessage],
-                lastActivity: newMessage.timestamp 
-              }
+      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleMessageDoc);
+      setThreads(prevThreads =>
+        prevThreads.map(thread =>
+          thread.id === activeThreadId
+            ? { ...thread, messages: isInitialLoad ? newMessagesData : [...newMessagesData, ...thread.messages].sort((a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()) }
             : thread
         )
       );
-      
-      if (supportData) {
-        triggerHaptic('strong');
-        toast({
-          title: "Message de soutien envoyé",
-          description: `${supportData.tier} - ${supportData.price} USDT`,
-        });
-      }
+      setLastVisibleMessageDoc(newLastVisibleDoc);
+      setHasMoreMessages(newMessagesData.length === 20);
+      if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: "Erreur d'envoi",
-        description: "Impossible d'envoyer le message",
-        variant: "destructive",
-      });
+      console.error("Error fetching messages:", error); sonnerToast.error("Erreur de chargement des messages.");
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, [activeThreadId, userId, lastVisibleMessageDoc, hasMoreMessages]);
+
+  useEffect(() => {
+    if (activeThreadId) {
+      setHasMoreMessages(true); setLastVisibleMessageDoc(null); loadMoreMessages(true);
+    }
+  }, [activeThreadId, loadMoreMessages]);
+
+  useEffect(() => {
+    if (!activeThreadId || !db || !userId) return () => {};
+    let queryRef = query(collection(db, 'messageThreads', activeThreadId, 'messages'), orderBy('createdAt', 'asc'));
+    const currentThread = threads.find(t => t.id === activeThreadId);
+    if (currentThread && currentThread.messages.length > 0) {
+        const lastKnownMessage = currentThread.messages[currentThread.messages.length - 1];
+        if (lastKnownMessage.createdAt) {
+            queryRef = query(collection(db, 'messageThreads', activeThreadId, 'messages'), orderBy('createdAt', 'asc'), where('createdAt', '>', lastKnownMessage.createdAt));
+        }
+    }
+    const unsubscribeMessages = onSnapshot(queryRef, (snapshot) => {
+      const newMessages: FirestoreMessage[] = [];
+      snapshot.docChanges().forEach((change) => { if (change.type === "added") newMessages.push({ id: change.doc.id, ...change.doc.data() } as FirestoreMessage); });
+      if (newMessages.length > 0) {
+        setThreads(prevThreads =>
+          prevThreads.map(thread =>
+            thread.id === activeThreadId
+              ? { ...thread, messages: [...thread.messages, ...newMessages].sort((a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()),
+                  lastActivity: newMessages[newMessages.length - 1].createdAt as Timestamp,
+                  lastMessageText: newMessages[newMessages.length - 1].content,
+                  lastMessageSenderId: newMessages[newMessages.length - 1].senderId,
+                  readStatus: { ...(thread.readStatus || {}), [newMessages[newMessages.length - 1].senderId]: newMessages[newMessages.length - 1].createdAt as Timestamp }
+                }
+              : thread
+          )
+        );
+        const lastNewMessage = newMessages[newMessages.length - 1];
+        if (lastNewMessage.senderId !== userId) { triggerHaptic('medium'); markMessagesAsRead(activeThreadId, userId);}
+      }
+    }, (error) => console.error(`Error listening to new messages for thread ${activeThreadId}:`, error));
+    return () => unsubscribeMessages();
+  }, [activeThreadId, userId, triggerHaptic, threads]); // `threads` est ajouté pour potentiellement recréer le listener si les messages initiaux changent radicalement
+
+  useEffect(() => {
+    threads.forEach(thread => { if (thread.id && !sessionKeys[thread.id]) setSessionKeys(prev => ({ ...prev, [thread.id!]: generateSessionKey() })); });
+  }, [threads, sessionKeys]);
+
+  const activeThreadData = threads.find(t => t.id === activeThreadId);
+
+  const handleThreadSelect = (threadId: string) => {
+    triggerHaptic('light');
+    if (activeThreadId !== threadId) { setActiveThreadId(threadId); setShowConversationList(false);}
+    else setShowConversationList(false);
+  };
+
+  const handleBack = () => {
+    if (!showConversationList && activeThreadId) { triggerHaptic('light'); setShowConversationList(true); setActiveThreadId(null); }
+    else navigate(-1);
+  };
+
+  const handleSendMessage = async (content: string, supportData?: any) => {
+    if (!activeThreadId || !content.trim() || !userId ) return;
+    const optimisticMessage: FirestoreMessage = { id: `optimistic_${Date.now()}`, senderId: userId, content, type: 'text', createdAt: Timestamp.now(), isEncrypted: isSecurityEnabled, ...(supportData && { monetization: supportData }), };
+    setThreads(prevThreads => prevThreads.map(thread => thread.id === activeThreadId ? { ...thread, messages: [...thread.messages, optimisticMessage], lastMessageText: content.substring(0,97)+(content.length > 100 ? "..." : ""), lastMessageSenderId: userId, lastActivity: Timestamp.now() } : thread ));
+    try {
+      await sendMessage({ threadId: activeThreadId, senderId: userId, content, isEncrypted: isSecurityEnabled, monetizationData: supportData });
+      if (supportData) { triggerHaptic('strong'); toast({ title: "Message de soutien envoyé"}); }
+    } catch (error) {
+      console.error('Error sending message:', error); toast({ title: "Erreur d'envoi", variant: "destructive" });
+      setThreads(prevThreads => prevThreads.map(thread => thread.id === activeThreadId ? { ...thread, messages: thread.messages.filter(m => m.id !== optimisticMessage.id) } : thread ));
     }
   };
 
-  const toggleSecurityMode = () => {
-    setIsSecurityEnabled(!isSecurityEnabled);
-    triggerHaptic('medium');
-    toast({
-      title: isSecurityEnabled ? "Chiffrement désactivé" : "Chiffrement activé",
-      description: isSecurityEnabled 
-        ? "Vos messages ne seront plus chiffrés" 
-        : "Vos messages sont maintenant sécurisés",
-      variant: isSecurityEnabled ? "destructive" : "default",
-    });
-  };
+  const toggleSecurityMode = () => { setIsSecurityEnabled(!isSecurityEnabled); /* ... toast ... */ };
 
-  // Gérer la création d'une nouvelle conversation
-  const handleNewConversationCreated = (threadId: string) => {
-    // Recharger les conversations pour obtenir la nouvelle
-    loadConversations().then(() => {
-      // Sélectionner la nouvelle conversation
-      setActiveThreadId(threadId);
-      setShowConversationList(false);
-    });
+  const handleNewConversationCreated = async (newThreadInfo: { creatorId: string; creatorName: string; creatorAvatar: string | null }) => {
+    if (!userId || !userName) return;
+    const { creatorId, creatorName, creatorAvatar } = newThreadInfo;
+    const existingThread = threads.find(t => t.participantIds.includes(creatorId) && t.participantIds.includes(userId));
+    if (existingThread && existingThread.id) { setActiveThreadId(existingThread.id); setShowConversationList(false); return; }
+    try {
+      const result = await createNewConversationWithCreator({ userId: userId!, userName: userName!, userAvatar: userAvatar!, creatorId, creatorName, creatorAvatar });
+      if (result.success && result.threadId) { setActiveThreadId(result.threadId); setShowConversationList(false); }
+      else sonnerToast.error(result.error?.message || "Impossible de créer la conversation.");
+    } catch (error) { console.error("Error creating new conversation:", error); sonnerToast.error("Erreur."); }
   };
-
-  if (isLoading) {
+  // CI-DESSOUS EST LE BLOC DE RETOUR PRINCIPAL
+  if (isLoadingThreads && threads.length === 0 && !activeThreadId) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-lg">Chargement de vos conversations...</p>
-        </div>
+        <div className="text-center"><Spinner size="lg" /><p className="mt-4 text-lg">Chargement des discussions...</p></div>
       </div>
     );
   }
@@ -340,168 +258,45 @@ const SecureMessaging = ({ userId, userName, userAvatar }: SecureMessagingProps)
   const filteredThreads = threads.filter(thread => {
     if (filterMode === 'all') return true;
     if (filterMode === 'unread') {
-      return thread.messages.some(m => m.status !== 'read' && m.senderId !== userId);
+      const lastReadByCurrentUser = (thread.readStatus && userId && thread.readStatus[userId] as Timestamp | undefined)?.toMillis() || 0;
+      return thread.lastMessageCreatedAt && (thread.lastMessageCreatedAt as Timestamp).toMillis() > lastReadByCurrentUser && thread.lastMessageSenderId !== userId;
     }
-    if (filterMode === 'supported') {
-      return thread.messages.some(m => m.monetization);
-    }
+    if (filterMode === 'supported') { return thread.messages.some(m => m.senderId === userId && (m as any).monetization); }
     return true;
   });
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
-      {/* Header */}
       <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
-            onClick={handleBack}
-          >
-            <ArrowLeft size={24} />
-          </Button>
-          
+          <Button variant="ghost" size="icon" className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full" onClick={handleBack}><ArrowLeft size={24} /></Button>
           <XDoseLogo size="md" />
-          {hasNewMessages && (
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-          )}
         </div>
-        
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className={cn(
-              "rounded-full",
-              isSecurityEnabled ? "text-green-600 hover:text-green-700 dark:text-green-500 dark:hover:text-green-400" : "text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
-            )}
-            onClick={toggleSecurityMode}
-          >
-            {isSecurityEnabled ? <Lock size={20} /> : <Key size={20} />}
-          </Button>
-
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => navigate('/')}
-          >
-            <X size={22} />
-          </Button>
+          <Button variant="ghost" size="icon" className={cn("rounded-full", isSecurityEnabled ? "text-green-500" : "text-red-500")} onClick={toggleSecurityMode}>{isSecurityEnabled ? <Lock size={20} /> : <Key size={20} />}</Button>
+          <Button variant="ghost" size="icon" className="rounded-full text-gray-700 dark:text-gray-300" onClick={() => navigate('/')}><X size={22} /></Button>
         </div>
       </header>
 
-      {/* Tabs pour le filtrage (uniquement visible sur la vue liste) */}
-      <AnimatePresence>
-        {showConversationList && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -10 }}
-            className="px-4 pt-3 pb-1"
-          >
-            <Tabs
-              defaultValue="all"
-              value={filterMode}
-              onValueChange={(value) => setFilterMode(value as any)}
-              className="w-full"
-            >
-              <TabsList className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <TabsTrigger value="all" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
-                  Tous
-                </TabsTrigger>
-                <TabsTrigger value="unread" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
-                  Non lus
-                </TabsTrigger>
-                <TabsTrigger value="supported" className="data-[state=active]:bg-white/80 dark:data-[state=active]:bg-gray-900/80">
-                  <Zap size={14} className="text-amber-500 mr-1" />
-                  Soutenus
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{showConversationList && (<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-4 pt-3 pb-1"> <Tabs value={filterMode} onValueChange={(value) => setFilterMode(value as any)} className="w-full"> <TabsList className="w-full bg-gray-100 dark:bg-gray-800 border"><TabsTrigger value="all">Tous</TabsTrigger><TabsTrigger value="unread">Non lus</TabsTrigger><TabsTrigger value="supported"><Zap size={14} className="mr-1"/>Soutenus</TabsTrigger></TabsList></Tabs></motion.div>)}</AnimatePresence>
 
-      {/* Contenu principal */}
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
           {showConversationList ? (
-            <motion.div
-              key="conversation-list"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="h-full"
-            >
-              <ConversationList 
-                threads={filteredThreads}
-                userId={userId}
-                userName={userName}
-                userAvatar={userAvatar}
-                onSelectThread={handleThreadSelect}
-                activeThreadId={activeThreadId}
-                userType={userType}
-                onConversationCreated={handleNewConversationCreated}
-              />
+            <motion.div key="conversation-list" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full">
+              <ConversationList threads={filteredThreads} userId={userId!} userName={userName} userAvatar={userAvatar} onSelectThread={handleThreadSelect} activeThreadId={activeThreadId} userType={userType} onConversationCreated={handleNewConversationCreated} />
             </motion.div>
           ) : (
-            <motion.div
-              key="conversation-view"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-              className="h-full"
-            >
-              {activeThread && (
-                <ConversationView
-                  thread={activeThread}
-                  userId={userId}
-                  userName={userName}
-                  onSendMessage={handleSendMessage}
-                  sessionKey={sessionKeys[activeThread.id] || generateSessionKey()}
-                  isSecurityEnabled={isSecurityEnabled}
-                  onOpenSupport={() => openModal('supportCreator')}
-                  onOpenGifts={() => openModal('giftCreator')}
-                  userType={userType}
-                />
-              )}
-            </motion.div>
+            activeThreadData && (
+              <motion.div key={activeThreadData.id || 'active-conversation'} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="h-full">
+                <ConversationView thread={activeThreadData} userId={userId!} userName={userName} onSendMessage={handleSendMessage} sessionKey={sessionKeys[activeThreadData.id!] || generateSessionKey()} isSecurityEnabled={isSecurityEnabled} onOpenSupport={() => openModal('supportCreator')} onOpenGifts={() => openModal('giftCreator')} userType={userType} isLoadingMessages={isLoadingMessages} onLoadMoreMessages={() => loadMoreMessages(false)} hasMoreMessages={hasMoreMessages} />
+              </motion.div>
+            )
           )}
         </AnimatePresence>
       </div>
-
-      {/* Panels pour le soutien et les cadeaux */}
-      <SupportPanel 
-        isOpen={openModals.supportCreator} 
-        onClose={() => closeModal('supportCreator')}
-        onApply={(data) => {
-          handleSendMessage("Je soutiens votre contenu", data);
-          closeModal('supportCreator');
-        }}
-      />
-      
-      <GiftPanel 
-        isOpen={openModals.giftCreator} 
-        onClose={() => closeModal('giftCreator')}
-        onSendGift={(gift) => {
-          handleSendMessage(`🎁 ${gift.name}`, {
-            tier: 'premium' as MonetizationTier,
-            price: gift.price,
-            currency: 'USDT',
-            instantPayoutEnabled: true,
-            accessControl: { isGated: true },
-            analytics: { views: 0, revenue: 0, conversionRate: 0, engagementTime: 0 }
-          });
-          closeModal('giftCreator');
-        }}
-      />
+      <SupportPanel isOpen={openModals.supportCreator} onClose={() => closeModal('supportCreator')} onApply={(data) => { handleSendMessage("Je soutiens votre contenu", data); closeModal('supportCreator'); }} />
+      <GiftPanel isOpen={openModals.giftCreator} onClose={() => closeModal('giftCreator')} onSendGift={(gift) => { handleSendMessage(`🎁 ${gift.name}`, { tier: 'premium' as MonetizationTier, price: gift.price, currency: 'USDT'}); closeModal('giftCreator'); }} />
     </div>
   );
 };

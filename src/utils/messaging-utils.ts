@@ -1,124 +1,168 @@
 
-import { Message, MessageThread } from '@/types/messaging';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  getDocs, 
+  addDoc, 
+  doc, 
+  writeBatch, 
+  serverTimestamp, 
+  Timestamp, 
+  getDoc,
+  limit,
+  startAfter, // Ajout pour la pagination
+  updateDoc   // Ajout pour markMessagesAsRead
+} from 'firebase/firestore';
+import { db } from '@/integrations/firebase/firebase';
+import { 
+  FirestoreMessageThread, 
+  FirestoreMessage 
+} from './create-conversation-utils'; // Réutiliser les types définis là-bas
+import { MessageType } from '@/types/messaging'; // Types existants
 
-export const fetchUserThreads = async (userId: string) => {
+// Récupère les fils de discussion pour un utilisateur donné (métadonnées uniquement)
+export const fetchUserThreads = async (userId: string): Promise<FirestoreMessageThread[]> => {
   try {
-    // Fetch all threads where the user is a participant
-    const { data, error } = await supabase
-      .from('message_threads')
-      .select('*, messages:message_thread_messages(*)')
-      .contains('participants', [userId])
-      .order('last_activity', { ascending: false });
-
-    if (error) throw error;
-
-    return data || [];
+    const q = query(
+      collection(db, 'messageThreads'),
+      where('participantIds', 'array-contains', userId),
+      orderBy('lastActivity', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    const threads: FirestoreMessageThread[] = querySnapshot.docs.map(threadDoc => {
+      const threadData = threadDoc.data() as Omit<FirestoreMessageThread, 'id' | 'messages'>;
+      return {
+        id: threadDoc.id,
+        ...threadData,
+        messages: [] // Initialiser avec un tableau de messages vide, seront chargés à la demande
+      } as FirestoreMessageThread;
+    });
+    return threads;
   } catch (error) {
-    console.error('Error fetching user threads:', error);
+    console.error('Error fetching user threads metadata from Firestore:', error);
     return [];
   }
 };
 
-export const sendMessage = async ({ 
-  threadId, 
+// Récupère les messages pour un fil de discussion spécifique (avec pagination optionnelle)
+export const fetchMessagesForThread = async (
+  threadId: string, 
+  limitCount = 20, 
+  lastVisibleDoc: any = null // Le dernier document visible de la requête précédente pour la pagination
+): Promise<{ messages: FirestoreMessage[], newLastVisibleDoc: any }> => {
+  try {
+    let messagesQuery;
+    const messagesCollectionRef = collection(db, 'messageThreads', threadId, 'messages');
+
+    if (lastVisibleDoc) {
+      messagesQuery = query(
+        messagesCollectionRef,
+        orderBy('createdAt', 'desc'), // Récupérer les plus récents en premier pour la pagination inversée
+        startAfter(lastVisibleDoc),
+        limit(limitCount)
+      );
+    } else {
+      messagesQuery = query(
+        messagesCollectionRef,
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+    }
+    
+    const messagesSnapshot = await getDocs(messagesQuery);
+    const messages: FirestoreMessage[] = messagesSnapshot.docs
+      .map(msgDoc => ({
+        id: msgDoc.id,
+        ...(msgDoc.data() as Omit<FirestoreMessage, 'id'>)
+      }))
+      .reverse(); // Inverser pour avoir les plus anciens en premier dans l'UI (ordre chronologique)
+
+    const newLastVisibleDoc = messagesSnapshot.docs[messagesSnapshot.docs.length - 1];
+    return { messages, newLastVisibleDoc };
+
+  } catch (error) {
+    console.error(`Error fetching messages for thread ${threadId}:`, error);
+    return { messages: [], newLastVisibleDoc: null };
+  }
+};
+
+// Envoie un message et met à jour le fil de discussion parent
+export const sendMessage = async ({
+  threadId,
   senderId,
-  senderName,
-  senderAvatar,
-  recipientIds, 
-  content, 
+  // senderName, // N'est plus passé, car on suppose qu'il est dans participantInfo du thread
+  // senderAvatar, // N'est plus passé
+  content,
   isEncrypted = false,
-  monetizationData = null 
+  monetizationData = null,
+  messageType = 'text' as MessageType,
 }: {
   threadId: string;
   senderId: string;
-  senderName: string;
-  senderAvatar: string;
-  recipientIds: string[];
   content: string;
   isEncrypted?: boolean;
   monetizationData?: any;
-}) => {
+  messageType?: MessageType;
+}): Promise<FirestoreMessage> => {
   try {
-    const timestamp = new Date().toISOString();
+    const batch = writeBatch(db);
+    const now = serverTimestamp() as Timestamp;
+    const threadRef = doc(db, 'messageThreads', threadId);
+    const newMessageRef = doc(collection(threadRef, 'messages'));
+
+    const messageData: Omit<FirestoreMessage, 'id'> = {
+      senderId,
+      content,
+      type: messageType,
+      createdAt: now,
+      isEncrypted,
+      ...(monetizationData && { monetization: monetizationData }), 
+    };
+    batch.set(newMessageRef, messageData);
+
+    // Mettre à jour le fil de discussion parent
+    // Récupérer le displayName du sender depuis le thread pour lastMessageSenderName (optionnel)
+    batch.update(threadRef, {
+      lastMessageText: content.length > 100 ? content.substring(0, 97) + "..." : content,
+      lastMessageSenderId: senderId,
+      lastMessageCreatedAt: now,
+      lastActivity: now,
+      // Optionnel: mettre à jour readStatus pour que l'expéditeur ait lu son propre message
+      [`readStatus.${senderId}`]: now 
+    });
+
+    await batch.commit();
+    return {
+      id: newMessageRef.id,
+      ...messageData,
+      createdAt: Timestamp.now() // Simuler le timestamp pour l'UI
+    } as FirestoreMessage;
+
+  } catch (error) {
+    console.error('Error sending message to Firestore:', error);
+    throw error;
+  }
+};
+
+// Marque les messages comme lus dans un fil pour un utilisateur donné en mettant à jour son timestamp lastReadAt
+export const markMessagesAsRead = async (threadId: string, userId: string): Promise<boolean> => {
+  try {
+    const threadRef = doc(db, 'messageThreads', threadId);
     
-    // Create message
-    const { data: message, error: messageError } = await supabase
-      .from('message_thread_messages')
-      .insert({
-        thread_id: threadId,
-        sender_id: senderId,
-        sender_name: senderName,
-        sender_avatar: senderAvatar,
-        recipient_id: recipientIds,
-        content,
-        type: 'text',
-        is_encrypted: isEncrypted,
-        monetization_data: monetizationData,
-        created_at: timestamp
-      })
-      .select()
-      .single();
+    // Mettre à jour/créer un champ lastReadAt pour l'utilisateur dans une map `readStatus`
+    // readStatus: { [userId]: Timestamp }
+    // Cela marque tous les messages *avant* ce timestamp comme lus par cet utilisateur.
+    const updateData:any = {};
+    updateData[`readStatus.${userId}`] = serverTimestamp();
 
-    if (messageError) throw messageError;
-
-    // Update thread's last activity
-    await supabase
-      .from('message_threads')
-      .update({ last_activity: timestamp })
-      .eq('id', threadId);
-
-    return message;
-  } catch (error) {
-    console.error('Error sending message:', error);
-    throw error;
-  }
-};
-
-export const createThread = async ({
-  participants,
-  creatorId,
-  name
-}: {
-  participants: string[];
-  creatorId?: string;
-  name?: string;
-}) => {
-  try {
-    const { data, error } = await supabase
-      .from('message_threads')
-      .insert({
-        participants,
-        creator_id: creatorId,
-        name,
-        last_activity: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  } catch (error) {
-    console.error('Error creating thread:', error);
-    throw error;
-  }
-};
-
-export const markMessagesAsRead = async (threadId: string, userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('message_thread_messages')
-      .update({ status: 'read' })
-      .eq('thread_id', threadId)
-      .neq('sender_id', userId)
-      .neq('status', 'read');
-
-    if (error) throw error;
-
+    await updateDoc(threadRef, updateData);
+    
+    console.log(`Thread ${threadId} marked as read up to now for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error marking messages as read:', error);
+    console.error('Error marking thread as read in Firestore:', error);
     return false;
   }
 };

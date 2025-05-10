@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -17,7 +18,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 import XDoseLogo from "@/components/XDoseLogo";
 import { cn } from "@/lib/utils";
-import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client';
+// import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client'; // Ancienne importation
+import { 
+  followCreator, 
+  unfollowCreator, 
+  getUserFollowedCreatorIds, 
+  checkUserFollowsCreator, // Ajouté au cas où c'est utilisé pour un créateur spécifique
+  CreatorProfileData // Pour typer recommendedCreators si besoin
+} from '@/services/creatorService'; // Modifié pour Firebase
 
 // Sample content data with more premium and VIP content
 const trendingContent = [
@@ -95,56 +103,43 @@ const trendingContent = [
     }
   }
 ];
-const recommendedCreators = [
+
+// Adapter le type des créateurs recommandés pour correspondre à CreatorProfileData ou une version simplifiée
+interface RecommendedCreator {
+  id: string; // uid du créateur
+  userId: string; // uid du créateur (redondant avec id mais présent dans le mock)
+  name: string;
+  username: string;
+  imageUrl: string;
+  type?: string; // ex: diamond, gold (peut être partie du profil)
+  metrics?: {
+    followers?: number;
+    content?: number;
+  };
+}
+
+const recommendedCreators: RecommendedCreator[] = [
   {
-    id: "creator1",
+    id: "creator1_uid", // Doit être un UID Firebase valide si on veut vérifier le suivi
+    userId: "creator1_uid", 
     name: "Sarah K.",
     username: "sarahk.creative",
-    userId: "creator1",
     imageUrl: "https://avatars.githubusercontent.com/u/124599?v=4",
     type: "diamond",
-    metrics: {
-      followers: 21500,
-      content: 156
-    }
+    metrics: { followers: 21500, content: 156 }
   }, 
   {
-    id: "creator2",
+    id: "creator2_uid",
+    userId: "creator2_uid",
     name: "Thomas R.",
     username: "thomas.photo",
-    userId: "creator2",
     imageUrl: "https://i.pravatar.cc/150?img=11",
     type: "gold",
-    metrics: {
-      followers: 14200,
-      content: 87
-    }
+    metrics: { followers: 14200, content: 87 }
   }, 
-  {
-    id: "creator3",
-    name: "Camille D.",
-    username: "cam.style",
-    userId: "creator3",
-    imageUrl: "https://i.pravatar.cc/150?img=20",
-    type: "platinum",
-    metrics: {
-      followers: 18700,
-      content: 212
-    }
-  }, 
-  {
-    id: "creator4",
-    name: "Marc L.",
-    username: "marc.travels",
-    userId: "creator4",
-    imageUrl: "https://i.pravatar.cc/150?img=33",
-    type: "silver",
-    metrics: {
-      followers: 9800,
-      content: 63
-    }
-  }
+  // ... autres créateurs mockés
 ];
+
 const Index = () => {
   const isMobile = useIsMobile();
   const {
@@ -158,104 +153,93 @@ const Index = () => {
   } = useUserBehavior();
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
   const [showCognitivePanel, setShowCognitivePanel] = useState(false);
-  const {
-    user,
-    profile,
-    isCreator
-  } = useAuth();
+  const { user, profile, isCreator } = useAuth();
   const navigate = useNavigate();
   const [creatorFollowStates, setCreatorFollowStates] = useState<Record<string, boolean>>({});
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({});
 
-  // Track page view on component mount
   useEffect(() => {
-    trackInteraction('view', {
-      page: 'index'
-    });
+    trackInteraction('view', { page: 'index' });
     
-    // Load follow status for creators if user is logged in
-    const loadFollowStatus = async () => {
-      if (!user) return;
+    const loadInitialFollowStatus = async () => {
+      if (!user || !user.uid) return;
       
       try {
-        const { data, error } = await getUserFollows(user.id);
-        
-        if (data) {
-          const followStates: Record<string, boolean> = {};
-          data.forEach((follow: any) => {
-            if (follow.creator_id) {
-              followStates[follow.creator_id] = true;
-            }
-          });
-          setCreatorFollowStates(followStates);
-        }
+        // Utiliser getUserFollowedCreatorIds qui retourne string[]
+        const followedCreatorIds = await getUserFollowedCreatorIds(user.uid);
+        const newFollowStates: Record<string, boolean> = {};
+        recommendedCreators.forEach(creator => {
+          // `creator.id` ici est l'identifiant du créateur dans la liste mockée.
+          // Assurez-vous que `creator.id` ou `creator.userId` correspond bien à l'UID Firebase du créateur.
+          newFollowStates[creator.userId] = followedCreatorIds.includes(creator.userId);
+        });
+        setCreatorFollowStates(newFollowStates);
       } catch (error) {
-        console.error('Error loading follow status:', error);
+        console.error('Error loading initial follow statuses:', error);
       }
     };
     
-    loadFollowStatus();
-  }, [trackInteraction, user]);
+    loadInitialFollowStatus();
+  }, [trackInteraction, user]); // Dépendance sur user pour recharger si l'utilisateur change
   
   const toggleGoldenRatio = () => {
     setShowGoldenRatio(!showGoldenRatio);
-    updateConfig({
-      goldenRatioVisible: !showGoldenRatio
-    });
-    trackInteraction('toggle' as InteractionType, {
-      feature: 'goldenRatio',
-      state: !showGoldenRatio
-    });
+    updateConfig({ goldenRatioVisible: !showGoldenRatio });
+    trackInteraction('toggle' as InteractionType, { feature: 'goldenRatio', state: !showGoldenRatio });
   };
+
   const handleContentClick = (contentId: string, contentType: string) => {
     triggerMicroReward('click');
-    trackInteraction('click', {
-      contentId,
-      contentType
-    });
+    trackInteraction('click', { contentId, contentType });
     trackContentPreference(contentType);
   };
   
-  const handleFollow = async (creator: any) => {
-    if (!user) {
+  const handleFollowToggle = async (creatorToToggle: RecommendedCreator) => {
+    if (!user || !user.uid) {
       navigate('/auth');
-      trackInteraction('navigate', {
-        to: 'auth',
-        reason: 'follow'
-      });
+      trackInteraction('navigate', { to: 'auth', reason: 'follow' });
+      return;
+    }
+
+    if (user.uid === creatorToToggle.userId) {
+      toast.info("Vous ne pouvez pas vous suivre vous-même.");
       return;
     }
     
-    setFollowLoading(prev => ({ ...prev, [creator.id]: true }));
+    setFollowLoading(prev => ({ ...prev, [creatorToToggle.userId]: true }));
     
     try {
-      const isCurrentlyFollowing = creatorFollowStates[creator.userId];
-      
+      const isCurrentlyFollowing = creatorFollowStates[creatorToToggle.userId];
+      let success = false;
+
       if (isCurrentlyFollowing) {
-        // Unfollow
-        await unfollowCreator(user.id, creator.userId);
-        setCreatorFollowStates(prev => ({ ...prev, [creator.userId]: false }));
-        toast(`Vous ne suivez plus ${creator.name}`);
+        success = await unfollowCreator(user.uid, creatorToToggle.userId);
+        if (success) {
+          setCreatorFollowStates(prev => ({ ...prev, [creatorToToggle.userId]: false }));
+          toast.success(`Vous ne suivez plus ${creatorToToggle.name}`);
+        }
       } else {
-        // Follow
-        await followCreator(user.id, creator.userId);
-        setCreatorFollowStates(prev => ({ ...prev, [creator.userId]: true }));
-        toast(`Vous suivez maintenant ${creator.name}`, {
-          description: "Découvrez son contenu exclusif"
-        });
-        triggerMicroReward('like');
+        success = await followCreator(user.uid, creatorToToggle.userId);
+        if (success) {
+          setCreatorFollowStates(prev => ({ ...prev, [creatorToToggle.userId]: true }));
+          toast.success(`Vous suivez maintenant ${creatorToToggle.name}`, {
+            description: "Découvrez son contenu exclusif"
+          });
+          triggerMicroReward('like');
+        }
       }
       
-      trackInteraction('follow', {
-        creatorId: creator.id
-      });
+      if (success) {
+        trackInteraction('follow', { creatorId: creatorToToggle.userId, state: !isCurrentlyFollowing });
+      } else {
+        toast.error("L'opération de suivi/désabonnement a échoué.");
+      }
+
     } catch (error) {
-      console.error('Error following creator:', error);
-      toast('Une erreur est survenue', {
-        description: 'Veuillez réessayer plus tard'
-      });
+      console.error('Error toggling follow state:', error);
+      toast.error('Une erreur est survenue', { description: 'Veuillez réessayer plus tard' });
     } finally {
-      setFollowLoading(prev => ({ ...prev, [creator.id]: false }));
+      setFollowLoading(prev => ({ ...prev, [creatorToToggle.userId]: false }));
     }
   };
 
@@ -266,87 +250,43 @@ const Index = () => {
       <AdaptiveMoodLighting currentMood={config.adaptiveMood} intensity={config.moodIntensity} />
       <MicroRewardsEnhanced enable={config.microRewardsEnabled} rewardIntensity={config.microRewardsIntensity} adaptToContext={true} reducedMotion={config.animationSpeed === 'reduced'} />
       <FocusMode enabled={config.focusModeEnabled} onToggle={isEnabled => {
-        updateConfig({
-          focusModeEnabled: isEnabled
-        });
-        trackInteraction('toggle' as InteractionType, {
-          feature: 'focusMode',
-          state: isEnabled
-        });
+        updateConfig({ focusModeEnabled: isEnabled });
+        trackInteraction('toggle' as InteractionType, { feature: 'focusMode', state: isEnabled });
       }} ambientSoundsEnabled={config.ambientSoundsEnabled || false} onAmbientSoundsToggle={isEnabled => {
-        updateConfig({
-          ambientSoundsEnabled: isEnabled
-        });
-        trackInteraction('toggle' as InteractionType, {
-          feature: 'ambientSounds',
-          state: isEnabled
-        });
+        updateConfig({ ambientSoundsEnabled: isEnabled });
+        trackInteraction('toggle' as InteractionType, { feature: 'ambientSounds', state: isEnabled });
       }} />
-      <AmbientSoundscapes enabled={config.ambientSoundsEnabled || false} volume={config.ambientVolume || 50} onVolumeChange={volume => updateConfig({
-        ambientVolume: volume
-      })} />
+      <AmbientSoundscapes enabled={config.ambientSoundsEnabled || false} volume={config.ambientVolume || 50} onVolumeChange={volume => updateConfig({ ambientVolume: volume })} />
 
       {/* Main content */}
       <div className="container px-4 mx-auto py-8 space-y-8">
-        {/* Hero section - Logo centered better */}
-        <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.6
-        }} className="text-center space-y-6 max-w-3xl mx-auto mb-6">
-          <div className="flex justify-center my-0 rounded-none py-0">
-            <XDoseLogo size="xl" animated={true} />
-          </div>
-          
+        {/* Hero section */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center space-y-6 max-w-3xl mx-auto mb-6">
+          <div className="flex justify-center my-0 rounded-none py-0"><XDoseLogo size="xl" animated={true} /></div>
           <div className="flex flex-wrap gap-4 justify-center">
-            {!user ? <>
-                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => trackInteraction('navigate', {
-                  to: 'login'
-                })}>
-                  <Link to="/auth" className="flex items-center">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Se connecter
-                  </Link>
+            {!user ? (
+              <>
+                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => trackInteraction('navigate', { to: 'login' })}>
+                  <Link to="/auth" className="flex items-center"><LogIn className="mr-2 h-4 w-4" /> Se connecter</Link>
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2" onClick={() => trackInteraction('navigate', {
-                  to: 'signup'
-                })}>
-                  <Link to="/auth?tab=signup" className="flex items-center">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Créer un compte
-                  </Link>
+                <Button size="lg" variant="outline" className="gap-2" onClick={() => trackInteraction('navigate', { to: 'signup' })}>
+                  <Link to="/auth?tab=signup" className="flex items-center"><UserPlus className="mr-2 h-4 w-4" /> Créer un compte</Link>
                 </Button>
-              </> : isCreator ? <>
-                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => {
-                  navigate('/dashboard');
-                  trackInteraction('navigate', {
-                    to: 'dashboard'
-                  });
-                }}>
-                  <Crown className="mr-2 h-4 w-4" />
-                  Tableau de bord créateur
+              </>
+            ) : isCreator ? (
+              <>
+                <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark gap-2" onClick={() => { navigate('/dashboard'); trackInteraction('navigate', { to: 'dashboard' }); }}>
+                  <Crown className="mr-2 h-4 w-4" /> Tableau de bord créateur
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2" onClick={() => {
-                  navigate('/videos');
-                  trackInteraction('navigate', {
-                    to: 'videos'
-                  });
-                }}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Publier du contenu
+                <Button size="lg" variant="outline" className="gap-2" onClick={() => { navigate('/videos'); trackInteraction('navigate', { to: 'videos' }); }}>
+                  <Upload className="mr-2 h-4 w-4" /> Publier du contenu
                 </Button>
-              </> : <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark" onClick={() => trackInteraction('navigate', {
-                to: 'creators'
-              })}>
-                <Link to="/creators">
-                  Explorer les créateurs
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>}
+              </>
+            ) : (
+              <Button size="lg" className="bg-xvush-pink hover:bg-xvush-pink-dark" onClick={() => trackInteraction('navigate', { to: 'creators' })}>
+                <Link to="/creators">Explorer les créateurs <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            )}
           </div>
         </motion.div>
         
@@ -354,24 +294,11 @@ const Index = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Trending Content</h2>
-            <Button variant="link" className="gap-2" onClick={() => {
-              navigate('/trending');
-              trackInteraction('navigate', {
-                to: 'trending'
-              });
-            }}>
+            <Button variant="link" className="gap-2" onClick={() => { navigate('/trending'); trackInteraction('navigate', { to: 'trending' }); }}>
               Voir tout <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-          
-          <motion.div initial={{
-            opacity: 0
-          }} animate={{
-            opacity: 1
-          }} transition={{
-            duration: 0.8,
-            delay: 0.2
-          }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}>
             <ContentGrid contents={trendingContent} layout="masonry" onItemClick={id => handleContentClick(id, 'trending')} />
           </motion.div>
         </section>
@@ -380,66 +307,63 @@ const Index = () => {
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Recommended Creators</h2>
-            <Button variant="link" className="gap-2" onClick={() => trackInteraction('navigate', {
-              to: 'creators'
-            })}>
-              <Link to="/creators">
-                Voir tout <ArrowRight className="h-4 w-4" />
-              </Link>
+            <Button variant="link" className="gap-2" onClick={() => trackInteraction('navigate', { to: 'creators' })}>
+              <Link to="/creators">Voir tout <ArrowRight className="h-4 w-4" /></Link>
             </Button>
           </div>
-          
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {recommendedCreators.map(creator => <motion.div key={creator.id} className="glass-card rounded-xl p-4 hover:shadow-lg transition-shadow" whileHover={{
-              y: -5
-            }} whileTap={{
-              scale: 0.98
-            }} onClick={() => handleContentClick(creator.id, 'creator')}>
-                <Link to={`/creator?id=${creator.id}`} className="flex items-center gap-3 mb-3">
+            {recommendedCreators.map(creator => (
+              <motion.div 
+                key={creator.id} 
+                className="glass-card rounded-xl p-4 hover:shadow-lg transition-shadow" 
+                whileHover={{ y: -5 }} 
+                whileTap={{ scale: 0.98 }} 
+                onClick={() => handleContentClick(creator.id, 'creator')}
+              >
+                <Link to={`/creator/${creator.username}`} className="flex items-center gap-3 mb-3">
                   <img src={creator.imageUrl} alt={creator.name} className="w-12 h-12 rounded-full object-cover border-2 border-white/50" />
                   <div>
                     <h3 className="font-medium">{creator.name}</h3>
                     <p className="text-sm text-muted-foreground">@{creator.username}</p>
                   </div>
                 </Link>
-                
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-1">
                     <Eye size={14} className="text-muted-foreground" />
-                    <span>{creator.metrics.followers.toLocaleString()}</span>
+                    <span>{creator.metrics?.followers?.toLocaleString() || 'N/A'}</span>
                   </div>
-                  
                   <div className="flex items-center gap-1">
                     <Heart size={14} className="text-muted-foreground" />
-                    <span>{creator.metrics.content} contenus</span>
+                    <span>{creator.metrics?.content || 'N/A'} contenus</span>
                   </div>
                 </div>
-                
-                <Button 
-                  className={cn(
-                    "w-full mt-3", 
-                    creatorFollowStates[creator.userId] 
-                      ? "bg-gray-600 hover:bg-gray-700" 
-                      : "bg-xvush-pink hover:bg-xvush-pink-dark"
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleFollow(creator);
-                  }}
-                  disabled={followLoading[creator.id]}
-                >
-                  {followLoading[creator.id] ? (
-                    <span className="flex items-center justify-center">
-                      <span className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></span>
-                      {creatorFollowStates[creator.userId] ? "Désabonnement..." : "Abonnement..."}
-                    </span>
-                  ) : (
-                    creatorFollowStates[creator.userId] ? "Ne plus suivre" : (user ? "Suivre" : "Se connecter pour suivre")
-                  )}
-                </Button>
+                {user && user.uid !== creator.userId && (
+                  <Button 
+                    className={cn(
+                      "w-full mt-3", 
+                      creatorFollowStates[creator.userId] 
+                        ? "bg-gray-600 hover:bg-gray-700" 
+                        : "bg-xvush-pink hover:bg-xvush-pink-dark"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleFollowToggle(creator);
+                    }}
+                    disabled={followLoading[creator.userId]}
+                  >
+                    {followLoading[creator.userId] ? (
+                      <span className="flex items-center justify-center">
+                        <span className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></span>
+                        {creatorFollowStates[creator.userId] ? "Désabonnement..." : "Abonnement..."}
+                      </span>
+                    ) : (
+                      creatorFollowStates[creator.userId] ? "Ne plus suivre" : "Suivre"
+                    )}
+                  </Button>
+                )}
               </motion.div>
-            )}
+            ))}
           </div>
         </section>
         
@@ -447,107 +371,45 @@ const Index = () => {
         <section className="bg-muted/30 backdrop-blur-sm p-6 rounded-xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Neuro-Aesthetic Experience Controls</h2>
-            <Button variant="outline" size="sm" onClick={() => {
-              setShowCognitivePanel(!showCognitivePanel);
-              trackInteraction('toggle' as InteractionType, {
-                feature: 'cognitivePanel',
-                state: !showCognitivePanel
-              });
-            }} className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => { setShowCognitivePanel(!showCognitivePanel); trackInteraction('toggle' as InteractionType, { feature: 'cognitivePanel', state: !showCognitivePanel }); }} className="flex items-center gap-1.5">
               <Settings className="h-4 w-4" />
               {showCognitivePanel ? "Masquer avancé" : "Paramètres avancés"}
             </Button>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <h3 className="text-sm font-medium mb-2">Ambiance visuelle</h3>
               <div className="flex gap-2">
-                {(['energetic', 'calm', 'creative', 'focused'] as const).map(mood => <Button key={mood} variant={config.adaptiveMood === mood ? "default" : "outline"} size="sm" className="capitalize" onClick={() => {
-                updateConfig({
-                  adaptiveMood: mood
-                });
-                trackInteraction('select' as InteractionType, {
-                  feature: 'mood',
-                  value: mood
-                });
-                triggerMicroReward('select');
-              }}>
+                {(['energetic', 'calm', 'creative', 'focused'] as const).map(mood => (
+                  <Button key={mood} variant={config.adaptiveMood === mood ? "default" : "outline"} size="sm" className="capitalize" onClick={() => { updateConfig({ adaptiveMood: mood }); trackInteraction('select' as InteractionType, { feature: 'mood', value: mood }); triggerMicroReward('select'); }}>
                     {mood}
-                  </Button>)}
+                  </Button>
+                ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Change l'ambiance lumineuse de l'interface
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Change l'ambiance lumineuse de l'interface</p>
             </div>
-            
             <div>
               <h3 className="text-sm font-medium mb-2">Intensité visuelle</h3>
               <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm" onClick={() => {
-                updateConfig({
-                  moodIntensity: Math.max(0, config.moodIntensity - 10)
-                });
-                trackInteraction('adjust' as InteractionType, {
-                  feature: 'moodIntensity',
-                  direction: 'decrease'
-                });
-              }}>
-                  -
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => { updateConfig({ moodIntensity: Math.max(0, config.moodIntensity - 10) }); trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'decrease' }); }}>-</Button>
                 <div className="flex-grow text-center">{config.moodIntensity}%</div>
-                <Button variant="outline" size="sm" onClick={() => {
-                updateConfig({
-                  moodIntensity: Math.min(100, config.moodIntensity + 10)
-                });
-                trackInteraction('adjust' as InteractionType, {
-                  feature: 'moodIntensity',
-                  direction: 'increase'
-                });
-              }}>
-                  +
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => { updateConfig({ moodIntensity: Math.min(100, config.moodIntensity + 10) }); trackInteraction('adjust' as InteractionType, { feature: 'moodIntensity', direction: 'increase' }); }}>+</Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Ajuste la densité des effets visuels
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Ajuste la densité des effets visuels</p>
             </div>
-            
             <div>
               <h3 className="text-sm font-medium mb-2">Micro-récompenses</h3>
-              <Button variant={config.microRewardsEnabled ? "default" : "outline"} size="sm" onClick={() => {
-              updateConfig({
-                microRewardsEnabled: !config.microRewardsEnabled
-              });
-              trackInteraction('toggle' as InteractionType, {
-                feature: 'microRewards',
-                state: !config.microRewardsEnabled
-              });
-              if (!config.microRewardsEnabled) {
-                triggerMicroReward('click');
-              }
-            }}>
+              <Button variant={config.microRewardsEnabled ? "default" : "outline"} size="sm" onClick={() => { updateConfig({ microRewardsEnabled: !config.microRewardsEnabled }); trackInteraction('toggle' as InteractionType, { feature: 'microRewards', state: !config.microRewardsEnabled }); if (!config.microRewardsEnabled) { triggerMicroReward('click'); } }}>
                 {config.microRewardsEnabled ? "Activées" : "Désactivées"}
               </Button>
-              <p className="text-xs text-muted-foreground mt-1">
-                Animations subtiles pour renforcer l'engagement
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Animations subtiles pour renforcer l'engagement</p>
             </div>
           </div>
-          
-          {/* Cognitive Profile Panel (conditionally shown) */}
-          {showCognitivePanel && <motion.div initial={{
-          opacity: 0,
-          height: 0
-        }} animate={{
-          opacity: 1,
-          height: 'auto'
-        }} exit={{
-          opacity: 0,
-          height: 0
-        }} className="mt-6 overflow-hidden">
+          {showCognitivePanel && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-6 overflow-hidden">
               <CognitiveProfilePanel />
-            </motion.div>}
+            </motion.div>
+          )}
         </section>
       </div>
     </div>

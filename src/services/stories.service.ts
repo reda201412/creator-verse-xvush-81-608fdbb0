@@ -1,282 +1,256 @@
 
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
+import { db } from '@/integrations/firebase/firebase'; // Ajout Firebase db
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp, 
+  Timestamp, 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  deleteDoc, 
+  arrayUnion 
+} from 'firebase/firestore';
+import { 
+  getStorage, 
+  ref, 
+  uploadBytesResumable, 
+  getDownloadURL 
+} from "firebase/storage"; // Ajout Firebase Storage
+
 import { Story, StoryTag, StoryView, StoryUploadParams, StoryFilter } from '@/types/stories';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+// import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic'; // Non utilisé directement ici
 import { MediaCacheService } from '@/services/media-cache.service';
+import { getFunctions, httpsCallable } from 'firebase/functions'; // Pour appeler des fonctions Firebase
+
+const functions = getFunctions();
+// TODO: Définir le nom de votre Firebase Function pour incrémenter les vues de story
+const incrementStoryViewsFunction = httpsCallable(functions, 'incrementStoryViews');
+
+// Définir une interface pour les documents Story dans Firestore
+export interface FirestoreStory {
+  id?: string; // ID du document Firestore
+  creatorId: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  filterUsed?: StoryFilter; // filter_used dans Supabase
+  duration?: number; // en secondes
+  createdAt: Timestamp; // serverTimestamp()
+  expiresAt: Timestamp;
+  tags?: string[]; // Tableau de noms de tags en minuscules
+  format: 'image' | 'video';
+  // Ajouter d'autres champs si nécessaire (metadata, viewCount initial, etc.)
+  viewCount?: number; // Pourrait être géré par une Firebase Function
+  // creator?: any; // Les données du créateur seraient récupérées séparément si besoin de détails
+}
 
 export const StoriesService = {
-  // Récupérer les stories actives (non expirées)
-  async getActiveStories(): Promise<Story[]> {
-    const { data, error } = await supabase
-      .from('stories')
-      .select(`
-        *,
-        user_profiles:creator_id(*)
-      `)
-      .lt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching stories:', error);
+  // Télécharger un fichier média pour une story vers Firebase Storage
+  async uploadStoryMediaToFirebase(file: File, userId: string, type: 'media' | 'thumbnail'): Promise<string> {
+    const storage = getStorage();
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/stories/${type}_${Date.now()}.${fileExt}`;
+    const storageRef = ref(storage, filePath);
+
+    // Compression (placeholder, comme avant)
+    let fileToUpload = file;
+    if (file.type.includes('video/') && file.size > 10 * 1024 * 1024) {
+      console.log('Large video file detected, compression placeholder');
+    }
+
+    try {
+      const snapshot = await uploadBytesResumable(storageRef, fileToUpload);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading story media to Firebase Storage:', error);
       throw error;
     }
-    
-    const stories = (data || []).map(item => ({
-      ...item,
-      filter_used: (item.filter_used || 'none') as StoryFilter,
-      creator: item.user_profiles as any // Cast to the correct type
-    })) as Story[];
-    
-    // Pre-cache thumbnails for better performance
-    this.preCacheStoryMedia(stories);
-    
-    return stories;
   },
-  
+
+  // Créer une nouvelle story avec Firestore et Firebase Storage
+  async createStory(params: StoryUploadParams, userId: string): Promise<FirestoreStory> {
+    const mediaUrl = await this.uploadStoryMediaToFirebase(params.mediaFile, userId, 'media');
+    let thumbnailUrl: string | undefined = undefined;
+    if (params.thumbnailFile) {
+      thumbnailUrl = await this.uploadStoryMediaToFirebase(params.thumbnailFile, userId, 'thumbnail');
+    }
+
+    const expiresAtDate = new Date();
+    expiresAtDate.setHours(expiresAtDate.getHours() + (params.expiresIn || 24));
+
+    const storyData: Omit<FirestoreStory, 'id'> = {
+      creatorId: userId,
+      mediaUrl,
+      thumbnailUrl,
+      caption: params.caption,
+      filterUsed: params.filter || 'none',
+      duration: params.duration || 10,
+      createdAt: serverTimestamp() as Timestamp,
+      expiresAt: Timestamp.fromDate(expiresAtDate),
+      tags: params.tags ? params.tags.map(tag => tag.toLowerCase()) : [],
+      format: params.mediaFile.type.includes('video/') ? 'video' : 'image',
+      viewCount: 0,
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'stories'), storyData);
+      return { id: docRef.id, ...storyData } as FirestoreStory; // Retourne avec l'ID généré
+    } catch (error) {
+      console.error('Error creating story in Firestore:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les stories actives
+  async getActiveStories(): Promise<FirestoreStory[]> {
+    try {
+      const now = Timestamp.now();
+      const q = query(
+        collection(db, 'stories'),
+        where('expiresAt', '>', now),
+        orderBy('expiresAt', 'asc'), // Ou orderBy('createdAt', 'desc') selon le tri souhaité
+        orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      const stories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirestoreStory));
+      this.preCacheStoryMedia(stories.map(s => ({...s, media_url: s.mediaUrl, thumbnail_url: s.thumbnailUrl } as any))); // Adapter pour preCache
+      return stories;
+    } catch (error) {
+      console.error('Error fetching active stories from Firestore:', error);
+      throw error;
+    }
+  },
+
   // Récupérer les stories d'un créateur spécifique
-  async getCreatorStories(creatorId: string): Promise<Story[]> {
-    const { data, error } = await supabase
-      .from('stories')
-      .select(`
-        *,
-        story_tags(*)
-      `)
-      .eq('creator_id', creatorId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching creator stories:', error);
+  async getCreatorStories(creatorId: string): Promise<FirestoreStory[]> {
+    try {
+      const q = query(
+        collection(db, 'stories'),
+        where('creatorId', '==', creatorId),
+        orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      const stories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirestoreStory));
+      this.preCacheStoryMedia(stories.map(s => ({...s, media_url: s.mediaUrl, thumbnail_url: s.thumbnailUrl } as any)));
+      return stories;
+    } catch (error) {
+      console.error('Error fetching creator stories from Firestore:', error);
       throw error;
     }
-    
-    const stories = (data || []).map(item => ({
-      ...item,
-      filter_used: (item.filter_used || 'none') as StoryFilter,
-      tags: item.story_tags as any // Cast to the correct type
-    })) as Story[];
-    
-    // Pre-cache thumbnails for better performance
-    this.preCacheStoryMedia(stories);
-    
-    return stories;
   },
-  
+
   // Récupérer les stories par tag
-  async getStoriesByTag(tagName: string): Promise<Story[]> {
-    const { data, error } = await supabase
-      .from('story_tags')
-      .select(`
-        stories:story_id(
-          *,
-          user_profiles:creator_id(*)
-        )
-      `)
-      .eq('tag_name', tagName.toLowerCase())
-      .lt('stories.expires_at', new Date().toISOString());
-    
-    if (error) {
-      console.error('Error fetching stories by tag:', error);
+  async getStoriesByTag(tagName: string): Promise<FirestoreStory[]> {
+    try {
+      const now = Timestamp.now();
+      const q = query(
+        collection(db, 'stories'),
+        where('tags', 'array-contains', tagName.toLowerCase()),
+        where('expiresAt', '>', now),
+        orderBy('expiresAt', 'asc'),
+        orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      const stories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirestoreStory));
+      this.preCacheStoryMedia(stories.map(s => ({...s, media_url: s.mediaUrl, thumbnail_url: s.thumbnailUrl } as any)));
+      return stories;
+    } catch (error) {
+      console.error('Error fetching stories by tag from Firestore:', error);
       throw error;
     }
-    
-    // Extract stories from nested structure and ensure filter_used is a valid StoryFilter
-    const stories = (data || [])
-      .map(item => item.stories)
-      .filter(Boolean)
-      .map(story => ({
-        ...story,
-        filter_used: (story.filter_used || 'none') as StoryFilter,
-        creator: story.user_profiles as any
-      })) as Story[];
-    
-    // Pre-cache thumbnails for better performance
-    this.preCacheStoryMedia(stories);
-    
-    return stories;
   },
-  
-  // Pre-cache thumbnails for better performance
-  async preCacheStoryMedia(stories: Story[]): Promise<void> {
+
+  async preCacheStoryMedia(stories: Pick<Story, 'media_url' | 'thumbnail_url'>[]): Promise<void> {
     if (!MediaCacheService.isCacheAvailable()) return;
-    
-    // Get all thumbnail URLs
-    const thumbnailUrls = stories
-      .filter(s => s.thumbnail_url)
-      .map(s => s.thumbnail_url as string);
-    
-    // Preload thumbnails in background
+    const thumbnailUrls = stories.filter(s => s.thumbnail_url).map(s => s.thumbnail_url as string);
     if (thumbnailUrls.length > 0) {
       MediaCacheService.preCacheVideos(thumbnailUrls).catch(err => {
         console.warn('Failed to pre-cache some thumbnails:', err);
       });
     }
-    
-    // Preload first few video stories for instant playback
     const videoStories = stories
-      .filter(s => s.media_url.includes('.mp4') || s.media_url.includes('.webm'))
-      .slice(0, 3); // Only preload first 3 videos
-    
+      .filter(s => s.media_url && (s.media_url.includes('.mp4') || s.media_url.includes('.webm')))
+      .slice(0, 3); 
     if (videoStories.length > 0) {
       videoStories.forEach(story => {
-        fetch(story.media_url, { method: 'HEAD' }).catch(() => {});
+        if(story.media_url) fetch(story.media_url, { method: 'HEAD' }).catch(() => {});
       });
     }
   },
   
-  // Télécharger un fichier média pour une story
-  async uploadStoryMedia(file: File, userId: string): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${userId}/stories/${Date.now()}.${fileExt}`;
-    
-    // Add optimized upload for video files
-    let compressedFile = file;
-    
-    // If it's a video and larger than 10MB, we could implement compression here
-    if (file.type.includes('video/') && file.size > 10 * 1024 * 1024) {
-      // This is a placeholder for video compression
-      // In a real implementation, you'd compress the video before upload
-      console.log('Large video file detected, compression would be applied here');
-    }
-    
-    const { error, data } = await supabase.storage
-      .from('media')
-      .upload(filePath, compressedFile);
-    
-    if (error) {
-      console.error('Error uploading story media:', error);
-      throw error;
-    }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath);
-      
-    return publicUrl;
-  },
-  
-  // Créer une nouvelle story
-  async createStory(params: StoryUploadParams, userId: string): Promise<Story> {
-    // Upload media file
-    const mediaUrl = await this.uploadStoryMedia(params.mediaFile, userId);
-    
-    // Upload thumbnail if provided
-    let thumbnailUrl = undefined;
-    if (params.thumbnailFile) {
-      thumbnailUrl = await this.uploadStoryMedia(params.thumbnailFile, userId);
-    }
-    
-    // Calculate expiration date (default: 24 hours)
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + (params.expiresIn || 24));
-    
-    // Create story record
-    const { data, error } = await supabase
-      .from('stories')
-      .insert({
-        creator_id: userId,
-        media_url: mediaUrl,
-        thumbnail_url: thumbnailUrl,
-        caption: params.caption,
-        filter_used: params.filter || 'none',
-        duration: params.duration || 10,
-        expires_at: expiresAt.toISOString(),
-        metadata: params.metadata || {},
-        format: params.mediaFile.type.includes('video/') ? 'video' : 'image'
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error creating story:', error);
-      throw error;
-    }
-    
-    // Add tags if provided
-    if (params.tags && params.tags.length > 0 && data) {
-      const storyTags = params.tags.map(tag => ({
-        story_id: data.id,
-        tag_name: tag.toLowerCase()
-      }));
-      
-      const { error: tagsError } = await supabase
-        .from('story_tags')
-        .insert(storyTags);
-      
-      if (tagsError) {
-        console.error('Error adding story tags:', tagsError);
-        // We don't throw here, as the story is already created
-      }
-    }
-    
-    return data as Story;
-  },
-  
-  // Marquer une story comme vue par l'utilisateur actuel
-  async markStoryAsViewed(storyId: string, viewDuration: number = 0): Promise<void> {
-    // Get current user
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
-    
+  // Marquer une story comme vue et incrémenter le compteur via Firebase Function
+  async markStoryAsViewed(storyId: string, userId: string, viewDuration: number = 0): Promise<void> {
     if (!userId) {
-      console.error('No authenticated user found');
+      console.error('markStoryAsViewed: No authenticated user (userId) found');
       return;
     }
-    
-    const { error } = await supabase
-      .from('story_views')
-      .upsert({
-        story_id: storyId,
-        viewer_id: userId,
-        view_duration: viewDuration,
-        viewed_at: new Date().toISOString()
-      }, {
-        onConflict: 'story_id,viewer_id'
-      });
-    
-    if (error) {
-      console.error('Error marking story as viewed:', error);
-      throw error;
-    }
-    
     try {
-      // Call Supabase edge function to increment view count
-      await supabase.functions.invoke('increment-story-views', {
-        body: { storyId }
-      });
+      // Option 1: Stocker chaque vue (plus de détails, plus d'écritures)
+      // const storyViewRef = collection(db, 'stories', storyId, 'views');
+      // await addDoc(storyViewRef, {
+      //   viewerId: userId,
+      //   viewedAt: serverTimestamp(),
+      //   viewDuration
+      // });
+
+      // Option 2: Juste appeler la fonction pour incrémenter le compteur global
+      // La fonction Firebase `incrementStoryViews` devrait aussi gérer la logique pour ne pas compter plusieurs vues du même utilisateur si nécessaire.
+      await incrementStoryViewsFunction({ storyId: storyId, userId: userId });
+      console.log(`Story ${storyId} view increment attempted by ${userId}`);
+
     } catch (error) {
-      console.error('Error incrementing story views:', error);
+      console.error('Error marking story as viewed / incrementing views:', error);
+      // Ne pas nécessairement propager l'erreur pour ne pas bloquer l'UI pour une simple vue.
     }
   },
-  
-  // Supprimer une story
-  async deleteStory(storyId: string): Promise<void> {
-    const { error } = await supabase
-      .from('stories')
-      .delete()
-      .eq('id', storyId);
-    
-    if (error) {
-      console.error('Error deleting story:', error);
+
+  // Supprimer une story (document Firestore et média sur Firebase Storage)
+  async deleteStory(storyId: string, mediaUrl?: string, thumbnailUrl?: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'stories', storyId));
+      
+      // Supprimer les fichiers de Firebase Storage
+      const storage = getStorage();
+      if (mediaUrl) {
+        try {
+          const mediaRef = ref(storage, mediaUrl); // mediaUrl doit être l'URL complète de Firebase Storage
+          await deleteDoc(mediaRef as any); // deleteObject de firebase/storage
+        } catch (storageError) {
+            console.warn(`Failed to delete story media ${mediaUrl} from Firebase Storage:`, storageError);
+        }
+      }
+      if (thumbnailUrl) {
+         try {
+          const thumbRef = ref(storage, thumbnailUrl);
+          await deleteDoc(thumbRef as any); // deleteObject de firebase/storage
+        } catch (storageError) {
+            console.warn(`Failed to delete story thumbnail ${thumbnailUrl} from Firebase Storage:`, storageError);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting story from Firestore:', error);
       throw error;
     }
   },
-  
-  // Récupérer les vues d'une story
-  async getStoryViews(storyId: string): Promise<StoryView[]> {
-    const { data, error } = await supabase
-      .from('story_views')
-      .select(`
-        *,
-        user_profiles:viewer_id(*)
-      `)
-      .eq('story_id', storyId)
-      .order('viewed_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching story views:', error);
+
+  // Récupérer les vues d'une story (si vous stockez les vues individuelles)
+  async getStoryViews(storyId: string): Promise<any[]> { // Adapter le type de retour
+    try {
+      const viewsCollectionRef = collection(db, 'stories', storyId, 'views');
+      const q = query(viewsCollectionRef, orderBy('viewedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      // Ici, vous pourriez vouloir récupérer les profils des viewers si besoin
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching story views from Firestore:', error);
       throw error;
     }
-    
-    return data || [];
   }
 };

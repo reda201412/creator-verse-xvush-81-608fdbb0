@@ -1,9 +1,15 @@
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { WalletResponse } from '@/types/messaging';
+// import { getFunctions, httpsCallable } from 'firebase/functions'; // Commenté
+
+// const functions = getFunctions(); // Commenté
+// const callTronWalletFunction = httpsCallable(functions, 'tronWallet'); // Commenté
+// const callTronTransactionVerifyFunction = httpsCallable(functions, 'tronTransactionVerify'); // Commenté
+// const callDecrementBalanceFunction = httpsCallable(functions, 'decrementBalance'); // Commenté
+// const callCheckContentAccessFunction = httpsCallable(functions, 'checkContentAccess'); // Commenté
 
 export function useTronWallet() {
   const { user } = useAuth();
@@ -13,280 +19,103 @@ export function useTronWallet() {
 
   const getWalletInfo = useCallback(async () => {
     if (!user) {
-      setError("Vous devez être connecté pour accéder à votre portefeuille");
+      setError("Connectez-vous pour voir le portefeuille.");
       return null;
     }
-
+    console.warn("TRON Wallet: getWalletInfo called, but TRON integration is being replaced. Returning mock data.");
     setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-wallet', {
-        body: { operation: 'get_wallet_info' },
-      });
-
-      if (error) throw new Error(error.message);
-      setWalletInfo(data);
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations du portefeuille";
-      setError(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    // MOCK IMPLEMENTATION
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const mockData: WalletResponse = {
+        wallet: {
+            tron_address: "TRON_ADDRESS_MOCK",
+            balance_trx: 100,
+            balance_usdt: 50,
+            created_at: new Date().toISOString(),
+            user_id: user.uid
+        }
+    };
+    setWalletInfo(mockData);
+    setLoading(false);
+    return mockData;
+    // setLoading(true);
+    // setError(null);
+    // try {
+    //   const result = await callTronWalletFunction({ operation: 'get_wallet_info' });
+    //   const data = result.data as WalletResponse;
+    //   setWalletInfo(data);
+    //   return data;
+    // } catch (err) { /* ... */ }
+    // finally { setLoading(false); }
   }, [user]);
 
   const createWallet = async () => {
     if (!user) {
-      setError("Vous devez être connecté pour créer un portefeuille");
+      setError("Connectez-vous pour créer un portefeuille.");
       return null;
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-wallet', {
-        body: { operation: 'create_wallet' },
-      });
-
-      if (error) throw new Error(error.message);
-      toast.success("Portefeuille créé avec succès");
-      await getWalletInfo(); // Refresh wallet info
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la création du portefeuille";
-      setError(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: createWallet called, but TRON integration is being replaced.");
+    toast.info("La création de portefeuille TRON est temporairement désactivée.");
+    return null;
   };
 
-  const verifyTransaction = async (params: {
-    txHash: string;
-    amount: number;
-    purpose: 'purchase' | 'subscription' | 'message_support';
-    contentId?: string;
-    tierId?: string;
-    recipientId?: string;
-    fromAddress?: string;
-  }) => {
+  const verifyTransaction = async (params: any) => {
     if (!user) {
-      setError("Vous devez être connecté pour vérifier une transaction");
+      setError("Connectez-vous pour vérifier une transaction.");
       return null;
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Use the Edge Function to verify the transaction on the blockchain
-      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
-        body: { 
-          operation: 'verify_transaction',
-          data: params
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      toast.success("Transaction vérifiée avec succès");
-      await getWalletInfo(); // Refresh wallet info
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la vérification de la transaction";
-      setError(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: verifyTransaction called, but TRON integration is being replaced.");
+    toast.info("La vérification de transaction TRON est temporairement désactivée.");
+    return { success: true, message: "Mock verification" }; // Mock success
   };
 
   const decrementBalance = async (amount: number) => {
     if (!user) {
-      setError("Vous devez être connecté pour effectuer cette opération");
+      setError("Connectez-vous pour cette opération.");
       return false;
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('decrement_balance', {
-        body: { 
-          userId: user.id,
-          amount: amount
-        }
-      });
-
-      if (error) throw new Error(error.message);
-      toast.success(`Solde débité de ${amount} USDT`);
-      await getWalletInfo(); // Refresh wallet info
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors du débit du solde";
-      setError(message);
-      toast.error(message);
-      return false;
-    } finally {
-      setLoading(false);
+    console.warn("TRON Wallet: decrementBalance called, but TRON integration is being replaced.");
+    toast.info("La fonction de décrémentation de solde TRON est temporairement désactivée.");
+    // Simuler une décrémentation locale pour l'UI si nécessaire, mais sans appel backend
+    if (walletInfo && walletInfo.wallet) {
+        // setWalletInfo(prev => prev ? ({...prev, wallet: {...prev.wallet, balance_usdt: prev.wallet.balance_usdt - amount }}) : null);
     }
+    return true; // Mock success
   };
 
-  const requestWithdrawal = async (params: {
-    amount: number;
-    destinationAddress: string;
-  }) => {
+  const requestWithdrawal = async (params: any) => {
     if (!user) {
-      setError("Vous devez être connecté pour effectuer un retrait");
+      setError("Connectez-vous pour un retrait.");
       return null;
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-wallet', {
-        body: { 
-          operation: 'request_withdrawal',
-          data: params
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      toast.success("Demande de retrait soumise avec succès");
-      await getWalletInfo(); // Refresh wallet info
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la demande de retrait";
-      setError(message);
-      toast.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: requestWithdrawal called, but TRON integration is being replaced.");
+    toast.info("Les retraits TRON sont temporairement désactivés.");
+    return null;
   };
 
-  const checkContentAccess = async (contentId: string | number) => {
+  const checkContentAccess = async (contentId: string | number): Promise<{ hasAccess: boolean; reason?: string; message?: string }> => {
     if (!user) {
       return { hasAccess: false, reason: 'not_authenticated' };
     }
-
-    try {
-      // Using our edge function instead of RPC
-      const { data, error } = await supabase.functions.invoke('check-content-access', {
-        body: { contentId }
-      });
-
-      if (error) throw new Error(error.message);
-      return data || { hasAccess: false, reason: 'unknown' };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la vérification de l'accès au contenu";
-      toast.error(message);
-      return { hasAccess: false, reason: 'error', message };
-    }
+    console.warn("TRON Wallet: checkContentAccess called, TRON logic removed. Returning mock access.");
+    // Simuler l'accès pour ne pas bloquer l'UI, à remplacer par la logique NowPayments ou autre.
+    return { hasAccess: true, reason: 'mock_access_granted' }; 
   };
-
-  // Function to get information about a transaction
+  
+  // Les fonctions getTransactionInfo, getAccountInfo, getPlatformWallet peuvent aussi retourner des mocks ou null
   const getTransactionInfo = async (txHash: string) => {
-    if (!user) {
-      setError("Vous devez être connecté pour accéder aux informations de transaction");
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
-        body: { 
-          operation: 'get_transaction',
-          data: { txHash }
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations de transaction";
-      setError(message);
-      console.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: getTransactionInfo disabled."); return null;
   };
-
-  // Function to get information about a TRON account
   const getAccountInfo = async (address: string) => {
-    if (!user) {
-      setError("Vous devez être connecté pour accéder aux informations de compte");
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-transaction-verify', {
-        body: { 
-          operation: 'get_account',
-          data: { address }
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations de compte";
-      setError(message);
-      console.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: getAccountInfo disabled."); return null;
   };
-
-  // Function to get platform wallet
   const getPlatformWallet = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('tron-wallet', {
-        body: { 
-          operation: 'get_platform_wallet'
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la récupération des informations du portefeuille de la plateforme";
-      setError(message);
-      console.error(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
+    console.warn("TRON Wallet: getPlatformWallet disabled."); return null;
   };
 
   return {
-    walletInfo,
-    loading,
-    error,
-    getWalletInfo,
-    createWallet,
-    verifyTransaction,
-    decrementBalance,
-    requestWithdrawal,
-    checkContentAccess,
-    getTransactionInfo,
-    getAccountInfo,
-    getPlatformWallet
+    walletInfo, loading, error, getWalletInfo, createWallet, verifyTransaction, 
+    decrementBalance, requestWithdrawal, checkContentAccess, getTransactionInfo, 
+    getAccountInfo, getPlatformWallet
   };
 }

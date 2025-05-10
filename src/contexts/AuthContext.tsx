@@ -1,164 +1,149 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/integrations/firebase/firebase'; // Importation de la config Firebase
 
-type UserProfile = {
-  id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
+console.log("AuthContext: Script loaded"); // Log au chargement du script
+
+// Définition du type pour le profil utilisateur stocké dans Firestore
+export type UserProfile = {
+  uid: string; // ID de l'utilisateur Firebase
+  email: string | null;
+  username: string; // Assurez-vous que le username est défini lors de l'inscription
+  displayName: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   role: 'fan' | 'creator';
+  createdAt: any; // Utiliser serverTimestamp pour la date de création
+  updatedAt?: any; // Utiliser serverTimestamp pour la date de mise à jour
 };
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  profile: UserProfile | null;
-  isLoading: boolean;
+  user: User | null; 
+  profile: UserProfile | null; 
+  isLoading: boolean; 
   isCreator: boolean;
-  signOut: () => Promise<void>;
+  firebaseSignOut: () => Promise<void>; 
   refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  updateUserProfile: (updates: Partial<Omit<UserProfile, 'uid' | 'email' | 'createdAt'>>) => Promise<void>;
   becomeCreator: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+  console.log("AuthProvider: Component rendering/mounting");
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Use setTimeout to avoid potential deadlocks with Supabase auth
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
+    console.log("AuthProvider: useEffect for onAuthStateChanged running");
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("AuthProvider: onAuthStateChanged callback triggered. User:", firebaseUser?.uid || 'null');
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        console.log("AuthProvider: User is logged in, fetching profile...");
+        await fetchOrCreateUserProfile(firebaseUser);
       } else {
+        console.log("AuthProvider: User is logged out.");
+        setProfile(null);
         setIsLoading(false);
       }
     });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("AuthProvider: Unsubscribing from onAuthStateChanged");
+      unsubscribe();
+    }
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchOrCreateUserProfile = async (firebaseUser: User) => {
+    if (!firebaseUser) {
+      console.log("fetchOrCreateUserProfile: firebaseUser is null, returning.");
+      return;
+    }
+    console.log(`fetchOrCreateUserProfile: Attempting to fetch profile for UID: ${firebaseUser.uid}`);
+    setIsLoading(true); // Assurez-vous que isLoading est vrai pendant le fetch
+    const userRef = doc(db, 'users', firebaseUser.uid);
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        setProfile(null);
+      const docSnap = await getDoc(userRef);
+      if (docSnap.exists()) {
+        const userProfileData = docSnap.data() as UserProfile;
+        console.log("fetchOrCreateUserProfile: Profile found in Firestore:", userProfileData);
+        setProfile(userProfileData);
       } else {
-        setProfile(data as UserProfile);
+        console.warn(`fetchOrCreateUserProfile: Profile NOT found in Firestore for UID: ${firebaseUser.uid}. User might need to complete sign-up or profile creation.`);
+        setProfile(null); 
       }
     } catch (error) {
-      console.error('Exception fetching user profile:', error);
+      console.error("fetchOrCreateUserProfile: Error fetching user profile from Firestore:", error);
       setProfile(null);
     } finally {
+      console.log("fetchOrCreateUserProfile: Finished fetching profile, setting isLoading to false.");
       setIsLoading(false);
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchUserProfile(user.id);
+      console.log("refreshProfile: Refreshing profile for user:", user.uid);
+      await fetchOrCreateUserProfile(user);
+    } else {
+      console.log("refreshProfile: No user to refresh profile for.");
     }
   };
 
-  const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return;
-
+  const updateUserProfile = async (updates: Partial<Omit<UserProfile, 'uid' | 'email' | 'createdAt'>>) => {
+    if (!user) throw new Error("Utilisateur non authentifié pour mettre à jour le profil.");
+    console.log("updateUserProfile: Updating profile for user:", user.uid, "with updates:", updates);
+    const userRef = doc(db, 'users', user.uid);
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) throw error;
-      
-      // Refresh profile data
-      await refreshProfile();
+      await updateDoc(userRef, { ...updates, updatedAt: serverTimestamp() });
+      await refreshProfile(); 
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Erreur lors de la mise à jour du profil:", error);
       throw error;
     }
   };
 
   const becomeCreator = async () => {
-    if (!user) return;
-
+    if (!user || !profile) throw new Error("Utilisateur ou profil non disponible pour devenir créateur.");
+    if (profile.role === 'creator') {
+        console.log("becomeCreator: User is already a creator.");
+        return;
+    }
+    console.log("becomeCreator: Attempting to make user a creator:", user.uid);
+    const userRef = doc(db, 'users', user.uid);
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ role: 'creator' })
-        .eq('id', user.id);
-
-      if (error) throw error;
-      
-      // Create entry in creators table
-      const { error: creatorError } = await supabase
-        .from('creators')
-        .insert({
-          username: profile?.username,
-          name: profile?.display_name || profile?.username,
-          user_id: user.id
-        });
-
-      if (creatorError) throw creatorError;
-      
-      // Refresh profile data
+      await updateDoc(userRef, { role: 'creator', updatedAt: serverTimestamp() });
       await refreshProfile();
     } catch (error) {
-      console.error('Error becoming creator:', error);
+      console.error("Erreur lors du passage au rôle créateur:", error);
       throw error;
     }
   };
 
-  const signOut = async () => {
+  const handleFirebaseSignOut = async () => {
+    console.log("handleFirebaseSignOut: Attempting to sign out...");
     try {
-      await supabase.auth.signOut();
+      await firebaseSignOut(auth);
+      console.log("handleFirebaseSignOut: Sign out successful.");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Erreur de déconnexion Firebase:", error);
+      throw error; 
     }
   };
 
+  console.log("AuthProvider: Preparing context value. User:", user?.uid, "Profile:", profile, "isLoading:", isLoading);
   const value = {
-    session,
     user,
     profile,
     isLoading,
     isCreator: profile?.role === 'creator',
-    signOut,
+    firebaseSignOut: handleFirebaseSignOut,
     refreshProfile,
-    updateProfile,
+    updateUserProfile,
     becomeCreator
   };
 
@@ -168,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth doit être utilisé au sein d'un AuthProvider");
   }
   return context;
 };
