@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Line, Pie, Bar } from 'recharts';
+import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getVideoStats } from '@/services/videoService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -80,10 +80,10 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
   ];
 
   const audienceData = [
-    { age: '18-24', percentage: 35 },
-    { age: '25-34', percentage: 45 },
-    { age: '35-44', percentage: 15 },
-    { age: '45+', percentage: 5 },
+    { name: '18-24', value: 35 },
+    { name: '25-34', value: 45 },
+    { name: '35-44', value: 15 },
+    { name: '45+', value: 5 },
   ];
 
   // Format watch time in a human-readable format
@@ -156,19 +156,29 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
                     <CardTitle>Évolution des vues</CardTitle>
                   </CardHeader>
                   <CardContent className="h-80">
-                    <Line
-                      width={700}
-                      height={300}
-                      data={viewsData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <Line
-                        type="monotone"
-                        dataKey="views"
-                        stroke="#8884d8"
-                        strokeWidth={2}
-                      />
-                    </Line>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart
+                        data={viewsData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="views"
+                          stroke="#8884d8"
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
                 
@@ -179,7 +189,7 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
                   </p>
                   <p className="text-sm mt-2 text-muted-foreground">
                     Le taux d'engagement de cette vidéo est {stats && stats.views > 0 ? ((stats.likes / stats.views) * 100).toFixed(1) : '0'}%, 
-                    ce qui est {stats && stats.views > 0 && (stats.likes / stats.views) > 0.05 ? 'au-dessus' : 'en-dessous'} de la moyenne.
+                    ce qui est {stats && stats.views > 0 && ((stats.likes / stats.views) > 0.05) ? 'au-dessus' : 'en-dessous'} de la moyenne.
                   </p>
                 </div>
               </TabsContent>
@@ -191,17 +201,22 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
                       <CardTitle>Répartition de l'engagement</CardTitle>
                     </CardHeader>
                     <CardContent className="h-80">
-                      <Pie
-                        width={300}
-                        height={300}
-                        data={engagementData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      />
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={engagementData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                            fill="#8884d8"
+                          />
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </CardContent>
                   </Card>
                   
@@ -232,7 +247,7 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
                             <TrendingUp className="h-4 w-4 mr-2 text-purple-500" />
                             <span>Taux de clic</span>
                           </div>
-                          <span className="font-medium">{Math.random().toFixed(2) * 100}%</span>
+                          <span className="font-medium">{(Math.random() * 100).toFixed(2)}%</span>
                         </div>
                       </div>
                     </CardContent>
@@ -246,14 +261,24 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClo
                     <CardTitle>Démographie du public</CardTitle>
                   </CardHeader>
                   <CardContent className="h-80">
-                    <Bar
-                      width={700}
-                      height={300}
-                      data={audienceData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <Bar dataKey="percentage" fill="#8884d8" />
-                    </Bar>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={audienceData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="value" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </TabsContent>

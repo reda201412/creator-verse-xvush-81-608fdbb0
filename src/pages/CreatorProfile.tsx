@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -71,24 +70,22 @@ const CreatorProfile: React.FC = () => {
         const videos = await getCreatorVideos(creatorId);
         
         // Transform videos to match the expected content format
-        const transformedVideos = videos.map(video => {
-          return {
-            id: video.id.toString(),
-            imageUrl: video.thumbnail_url || "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
-            title: video.title || "Sans titre",
-            type: (video.type as any) || "standard",
-            format: video.format === '9:16' ? "video" : "image",
-            duration: Math.floor(Math.random() * 600) + 60, // Random duration for now
-            metrics: {
-              likes: Math.floor(Math.random() * 2000) + 100,
-              comments: Math.floor(Math.random() * 200) + 10,
-              views: Math.floor(Math.random() * 10000) + 500,
-              revenue: video.is_premium ? Math.floor(Math.random() * 500) + 100 : undefined,
-              growth: Math.floor(Math.random() * 20)
-            },
-            videoUrl: video.video_url
-          };
-        });
+        const transformedVideos = videos.map(video => ({
+          id: video.id.toString(),
+          imageUrl: video.thumbnail_url || "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
+          title: video.title || "Sans titre",
+          type: (video.type as any) || "standard",
+          format: video.format === '9:16' ? "video" : "image",
+          duration: Math.floor(Math.random() * 600) + 60, // Random duration for now
+          metrics: {
+            likes: Math.floor(Math.random() * 2000) + 100,
+            comments: Math.floor(Math.random() * 200) + 10,
+            views: Math.floor(Math.random() * 10000) + 500,
+            revenue: video.is_premium ? Math.floor(Math.random() * 500) + 100 : undefined,
+            growth: Math.floor(Math.random() * 20)
+          },
+          videoUrl: video.video_url
+        }));
         
         setCreatorContent(transformedVideos);
         
