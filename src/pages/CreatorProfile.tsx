@@ -108,9 +108,9 @@ const CreatorProfile: React.FC = () => {
   };
 
   const handleSubscribe = (tier: string) => {
-    toast({
-      title: `Abonnement ${tier} sélectionné`,
-      description: "Vous allez être redirigé vers la page de paiement",
+    // Fix: Using the correct toast format
+    toast(`Abonnement ${tier} sélectionné`, {
+      description: "Vous allez être redirigé vers la page de paiement"
     });
   };
 
