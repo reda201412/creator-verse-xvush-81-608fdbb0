@@ -6,6 +6,9 @@ export interface VideoRestrictions {
   sharingAllowed?: boolean;
   downloadsAllowed?: boolean;
   expiresAt?: Date;
+  ephemeralMode?: boolean;
+  maxViews?: number;
+  notifyOnScreenshot?: boolean;
 }
 
 export interface VideoMetadata {
@@ -21,4 +24,11 @@ export interface VideoMetadata {
   isPremium: boolean;
   tokenPrice?: number;
   restrictions?: VideoRestrictions;
+  ephemeralOptions?: {
+    ephemeral_mode: boolean;
+    expires_after: number | null;
+    max_views: number | null;
+    notify_on_screenshot: boolean;
+    current_views: number;
+  } | null;
 }

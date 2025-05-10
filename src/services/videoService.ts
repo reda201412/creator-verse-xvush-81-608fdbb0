@@ -1,5 +1,17 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { incrementEphemeralView, checkEphemeralAccess } from './ephemeralVideoService';
+
+/**
+ * Interface pour les statistiques vidéo
+ */
+export interface VideoStats {
+  video_id: number;
+  views: number;
+  likes: number;
+  comments_count: number;
+  avg_watch_time_seconds: number;
+  last_updated_at: string;
+}
 
 /**
  * Increment the view count for a video
@@ -20,6 +32,17 @@ export const incrementVideoViews = async (videoId: string | number) => {
     if (error) {
       console.error('Error fetching video stats:', error);
       return;
+    }
+
+    // Si la vidéo a des options éphémères, incrémenter également le compteur éphémère
+    const { data: videoData } = await supabase
+      .from('videos')
+      .select('ephemeral_options')
+      .eq('id', numericId)
+      .maybeSingle();
+      
+    if (videoData?.ephemeral_options?.ephemeral_mode) {
+      await incrementEphemeralView(numericId);
     }
 
     if (data) {
@@ -176,6 +199,21 @@ export const getVideoById = async (videoId: string | number) => {
     // Convert string ID to number if necessary
     const numericId = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
     
+    // Vérifier si la vidéo est accessible selon les contraintes éphémères
+    const ephemeralAccess = await checkEphemeralAccess(numericId);
+    if (!ephemeralAccess.canAccess) {
+      return {
+        error: true,
+        reason: ephemeralAccess.reason,
+        message: 
+          ephemeralAccess.reason === 'expired' 
+            ? 'Cette vidéo a expiré et n\'est plus disponible.' 
+            : ephemeralAccess.reason === 'max_views_reached'
+            ? 'Cette vidéo a atteint son nombre maximum de vues.'
+            : 'Cette vidéo n\'est pas accessible.'
+      };
+    }
+    
     // Fetch video data
     const { data, error } = await supabase
       .from('videos')
@@ -219,7 +257,7 @@ export const getVideoById = async (videoId: string | number) => {
  * Get video statistics
  * @param videoId The ID of the video
  */
-export const getVideoStats = async (videoId: string | number) => {
+export const getVideoStats = async (videoId: string | number): Promise<VideoStats | null> => {
   try {
     // Convert string ID to number if necessary
     const numericId = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
@@ -247,7 +285,7 @@ export const getVideoStats = async (videoId: string | number) => {
       };
     }
 
-    return data;
+    return data as VideoStats;
   } catch (error) {
     console.error('Error in getVideoStats:', error);
     return null;
