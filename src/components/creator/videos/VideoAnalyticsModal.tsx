@@ -1,420 +1,274 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EyeIcon, TrendingUp, DollarSign, ChartBar } from 'lucide-react';
-import { getVideoById } from '@/integrations/supabase/client';
-import { formatNumber } from '@/lib/utils';
+import { Line, Pie, Bar } from 'recharts';
+import { getVideoStats } from '@/services/videoService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Eye, ThumbsUp, MessageSquare, Clock, TrendingUp, Users } from 'lucide-react';
 
 interface VideoAnalyticsModalProps {
-  videoId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  videoId: string | null;
 }
 
-interface VideoAnalytics {
+interface VideoStats {
+  video_id: number;
   views: number;
-  uniqueViewers: number;
-  watchTime: number;
-  completionRate: number;
-  revenue: number;
   likes: number;
-  comments: number;
-  shares: number;
-  dailyViews: { date: string; views: number }[];
-  engagement: { name: string; value: number }[];
-  revenueBreakdown: { source: string; amount: number }[];
+  comments_count: number;
+  avg_watch_time_seconds: number;
+  last_updated_at: string;
 }
 
-const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOpen, onClose }) => {
-  const [videoDetails, setVideoDetails] = useState<any>(null);
-  const [analytics, setAnalytics] = useState<VideoAnalytics | null>(null);
+const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ isOpen, onClose, videoId }) => {
+  const [stats, setStats] = useState<VideoStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
+  // Fetch video statistics
   useEffect(() => {
-    if (isOpen && videoId) {
+    const fetchVideoStats = async () => {
+      if (!videoId || !isOpen) return;
+      
       setLoading(true);
       
-      // Fetch video details
-      const fetchVideoDetails = async () => {
-        try {
-          const { data, error } = await getVideoById(videoId);
-          if (error) throw error;
-          setVideoDetails(data);
-        } catch (error) {
-          console.error('Error fetching video details:', error);
-        }
-      };
-
-      // Generate mock analytics data (this would be real data in production)
-      const generateMockAnalytics = () => {
-        const mockAnalytics: VideoAnalytics = {
-          views: Math.floor(Math.random() * 15000) + 500,
-          uniqueViewers: Math.floor(Math.random() * 8000) + 300,
-          watchTime: Math.floor(Math.random() * 100) + 20,
-          completionRate: Math.random() * 0.5 + 0.4,
-          revenue: Math.floor(Math.random() * 1000) + 50,
-          likes: Math.floor(Math.random() * 2000) + 100,
-          comments: Math.floor(Math.random() * 300) + 10,
-          shares: Math.floor(Math.random() * 500) + 20,
-          dailyViews: [],
-          engagement: [
-            { name: 'Likes', value: 0 },
-            { name: 'Comments', value: 0 },
-            { name: 'Shares', value: 0 },
-            { name: 'Saves', value: Math.floor(Math.random() * 400) + 30 }
-          ],
-          revenueBreakdown: [
-            { source: 'Premium Access', amount: 0 },
-            { source: 'Tips', amount: Math.floor(Math.random() * 200) + 20 },
-            { source: 'Sponsorships', amount: Math.floor(Math.random() * 300) + 30 }
-          ]
-        };
-
-        // Generate daily views for the past 30 days
-        const today = new Date();
-        for (let i = 29; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const day = date.toISOString().split('T')[0];
-          mockAnalytics.dailyViews.push({
-            date: day,
-            views: Math.floor(Math.random() * 500) + 10
+      try {
+        const videoStats = await getVideoStats(videoId);
+        console.log("Fetched video stats:", videoStats);
+        
+        if (videoStats) {
+          setStats(videoStats);
+        } else {
+          // If no stats exist yet, create mock data for display
+          setStats({
+            video_id: parseInt(videoId),
+            views: 0,
+            likes: 0,
+            comments_count: 0,
+            avg_watch_time_seconds: 0,
+            last_updated_at: new Date().toISOString()
           });
         }
-
-        // Update engagement values
-        mockAnalytics.engagement[0].value = mockAnalytics.likes;
-        mockAnalytics.engagement[1].value = mockAnalytics.comments;
-        mockAnalytics.engagement[2].value = mockAnalytics.shares;
-
-        // Update revenue breakdown
-        mockAnalytics.revenueBreakdown[0].amount = Math.floor(mockAnalytics.revenue * 0.6);
-
-        setAnalytics(mockAnalytics);
+      } catch (error) {
+        console.error("Error fetching video stats:", error);
+      } finally {
         setLoading(false);
-      };
+      }
+    };
 
-      fetchVideoDetails();
-      generateMockAnalytics();
-    }
-  }, [isOpen, videoId]);
+    fetchVideoStats();
+  }, [videoId, isOpen]);
 
-  if (!isOpen) return null;
+  // Sample time series data for charts (would be replaced with real data in production)
+  const viewsData = [
+    { date: '01/05', views: 120 },
+    { date: '02/05', views: 180 },
+    { date: '03/05', views: 200 },
+    { date: '04/05', views: 350 },
+    { date: '05/05', views: 290 },
+    { date: '06/05', views: 400 },
+    { date: '07/05', views: stats?.views || 450 },
+  ];
+
+  const engagementData = [
+    { name: 'Likes', value: stats?.likes || 0, color: '#10b981' },
+    { name: 'Comments', value: stats?.comments_count || 0, color: '#3b82f6' },
+    { name: 'Shares', value: Math.floor(Math.random() * 50), color: '#8b5cf6' },
+  ];
+
+  const audienceData = [
+    { age: '18-24', percentage: 35 },
+    { age: '25-34', percentage: 45 },
+    { age: '35-44', percentage: 15 },
+    { age: '45+', percentage: 5 },
+  ];
+
+  // Format watch time in a human-readable format
+  const formatWatchTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)} secondes`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+    return `${(seconds / 3600).toFixed(1)} heures`;
+  };
+
+  // Format date to locale string
+  const formatDate = (dateStr: string): string => {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="sm:max-w-4xl">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            {loading ? 'Chargement des statistiques...' : `Statistiques: ${videoDetails?.title || 'Vidéo'}`}
-          </DialogTitle>
+          <DialogTitle>Analytiques de la vidéo</DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardContent className="pt-6 flex flex-col items-center">
+                  <Eye className="h-8 w-8 text-blue-500 mb-2" />
+                  <p className="text-sm text-muted-foreground">Vues</p>
+                  <h3 className="text-2xl font-bold">{stats?.views.toLocaleString()}</h3>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6 flex flex-col items-center">
+                  <ThumbsUp className="h-8 w-8 text-green-500 mb-2" />
+                  <p className="text-sm text-muted-foreground">Likes</p>
+                  <h3 className="text-2xl font-bold">{stats?.likes.toLocaleString()}</h3>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6 flex flex-col items-center">
+                  <Clock className="h-8 w-8 text-amber-500 mb-2" />
+                  <p className="text-sm text-muted-foreground">Temps moyen de visionnage</p>
+                  <h3 className="text-2xl font-bold">{formatWatchTime(stats?.avg_watch_time_seconds || 0)}</h3>
+                </CardContent>
+              </Card>
+            </div>
+
             <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4 mb-4">
+              <TabsList className="grid grid-cols-3 mb-6">
                 <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
                 <TabsTrigger value="engagement">Engagement</TabsTrigger>
-                <TabsTrigger value="revenue">Revenus</TabsTrigger>
                 <TabsTrigger value="audience">Audience</TabsTrigger>
               </TabsList>
-
+              
               <TabsContent value="overview" className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Évolution des vues</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <Line
+                      width={700}
+                      height={300}
+                      data={viewsData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <Line
+                        type="monotone"
+                        dataKey="views"
+                        stroke="#8884d8"
+                        strokeWidth={2}
+                      />
+                    </Line>
+                  </CardContent>
+                </Card>
+                
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="font-medium mb-2">Informations supplémentaires</div>
+                  <p className="text-sm text-muted-foreground">
+                    Dernière mise à jour: {stats?.last_updated_at ? formatDate(stats.last_updated_at) : 'Jamais'}
+                  </p>
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    Le taux d'engagement de cette vidéo est {stats && stats.views > 0 ? ((stats.likes / stats.views) * 100).toFixed(1) : '0'}%, 
+                    ce qui est {stats && stats.views > 0 && (stats.likes / stats.views) > 0.05 ? 'au-dessus' : 'en-dessous'} de la moyenne.
+                  </p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="engagement">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Vues totales</p>
-                          <p className="text-2xl font-bold">{formatNumber(analytics?.views || 0)}</p>
-                        </div>
-                        <EyeIcon className="h-5 w-5 text-blue-500" />
-                      </div>
+                    <CardHeader>
+                      <CardTitle>Répartition de l'engagement</CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-80">
+                      <Pie
+                        width={300}
+                        height={300}
+                        data={engagementData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      />
                     </CardContent>
                   </Card>
                   
                   <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Taux d'achèvement</p>
-                          <p className="text-2xl font-bold">{Math.round((analytics?.completionRate || 0) * 100)}%</p>
+                    <CardHeader>
+                      <CardTitle>Statistiques d'engagement</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
+                            <span>Likes</span>
+                          </div>
+                          <span className="font-medium">{stats?.likes.toLocaleString()}</span>
                         </div>
-                        <TrendingUp className="h-5 w-5 text-green-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Revenus</p>
-                          <p className="text-2xl font-bold">{analytics?.revenue} €</p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <MessageSquare className="h-4 w-4 mr-2 text-blue-500" />
+                            <span>Commentaires</span>
+                          </div>
+                          <span className="font-medium">{stats?.comments_count.toLocaleString()}</span>
                         </div>
-                        <DollarSign className="h-5 w-5 text-amber-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Engagement</p>
-                          <p className="text-2xl font-bold">{analytics ? analytics.likes + analytics.comments + analytics.shares : 0}</p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <TrendingUp className="h-4 w-4 mr-2 text-purple-500" />
+                            <span>Taux de clic</span>
+                          </div>
+                          <span className="font-medium">{Math.random().toFixed(2) * 100}%</span>
                         </div>
-                        <ChartBar className="h-5 w-5 text-purple-500" />
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-
+              </TabsContent>
+              
+              <TabsContent value="audience">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Vues au fil du temps</CardTitle>
+                    <CardTitle>Démographie du public</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        views: { label: 'Vues', color: '#4f46e5' },
-                      }}
-                      className="aspect-[4/3] md:aspect-[2/1] lg:aspect-[3/1]"
+                  <CardContent className="h-80">
+                    <Bar
+                      width={700}
+                      height={300}
+                      data={audienceData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={analytics?.dailyViews}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis 
-                            dataKey="date" 
-                            tickFormatter={(value) => new Date(value).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
-                            tick={{ fontSize: 12 }}
-                            tickMargin={10}
-                          />
-                          <YAxis />
-                          <ChartTooltip
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <ChartTooltipContent
-                                    label={new Date(label).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                    payload={payload}
-                                  />
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="views" 
-                            name="views" 
-                            stroke="#4f46e5" 
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="engagement" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Statistiques d'engagement</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">J'aime</p>
-                        <p className="text-2xl font-bold">{formatNumber(analytics?.likes || 0)}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Commentaires</p>
-                        <p className="text-2xl font-bold">{formatNumber(analytics?.comments || 0)}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Partages</p>
-                        <p className="text-2xl font-bold">{formatNumber(analytics?.shares || 0)}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Enregistrements</p>
-                        <p className="text-2xl font-bold">{formatNumber(analytics?.engagement?.[3].value || 0)}</p>
-                      </div>
-                    </div>
-                    
-                    <ChartContainer
-                      config={{
-                        engagement: { label: 'Engagement', color: '#8b5cf6' },
-                      }}
-                      className="aspect-[3/2]"
-                    >
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={analytics?.engagement}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="value" name="engagement" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="revenue" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Aperçu des revenus</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-6">
-                      <div className="text-3xl font-bold mb-1">{analytics?.revenue} €</div>
-                      <p className="text-sm text-muted-foreground">Revenus totaux générés par cette vidéo</p>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-medium mb-2">Revenus par source</h4>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Source</TableHead>
-                              <TableHead className="text-right">Montant</TableHead>
-                              <TableHead className="text-right">Pourcentage</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {analytics?.revenueBreakdown.map((item) => (
-                              <TableRow key={item.source}>
-                                <TableCell>{item.source}</TableCell>
-                                <TableCell className="text-right">{item.amount} €</TableCell>
-                                <TableCell className="text-right">
-                                  {analytics.revenue ? Math.round((item.amount / analytics.revenue) * 100) : 0}%
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium mb-2">Répartition des revenus</h4>
-                        <ChartContainer
-                          config={{
-                            revenue: { label: 'Revenus', color: '#f59e0b' },
-                          }}
-                        >
-                          <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={analytics?.revenueBreakdown}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                              <XAxis dataKey="source" />
-                              <YAxis />
-                              <ChartTooltip content={<ChartTooltipContent />} />
-                              <Bar dataKey="amount" name="revenue" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </ChartContainer>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="audience" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Informations sur l'audience</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Spectateurs uniques</p>
-                        <p className="text-2xl font-bold">{formatNumber(analytics?.uniqueViewers || 0)}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Temps de visionnage (heures)</p>
-                        <p className="text-2xl font-bold">{analytics?.watchTime || 0}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-medium mb-2">Statistiques de rétention</h4>
-                        <div className="bg-muted rounded-md p-4">
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-muted-foreground">Taux d'achèvement</span>
-                            <span className="font-medium">{Math.round((analytics?.completionRate || 0) * 100)}%</span>
-                          </div>
-                          <div className="w-full bg-muted-foreground/20 rounded-full h-2.5">
-                            <div 
-                              className="bg-primary h-2.5 rounded-full" 
-                              style={{ width: `${Math.round((analytics?.completionRate || 0) * 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium mb-2">Sources de trafic</h4>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Source</TableHead>
-                              <TableHead className="text-right">Vues</TableHead>
-                              <TableHead className="text-right">Pourcentage</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            <TableRow>
-                              <TableCell>Profil</TableCell>
-                              <TableCell className="text-right">{Math.round((analytics?.views || 0) * 0.45)}</TableCell>
-                              <TableCell className="text-right">45%</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Recherche</TableCell>
-                              <TableCell className="text-right">{Math.round((analytics?.views || 0) * 0.25)}</TableCell>
-                              <TableCell className="text-right">25%</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Externe</TableCell>
-                              <TableCell className="text-right">{Math.round((analytics?.views || 0) * 0.18)}</TableCell>
-                              <TableCell className="text-right">18%</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Recommendations</TableCell>
-                              <TableCell className="text-right">{Math.round((analytics?.views || 0) * 0.12)}</TableCell>
-                              <TableCell className="text-right">12%</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
+                      <Bar dataKey="percentage" fill="#8884d8" />
+                    </Bar>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
-
-            <div className="flex justify-end pt-2">
-              <DialogClose asChild>
-                <Button variant="outline" onClick={onClose}>Fermer</Button>
-              </DialogClose>
+            
+            <div className="mt-6 flex justify-between">
+              <Button variant="outline" onClick={onClose}>
+                Fermer
+              </Button>
+              <Button>
+                <Users className="mr-2 h-4 w-4" />
+                Exporter les données
+              </Button>
             </div>
-          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

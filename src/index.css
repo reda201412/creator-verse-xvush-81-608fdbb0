@@ -1,262 +1,162 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 240 20% 99%;
-    --foreground: 240 10% 3.9%;
-    
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    
-    --primary: 325 90% 66%;
-    --primary-foreground: 355 100% 97%;
-    
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
     
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --xvush-gradient-1: linear-gradient(to right, #f702ea, #f542fd);
+    --xvush-gradient-2: linear-gradient(to right, #ff00aa, #ff6b6b);
+    --xvush-gradient-3: linear-gradient(to right, #6d04e0, #8933ff);
     
-    --radius: 0.75rem;
-
-    --xvush-pink: 325 90% 66%;
-    --xvush-pink-dark: 325 90% 56%;
-    --xvush-purple: 275 80% 65%;
-    --xvush-indigo: 245 70% 60%;
-    --xvush-blue: 215 80% 60%;
-    --xvush-teal: 175 85% 45%;
-    --xvush-orange: 25 95% 60%;
-    
-    /* SENA system variables */
-    --mood-intensity: 50%;
-    --micro-rewards-intensity: 50%;
-    --contrast-multiplier: 1;
-    --animation-multiplier: 1;
+    --xvush-purple: #f702ea;
+    --xvush-pink: #ff00aa;
+    --xvush-deep-purple: #6d04e0;
+    --xvush-light-purple: #8933ff;
   }
-  
+
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    
-    --primary: 325 90% 66%;
-    --primary-foreground: 355 100% 97%;
-    
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-  }
-
-  * {
-    @apply border-border selection:bg-primary/10 selection:text-primary;
-  }
-  
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
-  }
-
-  html {
-    @apply scroll-smooth;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
-@layer utilities {
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+@layer base {
+  * {
+    @apply border-border;
   }
-  
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
 
-  /* Neuro-Aesthetic Elements */
-  .glass-card {
-    @apply backdrop-blur-xl bg-white/50 dark:bg-black/40 border border-white/20 dark:border-white/10 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)];
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Fix for mobile scrolling issues */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  height: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Reset for touch events to improve scrolling */
+.touch-none {
+  touch-action: none;
+}
+
+/* Explicitly enable touch-action for scrollable elements */
+.touch-auto {
+  touch-action: auto;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+/* Apply scroll settings for content areas */
+.scrollable-content {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Video player specific styling */
+.xtease-video-container {
+  position: relative;
+  width: 100%;
+  max-height: 100vh;
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+}
+
+.xtease-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.xtease-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: #000;
+}
+
+/* Add safe area padding for mobile devices */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* XVUSH Animated Badge */
+.xvush-badge {
+  background: var(--xvush-gradient-1);
+  background-size: 200% 200%;
+  animation: gradient-animation 2s ease infinite;
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
   }
-  
-  .premium-badge {
-    @apply bg-gradient-to-r from-amber-500 to-amber-300 text-white;
+  50% {
+    background-position: 100% 50%;
   }
-  
-  .vip-badge {
-    @apply bg-gradient-to-r from-purple-600 to-indigo-400 text-white;
+  100% {
+    background-position: 0% 50%;
   }
-  
-  .text-gradient {
-    @apply bg-gradient-to-br from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent;
-  }
-  
-  .text-gradient-primary {
-    @apply bg-gradient-to-br from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent;
-  }
-  
-  /* Golden ratio grid helpers */
-  .golden-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.618fr;
-  }
-  
-  .golden-grid-reverse {
-    display: grid;
-    grid-template-columns: 1.618fr 1fr;
-  }
-  
-  /* Story Ring Animation */
-  .story-ring {
-    @apply relative inline-block rounded-full p-[2px] bg-gradient-to-tr from-primary via-xvush-purple to-xvush-blue;
-  }
-  
-  .animate-pulse-subtle {
-    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-subtle {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
-  }
-  
-  /* Progress bar styling */
-  .progress-bar {
-    @apply w-full bg-muted/50 rounded-full overflow-hidden;
-  }
-  
-  .progress-fill {
-    @apply h-full;
-    transition: width 0.5s ease;
-  }
-  
-  /* Focus mode */
-  .focus-mode {
-    @apply bg-background;
-  }
-  
-  .focus-mode .non-essential {
-    @apply opacity-30 transition-opacity duration-300;
-  }
-  
-  .focus-mode .essential {
-    @apply opacity-100 transition-opacity duration-300;
-  }
-  
-  /* Creator Signature effects */
-  .creator-signature {
-    @apply opacity-0 transition-opacity duration-300;
-  }
-  
-  .xvush-design-system .creator-signature {
-    @apply opacity-100;
-  }
-  
-  /* Mood lighting system */
-  .xvush-design-system [data-mood="energetic"] {
-    --mood-primary: hsl(15, 95%, 65%);
-    --mood-secondary: hsl(42, 95%, 65%);
-    --mood-accent: hsl(28, 95%, 65%);
-  }
-  
-  .xvush-design-system [data-mood="calm"] {
-    --mood-primary: hsl(195, 70%, 60%);
-    --mood-secondary: hsl(215, 70%, 65%);
-    --mood-accent: hsl(185, 70%, 60%);
-  }
-  
-  .xvush-design-system [data-mood="creative"] {
-    --mood-primary: hsl(265, 80%, 65%);
-    --mood-secondary: hsl(325, 80%, 65%);
-    --mood-accent: hsl(285, 80%, 65%);
-  }
-  
-  .xvush-design-system [data-mood="focused"] {
-    --mood-primary: hsl(220, 70%, 55%);
-    --mood-secondary: hsl(240, 70%, 60%);
-    --mood-accent: hsl(200, 70%, 55%);
-  }
-  
-  /* Mobile optimization */
-  .xvush-mobile .complex-animation {
-    @apply animate-none;
-  }
-  
-  .xvush-mobile .depth-effect {
-    @apply shadow-none;
-  }
-  
-  /* Cognitive Profile Adjustments */
-  .cognitive-visual {
-    --animation-multiplier: 0.8; /* Faster animations */
-    --contrast-multiplier: 1.1; /* Higher contrast */
-  }
-  
-  .cognitive-analytical {
-    --animation-multiplier: 1.5; /* Slower animations */
-    --contrast-multiplier: 1.2; /* Higher contrast for readability */
-  }
-  
-  .cognitive-balanced {
-    --animation-multiplier: 1; /* Standard animations */
-    --contrast-multiplier: 1; /* Standard contrast */
-  }
-  
-  .cognitive-immersive {
-    --animation-multiplier: 0.7; /* Very dynamic animations */
-    --contrast-multiplier: 1.1; /* Higher contrast for immersion */
-  }
-  
-  /* Circadian adjustments */
-  [data-time-of-day="morning"] {
-    --mood-intensity-multiplier: 1.2;
-  }
-  
-  [data-time-of-day="afternoon"] {
-    --mood-intensity-multiplier: 1;
-  }
-  
-  [data-time-of-day="evening"] {
-    --mood-intensity-multiplier: 0.9;
-  }
-  
-  [data-time-of-day="night"] {
-    --mood-intensity-multiplier: 0.7;
-  }
+}
+
+/* Progress bar animation for videos */
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.animate-progress {
+  animation: progress var(--duration) linear forwards;
 }

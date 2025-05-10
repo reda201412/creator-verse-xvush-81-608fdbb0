@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useVideoGestures } from './hooks/useVideoGestures';
 import { useControlsVisibility } from './hooks/useControlsVisibility';
 import VideoControls from './components/VideoControls';
@@ -11,6 +10,7 @@ import VideoLoadingView from './components/VideoLoadingView';
 import VideoErrorView from './components/VideoErrorView';
 import { useVideoMetrics } from '@/hooks/use-video-metrics';
 import { useMobile } from '@/hooks/useMobile';
+import { toast } from 'sonner';
 
 export interface XteaseVideoPlayerProps {
   src: string;
@@ -33,6 +33,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   className,
   onClose
 }) => {
+  // State variables
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -47,18 +48,48 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLiked, setIsLiked] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { isMobile, isTouch } = useMobile();
   const { showControls, setupControlsTimer } = useControlsVisibility(true);
-  const { trackEvent, updateProgress } = useVideoMetrics(src);
+  
+  // Extract video ID from src if it's numeric
+  const videoId = src?.match(/\/(\d+)$/)?.pop() || src || 'unknown';
+  const { trackEvent, updateProgress } = useVideoMetrics(videoId);
 
-  // Quality settings
-  const qualityOptions = [
-    { label: 'Auto', value: 'auto' },
-    { label: '1080p', value: '1080' },
-    { label: '720p', value: '720' },
-    { label: '480p', value: '480' },
-    { label: '360p', value: '360' },
-  ];
+  // Validate video URL on mount
+  useEffect(() => {
+    const validateVideoURL = () => {
+      if (!src) {
+        console.error('XteaseVideoPlayer: No source provided');
+        setHasError(true);
+        setErrorMessage('Aucune source vidéo fournie');
+        return false;
+      }
+      
+      // Basic URL validation
+      try {
+        // Check if it's a relative URL (starts with /) or an absolute URL
+        if (!src.startsWith('/') && !src.startsWith('http')) {
+          console.warn('XteaseVideoPlayer: Invalid URL format', src);
+          return false;
+        }
+        
+        // For absolute URLs, validate further
+        if (src.startsWith('http')) {
+          new URL(src);
+        }
+        
+        return true;
+      } catch (e) {
+        console.error('XteaseVideoPlayer: Invalid URL', e);
+        setHasError(true);
+        setErrorMessage('URL de vidéo invalide');
+        return false;
+      }
+    };
+    
+    validateVideoURL();
+  }, [src]);
 
   // Setup controls auto-hide
   useEffect(() => {
@@ -82,9 +113,18 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
           })
           .catch(error => {
             console.error('Play error:', error);
+            
+            // Handle specific error types
+            if (error.name === 'NotSupportedError') {
+              setErrorMessage('Format vidéo non supporté par votre navigateur');
+            } else if (error.name === 'NotAllowedError') {
+              setErrorMessage('Lecture automatique bloquée par votre navigateur');
+            } else {
+              setErrorMessage('Erreur de lecture vidéo. Veuillez réessayer.');
+            }
+            
             setHasError(true);
-            setErrorMessage('Video playback failed. Please try again.');
-            trackEvent('error', { message: 'Playback failed' });
+            trackEvent('error', { message: error.message || 'Play error' });
           });
       }
     }
@@ -220,24 +260,50 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     const handleLoadStart = () => {
       setIsLoading(true);
       trackEvent('buffer_start');
+      console.info('Video load started:', src);
     };
 
     const handleCanPlay = () => {
       setIsLoading(false);
+      setHasError(false); // Reset error state on successful load
       trackEvent('buffer_end');
+      console.info('Video can play now:', src);
       
       // Auto-play when can play
       if (autoPlay && video.paused) {
-        video.play().catch(e => console.error("Auto-play failed:", e));
+        video.play().catch(e => console.warn("Auto-play failed:", e));
         setIsPlaying(true);
       }
     };
 
-    const handleError = (error: any) => {
+    const handleError = (event: Event) => {
+      const error = (video as any).error;
+      console.error('Video error:', error, 'for source:', src);
+      
+      let errorMsg = 'Une erreur est survenue lors du chargement de la vidéo.';
+      
+      // Map error codes to more specific messages
+      if (error) {
+        switch (error.code) {
+          case 1: // MEDIA_ERR_ABORTED
+            errorMsg = 'Le chargement de la vidéo a été interrompu.';
+            break;
+          case 2: // MEDIA_ERR_NETWORK
+            errorMsg = 'Une erreur réseau a empêché le chargement de la vidéo.';
+            break;
+          case 3: // MEDIA_ERR_DECODE
+            errorMsg = 'Erreur de décodage vidéo.';
+            break;
+          case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+            errorMsg = 'Format vidéo non supporté ou vidéo non disponible.';
+            break;
+        }
+      }
+      
       setHasError(true);
       setIsLoading(false);
-      setErrorMessage('An error occurred while loading the video.');
-      trackEvent('error', { message: 'Video loading error' });
+      setErrorMessage(errorMsg);
+      trackEvent('error', { message: errorMsg, code: error?.code });
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -245,6 +311,17 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
+    
+    // Additional event listeners for better error handling
+    video.addEventListener('stalled', () => {
+      console.warn('Video stalled:', src);
+      setIsLoading(true);
+    });
+    
+    video.addEventListener('waiting', () => {
+      console.info('Video waiting for data:', src);
+      setIsLoading(true);
+    });
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -252,8 +329,10 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('stalled', () => {});
+      video.removeEventListener('waiting', () => {});
     };
-  }, [trackEvent, updateProgress, autoPlay]);
+  }, [src, trackEvent, updateProgress, autoPlay]);
 
   // Handle fullscreen change
   useEffect(() => {
@@ -286,6 +365,44 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
   
+  // Retry playing the video
+  const handleRetry = () => {
+    const video = videoRef.current;
+    if (video) {
+      setHasError(false);
+      setIsLoading(true);
+      setRetryCount(prev => prev + 1);
+      
+      // Try to load the video again
+      video.load();
+      
+      // Reset the source to force a reload
+      const currentSrc = video.src;
+      video.src = '';
+      setTimeout(() => {
+        video.src = currentSrc;
+        
+        // Try to play after a short delay
+        setTimeout(() => {
+          video.play()
+            .then(() => {
+              setIsPlaying(true);
+              setIsLoading(false);
+              console.info('Video retry successful');
+            })
+            .catch((e) => {
+              console.error('Video retry failed:', e);
+              // If we've tried too many times, show a more permanent error
+              if (retryCount >= 2) {
+                toast.error('Échec du chargement de la vidéo après plusieurs tentatives');
+                if (onClose) onClose();
+              }
+            });
+        }, 1000);
+      }, 500);
+    }
+  };
+  
   // Auto go fullscreen on mobile when modal opens
   useEffect(() => {
     if (isMobile && autoPlay && containerRef.current) {
@@ -316,10 +433,11 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     <div 
       ref={containerRef}
       className={cn(
-        "relative overflow-hidden bg-black group touch-manipulation",
+        "relative overflow-hidden bg-black touch-none",
         isFullscreen ? "fixed inset-0 z-50" : "xtease-video-container",
         className
       )}
+      style={{ overscrollBehavior: 'contain' }}
     >
       <div className={cn("relative w-full h-full", isFullscreen ? "" : "aspect-[9/16]")}>
         {/* Video element */}
@@ -337,6 +455,8 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
           playsInline
           onClick={() => togglePlay()}
           onDoubleClick={handleDoubleTap}
+          onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
+          controlsList="nodownload"
         />
 
         {/* Loading indicator */}
@@ -346,13 +466,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
         {hasError && (
           <VideoErrorView 
             message={errorMessage} 
-            onRetry={() => {
-              setHasError(false);
-              const video = videoRef.current;
-              if (video) {
-                video.load();
-              }
-            }}
+            onRetry={handleRetry}
           />
         )}
 
@@ -389,7 +503,13 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
             currentTime={currentTime}
             duration={duration}
             quality={quality}
-            qualityOptions={qualityOptions}
+            qualityOptions={[
+              { label: 'Auto', value: 'auto' },
+              { label: '1080p', value: '1080' },
+              { label: '720p', value: '720' },
+              { label: '480p', value: '480' },
+              { label: '360p', value: '360' },
+            ]}
             onPlayPause={togglePlay}
             onMuteToggle={toggleMute}
             onVolumeChange={handleVolumeChange}

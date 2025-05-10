@@ -569,6 +569,41 @@ export type Database = {
           },
         ]
       }
+      video_stats: {
+        Row: {
+          avg_watch_time_seconds: number
+          comments_count: number
+          last_updated_at: string
+          likes: number
+          video_id: number
+          views: number
+        }
+        Insert: {
+          avg_watch_time_seconds?: number
+          comments_count?: number
+          last_updated_at?: string
+          likes?: number
+          video_id: number
+          views?: number
+        }
+        Update: {
+          avg_watch_time_seconds?: number
+          comments_count?: number
+          last_updated_at?: string
+          likes?: number
+          video_id?: number
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_video"
+            columns: ["video_id"]
+            isOneToOne: true
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           creatorId: number | null
