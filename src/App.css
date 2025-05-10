@@ -1,4 +1,3 @@
-
 /* Styles pour les filtres de stories */
 .filter-none {
   filter: none;
@@ -135,29 +134,32 @@
   .pb-safe {
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
   }
-}
-
-/* Correction des problèmes de défilement - FIX SCROLLING ISSUES */
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Suppression des styles qui bloquent le défilement */
-body {
-  position: relative;
-  overscroll-behavior-y: contain;
-}
-
-/* Activation du défilement pour le contenu principal */
-.main-content {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  height: auto;
-  min-height: 100%;
-  padding-bottom: 5rem;
+  
+  /* S'assurer du bon défilement */
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+  }
+  
+  .main-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+    padding-bottom: 5rem; /* Espace supplémentaire pour éviter que le contenu soit caché par la navigation */
+  }
+  
+  /* Fix pour le lecteur vidéo en mode portrait */
+  .xtease-video-container {
+    max-height: 85vh;
+  }
 }
 
 /* Espacement de zone de sécurité pour iOS */
@@ -193,8 +195,7 @@ body {
   .xtease-video-container {
     max-width: 100%;
     width: 100%;
-    height: auto;
-    max-height: 100vh;
+    height: 100vh;
   }
   
   .video-controls-mobile {
@@ -202,7 +203,7 @@ body {
   }
   
   .xtease-video {
-    height: auto;
+    height: 100%;
     max-width: 100%;
   }
 }
@@ -250,7 +251,7 @@ body {
 @media (min-width: 768px) {
   .main-content {
     padding-top: 1rem;
-    width: calc(100% - 64px);
+    width: calc(100% - 64px); /* Pour la version avec sidebar collapse */
   }
 }
 

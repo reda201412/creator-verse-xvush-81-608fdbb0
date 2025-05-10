@@ -1,34 +1,62 @@
 
 project_id = "ryuczcsiiyghdnxanofq"
+
 [api]
 enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+
+[studio]
 enabled = true
+port = 54323
+api_url = "http://localhost:54321"
+
+[auth]
+enable_signup = true
+jwt_expiry = 3600
+refresh_token_expiry = 604800
+
+[inbucket]
+enabled = true
+port = 54324
 
 [realtime]
 enabled = true
+server_port = 24377
+ip_address = "127.0.0.1"
+port = 54325
 
 [storage]
 enabled = true
 
+[analytics]
+enabled = false
+port = 54327
+
+[vector]
+enabled = false
+port = 54328
+
 [edge_functions]
 enabled = true
+port = 8000
 
-[edge_functions.content-access]
+[edge_runtime]
+enabled = false
+
+[functions.tron-wallet]
 verify_jwt = true
 
-[edge_functions.decrement_balance]
-verify_jwt = true
-
-[edge_functions.increment-story-views]
-verify_jwt = true
-
-[edge_functions.tron-transaction-verify]
-verify_jwt = true
-
-[edge_functions.tron-wallet]
-verify_jwt = true
-
-[edge_functions.notify-creator]
+[functions.tron-transaction-verify]
 verify_jwt = true

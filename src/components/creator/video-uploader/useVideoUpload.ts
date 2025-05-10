@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,11 +18,6 @@ export const videoSchema = z.object({
   tokenPrice: z.number().min(0).optional(),
   sharingAllowed: z.boolean().default(false),
   downloadsAllowed: z.boolean().default(false),
-  // Options de contenu éphémère
-  ephemeralMode: z.boolean().default(false),
-  expiresAfter: z.number().min(0).optional(),
-  maxViews: z.number().int().min(0).optional(),
-  notifyOnScreenshot: z.boolean().default(false),
 });
 
 // Export VideoFormValues type
@@ -279,15 +275,6 @@ const useVideoUpload = () => {
       // Convert to proper ContentType
       const videoType = values.type as ContentType;
       
-      // Préparer les options éphémères si activées
-      const ephemeralOptions = values.ephemeralMode ? {
-        ephemeral_mode: true,
-        expires_after: values.expiresAfter || null, // Durée en heures
-        max_views: values.maxViews || null, // Nombre max de vues
-        notify_on_screenshot: values.notifyOnScreenshot || false,
-        current_views: 0, // Initialiser le compteur de vues à 0
-      } : null;
-      
       // Step 3: Insert the video metadata into the 'videos' table
       const { data: videoData, error: insertError } = await supabase
         .from('videos')
@@ -306,8 +293,7 @@ const useVideoUpload = () => {
             tier: values.tier,
             sharingAllowed: values.sharingAllowed,
             downloadsAllowed: values.downloadsAllowed
-          },
-          ephemeral_options: ephemeralOptions
+          }
         })
         .select()
         .single();
@@ -324,11 +310,7 @@ const useVideoUpload = () => {
         tier: values.tier,
         sharingAllowed: values.sharingAllowed,
         downloadsAllowed: values.downloadsAllowed,
-        expiresAt: ephemeralOptions && ephemeralOptions.expires_after ? 
-          new Date(Date.now() + ephemeralOptions.expires_after * 60 * 60 * 1000) : undefined,
-        ephemeralMode: values.ephemeralMode,
-        maxViews: values.maxViews,
-        notifyOnScreenshot: values.notifyOnScreenshot
+        expiresAt: undefined
       };
       
       // Return video metadata
@@ -344,8 +326,7 @@ const useVideoUpload = () => {
         isPremium: videoData.is_premium,
         tokenPrice: videoData.token_price,
         videoFile: videoFile,
-        restrictions: videoRestrictions,
-        ephemeralOptions: videoData.ephemeral_options
+        restrictions: videoRestrictions
       };
     } catch (error: any) {
       const errorMessage = error.message || 'Une erreur est survenue lors du téléchargement';

@@ -23,10 +23,8 @@ const XteasePlayerModal: React.FC<XteasePlayerModalProps> = ({
 }) => {
   const { triggerHaptic } = useHapticFeedback();
   
-  // Lock body scroll when modal is open, but allow clean-up on unmount
+  // Lock body scroll when modal is open
   useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -34,25 +32,20 @@ const XteasePlayerModal: React.FC<XteasePlayerModalProps> = ({
     }
     
     return () => {
-      document.body.style.overflow = originalStyle;
+      document.body.style.overflow = 'auto';
     };
   }, [isOpen]);
   
   // Handle closing with haptic feedback
   const handleClose = () => {
     triggerHaptic('medium');
-    
-    // Force scroll enabling on close
-    document.body.style.overflow = 'auto';
-    document.body.style.overflowY = 'auto';
-    
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black touch-auto overflow-auto">
+    <div className="fixed inset-0 z-50 bg-black xtease-fullscreen">
       <Button 
         variant="ghost" 
         size="icon" 
@@ -68,9 +61,8 @@ const XteasePlayerModal: React.FC<XteasePlayerModalProps> = ({
           thumbnailUrl={thumbnailUrl}
           title={title}
           autoPlay={true}
-          loop={false}
+          loop={true}
           className="xtease-video"
-          onClose={handleClose}
         />
       </div>
     </div>
