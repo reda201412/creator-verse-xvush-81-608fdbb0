@@ -76,13 +76,13 @@ html {
   overflow-x: hidden;
 }
 
-/* Fix for mobile scrolling issues */
+/* Corrections pour les problèmes de défilement mobiles */
 body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   height: 100%;
   overflow-x: hidden;
-  position: relative;
+  overflow-y: auto;
 }
 
 /* Reset for touch events to improve scrolling */

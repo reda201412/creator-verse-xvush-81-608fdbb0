@@ -1,276 +1,207 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
-export interface VideoStats {
-  video_id: number;
-  views: number;
-  likes: number;
-  comments_count: number;
-  avg_watch_time_seconds: number;
-  last_updated_at: string;
-}
-
 /**
- * Get video statistics by video ID
+ * Increment the view count for a video
+ * @param videoId The ID of the video
  */
-export const getVideoStats = async (videoId: number | string): Promise<VideoStats | null> => {
-  // Convert string ID to number if necessary
-  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
-  
+export const incrementVideoViews = async (videoId: string) => {
   try {
+    // First get the current views
     const { data, error } = await supabase
       .from('video_stats')
-      .select('*')
-      .eq('video_id', id)
-      .maybeSingle();
-    
-    if (error) {
-      console.error('Error fetching video statistics:', error);
-      return null;
-    }
-    
-    return data as VideoStats;
-  } catch (error) {
-    console.error('Error in getVideoStats:', error);
-    return null;
-  }
-};
-
-/**
- * Create or update video statistics
- */
-export const updateVideoStats = async (
-  videoId: number | string, 
-  stats: Partial<Omit<VideoStats, 'video_id' | 'last_updated_at'>>
-): Promise<boolean> => {
-  // Convert string ID to number if necessary
-  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
-  
-  try {
-    // Check if stats exist for this video
-    const { data: existingStats } = await supabase
-      .from('video_stats')
-      .select('*')
-      .eq('video_id', id)
-      .maybeSingle();
-    
-    if (existingStats) {
-      // Update existing stats
-      const { error } = await supabase
-        .from('video_stats')
-        .update({
-          ...stats,
-          last_updated_at: new Date().toISOString()
-        })
-        .eq('video_id', id);
-      
-      if (error) {
-        console.error('Error updating video statistics:', error);
-        return false;
-      }
-    } else {
-      // Create new stats record
-      const { error } = await supabase
-        .from('video_stats')
-        .insert({
-          video_id: id,
-          views: stats.views || 0,
-          likes: stats.likes || 0,
-          comments_count: stats.comments_count || 0,
-          avg_watch_time_seconds: stats.avg_watch_time_seconds || 0,
-          last_updated_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Error creating video statistics:', error);
-        return false;
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in updateVideoStats:', error);
-    return false;
-  }
-};
-
-/**
- * Increment views count for a video
- */
-export const incrementVideoViews = async (videoId: number | string): Promise<boolean> => {
-  // Convert string ID to number if necessary
-  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
-  
-  try {
-    const { data: currentStats } = await supabase
-      .from('video_stats')
       .select('views')
-      .eq('video_id', id)
+      .eq('video_id', videoId)
       .maybeSingle();
-    
-    if (currentStats) {
-      // Increment existing views count
-      const { error } = await supabase
+
+    if (error) {
+      console.error('Error fetching video stats:', error);
+      return;
+    }
+
+    if (data) {
+      // Update existing stats
+      await supabase
         .from('video_stats')
-        .update({
-          views: (currentStats.views || 0) + 1,
+        .update({ 
+          views: (data.views || 0) + 1,
           last_updated_at: new Date().toISOString()
         })
-        .eq('video_id', id);
-      
-      if (error) {
-        console.error('Error incrementing video views:', error);
-        return false;
-      }
+        .eq('video_id', videoId);
     } else {
-      // Create new stats record with 1 view
-      const { error } = await supabase
+      // Create new stats
+      await supabase
         .from('video_stats')
-        .insert({
-          video_id: id,
-          views: 1,
-          likes: 0,
-          comments_count: 0,
-          avg_watch_time_seconds: 0,
-          last_updated_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Error creating video statistics record:', error);
-        return false;
-      }
+        .insert([
+          { 
+            video_id: parseInt(videoId, 10), 
+            views: 1,
+            likes: 0,
+            comments_count: 0,
+            avg_watch_time_seconds: 0,
+            last_updated_at: new Date().toISOString()
+          }
+        ]);
     }
-    
-    return true;
   } catch (error) {
-    console.error('Error in incrementVideoViews:', error);
-    return false;
+    console.error('Error incrementing video views:', error);
   }
 };
 
 /**
  * Track video watch time
+ * @param videoId The ID of the video
+ * @param seconds The number of seconds watched
  */
-export const trackVideoWatchTime = async (
-  videoId: number | string, 
-  watchTimeSeconds: number
-): Promise<boolean> => {
-  // Convert string ID to number if necessary
-  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
-  
+export const trackVideoWatchTime = async (videoId: string, seconds: number) => {
   try {
-    const { data: currentStats } = await supabase
-      .from('video_stats')
-      .select('avg_watch_time_seconds, views')
-      .eq('video_id', id)
-      .maybeSingle();
+    // Ensure seconds is a positive number
+    if (seconds <= 0) return;
     
-    if (currentStats) {
+    // First get the current stats
+    const { data, error } = await supabase
+      .from('video_stats')
+      .select('views, avg_watch_time_seconds')
+      .eq('video_id', videoId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching video stats for watch time:', error);
+      return;
+    }
+
+    if (data) {
       // Calculate new average watch time
-      const totalViews = (currentStats.views || 0);
-      const currentAvgTime = currentStats.avg_watch_time_seconds || 0;
+      const totalViews = data.views || 1;
+      const currentAvgSeconds = data.avg_watch_time_seconds || 0;
+      const newAvgSeconds = ((currentAvgSeconds * (totalViews - 1)) + seconds) / totalViews;
       
-      // If we have existing views, calculate a running average
-      // Otherwise, just use this watch time as the average
-      const newAvgTime = totalViews > 1 
-        ? ((currentAvgTime * (totalViews - 1)) + watchTimeSeconds) / totalViews 
-        : watchTimeSeconds;
-      
-      const { error } = await supabase
+      // Update stats
+      await supabase
         .from('video_stats')
-        .update({
-          avg_watch_time_seconds: newAvgTime,
+        .update({ 
+          avg_watch_time_seconds: newAvgSeconds,
           last_updated_at: new Date().toISOString()
         })
-        .eq('video_id', id);
-      
-      if (error) {
-        console.error('Error updating video watch time:', error);
-        return false;
-      }
+        .eq('video_id', videoId);
     } else {
-      // Create new stats record with watch time
-      const { error } = await supabase
+      // Create new stats record
+      await supabase
         .from('video_stats')
-        .insert({
-          video_id: id,
-          views: 1,
-          likes: 0,
-          comments_count: 0,
-          avg_watch_time_seconds: watchTimeSeconds,
-          last_updated_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Error creating video statistics record:', error);
-        return false;
-      }
+        .insert([
+          { 
+            video_id: parseInt(videoId, 10), 
+            views: 1,
+            likes: 0,
+            comments_count: 0,
+            avg_watch_time_seconds: seconds,
+            last_updated_at: new Date().toISOString()
+          }
+        ]);
     }
-    
-    return true;
   } catch (error) {
-    console.error('Error in trackVideoWatchTime:', error);
-    return false;
+    console.error('Error tracking video watch time:', error);
   }
 };
 
 /**
- * Toggle like for a video
+ * Toggle like state for a video
+ * @param videoId The ID of the video
+ * @param isLiked Whether the video is being liked (true) or unliked (false)
  */
-export const toggleVideoLike = async (
-  videoId: number | string, 
-  isLiked: boolean
-): Promise<boolean> => {
-  // Convert string ID to number if necessary
-  const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
-  
+export const toggleVideoLike = async (videoId: string, isLiked: boolean) => {
   try {
-    const { data: currentStats } = await supabase
+    // First get the current likes
+    const { data, error } = await supabase
       .from('video_stats')
       .select('likes')
-      .eq('video_id', id)
+      .eq('video_id', videoId)
       .maybeSingle();
-    
-    // The delta to apply to the likes count
-    const delta = isLiked ? 1 : -1;
-    
-    if (currentStats) {
-      // Update existing likes count
-      const newLikesCount = Math.max(0, (currentStats.likes || 0) + delta);
+
+    if (error) {
+      console.error('Error fetching video likes:', error);
+      return;
+    }
+
+    const likesChange = isLiked ? 1 : -1;
+
+    if (data) {
+      // Calculate new likes count (ensure it doesn't go below 0)
+      const currentLikes = data.likes || 0;
+      const newLikes = Math.max(0, currentLikes + likesChange);
       
-      const { error } = await supabase
+      // Update existing stats
+      await supabase
         .from('video_stats')
-        .update({
-          likes: newLikesCount,
+        .update({ 
+          likes: newLikes,
           last_updated_at: new Date().toISOString()
         })
-        .eq('video_id', id);
-      
-      if (error) {
-        console.error('Error updating video likes:', error);
-        return false;
-      }
-    } else {
-      // Create new stats record with like
-      const { error } = await supabase
+        .eq('video_id', videoId);
+    } else if (isLiked) {
+      // Only create new record if liking (not unliking a non-existent record)
+      await supabase
         .from('video_stats')
-        .insert({
-          video_id: id,
-          views: 0,
-          likes: isLiked ? 1 : 0,
-          comments_count: 0,
-          avg_watch_time_seconds: 0,
-          last_updated_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Error creating video statistics record:', error);
-        return false;
-      }
+        .insert([
+          { 
+            video_id: parseInt(videoId, 10), 
+            views: 0,
+            likes: 1,
+            comments_count: 0,
+            avg_watch_time_seconds: 0,
+            last_updated_at: new Date().toISOString()
+          }
+        ]);
     }
-    
-    return true;
   } catch (error) {
-    console.error('Error in toggleVideoLike:', error);
-    return false;
+    console.error('Error toggling video like:', error);
+  }
+};
+
+/**
+ * Get video by ID
+ * @param videoId The ID of the video
+ */
+export const getVideoById = async (videoId: string | number) => {
+  try {
+    // Convert string ID to number if necessary
+    const numericId = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
+    
+    // Fetch video data
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('id', numericId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching video:', error);
+      return null;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Get video stats if available
+    const { data: statsData } = await supabase
+      .from('video_stats')
+      .select('*')
+      .eq('video_id', numericId)
+      .maybeSingle();
+
+    // Combine video data with stats
+    return {
+      ...data,
+      stats: statsData || {
+        views: 0,
+        likes: 0,
+        comments_count: 0,
+        avg_watch_time_seconds: 0
+      }
+    };
+  } catch (error) {
+    console.error('Error in getVideoById:', error);
+    return null;
   }
 };

@@ -49,6 +49,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [processedSrc, setProcessedSrc] = useState<string>('');
   const { isMobile, isTouch } = useMobile();
   const { showControls, setupControlsTimer } = useControlsVisibility(true);
   
@@ -56,39 +57,43 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   const videoId = src?.match(/\/(\d+)$/)?.pop() || src || 'unknown';
   const { trackEvent, updateProgress } = useVideoMetrics(videoId);
 
-  // Validate video URL on mount
+  // Validate and process video URL on mount
   useEffect(() => {
-    const validateVideoURL = () => {
+    const validateAndProcessVideoURL = () => {
       if (!src) {
         console.error('XteaseVideoPlayer: No source provided');
         setHasError(true);
         setErrorMessage('Aucune source vidéo fournie');
-        return false;
+        return;
       }
       
-      // Basic URL validation
       try {
         // Check if it's a relative URL (starts with /) or an absolute URL
-        if (!src.startsWith('/') && !src.startsWith('http')) {
-          console.warn('XteaseVideoPlayer: Invalid URL format', src);
-          return false;
-        }
-        
-        // For absolute URLs, validate further
-        if (src.startsWith('http')) {
+        if (src.startsWith('/')) {
+          // For relative URLs, use window.location.origin to create an absolute URL
+          const absoluteUrl = `${window.location.origin}${src}`;
+          setProcessedSrc(absoluteUrl);
+          console.info('XteaseVideoPlayer: Processed relative URL to:', absoluteUrl);
+          return;
+        } else if (src.startsWith('http')) {
+          // For absolute URLs, validate further
           new URL(src);
+          setProcessedSrc(src);
+          return;
+        } else {
+          // Not a valid URL format
+          console.warn('XteaseVideoPlayer: Invalid URL format', src);
+          setHasError(true);
+          setErrorMessage('Format d\'URL vidéo invalide');
         }
-        
-        return true;
       } catch (e) {
         console.error('XteaseVideoPlayer: Invalid URL', e);
         setHasError(true);
         setErrorMessage('URL de vidéo invalide');
-        return false;
       }
     };
     
-    validateVideoURL();
+    validateAndProcessVideoURL();
   }, [src]);
 
   // Setup controls auto-hide
@@ -96,7 +101,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     return setupControlsTimer(containerRef.current);
   }, [setupControlsTimer]);
 
-  // Handle playback toggle
+  // Handle playback toggle with improved error handling
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -105,11 +110,13 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       video.pause();
       trackEvent('pause');
     } else {
+      setIsLoading(true); // Show loading indicator before play attempt
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
             trackEvent('play');
+            setIsLoading(false);
           })
           .catch(error => {
             console.error('Play error:', error);
@@ -118,12 +125,14 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
             if (error.name === 'NotSupportedError') {
               setErrorMessage('Format vidéo non supporté par votre navigateur');
             } else if (error.name === 'NotAllowedError') {
-              setErrorMessage('Lecture automatique bloquée par votre navigateur');
+              setErrorMessage('Lecture automatique bloquée par votre navigateur. Veuillez toucher l\'écran pour commencer la lecture.');
             } else {
               setErrorMessage('Erreur de lecture vidéo. Veuillez réessayer.');
             }
             
             setHasError(true);
+            setIsLoading(false);
+            setIsPlaying(false);
             trackEvent('error', { message: error.message || 'Play error' });
           });
       }
@@ -260,14 +269,14 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     const handleLoadStart = () => {
       setIsLoading(true);
       trackEvent('buffer_start');
-      console.info('Video load started:', src);
+      console.info('Video load started:', processedSrc || src);
     };
 
     const handleCanPlay = () => {
       setIsLoading(false);
       setHasError(false); // Reset error state on successful load
       trackEvent('buffer_end');
-      console.info('Video can play now:', src);
+      console.info('Video can play now:', processedSrc || src);
       
       // Auto-play when can play
       if (autoPlay && video.paused) {
@@ -278,7 +287,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
 
     const handleError = (event: Event) => {
       const error = (video as any).error;
-      console.error('Video error:', error, 'for source:', src);
+      console.error('Video error:', error, 'for source:', processedSrc || src);
       
       let errorMsg = 'Une erreur est survenue lors du chargement de la vidéo.';
       
@@ -314,12 +323,12 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     
     // Additional event listeners for better error handling
     video.addEventListener('stalled', () => {
-      console.warn('Video stalled:', src);
+      console.warn('Video stalled:', processedSrc || src);
       setIsLoading(true);
     });
     
     video.addEventListener('waiting', () => {
-      console.info('Video waiting for data:', src);
+      console.info('Video waiting for data:', processedSrc || src);
       setIsLoading(true);
     });
 
@@ -332,7 +341,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       video.removeEventListener('stalled', () => {});
       video.removeEventListener('waiting', () => {});
     };
-  }, [src, trackEvent, updateProgress, autoPlay]);
+  }, [processedSrc, src, trackEvent, updateProgress, autoPlay]);
 
   // Handle fullscreen change
   useEffect(() => {
@@ -365,7 +374,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
   
-  // Retry playing the video
+  // Improved retry function with smart fallbacks
   const handleRetry = () => {
     const video = videoRef.current;
     if (video) {
@@ -377,27 +386,41 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       video.load();
       
       // Reset the source to force a reload
-      const currentSrc = video.src;
+      const currentSrc = processedSrc || src;
       video.src = '';
+      
       setTimeout(() => {
-        video.src = currentSrc;
+        // If we've failed multiple times with the processed URL, try the original URL directly
+        if (retryCount > 1 && processedSrc && processedSrc !== src) {
+          console.info('Trying original URL as fallback:', src);
+          video.src = src;
+        } else {
+          video.src = currentSrc;
+        }
         
         // Try to play after a short delay
         setTimeout(() => {
-          video.play()
-            .then(() => {
-              setIsPlaying(true);
-              setIsLoading(false);
-              console.info('Video retry successful');
-            })
-            .catch((e) => {
-              console.error('Video retry failed:', e);
-              // If we've tried too many times, show a more permanent error
-              if (retryCount >= 2) {
-                toast.error('Échec du chargement de la vidéo après plusieurs tentatives');
-                if (onClose) onClose();
-              }
-            });
+          const playAttempt = video.play();
+          if (playAttempt) {
+            playAttempt
+              .then(() => {
+                setIsPlaying(true);
+                setIsLoading(false);
+                console.info('Video retry successful');
+              })
+              .catch((e) => {
+                console.error('Video retry failed:', e);
+                // If we've tried too many times, show a more permanent error
+                if (retryCount >= 2) {
+                  toast.error('Échec du chargement de la vidéo après plusieurs tentatives');
+                  if (onClose) onClose();
+                } else {
+                  setHasError(true);
+                  setIsLoading(false);
+                  setErrorMessage('Échec du chargement. Veuillez réessayer ou vérifier votre connexion.');
+                }
+              });
+          }
         }, 1000);
       }, 500);
     }
@@ -409,12 +432,16 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       // Short delay to ensure DOM is ready
       const timer = setTimeout(() => {
         if (containerRef.current) {
-          if (containerRef.current.requestFullscreen) {
-            containerRef.current.requestFullscreen();
-          } else if ((containerRef.current as any).webkitRequestFullscreen) {
-            (containerRef.current as any).webkitRequestFullscreen();
+          try {
+            if (containerRef.current.requestFullscreen) {
+              containerRef.current.requestFullscreen();
+            } else if ((containerRef.current as any).webkitRequestFullscreen) {
+              (containerRef.current as any).webkitRequestFullscreen();
+            }
+            setIsFullscreen(true);
+          } catch (err) {
+            console.error("Failed to enter fullscreen:", err);
           }
-          setIsFullscreen(true);
         }
       }, 300);
       
@@ -428,6 +455,16 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       handleLike();
     }
   };
+
+  // If processedSrc is empty and there's an error, we shouldn't try to render the video
+  if (!processedSrc && !src && hasError) {
+    return (
+      <VideoErrorView 
+        message="Source vidéo invalide ou manquante" 
+        onRetry={onClose || (() => {})}
+      />
+    );
+  }
 
   return (
     <div 
@@ -443,7 +480,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
         {/* Video element */}
         <video
           ref={videoRef}
-          src={src}
+          src={processedSrc || src}
           poster={thumbnailUrl}
           className={cn(
             "w-full h-full object-contain xtease-video",
