@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -108,7 +109,7 @@ const CreatorProfile: React.FC = () => {
   };
 
   const handleSubscribe = (tier: string) => {
-    // Fix: Using the correct toast format
+    // Using the correct toast format from sonner
     toast(`Abonnement ${tier} sélectionné`, {
       description: "Vous allez être redirigé vers la page de paiement"
     });
