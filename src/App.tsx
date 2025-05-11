@@ -26,7 +26,7 @@ import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, profile } = useAuth();
@@ -88,11 +88,11 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
   // Close sidebar on small screens when route changes
-  const handleRouteChange = () => {
+  const handleRouteChange = useCallback(() => {
     if (window.innerWidth < 768) {
       setSidebarExpanded(false);
     }
-  };
+  }, []);
 
   return (
     <AuthProvider>
