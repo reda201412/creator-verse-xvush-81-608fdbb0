@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Users, Video, MessageCircle, User, Settings, LogOut, LayoutDashboard, Calendar, Star, FileVideo, LucideIcon } from 'lucide-react';
@@ -7,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useResponsive } from '@/hooks/use-responsive';
+import { RouteChangeProps } from '@/types/navigation';
 
 interface NavItem {
   icon: LucideIcon;
@@ -31,6 +33,13 @@ export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Add listener for route changes to close sidebar on mobile
+  useEffect(() => {
+    if (isMobile && expanded) {
+      onToggle();
+    }
+  }, [location.pathname, isMobile, expanded, onToggle]);
 
   const handleSignOut = async () => {
     try {
@@ -98,6 +107,7 @@ export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
                   isActive && "sidebar-active-link"
                 )
               }
+              onClick={() => isMobile && expanded ? onToggle() : null}
             >
               <item.icon className="mr-2 h-4 w-4" />
               {item.label}
