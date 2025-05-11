@@ -35,11 +35,13 @@ export interface VideoFirestoreData {
   title: string;
   description?: string;
   thumbnailUrl?: string;
+  muxUploadId?: string; // Added Mux Upload ID
   muxAssetId?: string; // Si vous stockez l'ID de l'asset MUX
   muxPlaybackId?: string; // Si vous stockez l'ID de playback MUX
   videoUrl?: string; // Ou une URL de streaming directe si gérée autrement
+  status?: 'processing' | 'completed' | 'failed' | 'ready'; // Added status field
   uploadedAt: any; // serverTimestamp
-  type?: 'standard' | 'premium' | 'vip';
+  type?: 'standard' | 'teaser' | 'premium' | 'vip'; // Added 'teaser'
   format?: '16:9' | '9:16' | '1:1' | 'other';
   isPremium?: boolean;
   tokenPrice?: number;

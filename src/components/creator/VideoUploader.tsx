@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata } from '@/types/video';
+import { VideoMetadata, ContentType } from '@/types/video'; // Ensure ContentType is imported if needed here
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import useVideoUpload from './video-uploader/useVideoUpload';
+import useVideoUpload, { VideoFormValues } from './video-uploader/useVideoUpload';
+import { VideoFirestoreData } from '@/services/creatorService';
+
+// VERY TOP LEVEL DEBUG LOG
+console.log('!!!!!!!! VIDEOUPLOADER.TSX MODULE LOADED !!!!!!!!!!');
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata: VideoMetadata) => void;
@@ -26,7 +30,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   const { user } = useAuth();
   
   const {
-    videoFile,
+    videoFile, // This is the File object we need
     thumbnailFile,
     videoPreviewUrl,
     thumbnailPreviewUrl,
@@ -39,7 +43,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     handleThumbnailChange,
     generateThumbnail,
     resetForm,
-    uploadToSupabase
+    uploadVideoAndSaveMetadata
   } = useVideoUpload();
 
   // Check for authentication
@@ -52,8 +56,24 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   }, [isOpen, user]);
 
-  const handleUploadComplete = (metadata: VideoMetadata) => {
-    onUploadComplete(metadata);
+  const handleSuccessfulUpload = (firestoreData: VideoFirestoreData, originalVideoFile: File) => {
+    // Construct the full VideoMetadata object needed by onUploadComplete
+    const completeMetadata: VideoMetadata = {
+      id: firestoreData.id || '', // Ensure id is present
+      title: firestoreData.title,
+      description: firestoreData.description || '',
+      type: firestoreData.type as ContentType, // Type assertion, ensure compatibility
+      videoFile: originalVideoFile, // The actual File object
+      thumbnailUrl: firestoreData.thumbnailUrl,
+      video_url: firestoreData.videoUrl, // Map videoUrl to video_url
+      url: firestoreData.videoUrl, // Alias
+      format: firestoreData.format || '16:9', // Provide a default if format can be undefined
+      isPremium: firestoreData.isPremium || false, // Provide a default
+      tokenPrice: firestoreData.tokenPrice,
+      // restrictions: firestoreData.restrictions, // Map if restrictions exist in firestoreData and VideoMetadata
+    };
+
+    onUploadComplete(completeMetadata);
     triggerMicroReward('interaction');
     
     toast("Vidéo téléchargée avec succès", {
@@ -65,6 +85,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       resetForm();
     }, 1000);
   };
+
+  // ADDED DEBUG LOGGING
+  console.log('[VideoUploader] Inspecting uploadVideoAndSaveMetadata:', uploadVideoAndSaveMetadata);
+  console.log('[VideoUploader] Type of uploadVideoAndSaveMetadata:', typeof uploadVideoAndSaveMetadata);
 
   return (
     <>
@@ -83,9 +107,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         setIsOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="video-upload-dialog-description">
           <DialogHeader>
             <DialogTitle>Uploader une vidéo</DialogTitle>
+            <p id="video-upload-dialog-description" className="sr-only">Formulaire pour téléverser une nouvelle vidéo.</p>
           </DialogHeader>
           
           {user ? (
@@ -107,7 +132,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 setIsOpen(false);
                 resetForm();
               }}
-              onSubmit={async (values) => {
+              onSubmit={async (values: VideoFormValues) => {
+                console.log('[VideoUploader onSubmit] uploadVideoAndSaveMetadata:', uploadVideoAndSaveMetadata);
+                console.log('[VideoUploader onSubmit] typeof uploadVideoAndSaveMetadata:', typeof uploadVideoAndSaveMetadata);
+
                 if (!videoFile) {
                   toast("Information manquante", {
                     description: "Veuillez fournir une vidéo et un titre."
@@ -116,9 +144,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  const metadata = await uploadToSupabase(values);
-                  if (metadata) {
-                    handleUploadComplete(metadata);
+                  const firestoreUploadData = await uploadVideoAndSaveMetadata(values); 
+                  if (firestoreUploadData) {
+                    // Pass both firestore data and the original videoFile
+                    handleSuccessfulUpload(firestoreUploadData, videoFile);
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);

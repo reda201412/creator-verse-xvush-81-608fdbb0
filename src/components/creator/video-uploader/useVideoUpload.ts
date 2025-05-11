@@ -1,15 +1,15 @@
-
 import { useState } from 'react';
-// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata, ContentType, VideoRestrictions } from '@/types/video'; // Ce type VideoMetadata devra peut-être être aligné avec VideoFirestoreData
+import { ContentType } from '@/types/video';
 import { z } from 'zod';
 import { useMobile } from '@/hooks/useMobile';
-import { db } from '@/integrations/firebase/firebase'; // Ajout de db pour Firestore
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Ajout pour Firestore
-import { VideoFirestoreData } from '@/services/creatorService'; // Utiliser notre type Firestore
+import { db } from '@/integrations/firebase/firebase';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore'; // Ajout de doc et updateDoc
+import { VideoFirestoreData } from '@/services/creatorService';
 
-// Define VideoFormat to match expected types
+// Get the API base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
 
 export const videoSchema = z.object({
@@ -24,17 +24,14 @@ export const videoSchema = z.object({
 
 export type VideoFormValues = z.infer<typeof videoSchema>;
 
-// MAX_CHUNK_SIZE n'est plus pertinent si MUX gère les uploads de gros fichiers via son SDK
-// const MAX_CHUNK_SIZE = 5 * 1024 * 1024; 
-
 const useVideoUpload = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null); // Gardé pour la preview locale
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormat>('16:9');
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0); // La progression sera gérée par le SDK MUX
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState<string>('prêt');
   const { isMobile } = useMobile();
@@ -45,7 +42,8 @@ const useVideoUpload = () => {
       const file = e.target.files[0];
       const videoUrl = URL.createObjectURL(file);
       setUploadError(null);
-      if (isMobile && file.size > 100 * 1024 * 1024) { // Augmenter la limite pour l'alerte
+      setUploadProgress(0); // Réinitialiser la progression
+      if (isMobile && file.size > 100 * 1024 * 1024) {
         alert("Attention: Le téléchargement de très grands fichiers sur mobile peut être lent.");
       }
       const video = document.createElement('video');
@@ -107,70 +105,108 @@ const useVideoUpload = () => {
     setUploadProgress(0); setUploadError(null); setUploadStage('prêt');
   };
 
-  // La fonction uploadLargeFile n'est plus nécessaire avec MUX (MUX SDK gère cela)
-
   const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoFirestoreData | null> => {
     if (!videoFile || !user) {
       setUploadError('Fichier vidéo ou utilisateur manquant');
       return null;
     }
     
+    if (!API_BASE_URL) {
+      setUploadError('Configuration error: VITE_API_BASE_URL is not set.');
+      console.error('VITE_API_BASE_URL is not set. Cannot make API calls.');
+      return null;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError(null);
-    setUploadStage("Initialisation de l'upload MUX...");
+    setUploadStage("Préparation de l'upload...");
+
+    let muxUploadUrl = '';
+    let muxUploadId = ''; // Cet ID sera utile pour suivre l'upload et potentiellement pour les webhooks
 
     try {
-      // --- ÉTAPE 1 & 2: Upload vers MUX (Vidéo et Miniature) ---
-      // Ici, vous intégrerez le SDK MUX ou votre logique d'upload vers MUX.
-      // 1. Obtenir une URL d'upload signée depuis votre backend (Firebase Function) qui interagit avec l'API MUX.
-      // 2. Uploader le videoFile vers cette URL, en utilisant les callbacks de progression du SDK MUX pour setUploadProgress.
-      // 3. Une fois l'upload vidéo terminé, MUX vous donnera un `assetId`.
-      // 4. Optionnel: Uploader la miniature (thumbnailFile) vers MUX associée à cet asset, ou vers Firebase Storage.
-      //    Si upload vers Firebase Storage, vous obtiendrez une `thumbnailUrl`.
-      //    MUX peut aussi générer des miniatures à partir de la vidéo.
+      // ÉTAPE 1: Obtenir l'URL d'upload signée depuis notre backend Vercel
+      setUploadStage("Obtention de l'URL d'upload MUX...");
+      // Construct the full API URL
+      const apiUrl = `${API_BASE_URL.replace(/\/+$/, '')}/api/create-mux-upload`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { error: response.statusText }; // Fallback if response is not JSON
+        }
+        throw new Error(`Erreur serveur (${response.status}) lors de la création de l'upload MUX: ${errorData.error || response.statusText}`);
+      }
+
+      const { uploadUrl, uploadId } = await response.json();
+      if (!uploadUrl || !uploadId) {
+        throw new Error("L'URL d'upload MUX ou l'ID d'upload n'a pas été retourné par l'API.");
+      }
+      muxUploadUrl = uploadUrl;
+      muxUploadId = uploadId; // Sauvegardons cet ID
 
       setUploadStage("Upload de la vidéo vers MUX...");
-      // Exemple de placeholder pour l'ID d'asset MUX et l'ID de playback (à obtenir de MUX)
-      // const muxUploadResponse = await uploadToMuxService(videoFile, (progress) => setUploadProgress(progress));
-      // const muxAssetId = muxUploadResponse.assetId;
-      // const muxPlaybackId = muxUploadResponse.playbackId; // ou un des playback IDs
-      // let thumbnailUrlFromStorage = "";
-      // if (thumbnailFile) { 
-      //   // thumbnailUrlFromStorage = await uploadThumbnailToFirebaseStorage(thumbnailFile, user.uid);
-      // }
 
-      // POUR L'EXEMPLE, nous allons simuler la réponse de MUX et l'URL de la miniature
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simuler l'upload
-      const muxAssetId = `mux_asset_${Date.now()}`;
-      const muxPlaybackId = `mux_playback_${Date.now()}`;
-      let thumbnailUrl = thumbnailPreviewUrl || ""; // Utiliser la preview si aucune miniature uploadée
-      // Si vous avez uploadé la miniature séparément vers Firebase Storage par exemple:
-      // if(thumbnailFile) { thumbnailUrl = "URL_DE_FIREBASE_STORAGE_POUR_MINIATURE";}
+      // ÉTAPE 2: Uploader le fichier vidéo directement vers MUX avec XMLHttpRequest pour la progression
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', muxUploadUrl, true);
+        xhr.setRequestHeader('Content-Type', videoFile.type); 
 
-      setUploadProgress(90); // Simuler la fin de l'upload MUX
-      setUploadStage("Enregistrement des métadonnées...");
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+            setUploadStage(`Upload en cours: ${progress}%`);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(100); 
+            setUploadStage("Vidéo uploadée vers MUX. Enregistrement des métadonnées...");
+            resolve();
+          } else {
+            setUploadStage(`Erreur d'upload MUX: ${xhr.statusText} (${xhr.status})`);
+            reject(new Error(`Erreur d'upload MUX: ${xhr.statusText} (${xhr.status})`));
+          }
+        };
+
+        xhr.onerror = () => {
+          setUploadStage("Erreur réseau lors de l'upload vers MUX.");
+          reject(new Error("Erreur réseau ou CORS lors de l'upload vers MUX."));
+        };
+        
+        xhr.send(videoFile);
+      });
 
       const videoType = values.type as ContentType;
       
-      // --- ÉTAPE 3: Insérer les métadonnées dans Firestore ---
+      setUploadStage("Enregistrement des métadonnées initiales...");
       const videoDocData: Omit<VideoFirestoreData, 'id'> = {
         userId: user.uid,
         title: values.title,
         description: values.description || '',
-        muxAssetId: muxAssetId,       // ID de l'asset MUX
-        muxPlaybackId: muxPlaybackId, // ID de playback MUX (pour le lecteur)
-        thumbnailUrl: thumbnailUrl,     // URL de la miniature (MUX ou Firebase Storage)
-        videoUrl: `https://stream.mux.com/${muxPlaybackId}.m3u8`, // URL de streaming MUX typique
+        muxUploadId: muxUploadId,
+        muxAssetId: '',
+        muxPlaybackId: '',
+        thumbnailUrl: '',
+        videoUrl: '',
+        status: 'processing',
         format: videoFormat,
         type: videoType,
         isPremium: ['premium', 'vip'].includes(values.type),
         tokenPrice: ['premium', 'vip'].includes(values.type) ? values.tokenPrice || 0 : 0,
         uploadedAt: serverTimestamp(),
-        // Les restrictions sont maintenant des champs de haut niveau ou une map
-        // restrictions: { tier: values.tier, sharingAllowed: values.sharingAllowed, downloadsAllowed: values.downloadsAllowed },
-        // Plutôt les inclure directement si nécessaire ou dans un objet dédié comme avant
-        // views, likes, etc., seront initialisés à 0 ou gérés par des triggers/fonctions
         views: 0,
         likes: 0,
       };
@@ -178,7 +214,7 @@ const useVideoUpload = () => {
       const docRef = await addDoc(collection(db, "videos"), videoDocData);
 
       setUploadProgress(100);
-      setUploadStage("Terminé !");
+      setUploadStage("Terminé ! Vidéo en cours de traitement par MUX.");
       
       return { id: docRef.id, ...videoDocData } as VideoFirestoreData;
 
@@ -187,11 +223,12 @@ const useVideoUpload = () => {
       console.error('Upload process error:', error);
       setUploadError(errorMessage);
       setUploadStage('Erreur');
-      setIsUploading(false); // S'assurer de réinitialiser l'état d'upload en cas d'erreur
-      throw error; // Projeter l'erreur pour que le composant parent puisse la gérer
+      setIsUploading(false);
+      return null;
     } finally {
-      // setIsUploading(false); // Déjà géré dans le catch pour l'erreur, ou ici si succès
-      if(uploadStage !== 'Erreur') setIsUploading(false); 
+      if (uploadStage === 'Erreur') {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -199,7 +236,7 @@ const useVideoUpload = () => {
     videoFile, thumbnailFile, videoPreviewUrl, thumbnailPreviewUrl, videoFormat,
     isUploading, uploadProgress, uploadError, uploadStage,
     handleVideoChange, handleThumbnailChange, generateThumbnail, resetForm,
-    uploadVideoAndSaveMetadata // Renommé depuis uploadToSupabase
+    uploadVideoAndSaveMetadata
   };
 };
 
