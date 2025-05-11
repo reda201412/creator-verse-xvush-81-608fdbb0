@@ -25,10 +25,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
 import './App.css';
-import { Spinner } from '@/components/ui/spinner'; // S'assurer que Spinner est importé
+import { Spinner } from '@/components/ui/spinner';
+import { useState, useEffect } from 'react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, profile } = useAuth(); // Utiliser user, isLoading, profile
+  const { user, isLoading, profile } = useAuth();
   console.log("ProtectedRoute: Checking access. isLoading:", isLoading, "User UID:", user?.uid, "Profile role:", profile?.role);
 
   if (isLoading) {
@@ -46,18 +47,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
   
-  // Optionnel: Si le profil est absolument nécessaire pour toutes les routes protégées (même non-créateur)
-  // if (!profile) {
-  //   console.log("ProtectedRoute: Profile not loaded, redirecting...");
-  //   return <Navigate to="/auth" replace />; // ou vers une page de création de profil
-  // }
-
   console.log("ProtectedRoute: Access granted. User UID:", user.uid);
   return <>{children}</>;
 };
 
 const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, isLoading, isCreator } = useAuth(); // Utiliser user, profile, isLoading, isCreator
+  const { user, profile, isLoading, isCreator } = useAuth();
   console.log("CreatorRoute: Checking access. isLoading:", isLoading, "User UID:", user?.uid, "Profile role:", profile?.role, "isCreator flag:", isCreator);
 
   if (isLoading) {
@@ -76,13 +71,7 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!profile) {
-    // Si le profil n'est pas encore chargé, il est difficile de déterminer isCreator.
-    // On pourrait afficher un chargement plus long ou rediriger vers / si le profil est essentiel.
     console.log("CreatorRoute: Profile not yet loaded. Cannot definitively determine creator status.");
-    // Rediriger vers la page d'accueil pour éviter l'accès si le rôle n'est pas confirmable.
-    // Ou attendre que `isLoading` gère le cas où le profil est encore en cours de chargement.
-    // La logique actuelle de `isLoading` dans `AuthContext` devrait déjà couvrir cela.
-    // Si on arrive ici et que `isLoading` est false mais `profile` est null, c'est un problème de chargement de profil.
     return <Navigate to="/" replace />;
   }
   
@@ -96,36 +85,44 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  
+  // Close sidebar on small screens when route changes
+  const handleRouteChange = () => {
+    if (window.innerWidth < 768) {
+      setSidebarExpanded(false);
+    }
+  };
+
   return (
     <AuthProvider>
       <TooltipProvider>
         <Router>
           <XvushDesignSystem>
-            <div className="flex min-h-screen bg-background">
-              <Sidebar />
-              <div className="flex-1 flex flex-col">
-                <Header />
-                <main className="flex-1 pb-24 md:pb-4 main-content md:ml-64 px-2 md:px-4 lg:px-6 pt-2 md:pt-4 transition-all duration-300">
+            <div className="flex h-screen w-full overflow-hidden bg-background">
+              <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
+              <div className={`flex flex-col flex-1 h-full transition-all duration-300 ${sidebarExpanded ? 'md:ml-64' : ''}`}>
+                <Header onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} />
+                <main className="flex-1 overflow-y-auto pb-20 md:pb-4 pt-2 md:pt-4 px-2 md:px-4 lg:px-6">
                   <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/creators" element={<CreatorsFeed />} />
-                    <Route path="/creator/:id?" element={<CreatorProfile />} />
-                    <Route path="/trending" element={<TrendingContent />} />
-                    {/* Pour Stories, si c'est une page protégée par authentification simple: */}
-                    <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} /> {/* Exemple, remplacez Index par votre vraie page Stories */}
+                    <Route path="/" element={<Index onRouteChange={handleRouteChange} />} />
+                    <Route path="/auth" element={<Auth onRouteChange={handleRouteChange} />} />
+                    <Route path="/creators" element={<CreatorsFeed onRouteChange={handleRouteChange} />} />
+                    <Route path="/creator/:id?" element={<CreatorProfile onRouteChange={handleRouteChange} />} />
+                    <Route path="/trending" element={<TrendingContent onRouteChange={handleRouteChange} />} />
+                    <Route path="/stories" element={<ProtectedRoute><Index onRouteChange={handleRouteChange} /></ProtectedRoute>} />
 
-                    <Route path="/secure-messaging" element={<ProtectedRoute><SecureMessagingPage /></ProtectedRoute>} />
-                    <Route path="/dashboard" element={<CreatorRoute><Dashboard /></CreatorRoute>} />
-                    <Route path="/videos" element={<CreatorRoute><CreatorVideos /></CreatorRoute>} />
-                    <Route path="/subscribers" element={<CreatorRoute><SubscribersManagement /></CreatorRoute>} />
-                    <Route path="/calendar" element={<CreatorRoute><CalendarView /></CreatorRoute>} />
-                    <Route path="/exclusive" element={<CreatorRoute><ExclusiveContent /></CreatorRoute>} />
-                    <Route path="/revenue" element={<CreatorRoute><CreatorRevenueDashboard /></CreatorRoute>} />
-                    <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-                    <Route path="/tokens" element={<ProtectedRoute><TokensPage /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
-                    <Route path="*" element={<NotFound />} />
+                    <Route path="/secure-messaging" element={<ProtectedRoute><SecureMessagingPage onRouteChange={handleRouteChange} /></ProtectedRoute>} />
+                    <Route path="/dashboard" element={<CreatorRoute><Dashboard onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/videos" element={<CreatorRoute><CreatorVideos onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/subscribers" element={<CreatorRoute><SubscribersManagement onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/calendar" element={<CreatorRoute><CalendarView onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/exclusive" element={<CreatorRoute><ExclusiveContent onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/revenue" element={<CreatorRoute><CreatorRevenueDashboard onRouteChange={handleRouteChange} /></CreatorRoute>} />
+                    <Route path="/messages" element={<ProtectedRoute><Messages onRouteChange={handleRouteChange} /></ProtectedRoute>} />
+                    <Route path="/tokens" element={<ProtectedRoute><TokensPage onRouteChange={handleRouteChange} /></ProtectedRoute>} />
+                    <Route path="/settings" element={<ProtectedRoute><ProfileSettings onRouteChange={handleRouteChange} /></ProtectedRoute>} />
+                    <Route path="*" element={<NotFound onRouteChange={handleRouteChange} />} />
                   </Routes>
                 </main>
                 <BottomNavigation />

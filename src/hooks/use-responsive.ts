@@ -52,9 +52,15 @@ const defaultBreakpoints: ResponsiveOptions = {
 
 export const useResponsive = (options: ResponsiveOptions = {}) => {
   const breakpoints = { ...defaultBreakpoints, ...options };
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [windowSize, setWindowSize] = useState({ 
+    width: typeof window !== 'undefined' ? window.innerWidth : 0, 
+    height: typeof window !== 'undefined' ? window.innerHeight : 0 
+  });
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+    
     // Fonction pour mettre à jour la taille de fenêtre
     const updateSize = () => {
       setWindowSize({
@@ -66,12 +72,42 @@ export const useResponsive = (options: ResponsiveOptions = {}) => {
     // Exécuter une fois au démarrage
     updateSize();
     
+    // Utiliser un système d'accélérateur pour limiter les appels lors du redimensionnement
+    let resizeTimer: NodeJS.Timeout | null = null;
+    const handleResize = () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateSize, 100);
+    };
+    
     // Ajouter l'écouteur d'événement
-    window.addEventListener('resize', updateSize);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', updateSize);
     
     // Nettoyer l'écouteur lors du démontage
-    return () => window.removeEventListener('resize', updateSize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', updateSize);
+      if (resizeTimer) clearTimeout(resizeTimer);
+    };
   }, []);
+
+  // Si nous ne sommes pas dans un environnement client, retourner des valeurs par défaut
+  if (!isClient) {
+    return {
+      windowSize: { width: 0, height: 0 },
+      screenSize: 'md' as ScreenSize,
+      isMobile: false,
+      isDesktop: false,
+      isXs: false,
+      isSm: false,
+      isMd: false,
+      isLg: false,
+      isXl: false,
+      is2xl: false,
+      atLeast: () => false,
+      atMost: () => false
+    };
+  }
 
   // Calculer les états responsives
   const isMobile = windowSize.width < (breakpoints.md || 768);
