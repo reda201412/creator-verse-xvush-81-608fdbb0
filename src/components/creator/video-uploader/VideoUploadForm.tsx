@@ -21,8 +21,9 @@ interface VideoUploadFormProps {
   uploadProgress: number;
   uploadError: string | null;
   uploadStage?: string;
+  handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  generateThumbnail: () => void;
+  generateThumbnail: () => void; // Added this prop
   resetForm: () => void;
   onClose: () => void;
   onSubmit: (values: VideoFormValues, onUploadProgress: (progress: number) => void) => Promise<void>;
@@ -41,6 +42,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   uploadProgress,
   uploadError,
   uploadStage,
+  handleVideoChange,
   handleThumbnailChange,
   generateThumbnail,
   resetForm,
@@ -72,6 +74,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   };
 
   const handleSubmit = useCallback(async (values: VideoFormValues) => {
+    // Pass setUploadProgress as the onUploadProgress callback to the onSubmit prop
     await onSubmit(values, setUploadProgress);
   }, [onSubmit, setUploadProgress]);
 
@@ -88,6 +91,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
         {/* Video Upload Section */}
         <MuxDirectUploader
           setVideoFile={setVideoFile}
+          // Removed handleVideoChange as MuxDirectUploader handles file changes internally
           onUploadStart={() => setUploadStage("Préparation de l'upload...")}
           onSuccess={(uploadId) => {
             console.log(`Mux upload initiated with uploadId: ${uploadId}`);

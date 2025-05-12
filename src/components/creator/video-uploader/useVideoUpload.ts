@@ -6,6 +6,8 @@ import { useMobile } from '@/hooks/useMobile';
 import { db } from '@/integrations/firebase/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { VideoFirestoreData } from '@/services/creatorService';
+import React from 'react'; // Import React for React.ChangeEvent
+import { toast } from 'sonner'; // Import toast
 
 // Get the API base URL from environment variables for Vite
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -30,13 +32,23 @@ const useVideoUpload = () => {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
-  const [videoFormat, setVideoFormat] = useState<VideoFormat>('16:9');
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>('16:9'); // Removed the extraneous backslash
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState<string>('prêt');
   const { isMobile } = useMobile();
   const { user } = useAuth();
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setVideoFile(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      // You might want to infer format here based on video file dimensions
+      // For simplicity, keeping default or letting user select for now.
+    }
+  };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -46,6 +58,16 @@ const useVideoUpload = () => {
     }
   };
 
+  const generateThumbnail = useCallback(() => {
+    // This is a placeholder. Actual thumbnail generation from video frame 
+    // would require a more complex implementation, possibly using a library
+    // or server-side processing.
+    console.log("Generate thumbnail functionality not yet implemented.");
+    toast("Génération de vignette", {
+      description: "La génération automatique de vignettes n'est pas encore disponible."
+    });
+  }, []);
+
   const resetForm = () => {
     setVideoFile(null); setThumbnailFile(null); setVideoPreviewUrl(null);
     setThumbnailPreviewUrl(null); setVideoFormat('16:9'); setIsUploading(false);
@@ -54,7 +76,7 @@ const useVideoUpload = () => {
 
   const uploadVideoAndSaveMetadata = useCallback(async (
     values: VideoFormValues,
-    onUploadProgress: (progress: number) => void // Progress callback
+    onUploadProgress: (progress: number) => void // Keep onUploadProgress here as it's used internally or intended to be.
   ): Promise<VideoFirestoreData | null> => {
     if (!user) {
       setUploadError('Utilisateur manquant');
@@ -69,7 +91,7 @@ const useVideoUpload = () => {
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
+    // setUploadProgress(0); // This will be updated by the MuxUploader via onUploadProgress callback
     setUploadError(null);
     setUploadStage("Préparation de l'upload...");
 
@@ -120,8 +142,8 @@ const useVideoUpload = () => {
   return {
     videoFile, thumbnailFile, videoPreviewUrl, thumbnailPreviewUrl, videoFormat,
     isUploading, uploadProgress, uploadError, uploadStage,
-    handleThumbnailChange, resetForm,
-    uploadVideoAndSaveMetadata, setVideoFile, setUploadProgress, setUploadStage // ADD set functions
+    handleVideoChange, handleThumbnailChange, generateThumbnail, resetForm,
+    uploadVideoAndSaveMetadata, setVideoFile, setUploadProgress, setUploadStage
   };
 };
 

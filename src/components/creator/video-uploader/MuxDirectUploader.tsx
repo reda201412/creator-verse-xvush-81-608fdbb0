@@ -1,10 +1,18 @@
 import React from 'react';
-import { MuxUploader, MuxUploaderStatus, MuxUploaderDrop } from '@mux/mux-uploader-react';
-import { useAuth } from '@/contexts/AuthContext'; // Assuming you have an auth context
+import MuxUploader, { MuxUploaderStatus, MuxUploaderDrop } from '@mux/mux-uploader-react'; // Corrected import
+import { useAuth } from '@/contexts/AuthContext';
+
+// Define the expected structure of the success event detail from MuxUploader
+interface MuxSuccessEventDetail {
+  id: string; // The upload ID
+  url?: string;
+  assetId?: string;
+  // Include other properties if they are part of the success event detail
+}
 
 interface MuxDirectUploaderProps {
   onUploadStart?: () => void;
-  onSuccess?: (uploadId: string) => void; // Changed to only pass uploadId
+  onSuccess?: (uploadId: string) => void;
   onError?: (error: any) => void;
   setVideoFile: (file: File | null) => void;
 }
@@ -15,15 +23,17 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
   onError,
   setVideoFile,
 }) => {
-  const { user, getToken } = useAuth(); // Or however you get your Supabase JWT
-  const [status, setStatus] = React.useState<MuxUploaderStatus | null>(null);
+  const { user } = useAuth();
+  // Removed local status state and setStatus as MuxUploaderDrop handles status display
+  // const [status, setStatus] = React.useState<typeof MuxUploaderStatus | null>(null);
 
   const getUploadUrl = async () => {
     if (!user) {
       throw new Error('User not authenticated');
     }
     try {
-      const token = await getToken(); // Get the Supabase JWT
+      // Get the Firebase ID token from the user object
+      const token = await user.getIdToken();
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-mux-upload`, // Ensure this URL is correct
         {
@@ -56,13 +66,10 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
         onUploadStart={() => {
           onUploadStart && onUploadStart();
         }}
-        onSuccess={(details) => {
-          console.log('Mux upload initiated successfully:', details);
-          // 'details' here is from Mux after the upload *starts* successfully with Mux.
-          // The full processing and asset creation is asynchronous via webhooks.
-          // You might get `uploadId` here from Mux's client-side events.
-          // @ts-ignore Mux types might not be perfectly aligned
-          const uploadId = details.id;
+        // Correctly type the event and access the detail property
+        onSuccess={(event: CustomEvent<MuxSuccessEventDetail>) => {
+          console.log('Mux upload initiated successfully:', event.detail);
+          const uploadId = event.detail?.id; // Access id from the detail property
           if (onSuccess && uploadId) {
             onSuccess(uploadId);
           }
@@ -73,10 +80,7 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
             onError(error);
           }
         }}
-        onStatusChange={(status) => {
-          console.log('Mux Uploader Status:', status);
-          setStatus(status);
-        }}
+        // Removed onStatusChange prop
         onChange={(files) => {
           if (files && files[0]) {
             setVideoFile(files[0]);
@@ -85,20 +89,10 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
           }
         }}
       >
+        {/* MuxUploaderDrop children will automatically react to the status */}
         <MuxUploaderDrop>
-          {status === MuxUploaderStatus.READY && (
-            <p>Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier</p>
-          )}
-
-          {status === MuxUploaderStatus.UPLOADING && (
-            <p>Téléchargement en cours...</p>
-          )}
-
-          {status === MuxUploaderStatus.PROCESSING && (
-            <p>Traitement de la vidéo...</p>
-          )}
-
-          {status === MuxUploaderStatus.ERRORED && <p>Une erreur s'est produite</p>}
+          {/* Conditional rendering based on status is handled by MuxUploaderDrop */}
+          <p>Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier</p>
         </MuxUploaderDrop>
       </MuxUploader>
     </div>

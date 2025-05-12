@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,15 +19,15 @@ interface VideoUploaderProps {
   className?: string;
 }
 
-const VideoUploader: React.FC<VideoUploaderProps> = ({ 
-  onUploadComplete, 
+const VideoUploader: React.FC<VideoUploaderProps> = ({
+  onUploadComplete,
   isCreator,
-  className 
+  className
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { triggerMicroReward } = useNeuroAesthetic();
   const { user } = useAuth();
-  
+
   const {
     videoFile, // This is the File object we need
     thumbnailFile,
@@ -43,11 +42,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     handleThumbnailChange,
     generateThumbnail,
     resetForm,
-<<<<<<< HEAD
-    uploadVideoAndSaveMetadata
-=======
-    uploadVideoAndSaveMetadata // Changed from uploadToSupabase
->>>>>>> 44460133e327c2ebc96748ecdd12c1e8f1faabbb
+    uploadVideoAndSaveMetadata,
+    setVideoFile,
+    setUploadProgress,
+    setUploadStage
   } = useVideoUpload();
 
   // Check for authentication
@@ -79,11 +77,11 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
 
     onUploadComplete(completeMetadata);
     triggerMicroReward('interaction');
-    
+
     toast("Vidéo téléchargée avec succès", {
       description: "Votre vidéo a été mise en ligne et est maintenant visible."
     });
-    
+
     setTimeout(() => {
       setIsOpen(false);
       resetForm();
@@ -97,8 +95,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   return (
     <>
       {isCreator && (
-        <Button 
-          onClick={() => setIsOpen(true)} 
+        <Button
+          onClick={() => setIsOpen(true)}
           className={className}
           size="sm"
         >
@@ -106,7 +104,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
           Uploader une vidéo
         </Button>
       )}
-      
+
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) resetForm();
@@ -116,7 +114,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
             <DialogTitle>Uploader une vidéo</DialogTitle>
             <p id="video-upload-dialog-description" className="sr-only">Formulaire pour téléverser une nouvelle vidéo.</p>
           </DialogHeader>
-          
+
           {user ? (
             <VideoUploadForm
               videoFile={videoFile}
@@ -128,15 +126,16 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               uploadProgress={uploadProgress}
               uploadError={uploadError}
               uploadStage={uploadStage}
-              handleVideoChange={handleVideoChange}
+              handleVideoChange={handleVideoChange} // Pass handleVideoChange
               handleThumbnailChange={handleThumbnailChange}
-              generateThumbnail={generateThumbnail}
+              generateThumbnail={generateThumbnail} // Pass generateThumbnail
               resetForm={resetForm}
               onClose={() => {
                 setIsOpen(false);
                 resetForm();
               }}
-              onSubmit={async (values: VideoFormValues) => {
+              // Correctly pass onUploadProgress to uploadVideoAndSaveMetadata
+              onSubmit={async (values: VideoFormValues, onUploadProgress: (progress: number) => void) => {
                 console.log('[VideoUploader onSubmit] uploadVideoAndSaveMetadata:', uploadVideoAndSaveMetadata);
                 console.log('[VideoUploader onSubmit] typeof uploadVideoAndSaveMetadata:', typeof uploadVideoAndSaveMetadata);
 
@@ -146,19 +145,12 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   });
                   return;
                 }
-                
+
                 try {
-<<<<<<< HEAD
-                  const firestoreUploadData = await uploadVideoAndSaveMetadata(values); 
+                  const firestoreUploadData = await uploadVideoAndSaveMetadata(values, onUploadProgress); // Pass onUploadProgress
                   if (firestoreUploadData) {
                     // Pass both firestore data and the original videoFile
                     handleSuccessfulUpload(firestoreUploadData, videoFile);
-=======
-                  // Changed from uploadToSupabase to uploadVideoAndSaveMetadata
-                  const metadata = await uploadVideoAndSaveMetadata(values);
-                  if (metadata) {
-                    handleUploadComplete(metadata);
->>>>>>> 44460133e327c2ebc96748ecdd12c1e8f1faabbb
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);
@@ -167,12 +159,15 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   });
                 }
               }}
+              setVideoFile={setVideoFile}
+              setUploadProgress={setUploadProgress}
+              setUploadStage={setUploadStage}
             />
           ) : (
             <div className="p-4 text-center">
               <p>Vous devez être connecté pour téléverser des vidéos.</p>
-              <Button 
-                onClick={() => setIsOpen(false)} 
+              <Button
+                onClick={() => setIsOpen(false)}
                 className="mt-4"
               >
                 Fermer
