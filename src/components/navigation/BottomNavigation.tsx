@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Users, Video, MessageCircle, User, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ export const BottomNavigation = () => {
   const { isMobile } = useMobile();
   const { user, isCreator } = useAuth();
   
+  // Only show the bottom navigation on mobile
   if (!isMobile) return null;
   
   // Define navigation items
@@ -48,7 +49,7 @@ export const BottomNavigation = () => {
 
   return (
     <motion.nav 
-      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-50"
+      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-50 touch-manipulation"
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -60,7 +61,7 @@ export const BottomNavigation = () => {
             to={item.href}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center py-3 px-2 flex-1 transition-colors",
+                "flex flex-col items-center justify-center py-3 px-1 flex-1 transition-colors",
                 isActive 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"

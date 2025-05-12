@@ -1,132 +1,36 @@
 
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { HamburgerMenu } from './MobileMenu';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-import { cn } from '@/lib/utils';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import XDoseLogo from '@/components/XDoseLogo';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { HamburgerMenu } from './MobileMenu';
 
 interface HeaderProps {
+  onMenuClick?: () => void;
   className?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({
-  className
-}) => {
-  const isMobile = useIsMobile();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {
-    isCreator
-  } = useAuth();
-  const {
-    triggerMicroReward
-  } = useNeuroAesthetic();
-
-  const handleQuickUpload = () => {
-    navigate('/videos');
-    triggerMicroReward('navigate');
-  };
-
+const Header: React.FC<HeaderProps> = ({ onMenuClick, className }) => {
   return (
-    <header className={`flex items-center justify-between p-4 ${className}`}>
-      {/* Logo added to the header */}
-      <Link to="/" className="flex items-center">
-        <XDoseLogo size="md" animated={false} />
-      </Link>
-      
-      <div className="flex items-center gap-4">
-        {isCreator && !isMobile && (
-          <Button size="sm" onClick={handleQuickUpload} className="bg-xvush-pink hover:bg-xvush-pink-dark">
-            <Upload className="mr-2 h-4 w-4" />
-            Créer
+    <div className={cn(
+      "sticky top-0 z-40 w-full bg-background/95 backdrop-blur-sm border-b",
+      className
+    )}>
+      <div className="container flex items-center gap-2 py-2">
+        {onMenuClick && (
+          <Button variant="ghost" size="sm" className="mr-2 px-2 md:flex hidden" onClick={onMenuClick}>
+            <Menu className="h-4 w-4" />
           </Button>
         )}
-        
-        {!isMobile && (
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link to="/">
-                  <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), location.pathname === "/" ? "bg-accent" : "")}>
-                    Accueil
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/creators">
-                  <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), location.pathname === "/creators" ? "bg-accent" : "")}>
-                    Créateurs
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <Link to="/creator">
-                  <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), location.pathname === "/creator" ? "bg-accent" : "")}>
-                    Profil Créateur
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              {isCreator && (
-                <NavigationMenuItem>
-                  <Link to="/dashboard">
-                    <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), location.pathname === "/dashboard" ? "bg-accent" : "")}>
-                      Tableau de Bord
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-              )}
-              
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Autres</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                    {isCreator && (
-                      <li>
-                        <Link to="/calendar" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Calendrier</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Planifiez et visualisez vos contenus
-                          </p>
-                        </Link>
-                      </li>
-                    )}
-                    <li>
-                      <Link to="/secure-messaging" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                        <div className="text-sm font-medium leading-none">Messages</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                          Communiquez avec vos abonnés
-                        </p>
-                      </Link>
-                    </li>
-                    {isCreator && (
-                      <li>
-                        <Link to="/subscribers" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Abonnés</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Gérez vos abonnés et communauté
-                          </p>
-                        </Link>
-                      </li>
-                    )}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-        )}
-        
-        {isMobile && <HamburgerMenu />}
+        <div className="md:hidden">
+          <HamburgerMenu />
+        </div>
+        <div className="flex-1">
+          <Input type="search" placeholder="Rechercher..." className="md:max-w-[300px]" />
+        </div>
       </div>
-    </header>
+    </div>
   );
 };
 

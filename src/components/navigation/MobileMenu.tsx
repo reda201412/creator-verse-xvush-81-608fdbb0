@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,7 +13,6 @@ import {
   Menu,
   Users,
   Settings,
-  Bell,
   LogOut,
   Coins,
   Video,
@@ -71,7 +71,7 @@ export const HamburgerMenu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { triggerMicroReward } = useNeuroAesthetic();
-  const { user, profile, isCreator, signOut } = useAuth();
+  const { user, profile, isCreator } = useAuth();
   const { toast } = useToast();
 
   // Common navigation items for all users
@@ -108,14 +108,19 @@ export const HamburgerMenu = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      toast({
-        title: "Déconnexion réussie",
-        description: "Vous avez été déconnecté avec succès."
-      });
-      navigate('/');
+      // Close the menu first
       closeMenu();
+      
+      // Then navigate
+      navigate('/');
+      
+      // Trigger micro reward
       triggerMicroReward('action');
+      
+      toast({
+        title: "Action de déconnexion",
+        description: "Fonctionnalité de déconnexion simulée."
+      });
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
       toast({
@@ -132,7 +137,7 @@ export const HamburgerMenu = () => {
     triggerMicroReward('navigate');
   };
 
-  const displayName = profile?.display_name || profile?.username || "Utilisateur";
+  const displayName = profile?.displayName || profile?.username || "Utilisateur";
   const userRole = isCreator ? "Créateur" : "Fan";
 
   return (
@@ -228,7 +233,7 @@ export const HamburgerMenu = () => {
 
                 <div className="mt-6 pt-6 border-t">
                   <div className="flex items-center p-3">
-                    <ProfileAvatar src={profile?.avatar_url || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
+                    <ProfileAvatar src={profile?.avatarUrl || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
                     <div className="ml-3">
                       <p className="text-sm font-medium">{displayName}</p>
                       <p className="text-xs text-muted-foreground">{userRole}</p>

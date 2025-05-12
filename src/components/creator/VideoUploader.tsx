@@ -43,7 +43,11 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     handleThumbnailChange,
     generateThumbnail,
     resetForm,
+<<<<<<< HEAD
     uploadVideoAndSaveMetadata
+=======
+    uploadVideoAndSaveMetadata // Changed from uploadToSupabase
+>>>>>>> 44460133e327c2ebc96748ecdd12c1e8f1faabbb
   } = useVideoUpload();
 
   // Check for authentication
@@ -144,10 +148,17 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
+<<<<<<< HEAD
                   const firestoreUploadData = await uploadVideoAndSaveMetadata(values); 
                   if (firestoreUploadData) {
                     // Pass both firestore data and the original videoFile
                     handleSuccessfulUpload(firestoreUploadData, videoFile);
+=======
+                  // Changed from uploadToSupabase to uploadVideoAndSaveMetadata
+                  const metadata = await uploadVideoAndSaveMetadata(values);
+                  if (metadata) {
+                    handleUploadComplete(metadata);
+>>>>>>> 44460133e327c2ebc96748ecdd12c1e8f1faabbb
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);

@@ -10,7 +10,8 @@ import { VideoFirestoreData } from '@/services/creatorService';
 // Get the API base URL from environment variables for Vite
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
+// Define VideoFormat to match expected types
+export type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
 
 export const videoSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -87,7 +88,8 @@ const useVideoUpload = () => {
         videoUrl: '',
         status: 'uploading',
         format: videoFormat,
-        type: videoType,
+        // Corrige le problème de type en convertissant 'teaser' en 'standard' si nécessaire
+        type: videoType === 'teaser' ? 'standard' as ContentType : videoType,
         isPremium: ['premium', 'vip'].includes(values.type),
         tokenPrice: ['premium', 'vip'].includes(values.type) ? values.tokenPrice || 0 : 0,
         uploadedAt: serverTimestamp(),

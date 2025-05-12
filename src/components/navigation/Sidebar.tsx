@@ -1,289 +1,131 @@
 
-import React, { useEffect, useState } from 'react';
-import { LucideIcon, Home, Video, Medal, MessageCircle, Calendar, Layers, Users, DollarSign, Wallet, Settings, Menu, Film, BookOpen, Image, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Separator } from '@/components/ui/separator';
+import { Home, Users, Video, MessageCircle, User, Settings, LogOut, LayoutDashboard, Calendar, Star, FileVideo, LucideIcon } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import ProfileAvatar from '@/components/ProfileAvatar';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useResponsive } from '@/hooks/use-responsive';
+import { RouteChangeProps } from '@/types/navigation';
 
 interface NavItem {
-  href: string;
-  label: string;
   icon: LucideIcon;
+  label: string;
+  href: string;
+  requiresAuth?: boolean;
+  creatorOnly?: boolean;
 }
 
-// Updated common navigation items with Trending
-const commonNavItems: NavItem[] = [
-  { href: '/', label: 'Accueil', icon: Home },
-  { href: '/creators', label: 'Créateurs', icon: Users },
-  { href: '/trending', label: 'Tendances', icon: TrendingUp },
-  { href: '/stories', label: 'Stories', icon: Image },
-];
+interface DesktopSidebarProps {
+  expanded: boolean;
+  onToggle: () => void;
+}
 
-const creatorNavItems: NavItem[] = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: Home },
-  { href: '/videos', label: 'Vidéos', icon: Film },
-  { href: '/exclusive', label: 'Contenu Exclusif', icon: BookOpen },
-  { href: '/subscribers', label: 'Abonnés', icon: Users },
-  { href: '/revenue', label: 'Revenus', icon: DollarSign },
-  { href: '/calendar', label: 'Calendrier', icon: Calendar },
-];
-
-const accountNavItems: NavItem[] = [
-  { href: '/messages', label: 'Messages', icon: MessageCircle },
-  { href: '/tokens', label: 'Tokens', icon: Wallet },
-  { href: '/settings', label: 'Paramètres', icon: Settings },
-];
-
-export const DesktopSidebar: React.FC = () => {
+export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
+  const { user, profile, signOut, isCreator } = useAuth();
+  const { toast } = useToast();
   const location = useLocation();
-  const { user, profile, isCreator } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // Ajout d'effet pour mémoriser l'état du sidebar
+  const { isMobile } = useResponsive();
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
-    const savedState = localStorage.getItem('sidebarCollapsed');
-    if (savedState !== null) {
-      setIsCollapsed(savedState === 'true');
-    }
+    setIsMounted(true);
   }, []);
-  
-  // Enregistrer l'état dans localStorage
-  const toggleCollapse = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem('sidebarCollapsed', String(newState));
-  };
-  
-  return (
-    <aside className={cn(
-      "hidden md:flex flex-col border-r bg-secondary/10 h-screen fixed left-0 top-0 z-40 transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
-      <div className="p-4 flex items-center justify-between">
-        <div className={cn("flex items-center gap-2", isCollapsed && "justify-center")}>
-          {profile && profile.avatar_url ? (
-            <ProfileAvatar 
-              src={profile.avatar_url} 
-              alt={profile.display_name || profile.username} 
-            />
-          ) : (
-            <div className="rounded-full bg-muted w-10 h-10 flex items-center justify-center">
-              {profile?.display_name?.charAt(0) || profile?.username?.charAt(0) || '?'}
-            </div>
-          )}
-          {!isCollapsed && profile && (
-            <div className="text-sm font-medium truncate">
-              {profile.display_name || profile.username || 'Utilisateur'}
-            </div>
-          )}
-        </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleCollapse} 
-          className="hover:bg-secondary"
-          aria-label={isCollapsed ? "Développer" : "Réduire"}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
-      <Separator />
-      <nav className="flex flex-col flex-1 p-2 space-y-1 overflow-y-auto">
-        {commonNavItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
-                isCollapsed && "justify-center px-2",
-                isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
-                isActive && "sidebar-active-link"
-              )
-            }
-            title={item.label}
-          >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>{item.label}</span>}
-          </NavLink>
-        ))}
-        {isCreator && (
-          <>
-            <Separator className="my-2" />
-            {creatorNavItems.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
-                    isCollapsed && "justify-center px-2",
-                    isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
-                    isActive && "sidebar-active-link"
-                  )
-                }
-                title={item.label}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>{item.label}</span>}
-              </NavLink>
-            ))}
-          </>
-        )}
-        <Separator className="my-2" />
-        {accountNavItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground cursor-pointer transition-colors",
-                isCollapsed && "justify-center px-2",
-                isActive ? "bg-secondary text-foreground" : "text-muted-foreground",
-                isActive && "sidebar-active-link"
-              )
-            }
-            title={item.label}
-          >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>{item.label}</span>}
-          </NavLink>
-        ))}
-      </nav>
-      <div className={cn("p-4", isCollapsed ? "hidden" : "block")}>
-        <NavLink
-          to="/secure-messaging"
-          className={({ isActive }) =>
-            cn(
-              "flex items-center justify-center space-x-2 rounded-md p-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer transition-colors w-full",
-              isActive ? "bg-primary/90" : ""
-            )
-          }
-        >
-          <MessageCircle className="h-5 w-5 mr-2" />
-          <span>Messagerie sécurisée</span>
-        </NavLink>
-      </div>
-    </aside>
-  );
-};
 
-export const MobileSidebar: React.FC = () => {
-  const location = useLocation();
-  const { user, profile, isCreator } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const isMobile = useIsMobile();
-
+  // Add listener for route changes to close sidebar on mobile
   useEffect(() => {
-    if (!isMobile) {
-      setIsOpen(false);
+    if (isMobile && expanded) {
+      onToggle();
     }
-  }, [isMobile]);
+  }, [location.pathname, isMobile, expanded, onToggle]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur s'est produite lors de la déconnexion. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const navItems: NavItem[] = [
+    { icon: Home, label: 'Accueil', href: '/' },
+    { icon: Users, label: 'Créateurs', href: '/creators' },
+    { icon: Star, label: 'Tendances', href: '/trending' },
+    { icon: MessageCircle, label: 'Messages', href: '/messages', requiresAuth: true },
+    { icon: LayoutDashboard, label: 'Tableau de bord', href: '/dashboard', requiresAuth: true, creatorOnly: true },
+    { icon: FileVideo, label: 'Vidéos', href: '/videos', requiresAuth: true, creatorOnly: true },
+    { icon: Calendar, label: 'Calendrier', href: '/calendar', requiresAuth: true, creatorOnly: true },
+    { icon: Settings, label: 'Paramètres', href: '/settings', requiresAuth: true },
+  ];
+
+  const filteredNavItems = navItems.filter(item =>
+    !item.requiresAuth || (item.requiresAuth && user) &&
+    (!item.creatorOnly || (item.creatorOnly && isCreator))
+  );
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-3/4 sm:w-2/3">
-        <SheetHeader className="text-left">
-          <SheetTitle>Menu</SheetTitle>
-        </SheetHeader>
-        {profile && (
-          <div className="p-4">
-            {profile.avatar_url ? (
-              <ProfileAvatar 
-                src={profile.avatar_url} 
-                alt={profile.display_name || profile.username} 
-              />
-            ) : (
-              <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
-                {profile.display_name?.charAt(0) || profile.username?.charAt(0) || '?'}
-              </div>
-            )}
-          </div>
-        )}
-        <Separator />
-        <nav className="flex flex-col flex-1 p-2 space-y-1">
-          {commonNavItems.map((item) => (
+    <div
+      className={cn(
+        "border-r flex-col py-4 fixed left-0 top-0 z-50 h-screen bg-background border-border transition-transform duration-300 w-64",
+        isMobile ? (expanded ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
+      )}
+    >
+      <div className="px-6 flex items-center mb-6">
+        <Avatar className="mr-2">
+          <AvatarImage src={profile?.avatarUrl} />
+          <AvatarFallback>{profile?.username?.charAt(0).toUpperCase() || '?'}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold">{profile?.username || 'Chargement...'}</p>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
+        </div>
+      </div>
+      <ScrollArea className="flex-1 space-y-4 px-3">
+        <div className="space-y-1">
+          {filteredNavItems.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
-                  isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary hover:text-foreground",
+                  isActive ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground",
+                  isActive && "sidebar-active-link"
                 )
               }
-              onClick={() => setIsOpen(false)}
+              onClick={() => isMobile && expanded ? onToggle() : null}
             >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              <item.icon className="mr-2 h-4 w-4" />
+              {item.label}
             </NavLink>
           ))}
-          {isCreator && (
-            <>
-              <Separator className="my-2" />
-              {creatorNavItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
-                      isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
-                    )
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
-            </>
-          )}
-          <Separator className="my-2" />
-          {accountNavItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center space-x-2 rounded-md p-2 text-sm font-medium hover:bg-secondary hover:text-foreground",
-                  isActive ? "bg-secondary text-foreground" : "text-muted-foreground"
-                )
-              }
-              onClick={() => setIsOpen(false)}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-          <Separator className="my-2" />
-          <NavLink
-            to="/secure-messaging"
-            className={({ isActive }) =>
-              cn(
-                "flex items-center space-x-2 rounded-md p-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90",
-                isActive ? "bg-primary/90" : ""
-              )
-            }
-            onClick={() => setIsOpen(false)}
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span>Messagerie sécurisée</span>
-          </NavLink>
-        </nav>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </ScrollArea>
+      <div className="p-4">
+        <button
+          onClick={handleSignOut}
+          className="group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary hover:text-foreground text-muted-foreground w-full"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Déconnexion
+        </button>
+      </div>
+    </div>
   );
-};
+}
 
-export default DesktopSidebar;
+export const Sidebar = DesktopSidebar;
