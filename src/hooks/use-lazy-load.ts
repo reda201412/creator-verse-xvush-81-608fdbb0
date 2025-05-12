@@ -1,15 +1,21 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, MutableRefObject } from 'react';
 
-interface UseLazyLoadOptions {
+export interface UseLazyLoadOptions {
   threshold?: number; // Visibility threshold (0-1)
   rootMargin?: string; // Margin around the root
   once?: boolean; // Load only once or keep observing
 }
 
-export function useLazyLoad(options: UseLazyLoadOptions = {}) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+export interface UseLazyLoadReturn {
+  elementRef: MutableRefObject<HTMLDivElement | null>;
+  isVisible: boolean;
+  hasLoaded: boolean;
+}
+
+export function useLazyLoad(options: UseLazyLoadOptions = {}): UseLazyLoadReturn {
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const elementRef = useRef<HTMLDivElement | null>(null);
   
   const { 

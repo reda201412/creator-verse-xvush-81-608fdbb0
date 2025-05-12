@@ -10,7 +10,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Ajo
 import { VideoFirestoreData } from '@/services/creatorService'; // Utiliser notre type Firestore
 
 // Define VideoFormat to match expected types
-type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
+export type VideoFormat = '16:9' | '9:16' | '1:1' | 'other';
 
 export const videoSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
@@ -163,7 +163,8 @@ const useVideoUpload = () => {
         thumbnailUrl: thumbnailUrl,     // URL de la miniature (MUX ou Firebase Storage)
         videoUrl: `https://stream.mux.com/${muxPlaybackId}.m3u8`, // URL de streaming MUX typique
         format: videoFormat,
-        type: videoType,
+        // Corrige le problème de type en convertissant 'teaser' en 'standard' si nécessaire
+        type: videoType === 'teaser' ? 'standard' as ContentType : videoType,
         isPremium: ['premium', 'vip'].includes(values.type),
         tokenPrice: ['premium', 'vip'].includes(values.type) ? values.tokenPrice || 0 : 0,
         uploadedAt: serverTimestamp(),

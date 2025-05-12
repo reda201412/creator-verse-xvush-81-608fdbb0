@@ -39,7 +39,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     handleThumbnailChange,
     generateThumbnail,
     resetForm,
-    uploadToSupabase
+    uploadVideoAndSaveMetadata // Changed from uploadToSupabase
   } = useVideoUpload();
 
   // Check for authentication
@@ -116,7 +116,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  const metadata = await uploadToSupabase(values);
+                  // Changed from uploadToSupabase to uploadVideoAndSaveMetadata
+                  const metadata = await uploadVideoAndSaveMetadata(values);
                   if (metadata) {
                     handleUploadComplete(metadata);
                   }
