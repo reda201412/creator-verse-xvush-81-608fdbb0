@@ -1,4 +1,3 @@
-
 import { db } from '@/integrations/firebase/firebase';
 import {
   collection,
@@ -31,7 +30,8 @@ export interface FirestoreMessageThread {
   lastActivity: Timestamp;
   createdAt: Timestamp;
   isGated: boolean;
-  name?: string; 
+  name?: string;
+  normalizedParticipantIds?: string; // New field for optimized queries
 }
 
 export interface FirestoreMessage {
@@ -46,6 +46,30 @@ export interface FirestoreMessage {
 /**
  * Crée une nouvelle conversation (fil de discussion et premier message) entre un utilisateur et un créateur.
  * Vérifie d'abord si un fil de discussion entre ces deux utilisateurs existe déjà.
+ *
+ * @param {object} params - Object containing the parameters for creating the conversation.
+ * @param {string} params.userId - UID de l'utilisateur qui initie (fan).
+ * @param {string} params.userName - Nom d'affichage de l'utilisateur qui initie.
+ * @param {string} params.userAvatar - URL de l'avatar de l'utilisateur qui initie.
+ * @param {string} params.creatorId - UID du créateur.
+ * @param {string} params.creatorName - Nom d'affichage du créateur.
+ * @param {string} params.creatorAvatar - URL de l'avatar du créateur.
+ * @param {string} [params.initialMessageText="Bonjour, j'aimerais discuter avec vous!"] - Texte du premier message.
+ * @param {boolean} [params.isGated=false] - Indique si le fil de discussion est gated.
+ *
+ * @returns {Promise<object>} - Object containing the result of the operation.
+ * @returns {boolean} result.success - True si l'opération a réussi, false sinon.
+ * @returns {string} [result.threadId] - ID du fil de discussion créé.
+ * @returns {FirestoreMessage} [result.message] - Le premier message créé.
+ * @returns {object} [result.error] - Object contenant l'erreur si l'opération a échoué.
+ * @returns {string} [result.existingThreadId] - ID du fil de discussion existant s'il en existe un.
+ *
+ * @security - This function does not directly implement security measures.
+ *             Ensure that the calling code has proper authentication and authorization checks.
+ *             Consider implementing server-side validation to prevent malicious input.
+ *
+ * @performance - The function performs one query to check for existing threads using normalizedParticipantIds.
+ *                Ensure that there is a single index on the `normalizedParticipantIds` field to improve query performance.
  */
 export const createNewConversationWithCreator = async ({
   userId,        // UID de l'utilisateur qui initie (fan)
@@ -73,30 +97,22 @@ export const createNewConversationWithCreator = async ({
 
   try {
     // 1. Vérifier si un fil de discussion existe déjà entre ces deux utilisateurs
-    // On cherche un fil où participantIds contient à la fois userId et creatorId
-    // Pour les tableaux, Firestore nécessite des requêtes `array-contains-all` ou des astuces.
-    // Une manière plus simple pour deux participants est de vérifier les deux ordres possibles:
-    const q1 = query(
+    const participantIds = [userId, creatorId].sort();
+    const normalizedParticipantIds = participantIds.join("_");
+
+    const q = query(
       collection(db, 'messageThreads'),
-      where('participantIds', '==', [userId, creatorId]),
-      limit(1)
-    );
-    const q2 = query(
-      collection(db, 'messageThreads'),
-      where('participantIds', '==', [creatorId, userId]),
+      where('normalizedParticipantIds', '==', normalizedParticipantIds),
       limit(1)
     );
 
-    const [snapshot1, snapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const snapshot = await getDocs(q);
     let existingThread: FirestoreMessageThread | null = null;
     let existingThreadId: string | undefined = undefined;
 
-    if (!snapshot1.empty) {
-      existingThreadId = snapshot1.docs[0].id;
-      existingThread = snapshot1.docs[0].data() as FirestoreMessageThread;
-    } else if (!snapshot2.empty) {
-      existingThreadId = snapshot2.docs[0].id;
-      existingThread = snapshot2.docs[0].data() as FirestoreMessageThread;
+    if (!snapshot.empty) {
+      existingThreadId = snapshot.docs[0].id;
+      existingThread = snapshot.docs[0].data() as FirestoreMessageThread;
     }
 
     if (existingThread && existingThreadId) {
@@ -125,6 +141,7 @@ export const createNewConversationWithCreator = async ({
       createdAt: now,
       isGated: isGated,
       name: creatorName, // Le nom du fil pourrait être le nom du créateur pour le fan
+      normalizedParticipantIds: normalizedParticipantIds, // Store normalized ID
     };
     batch.set(newThreadRef, threadData);
 

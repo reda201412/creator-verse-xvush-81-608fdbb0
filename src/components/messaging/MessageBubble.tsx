@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -7,6 +6,9 @@ import { Lock, Zap, Eye, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isEncrypted } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMoodColors } from '@/utils/mood-colors';
+import { useMood } from '@/components/neuro-aesthetic/AdaptiveMoodLighting'
 
 interface MessageBubbleProps {
   message: Message;
@@ -31,57 +33,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [showDecrypted, setShowDecrypted] = useState(false);
   const hasMonetization = !!message.monetization;
-  
-  const handleDecrypt = async () => {
-    if (!decryptMessage || !isEncrypted(message.content)) return;
-    
-    setIsDecrypting(true);
-    try {
-      const content = await decryptMessage(message);
-      setDecryptedContent(content);
-      setShowDecrypted(true);
-    } catch (error) {
-      console.error("Error decrypting:", error);
-    } finally {
-      setIsDecrypting(false);
-    }
-  };
+  const { profile } = useAuth();
+  const { intensity } = useMood();
 
-  const renderContent = () => {
-    // If content is encrypted and we have decrypted it
-    if (isEncrypted(message.content) && decryptedContent && showDecrypted) {
-      return <p className="text-sm whitespace-pre-wrap">{decryptedContent}</p>;
-    }
-    
-    // If content is encrypted but not yet decrypted
-    if (isEncrypted(message.content)) {
-      return (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1 text-green-500 dark:text-green-400">
-            <Lock size={14} />
-            <span className="text-xs font-medium">Message chiffré</span>
-          </div>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={handleDecrypt}
-            disabled={isDecrypting}
-            className="w-full"
-          >
-            {isDecrypting ? (
-              <Spinner size="sm" className="mr-2" />
-            ) : (
-              <Eye size={14} className="mr-2" />
-            )}
-            Déchiffrer
-          </Button>
-        </div>
-      );
-    }
-    
-    // Regular content
-    return <p className="text-sm whitespace-pre-wrap">{message.content as string}</p>;
-  };
+  const opacityValue = Math.min(0.5, intensity / 200);
+
+  // Get the mood colors based on the user profile
+  const currentMood = profile?.mood || 'calm'; // Default to 'calm' if mood is not available
+  const bubbleColors = getMoodColors(currentMood, opacityValue);
+
+  const currentUserBubbleStyle = `bg-[${bubbleColors?.primary}] text-primary-foreground shadow-sm rounded-tr-none`;
+  const otherUserBubbleStyle = `bg-[${bubbleColors?.secondary}] dark:bg-[${bubbleColors?.accent}] shadow-sm rounded-tl-none`;
 
   return (
     <div className={cn(
@@ -118,9 +80,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           
           <div className={cn(
             "rounded-2xl py-2 px-3 group relative",
-            isCurrentUser 
-              ? "bg-primary text-primary-foreground dark:bg-primary/90 rounded-tr-none" 
-              : "bg-muted/60 dark:bg-muted/30 backdrop-blur-sm rounded-tl-none",
+            isCurrentUser ? currentUserBubbleStyle : otherUserBubbleStyle,
             hasMonetization && (isCurrentUser 
               ? "border-l-4 border-amber-400" 
               : "border-r-4 border-amber-400"
@@ -172,6 +132,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </span>
             </div>
           )}
+          <button onClick={handleReaction}>React</button>
         </div>
       </div>
     </div>

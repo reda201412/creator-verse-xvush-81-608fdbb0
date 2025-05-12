@@ -1,5 +1,4 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
@@ -87,7 +86,6 @@ function App() {
   return (
     <AuthProvider>
       <TooltipProvider>
-        <Router>
           <XvushDesignSystem>
             <div className="flex h-screen w-full overflow-hidden bg-background">
               <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
@@ -120,7 +118,6 @@ function App() {
             </div>
             <Toaster />
           </XvushDesignSystem>
-        </Router>
       </TooltipProvider>
     </AuthProvider>
   );

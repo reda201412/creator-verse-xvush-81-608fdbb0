@@ -5,7 +5,7 @@ import ContentGrid from "@/components/ContentGrid";
 import ContentCreatorCard from "@/components/ContentCreatorCard";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useUserBehavior } from "@/hooks/use-user-behavior";
-import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
+import { AdaptiveMoodLighting } from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Button } from "@/components/ui/button";

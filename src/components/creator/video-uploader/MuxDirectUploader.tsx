@@ -1,6 +1,7 @@
 import React from 'react';
 import MuxUploader, { MuxUploaderStatus, MuxUploaderDrop } from '@mux/mux-uploader-react'; // Corrected import
 import { useAuth } from '@/contexts/AuthContext';
+import { auth } from '@/integrations/firebase/firebase';
 
 // Define the expected structure of the success event detail from MuxUploader
 interface MuxSuccessEventDetail {
@@ -23,11 +24,12 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
   onError,
   setVideoFile,
 }) => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); -- REMOVE THIS LINE
   // Removed local status state and setStatus as MuxUploaderDrop handles status display
   // const [status, setStatus] = React.useState<typeof MuxUploaderStatus | null>(null);
 
   const getUploadUrl = async () => {
+    const user = auth.currentUser;
     if (!user) {
       throw new Error('User not authenticated');
     }
@@ -35,7 +37,7 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
       // Get the Firebase ID token from the user object
       const token = await user.getIdToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-mux-upload`, // Ensure this URL is correct
+        `${import.meta.env.VITE_API_BASE_URL}`, // Ensure this URL is correct
         {
           method: 'POST',
           headers: {

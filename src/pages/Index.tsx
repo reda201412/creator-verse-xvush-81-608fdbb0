@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/components/ui/sonner";
 import FocusMode from "@/components/ambient/FocusMode";
 import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
-import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
+import { AdaptiveMoodLighting } from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";

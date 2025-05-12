@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
-import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
+import { AdaptiveMoodLighting } from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 import { useAuth } from '@/contexts/AuthContext'; // Pour vérifier l'utilisateur actuel si besoin
 
 const Auth = () => {
@@ -25,6 +24,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const navigate = useNavigate();
   const { user: currentUser } = useAuth(); // Récupérer l'utilisateur du contexte pour la redirection
+  const { login } = useAuth(); // Get login function from context
 
   useEffect(() => {
     // Rediriger si l'utilisateur est déjà connecté (via le contexte)
@@ -92,6 +92,8 @@ const Auth = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Connexion réussie ! Redirection...");
+        // Update the user state in AuthContext
+        login();
       // La redirection sera gérée par AuthContext et App.tsx suite à la mise à jour de l'utilisateur
       // navigate('/'); // Plus besoin de naviguer ici
     } catch (error: any) {
