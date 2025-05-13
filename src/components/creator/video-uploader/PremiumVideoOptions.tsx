@@ -1,107 +1,110 @@
 
-import React, { useEffect } from 'react';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormDescription
-} from '@/components/ui/form';
+import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from '@/components/ui/select';
+import { 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormControl 
+} from '@/components/ui/form';
+import { UseFormReturn } from 'react-hook-form';
 import { VideoFormValues } from './useVideoUpload';
-import { UseFormReturn, useWatch } from 'react-hook-form';
 
 interface PremiumVideoOptionsProps {
   form: UseFormReturn<VideoFormValues>;
 }
 
-const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }) => {
-  const videoType = useWatch({
-    control: form.control,
-    name: 'type',
-  });
-  
-  const isPremiumOrVip = videoType === 'premium' || videoType === 'vip';
-  
-  // Reset token price when changing to standard/teaser
-  useEffect(() => {
-    if (!isPremiumOrVip) {
-      form.setValue('tokenPrice', 0);
-    }
-  }, [isPremiumOrVip, form]);
-  
-  if (!isPremiumOrVip) return null;
-  
+export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }) => {
   return (
-    <div className="bg-muted/40 p-4 rounded-md space-y-4 border border-muted">
-      <h3 className="font-medium text-sm">Options de contenu premium</h3>
-      
-      {videoType === 'vip' && (
-        <FormField
-          control={form.control}
-          name="tokenPrice"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Prix (tokens)</FormLabel>
-              <FormControl>
-                <div className="flex items-center space-x-4">
-                  <Slider
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={[field.value || 5]}
-                    onValueChange={(vals) => field.onChange(vals[0])}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={field.value || 5}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    className="w-16"
-                    min={1}
-                    max={100}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Le prix en tokens pour accéder à cette vidéo.
-              </FormDescription>
-            </FormItem>
-          )}
-        />
-      )}
+    <div className="space-y-4 pt-2 border-t border-border">
+      <FormField
+        control={form.control}
+        name="tokenPrice"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Prix en tokens</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={1}
+                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                value={field.value || ''}
+                className="mt-1"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
       
       <FormField
         control={form.control}
-        name="isPremium"
+        name="tier"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <FormLabel>Contenu exclusif</FormLabel>
-              <FormDescription>
-                Marquer comme contenu premium exclusif.
-              </FormDescription>
-            </div>
+          <FormItem>
+            <FormLabel>Niveau d'abonnement minimum</FormLabel>
+            <Select
+              onValueChange={field.onChange}
+              defaultValue={field.value}
+            >
+              <FormControl>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sélectionner un niveau" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="free">Aucun (libre)</SelectItem>
+                <SelectItem value="fan">Fan</SelectItem>
+                <SelectItem value="superfan">Super Fan</SelectItem>
+                <SelectItem value="vip">VIP</SelectItem>
+                <SelectItem value="exclusive">Exclusif</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="sharingAllowed"
+        render={({ field }) => (
+          <FormItem className="flex items-center space-x-2">
             <FormControl>
-              <Switch
+              <input
+                type="checkbox"
                 checked={field.value}
-                onCheckedChange={field.onChange}
+                onChange={field.onChange}
+                className="h-4 w-4"
               />
             </FormControl>
+            <FormLabel className="text-sm">Autoriser le partage</FormLabel>
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="downloadsAllowed"
+        render={({ field }) => (
+          <FormItem className="flex items-center space-x-2">
+            <FormControl>
+              <input
+                type="checkbox"
+                checked={field.value}
+                onChange={field.onChange}
+                className="h-4 w-4"
+              />
+            </FormControl>
+            <FormLabel className="text-sm">Autoriser le téléchargement</FormLabel>
           </FormItem>
         )}
       />
     </div>
   );
 };
-
-export default PremiumVideoOptions;

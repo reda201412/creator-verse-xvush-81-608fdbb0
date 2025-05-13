@@ -1,7 +1,8 @@
+
 import React, { useEffect } from 'react';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { prefersReducedMotion } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 // Déclaration des hooks factices pour éviter les erreurs
 // Ces hooks seraient normalement importés
@@ -35,6 +36,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   });
   const { trackInteraction } = useUserBehavior();
   const { modelState, runAnalysis, applyLatestPrediction } = useNeuroML();
+  const { toast } = useToast();
   const [hasShownWelcome, setHasShownWelcome] = React.useState(false);
   
   // Apply design system to the document
@@ -172,7 +174,8 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
           
         applyLatestPrediction();
         
-        toast("Profil cognitif actualisé", {
+        toast({
+          title: "Profil cognitif actualisé",
           description: `L'interface a été adaptée à votre profil ${recommendedProfile}.`,
         });
       }
@@ -183,7 +186,8 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     modelState.autoApply, 
     modelState.predictions, 
     config.cognitiveProfile, 
-    applyLatestPrediction
+    applyLatestPrediction,
+    toast
   ]);
   
   // Run ML analysis periodically if we have enough data

@@ -1,8 +1,9 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { VideoFileUpload } from './VideoFileUpload';
 import { ThumbnailUpload } from './ThumbnailUpload';
 import VideoFormDetails from './VideoFormDetails';
 import VideoFormatInfo from './VideoFormatInfo';
@@ -10,7 +11,6 @@ import FormFooterActions from './FormFooterActions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { videoSchema, VideoFormValues } from './useVideoUpload';
-import MuxDirectUploader from './MuxDirectUploader';
 
 interface VideoUploadFormProps {
   videoFile: File | null;
@@ -24,13 +24,10 @@ interface VideoUploadFormProps {
   uploadStage?: string;
   handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  generateThumbnail: () => void; // Added this prop
+  generateThumbnail: () => void;
   resetForm: () => void;
   onClose: () => void;
-  onSubmit: (values: VideoFormValues, onUploadProgress: (progress: number) => void) => Promise<void>;
-  setVideoFile: (file: File | null) => void;
-  setUploadProgress: (progress: number) => void;
-  setUploadStage: (stage: string) => void;
+  onSubmit: (values: VideoFormValues) => Promise<void>;
 }
 
 export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
@@ -48,10 +45,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   generateThumbnail,
   resetForm,
   onClose,
-  onSubmit,
-  setVideoFile,
-  setUploadProgress,
-  setUploadStage
+  onSubmit
 }) => {
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
@@ -59,53 +53,51 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
       title: '',
       description: '',
       type: 'standard',
-      isPremium: false,
-      tokenPrice: 0,
-      tags: []
+      tier: 'free',
+      sharingAllowed: false,
+      downloadsAllowed: false,
+      tokenPrice: 0
     },
   });
 
-  // Create refs for thumbnail input
+  // Create refs for video and thumbnail inputs
+  const videoInputRef = React.useRef<HTMLInputElement>(null);
   const thumbnailInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleRemoveVideo = () => {
+    if (videoInputRef.current) videoInputRef.current.value = '';
+    resetForm();
+  };
 
   const handleRemoveThumbnail = () => {
     if (thumbnailInputRef.current) thumbnailInputRef.current.value = '';
     if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
   };
 
-  const handleSubmit = useCallback(async (values: VideoFormValues) => {
-    // Pass setUploadProgress as the onUploadProgress callback to the onSubmit prop
-    await onSubmit(values, setUploadProgress);
-  }, [onSubmit, setUploadProgress]);
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-6 py-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 py-4">
         {uploadError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{uploadError}</AlertDescription>
           </Alert>
         )}
-
+        
         {/* Video Upload Section */}
-        <MuxDirectUploader
-          setVideoFile={setVideoFile}
-          // Removed handleVideoChange as MuxDirectUploader handles file changes internally
-          onUploadStart={() => setUploadStage("Préparation de l'upload...")}
-          onSuccess={(uploadId) => {
-            console.log(`Mux upload initiated with uploadId: ${uploadId}`);
-            setUploadStage("Vidéo uploadée vers MUX. Enregistrement des métadonnées...");
-          }}
-          onError={(error) => {
-            console.error('Mux upload error:', error);
-            setUploadStage("Erreur d'upload");
-          }}
+        <VideoFileUpload
+          ref={videoInputRef}
+          videoPreviewUrl={videoPreviewUrl}
+          onVideoChange={handleVideoChange}
+          onRemoveVideo={handleRemoveVideo}
         />
-
+        
         {/* Video Format Information */}
-        <VideoFormatInfo videoPreviewUrl={videoPreviewUrl} videoFormat={videoFormat} />
-
+        <VideoFormatInfo 
+          videoPreviewUrl={videoPreviewUrl} 
+          videoFormat={videoFormat} 
+        />
+        
         {/* Thumbnail Upload Section */}
         {videoPreviewUrl && (
           <ThumbnailUpload
@@ -117,10 +109,10 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
             showGenerateButton={!!videoPreviewUrl}
           />
         )}
-
+        
         {/* Video Details */}
         <VideoFormDetails form={form} />
-
+      
         <FormFooterActions
           isUploading={isUploading}
           uploadProgress={uploadProgress}

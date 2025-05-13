@@ -1,44 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; 
+
+import React, { useEffect, useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; // TabsContent n'est pas utilisé ici directement
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
-import { getCreators, CreatorProfile } from '@/services/creatorService'; 
+import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; // Modifié pour Firebase
 import { Skeleton } from '@/components/ui/skeleton';
-import { adaptCreatorProfile, StandardizedCreatorProfile } from '@/utils/creator-profile-adapter';
-import { useStories } from '@/hooks/use-stories';
-import { Story } from '@/types/stories'; // Import Story type
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [creators, setCreators] = useState<CreatorProfile[]>([]);
-  const [filteredCreators, setFilteredCreators] = useState<StandardizedCreatorProfile[]>([]);
+  const [creators, setCreators] = useState<CreatorProfileData[]>([]);
+  const [filteredCreators, setFilteredCreators] = useState<CreatorProfileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isPublisherOpen, setIsPublisherOpen] = useState(false);
-  const { publishStory } = useStories();
 
   useEffect(() => {
-    const fetchCreators = useCallback(async () => {
+    const fetchCreators = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const creatorsData = await getCreators();
-        setCreators(creatorsData);
-      } catch (error) {
-        console.error('Error fetching creators:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load creators",
-          variant: "destructive"
-        });
+        const fetchedCreators = await getAllCreators(); // Utilise le service Firebase
+        setCreators(fetchedCreators);
+        // setFilteredCreators(fetchedCreators); // Le filtrage se fera dans le prochain useEffect
+      } catch (err: any) {
+        console.error('Failed to fetch creators:', err);
+        setError('Impossible de charger les créateurs. Veuillez réessayer.');
       } finally {
         setIsLoading(false);
       }
-    }, []);
+    };
 
     fetchCreators();
   }, []);
@@ -55,18 +48,25 @@ const CreatorsFeed: React.FC = () => {
       processedCreators = processedCreators.filter(
         creator => 
           creator.username.toLowerCase().includes(query) || 
-          creator.displayName.toLowerCase().includes(query) ||
+          (creator.displayName && creator.displayName.toLowerCase().includes(query)) ||
           (creator.bio && creator.bio.toLowerCase().includes(query))
       );
     }
 
     // Filtrer par onglet (isOnline est simulé pour l'instant dans le service)
     if (activeTab === 'online') {
+      // Note: la propriété `isOnline` est simulée dans le service actuel.
+      // Une vraie gestion du statut en ligne nécessiterait une solution de présence (ex: Firestore + Functions, ou Realtime Database).
       processedCreators = processedCreators.filter(creator => creator.isOnline);
     } else if (activeTab === 'popular') {
-      processedCreators = processedCreators.sort((a, b) => 
-        (b.followersCount || 0) - (a.followersCount || 0)
-      );
+      // Note: les métriques de popularité (followers) ne sont pas chargées par `getAllCreators` pour la performance.
+      // Pour un tri par popularité réel, ces données devraient être sur l'objet créateur ou chargées différemment.
+      // Pour l'instant, on ne trie pas ou on pourrait trier par un autre critère si disponible (ex: date de création).
+      // processedCreators = processedCreators.sort((a, b) => 
+      //   (b.metrics?.followers || 0) - (a.metrics?.followers || 0)
+      // );
+      // Pour l'exemple, trions par nom d'utilisateur si aucune métrique n'est disponible pour le tri
+      processedCreators.sort((a, b) => a.username.localeCompare(b.username));
     }
 
     setFilteredCreators(processedCreators);
@@ -84,9 +84,9 @@ const CreatorsFeed: React.FC = () => {
   const handleRetryFetch = () => {
     setIsLoading(true);
     setError(null);
-    getCreators()
-      .then(creatorsData => {
-        setCreators(creatorsData);
+    getAllCreators()
+      .then(fetchedCreators => {
+        setCreators(fetchedCreators);
       })
       .catch(err => {
         console.error('Failed to refetch creators:', err);
@@ -97,45 +97,14 @@ const CreatorsFeed: React.FC = () => {
       });
   };
 
-  // Handle story publication
-  const handlePublishStory = async (formData: FormData): Promise<Story | null> => {
-    try {
-      const mediaFile = formData.get('mediaFile') as File;
-      const thumbnailFile = formData.get('thumbnailFile') as File || null;
-      const caption = formData.get('caption') as string;
-      const filter = formData.get('filter') as string;
-      
-      // Create a story upload object
-      const result = await publishStory({
-        mediaFile,
-        thumbnailFile, 
-        caption,
-        filter
-      });
-      
-      setIsPublisherOpen(false);
-      return result;
-    } catch (error) {
-      console.error('Error publishing story:', error);
-      return null;
-    }
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Créateurs</h1>
-        <StoryPublisher
-          isOpen={isPublisherOpen}
-          onClose={() => setIsPublisherOpen(false)}
-          onPublish={handlePublishStory}
-        />
+        <StoryPublisher /> {/* Ce composant pourrait avoir besoin d'être adapté pour Firebase */}
       </div>
       
-      <StoriesTimeline 
-        storyGroups={[]} 
-        onStoryClick={(index) => storiesContext.openViewer(index)}
-      />
+      <StoriesTimeline /> {/* Ce composant pourrait avoir besoin d'être adapté pour Firebase */}
       
       <div className="relative mb-6">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -153,6 +122,7 @@ const CreatorsFeed: React.FC = () => {
           <TabsTrigger value="online">En ligne</TabsTrigger>
           <TabsTrigger value="popular">Populaires</TabsTrigger>
         </TabsList>
+        {/* Pas de TabsContent explicite ici, le contenu est rendu directement ci-dessous */}
       </Tabs>
 
       {isLoading ? (
@@ -188,14 +158,15 @@ const CreatorsFeed: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredCreators.map((creator) => (
             <CreatorCard
-              key={creator.id} // Utiliser uid comme clé unique
-              id={creator.id} // Passer l'uid
+              key={creator.uid} // Utiliser uid comme clé unique
+              id={creator.uid} // Passer l'uid
               username={creator.username}
               displayName={creator.displayName || creator.username}
-              avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'}
+              avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'} // Utiliser avatarUrl
               bio={creator.bio || 'Aucune bio disponible'}
-              followersCount={creator.followersCount || 0}
-              isOnline={creator.isOnline || false}
+              // Les métriques comme followersCount ne sont pas chargées par getAllCreators pour le moment
+              // followersCount={creator.metrics?.followers || 0} 
+              isOnline={creator.isOnline || false} // isOnline est simulé
             />
           ))}
         </div>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStories } from '@/hooks/use-stories';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, EyeIcon, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,11 +12,10 @@ import { fr } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import { StoryGroup } from '@/utils/story-types';
 
 const Stories: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const { storyGroups, loading, loadStories, deleteStory, openViewer } = useStories();
+  const { stories, loading, loadStories, deleteStory } = useStories();
   const { toast } = useToast();
   const { triggerMicroReward } = useNeuroAesthetic();
   
@@ -42,10 +42,6 @@ const Stories: React.FC = () => {
         triggerMicroReward('action', { type: 'story_deleted' });
       }
     }
-  };
-
-  const handleStoryClick = (groupIndex: number) => {
-    openViewer(groupIndex);
   };
   
   if (authLoading) {
@@ -83,10 +79,7 @@ const Stories: React.FC = () => {
         Explorez les stories éphémères de vos créateurs préférés
       </p>
       
-      <StoriesTimeline 
-        storyGroups={storyGroups} 
-        onStoryClick={handleStoryClick} 
-      />
+      <StoriesTimeline />
       
       <Tabs defaultValue="explore" className="mt-6">
         <TabsList className="mb-4">
@@ -100,15 +93,15 @@ const Stories: React.FC = () => {
               Array(6).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse h-64 bg-gray-300 rounded" />
               ))
-            ) : storyGroups.length === 0 ? (
+            ) : stories.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">
                   Aucune story disponible pour le moment
                 </p>
               </div>
             ) : (
-              storyGroups.flatMap(group => group.stories)
-                .filter(story => story.creator_id !== user?.id)
+              stories
+                .filter(story => story.creator_id !== user.id)
                 .map(story => (
                   <Card key={story.id} className="overflow-hidden">
                     <div className="aspect-video relative overflow-hidden">
@@ -172,8 +165,7 @@ const Stories: React.FC = () => {
               Array(3).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse h-64 bg-gray-300 rounded" />
               ))
-            ) : storyGroups.flatMap(group => group.stories)
-                .filter(story => story.creator_id === user?.id).length === 0 ? (
+            ) : stories.filter(story => story.creator_id === user.id).length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground mb-4">
                   Vous n'avez pas encore publié de stories
@@ -181,8 +173,8 @@ const Stories: React.FC = () => {
                 <Button>Créer une story</Button>
               </div>
             ) : (
-              storyGroups.flatMap(group => group.stories)
-                .filter(story => story.creator_id === user?.id)
+              stories
+                .filter(story => story.creator_id === user.id)
                 .map(story => (
                   <Card key={story.id} className="overflow-hidden">
                     <div className="aspect-video relative overflow-hidden">

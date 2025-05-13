@@ -17,7 +17,11 @@ const Messages = () => {
   
   return (
     <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-      <Spinner size="xl" />
+      <Spinner 
+        size="xl" 
+        color="primary" 
+        label="Redirection vers la messagerie sécurisée..." 
+      />
       <p className="text-sm text-muted-foreground animate-pulse">
         Mise à jour vers notre nouvelle expérience de messagerie...
       </p>

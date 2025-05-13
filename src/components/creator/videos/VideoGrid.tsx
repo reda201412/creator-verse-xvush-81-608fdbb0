@@ -1,19 +1,19 @@
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-import { VideoData } from '@/types/video';
+import { VideoMetadata } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
-  videos: VideoData[];
+  videos: VideoMetadata[];
   activeTab: string;
   searchQuery: string;
   onDeleteVideo: (videoId: string) => void;
   onEditVideo: (videoId: string) => void;
   onPromoteVideo: (videoId: string) => void;
   onAnalyticsVideo: (videoId: string) => void;
-  onUploadComplete: (metadata: VideoData) => void;
+  onUploadComplete: (metadata: VideoMetadata) => void;
   isLoading?: boolean;
 }
 
@@ -102,7 +102,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             }
           </p>
           <VideoUploader 
-            onUploadComplete={(metadata: VideoData) => onUploadComplete(metadata)} 
+            onUploadComplete={onUploadComplete} 
             isCreator={true} 
           />
         </div>

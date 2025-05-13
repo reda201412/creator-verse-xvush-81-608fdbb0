@@ -1,42 +1,35 @@
 
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
 import BottomNavigation from '@/components/navigation/BottomNavigation';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect, useCallback } from 'react';
-import { Toaster } from '@/components/ui/toaster';
-import XvushDesignSystem from '@/components/XvushDesignSystem';
-import SecureMessagingPage from '@/pages/SecureMessaging';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
-import CreatorsFeed from '@/pages/CreatorsFeed';
 import CreatorProfile from '@/pages/CreatorProfile';
-import TrendingContent from '@/pages/TrendingContent';
+import CreatorsFeed from '@/pages/CreatorsFeed';
 import Dashboard from '@/pages/Dashboard';
+import Messages from '@/pages/Messages';
 import CreatorVideos from '@/pages/CreatorVideos';
+import ExclusiveContent from '@/pages/ExclusiveContent';
+import TokensPage from '@/pages/TokensPage';
+import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
 import SubscribersManagement from '@/pages/SubscribersManagement';
 import CalendarView from '@/pages/CalendarView';
-import ExclusiveContent from '@/pages/ExclusiveContent';
-import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
-import Messages from '@/pages/Messages';
-import TokensPage from '@/pages/TokensPage';
 import ProfileSettings from '@/pages/ProfileSettings';
 import NotFound from '@/pages/NotFound';
+import TrendingContent from '@/pages/TrendingContent';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { useAuth } from '@/contexts/AuthContext';
+import XvushDesignSystem from '@/components/XvushDesignSystem';
+import SecureMessagingPage from '@/pages/SecureMessaging';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { RouteChangeProps } from '@/types/navigation';
+import { useState, useEffect, useCallback } from 'react';
 
-const ProtectedRoute = ({ children, onRouteChange }: RouteChangeProps & { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, profile } = useAuth();
-  
-  useEffect(() => {
-    if (onRouteChange) {
-      onRouteChange();
-    }
-  }, [onRouteChange]);
   
   if (isLoading) {
     return (
@@ -54,14 +47,8 @@ const ProtectedRoute = ({ children, onRouteChange }: RouteChangeProps & { childr
   return <>{children}</>;
 };
 
-const CreatorRoute = ({ children, onRouteChange }: RouteChangeProps & { children: React.ReactNode }) => {
+const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isCreator } = useAuth();
-  
-  useEffect(() => {
-    if (onRouteChange) {
-      onRouteChange();
-    }
-  }, [onRouteChange]);
   
   if (isLoading) {
     return (
@@ -89,7 +76,6 @@ const CreatorRoute = ({ children, onRouteChange }: RouteChangeProps & { children
 
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const location = useLocation();
   
   // Close sidebar on small screens when route changes
   const handleRouteChange = useCallback(() => {
@@ -98,14 +84,10 @@ function App() {
     }
   }, []);
 
-  // Listen for route changes
-  useEffect(() => {
-    handleRouteChange();
-  }, [location, handleRouteChange]);
-
   return (
     <AuthProvider>
       <TooltipProvider>
+        <Router>
           <XvushDesignSystem>
             <div className="flex h-screen w-full overflow-hidden bg-background">
               <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
@@ -118,18 +100,18 @@ function App() {
                     <Route path="/creators" element={<CreatorsFeed />} />
                     <Route path="/creator/:id?" element={<CreatorProfile />} />
                     <Route path="/trending" element={<TrendingContent />} />
-                    <Route path="/stories" element={<ProtectedRoute onRouteChange={handleRouteChange}><Index /></ProtectedRoute>} />
+                    <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
-                    <Route path="/secure-messaging" element={<ProtectedRoute onRouteChange={handleRouteChange}><SecureMessagingPage /></ProtectedRoute>} />
-                    <Route path="/dashboard" element={<CreatorRoute onRouteChange={handleRouteChange}><Dashboard /></CreatorRoute>} />
-                    <Route path="/videos" element={<CreatorRoute onRouteChange={handleRouteChange}><CreatorVideos /></CreatorRoute>} />
-                    <Route path="/subscribers" element={<CreatorRoute onRouteChange={handleRouteChange}><SubscribersManagement /></CreatorRoute>} />
-                    <Route path="/calendar" element={<CreatorRoute onRouteChange={handleRouteChange}><CalendarView /></CreatorRoute>} />
-                    <Route path="/exclusive" element={<CreatorRoute onRouteChange={handleRouteChange}><ExclusiveContent /></CreatorRoute>} />
-                    <Route path="/revenue" element={<CreatorRoute onRouteChange={handleRouteChange}><CreatorRevenueDashboard /></CreatorRoute>} />
-                    <Route path="/messages" element={<ProtectedRoute onRouteChange={handleRouteChange}><Messages /></ProtectedRoute>} />
-                    <Route path="/tokens" element={<ProtectedRoute onRouteChange={handleRouteChange}><TokensPage /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute onRouteChange={handleRouteChange}><ProfileSettings /></ProtectedRoute>} />
+                    <Route path="/secure-messaging" element={<ProtectedRoute><SecureMessagingPage /></ProtectedRoute>} />
+                    <Route path="/dashboard" element={<CreatorRoute><Dashboard /></CreatorRoute>} />
+                    <Route path="/videos" element={<CreatorRoute><CreatorVideos /></CreatorRoute>} />
+                    <Route path="/subscribers" element={<CreatorRoute><SubscribersManagement /></CreatorRoute>} />
+                    <Route path="/calendar" element={<CreatorRoute><CalendarView /></CreatorRoute>} />
+                    <Route path="/exclusive" element={<CreatorRoute><ExclusiveContent /></CreatorRoute>} />
+                    <Route path="/revenue" element={<CreatorRoute><CreatorRevenueDashboard /></CreatorRoute>} />
+                    <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+                    <Route path="/tokens" element={<ProtectedRoute><TokensPage /></ProtectedRoute>} />
+                    <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
@@ -138,6 +120,7 @@ function App() {
             </div>
             <Toaster />
           </XvushDesignSystem>
+        </Router>
       </TooltipProvider>
     </AuthProvider>
   );

@@ -1,5 +1,0 @@
-
-project_id = "ryuczcsiiyghdnxanofq"
-
-[functions.mux-webhook]
-verify_jwt = false

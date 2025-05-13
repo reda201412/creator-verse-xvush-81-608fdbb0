@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react'; // Ajout de useEffect
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
@@ -5,7 +6,7 @@ import { cn } from '@/lib/utils';
 // import { supabase, checkUserFollowStatus, followCreator, unfollowCreator } from '@/integrations/supabase/client'; // Ancienne importation Supabase
 import { checkUserFollowsCreator, followCreator, unfollowCreator } from '@/services/creatorService'; // Modifié pour Firebase
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
@@ -67,8 +68,9 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
         const success = await followCreator(user.uid, creator.userId);
         if (success) {
           setIsFollowing(true);
-          toast.success(`Vous suivez maintenant ${creator.name}`, 
-            "Découvrez son contenu exclusif");
+          toast.success(`Vous suivez maintenant ${creator.name}`, {
+            description: "Découvrez son contenu exclusif"
+          });
           triggerMicroReward('like');
         } else {
           toast.error("Échec de l'abonnement.");
@@ -77,8 +79,9 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
       triggerHaptic('medium');
     } catch (error) {
       console.error('Error following/unfollowing creator:', error);
-      toast.error('Une erreur est survenue', 
-        'Veuillez réessayer plus tard');
+      toast.error('Une erreur est survenue', {
+        description: 'Veuillez réessayer plus tard'
+      });
     } finally {
       setIsLoading(false);
     }

@@ -1,11 +1,14 @@
+
 import { useState } from 'react';
 import { useTronWallet } from './use-tron-wallet';
 import { useTronWeb } from './use-tronweb';
 import { toast } from 'sonner';
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useAuth } from '@/contexts/AuthContext';
-import { getFunctions, httpsCallable } from 'firebase/functions'; 
+import { getFunctions, httpsCallable } from 'firebase/functions'; // Ajout pour Firebase Functions
 
 const functions = getFunctions();
+// TODO: Assurez-vous que ce nom correspond à votre Firebase Function
 const callTronTransactionVerifyFunction = httpsCallable(functions, 'tronTransactionVerify');
 
 export function useWalletTransactions() {
@@ -51,7 +54,7 @@ export function useWalletTransactions() {
       
       // Remplacer par l'appel à la Firebase Function
       const result = await callTronTransactionVerifyFunction({
-        operation: 'simulate_transaction', 
+        operation: 'simulate_transaction', // Assurez-vous que votre Firebase Function gère cette opération
         data: {
           amount,
           purpose,
@@ -62,10 +65,10 @@ export function useWalletTransactions() {
         }
       });
       
-      const data = result.data; 
+      const data = result.data; // Adapter le type de retour si nécessaire
       
       toast.success(`Paiement de ${amount} USDT effectué avec succès`);
-      await getWalletInfo(); 
+      await getWalletInfo(); // Refresh wallet info
       
       return data;
     } catch (err: any) {

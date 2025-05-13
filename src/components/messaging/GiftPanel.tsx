@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -85,7 +86,8 @@ export const GiftPanel: React.FC<GiftPanelProps> = ({ isOpen, onClose, onSendGif
   
   const handleSendGift = () => {
     if (!selectedGift) {
-      toast("Aucun cadeau sélectionné", {
+      toast({
+        title: "Aucun cadeau sélectionné",
         description: "Veuillez sélectionner un cadeau à envoyer",
         variant: "destructive",
       });
@@ -94,7 +96,8 @@ export const GiftPanel: React.FC<GiftPanelProps> = ({ isOpen, onClose, onSendGif
     
     onSendGift(selectedGift);
     
-    toast("Cadeau envoyé", {
+    toast({
+      title: "Cadeau envoyé",
       description: `Vous avez envoyé un(e) ${selectedGift.name} (${selectedGift.price} USDT)`,
     });
   };

@@ -9,7 +9,7 @@ import { ContentPrice } from '@/types/monetization';
 import ContentPricing from '@/components/creator/ContentPricing';
 import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 import { Link } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 // Mock monetized content data
@@ -88,26 +88,20 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
   };
   
   const handleSubscribe = () => {
-    toast("Redirection vers la page d'abonnements", {
-      description: "Vous allez être redirigé vers la page des abonnements"
-    });
+    toast("Redirection vers la page d'abonnements");
     triggerMicroReward('navigate');
   };
   
   const handleContentPurchase = () => {
     // In a real app, this would handle the token transaction
-    toast("Contenu déverrouillé avec succès!", {
-      description: "Le contenu a été déverrouillé et est maintenant disponible"
-    });
+    toast.success("Contenu déverrouillé avec succès!");
     triggerMicroReward('action');
   };
   
   const handlePurchaseComplete = async () => {
     // Mock purchase completion
     setTimeout(() => {
-      toast("Tokens ajoutés à votre portefeuille!", {
-        description: "Les tokens ont été ajoutés à votre portefeuille avec succès"
-      });
+      toast.success("Tokens ajoutés à votre portefeuille!");
       setPurchasePanelOpen(false);
     }, 1500);
     return true;

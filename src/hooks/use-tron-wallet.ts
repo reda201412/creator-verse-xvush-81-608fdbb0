@@ -1,144 +1,121 @@
-import { useState } from 'react';
 
-// Define basic wallet data interface
-export interface TronWalletResponse {
-  address: string;
-  balance: number;
-  is_verified: boolean;
-  transactions?: any[];
-  createdAt?: Date;
-}
+import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { WalletResponse } from '@/types/messaging';
+// import { getFunctions, httpsCallable } from 'firebase/functions'; // Commenté
 
-// Define extended wallet types with subscription property
-export interface WalletData extends TronWalletResponse {
-  // Keep all original properties from TronWalletResponse
-}
+// const functions = getFunctions(); // Commenté
+// const callTronWalletFunction = httpsCallable(functions, 'tronWallet'); // Commenté
+// const callTronTransactionVerifyFunction = httpsCallable(functions, 'tronTransactionVerify'); // Commenté
+// const callDecrementBalanceFunction = httpsCallable(functions, 'decrementBalance'); // Commenté
+// const callCheckContentAccessFunction = httpsCallable(functions, 'checkContentAccess'); // Commenté
 
-export interface WalletInfo {
-  balance_usdt: number;
-  tron_address?: string;
-  balance_trx?: number;
-  is_verified: boolean;
-  transactions?: any[];
-  createdAt?: Date | string;
-  wallet?: {
-    balance_usdt: number;
-    tron_address?: string;
-    is_verified: boolean;
-    balance_trx?: number;
-  };
-  subscription?: {
-    id: string;
-    is_active: boolean;
-    expires_at: string;
-    subscription_tiers: {
-      name: string;
-      price_usdt: number;
+export function useTronWallet() {
+  const { user } = useAuth();
+  const [walletInfo, setWalletInfo] = useState<WalletResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getWalletInfo = useCallback(async () => {
+    if (!user) {
+      setError("Connectez-vous pour voir le portefeuille.");
+      return null;
+    }
+    console.warn("TRON Wallet: getWalletInfo called, but TRON integration is being replaced. Returning mock data.");
+    setLoading(true);
+    // MOCK IMPLEMENTATION
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const mockData: WalletResponse = {
+        wallet: {
+            tron_address: "TRON_ADDRESS_MOCK",
+            balance_trx: 100,
+            balance_usdt: 50,
+            created_at: new Date().toISOString(),
+            user_id: user.uid
+        }
     };
-  } | null;
-}
+    setWalletInfo(mockData);
+    setLoading(false);
+    return mockData;
+    // setLoading(true);
+    // setError(null);
+    // try {
+    //   const result = await callTronWalletFunction({ operation: 'get_wallet_info' });
+    //   const data = result.data as WalletResponse;
+    //   setWalletInfo(data);
+    //   return data;
+    // } catch (err) { /* ... */ }
+    // finally { setLoading(false); }
+  }, [user]);
 
-// Mock service - normally would be imported from a real service file
-const getTronWalletData = async (userId: string): Promise<TronWalletResponse> => {
-  return {
-    address: `T${Math.random().toString(36).substring(2, 15)}`,
-    balance: Math.floor(Math.random() * 1000),
-    is_verified: true,
-    transactions: [],
-    createdAt: new Date()
-  };
-};
-
-export const useTronWallet = () => {
-  const [wallet, setWallet] = useState<WalletData>({
-    address: '',
-    balance: 0,
-    is_verified: false,
-    transactions: [],
-    createdAt: new Date()
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-
-  // Mock wallet info for components that require this property
-  const walletInfo: WalletInfo = {
-    balance_usdt: wallet.balance,
-    tron_address: wallet.address,
-    is_verified: wallet.is_verified || false,
-    createdAt: wallet.createdAt,
-    wallet: {
-      balance_usdt: wallet.balance,
-      tron_address: wallet.address,
-      is_verified: wallet.is_verified || false,
-    },
-    subscription: {
-      id: 'sub_123',
-      is_active: true,
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      subscription_tiers: {
-        name: 'Premium',
-        price_usdt: 9.99
-      }
-    }
-  };
-
-  const getWalletInfo = async () => {
-    if (!localStorage.getItem('userId')) return;
-    
-    setIsLoading(true);
-    try {
-      const userId = localStorage.getItem('userId') || 'default-user';
-      const walletData = await getTronWalletData(userId);
-      setWallet({
-        ...walletData,
-        createdAt: new Date()
-      });
-    } catch (err) {
-      setError('Failed to load wallet information');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Mock implementations of other wallet methods
   const createWallet = async () => {
-    console.log('Creating wallet...');
-    setWallet({
-      address: 'T' + Math.random().toString(36).substring(2, 15),
-      balance: 100,
-      is_verified: true,
-      transactions: [],
-      createdAt: new Date()
-    });
-    return true;
+    if (!user) {
+      setError("Connectez-vous pour créer un portefeuille.");
+      return null;
+    }
+    console.warn("TRON Wallet: createWallet called, but TRON integration is being replaced.");
+    toast.info("La création de portefeuille TRON est temporairement désactivée.");
+    return null;
   };
 
-  const checkContentAccess = async () => {
-    console.log('Checking content access...');
-    return true;
+  const verifyTransaction = async (params: any) => {
+    if (!user) {
+      setError("Connectez-vous pour vérifier une transaction.");
+      return null;
+    }
+    console.warn("TRON Wallet: verifyTransaction called, but TRON integration is being replaced.");
+    toast.info("La vérification de transaction TRON est temporairement désactivée.");
+    return { success: true, message: "Mock verification" }; // Mock success
   };
 
-  const verifyTransaction = async () => {
-    console.log('Verifying transaction...');
-    return true;
+  const decrementBalance = async (amount: number) => {
+    if (!user) {
+      setError("Connectez-vous pour cette opération.");
+      return false;
+    }
+    console.warn("TRON Wallet: decrementBalance called, but TRON integration is being replaced.");
+    toast.info("La fonction de décrémentation de solde TRON est temporairement désactivée.");
+    // Simuler une décrémentation locale pour l'UI si nécessaire, mais sans appel backend
+    if (walletInfo && walletInfo.wallet) {
+        // setWalletInfo(prev => prev ? ({...prev, wallet: {...prev.wallet, balance_usdt: prev.wallet.balance_usdt - amount }}) : null);
+    }
+    return true; // Mock success
   };
 
-  const requestWithdrawal = async () => {
-    console.log('Requesting withdrawal...');
-    return true;
+  const requestWithdrawal = async (params: any) => {
+    if (!user) {
+      setError("Connectez-vous pour un retrait.");
+      return null;
+    }
+    console.warn("TRON Wallet: requestWithdrawal called, but TRON integration is being replaced.");
+    toast.info("Les retraits TRON sont temporairement désactivés.");
+    return null;
   };
 
-  return { 
-    wallet, 
-    isLoading, 
-    error, 
-    getWalletInfo,
-    walletInfo,
-    createWallet,
-    checkContentAccess,
-    verifyTransaction,
-    requestWithdrawal,
-    loading: isLoading
+  const checkContentAccess = async (contentId: string | number): Promise<{ hasAccess: boolean; reason?: string; message?: string }> => {
+    if (!user) {
+      return { hasAccess: false, reason: 'not_authenticated' };
+    }
+    console.warn("TRON Wallet: checkContentAccess called, TRON logic removed. Returning mock access.");
+    // Simuler l'accès pour ne pas bloquer l'UI, à remplacer par la logique NowPayments ou autre.
+    return { hasAccess: true, reason: 'mock_access_granted' }; 
   };
-};
+  
+  // Les fonctions getTransactionInfo, getAccountInfo, getPlatformWallet peuvent aussi retourner des mocks ou null
+  const getTransactionInfo = async (txHash: string) => {
+    console.warn("TRON Wallet: getTransactionInfo disabled."); return null;
+  };
+  const getAccountInfo = async (address: string) => {
+    console.warn("TRON Wallet: getAccountInfo disabled."); return null;
+  };
+  const getPlatformWallet = async () => {
+    console.warn("TRON Wallet: getPlatformWallet disabled."); return null;
+  };
+
+  return {
+    walletInfo, loading, error, getWalletInfo, createWallet, verifyTransaction, 
+    decrementBalance, requestWithdrawal, checkContentAccess, getTransactionInfo, 
+    getAccountInfo, getPlatformWallet
+  };
+}

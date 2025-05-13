@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, UserPlus, UserMinus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { followCreator, unfollowCreator, checkUserFollowsCreator } from '@/services/creatorService';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface CreatorCardProps {
@@ -29,6 +29,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
   isOnline
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localFollowersCount, setLocalFollowersCount] = useState(followersCount);
@@ -47,7 +48,11 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 
   const handleFollowToggle = async () => {
     if (!user) {
-      toast("Authentification requise - Vous devez être connecté pour suivre un créateur");
+      toast({
+        title: "Authentification requise",
+        description: "Vous devez être connecté pour suivre un créateur",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -59,27 +64,32 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
         if (success) {
           setIsFollowing(false);
           setLocalFollowersCount(prev => prev - 1);
-          toast("Désabonnement - Vous ne suivez plus " + displayName);
+          toast({
+            title: "Désabonnement",
+            description: `Vous ne suivez plus ${displayName}`
+          });
         }
       } else {
         const success = await followCreator(user.id, id);
         if (success) {
           setIsFollowing(true);
           setLocalFollowersCount(prev => prev + 1);
-          toast("Abonnement - Vous suivez maintenant " + displayName);
+          toast({
+            title: "Abonnement",
+            description: `Vous suivez maintenant ${displayName}`
+          });
         }
       }
     } catch (error) {
       console.error('Failed to toggle follow status:', error);
-      toast("Erreur - Une erreur s'est produite. Veuillez réessayer.");
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite. Veuillez réessayer.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Add onClick handler for compatibility with components that pass it
-  const handleClick = () => {
-    // Implementation left empty to handle onClick prop if passed
   };
 
   // Initiales pour l'avatar fallback

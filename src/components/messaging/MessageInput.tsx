@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { SendHorizontal, Image, Smile, Paperclip, HeartHandshake, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,67 +40,39 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-
-  // Function to validate message content
-  const validateContent = (text: string): string | null => {
-    const maxLength = 1000; // Define maximum message length
-    if (text.length > maxLength) {
-      return `Message length exceeds the maximum limit of ${maxLength} characters.`;
-    }
-
-    // Basic HTML stripping (not foolproof, but adds a layer of protection)
-    const strippedText = text.replace(/<[^>]*>/g, '');
-    if (strippedText !== text) {
-      console.warn("HTML tags detected and stripped from message.");
-      // Consider showing a warning to the user
-    }
-
-    return null; // Content is valid
-  };
-
+  
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     if (setIsComposing) {
       setIsComposing(e.target.value.length > 0);
     }
   };
-
+  
   const handleSend = () => {
     if (!message.trim()) return;
-
-    // Validate the message content
-    const validationError = validateContent(message);
-    if (validationError) {
-      toast({
-        title: "Error",
-        description: validationError,
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
     onSendMessage(message);
     setMessage('');
-
+    
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
   };
-
+  
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
+  
   const handleImageUpload = () => {
     toast({
       title: "Bientôt disponible",
       description: "L'envoi d'images sera bientôt disponible",
     });
   };
-
+  
   return (
     <div className="flex flex-col space-y-2">
       {monetizationEnabled && (
@@ -119,7 +92,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </Button>
         </div>
       )}
-
+      
       <div className="relative flex items-end gap-2">
         <div className="relative flex-1">
           <Textarea
@@ -140,9 +113,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
             rows={1}
             style={{ height: 'auto', maxHeight: '120px' }}
           />
-
+          
           <div className="absolute right-2 bottom-2 flex space-x-1">
-            <Button
+            <Button 
               type="button"
               variant="ghost"
               size="icon"
@@ -154,7 +127,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </Button>
           </div>
         </div>
-
+        
         <Button
           onClick={handleSend}
           disabled={!message.trim() || disabled}
@@ -167,11 +140,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <SendHorizontal size={18} />
         </Button>
       </div>
-
+      
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center space-x-1">
           <Button
-            variant="ghost"
+            variant="ghost" 
             size="icon"
             className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             onClick={() => toast({
@@ -182,9 +155,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
           >
             <Smile size={18} />
           </Button>
-
+          
           <Button
-            variant="ghost"
+            variant="ghost" 
             size="icon"
             className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             onClick={() => toast({
@@ -196,7 +169,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             <Paperclip size={18} />
           </Button>
         </div>
-
+        
         {!monetizationEnabled && onToggleMonetization && (
           <Button
             variant="ghost"

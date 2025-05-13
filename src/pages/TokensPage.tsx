@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -252,7 +253,7 @@ const TokensPage: React.FC = () => {
                       <CardDescription>Gérez votre portefeuille TRON</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <WalletConnect />
+                      <WalletConnect walletInfo={walletInfo} />
                     </CardContent>
                   </Card>
                 </TabsContent>

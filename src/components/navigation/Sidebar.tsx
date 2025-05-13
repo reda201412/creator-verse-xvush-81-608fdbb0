@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Users, Video, MessageCircle, User, Settings, LogOut, LayoutDashboard, Calendar, Star, FileVideo, LucideIcon } from 'lucide-react';
@@ -8,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useResponsive } from '@/hooks/use-responsive';
 import { RouteChangeProps } from '@/types/navigation';
-import { auth } from '@/integrations/firebase/firebase';
 
 interface NavItem {
   icon: LucideIcon;
@@ -24,7 +24,7 @@ interface DesktopSidebarProps {
 }
 
 export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
-  const { user, profile, isCreator } = useAuth();
+  const { user, profile, signOut, isCreator } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
   const { isMobile } = useResponsive();
@@ -43,7 +43,7 @@ export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut();
+      await signOut();
       toast({
         title: "Déconnexion réussie",
         description: "Vous avez été déconnecté avec succès.",
@@ -51,8 +51,8 @@ export function DesktopSidebar({ expanded, onToggle }: DesktopSidebarProps) {
     } catch (error) {
       toast({
         title: "Erreur de déconnexion",
-        description: "Une erreur s'est produite lors de la déconnexion.",
-        variant: "destructive"
+        description: "Une erreur s'est produite lors de la déconnexion. Veuillez réessayer.",
+        variant: "destructive",
       });
     }
   };

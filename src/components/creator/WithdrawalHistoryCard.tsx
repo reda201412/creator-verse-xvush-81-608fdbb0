@@ -1,182 +1,254 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownToLine, Clock, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useTronWallet } from '@/hooks/use-tron-wallet';
+import { ArrowUpRight, Ban, Check, Clock, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
+// Types de données pour les retraits
 interface Withdrawal {
   id: string;
-  amount: number;
-  currency: string;
-  status: 'pending' | 'completed' | 'failed';
   date: string;
-  method: string;
-  address?: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
   txHash?: string;
 }
 
-interface WithdrawalHistoryCardProps {
-  withdrawals: Withdrawal[];
-  className?: string;
-}
-
-const WithdrawalHistoryCard: React.FC<WithdrawalHistoryCardProps> = ({ 
-  withdrawals = [],
-  className
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
+const WithdrawalHistoryCard: React.FC = () => {
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [address, setAddress] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { requestWithdrawal } = useTronWallet();
   
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <HelpCircle className="h-4 w-4 text-gray-500" />;
+  // Données mockées d'historique de retraits
+  const withdrawalHistory: Withdrawal[] = [
+    {
+      id: 'w1',
+      date: '2023-11-01T14:32:00Z',
+      amount: 520,
+      status: 'completed',
+      txHash: 'TRX123456789abcdef'
+    },
+    {
+      id: 'w2',
+      date: '2023-10-15T09:12:00Z',
+      amount: 430,
+      status: 'completed',
+      txHash: 'TRX987654321fedcba'
+    },
+    {
+      id: 'w3',
+      date: '2023-09-28T16:45:00Z',
+      amount: 300,
+      status: 'completed',
+      txHash: 'TRXabcdef123456789'
+    },
+    {
+      id: 'w4',
+      date: '2023-12-05T10:21:00Z',
+      amount: 650,
+      status: 'pending'
     }
-  };
+  ];
   
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'failed':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+  const handleWithdraw = async () => {
+    if (!amount || !address) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
     }
-  };
-  
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
-  
-  const handleExportHistory = () => {
-    setIsLoading(true);
     
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      toast.error("Veuillez entrer un montant valide");
+      return;
+    }
+    
+    setIsProcessing(true);
     try {
-      // Create CSV content
-      const headers = ['ID', 'Date', 'Montant', 'Devise', 'Méthode', 'Statut', 'Adresse', 'Transaction'];
-      const csvContent = [
-        headers.join(','),
-        ...withdrawals.map(w => [
-          w.id,
-          formatDate(w.date),
-          w.amount,
-          w.currency,
-          w.method,
-          w.status,
-          w.address || '',
-          w.txHash || ''
-        ].join(','))
-      ].join('\n');
+      await requestWithdrawal({
+        amount: amountValue,
+        destinationAddress: address
+      });
       
-      // Create download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `withdrawals-history-${new Date().toISOString().slice(0, 10)}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast("Export réussi - L'historique des retraits a été téléchargé");
+      toast.success("Demande de retrait soumise avec succès");
+      setWithdrawDialogOpen(false);
+      setAmount('');
+      setAddress('');
     } catch (error) {
-      console.error('Failed to export withdrawal history:', error);
-      toast("Erreur d'export - Une erreur s'est produite lors de l'export");
+      toast.error("Erreur lors de la demande de retrait");
+      console.error(error);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
+    }
+  };
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge variant="outline" className="bg-green-500/20 text-green-500 border-0">
+            <Check className="h-3 w-3 mr-1" />
+            Complété
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="bg-amber-500/20 text-amber-500 border-0">
+            <Clock className="h-3 w-3 mr-1" />
+            En attente
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge variant="outline" className="bg-red-500/20 text-red-500 border-0">
+            <Ban className="h-3 w-3 mr-1" />
+            Échoué
+          </Badge>
+        );
+      default:
+        return <Badge>{status}</Badge>;
     }
   };
   
   return (
-    <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle className="text-xl">Historique des retraits</CardTitle>
-          <CardDescription>
-            Suivez l'état de vos demandes de retrait
-          </CardDescription>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-8 gap-1"
-          onClick={handleExportHistory}
-          disabled={isLoading || withdrawals.length === 0}
-        >
-          <ArrowDownToLine className="h-4 w-4" />
-          Exporter
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {withdrawals.length > 0 ? (
-          <div className="rounded-md border">
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Historique des retraits</CardTitle>
+          <Button size="sm" onClick={() => setWithdrawDialogOpen(true)}>
+            <ArrowUpRight className="h-4 w-4 mr-1" /> 
+            Demander un retrait
+          </Button>
+        </CardHeader>
+        
+        <CardContent>
+          {withdrawalHistory.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Montant</TableHead>
-                  <TableHead>Méthode</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Détails</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {withdrawals.map((withdrawal) => (
+                {withdrawalHistory.map((withdrawal) => (
                   <TableRow key={withdrawal.id}>
                     <TableCell className="font-medium">
-                      {formatDate(withdrawal.date)}
+                      {new Date(withdrawal.date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      {withdrawal.amount} {withdrawal.currency}
-                    </TableCell>
-                    <TableCell>{withdrawal.method}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={`flex w-fit items-center gap-1 ${getStatusColor(withdrawal.status)}`}
-                      >
-                        {getStatusIcon(withdrawal.status)}
-                        <span>
-                          {withdrawal.status === 'pending' && 'En attente'}
-                          {withdrawal.status === 'completed' && 'Complété'}
-                          {withdrawal.status === 'failed' && 'Échoué'}
-                        </span>
-                      </Badge>
+                    <TableCell>${withdrawal.amount}</TableCell>
+                    <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
+                    <TableCell className="text-right">
+                      {withdrawal.txHash ? (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          asChild
+                        >
+                          <a 
+                            href={`https://tronscan.org/#/transaction/${withdrawal.txHash}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Tronscan
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">Aucun retrait effectué pour le moment</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Modale de demande de retrait */}
+      <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Demande de retrait</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Montant à retirer (USDT)</Label>
+              <Input 
+                id="amount" 
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Entrez le montant"
+                min="0"
+                step="0.01"
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum: 10 USDT. Frais de transaction: 1 USDT.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse TRON de destination</Label>
+              <Input 
+                id="address" 
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Entrez votre adresse TRON (commence par T)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Assurez-vous que l'adresse est correcte. Les transactions sur la blockchain sont irréversibles.
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <ArrowDownToLine className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground mb-2">Aucun retrait effectué</p>
-            <p className="text-sm text-muted-foreground/70">
-              Vos demandes de retrait apparaîtront ici
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWithdrawDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleWithdraw}
+              disabled={isProcessing || !amount || !address}
+            >
+              {isProcessing ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent animate-spin rounded-full mr-2"></div>
+                  Traitement...
+                </>
+              ) : (
+                <>
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  Demander le retrait
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
