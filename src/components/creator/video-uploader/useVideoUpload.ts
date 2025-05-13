@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { ContentType } from '@/types/video';
 import { z } from 'zod';
+import { ContentType } from '@/types/video';
 
 export const videoSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
@@ -161,7 +161,7 @@ export const useVideoUpload = () => {
         description: values.description || '',
         thumbnailUrl: thumbnailPreviewUrl || 'https://via.placeholder.com/640x360',
         videoUrl: videoPreviewUrl || 'https://example.com/video.mp4',
-        userId: 'current-user-id',
+        creatorId: 'current-user-id',
         uploadStatus: 'complete' as 'complete',
         uploadProgress: 100,
         uploadedAt: new Date(),

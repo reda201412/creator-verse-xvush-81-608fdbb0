@@ -1,304 +1,236 @@
 
 import React, { useState } from 'react';
-import { useNeuroAesthetic, defaultConfig } from '@/hooks/use-neuro-aesthetic';
-import { useUserBehavior } from '@/hooks/use-user-behavior';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
-import { toast } from '@/components/ui/sonner';
-import { Brain, Eye, BarChart2, Compass, Clock, Zap, Sparkles } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Brain, ZapFast, Crown, Edit2, Clock, Eye } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
-interface CognitiveProfilePanelProps {
-  className?: string;
-}
+const CognitiveProfilePanel = () => {
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState({
+    focus: 65,
+    attention: 80,
+    creativity: 70,
+    cognition: 90,
+  });
 
-const CognitiveProfilePanel: React.FC<CognitiveProfilePanelProps> = ({ className }) => {
-  const { config, updateConfig, circadian } = useNeuroAesthetic();
-  const { getCognitiveProfile, resetBehaviorData } = useUserBehavior();
-  
-  const [detectedProfile, setDetectedProfile] = useState<string | null>(null);
-  
-  const profile = getCognitiveProfile();
-  
-  const detectProfile = () => {
-    // Analyze behavior data to suggest cognitive profile
-    const { attentionSpan, engagementLevel, preferredTimeOfDay } = profile;
+  const [userPreferences, setUserPreferences] = useState({
+    autoAdaptContent: true,
+    enhancedVisuals: true,
+    contentPacing: 'balanced', // slow, balanced, fast
+  });
+
+  const handlePreferenceChange = (key: string, value: boolean | string) => {
+    setUserPreferences(prev => ({
+      ...prev,
+      [key]: value
+    }));
     
-    let suggestedProfile: 'visual' | 'analytical' | 'balanced' | 'immersive' = 'balanced';
-    
-    if (attentionSpan > 70) {
-      suggestedProfile = 'analytical';
-    } else if (attentionSpan < 30) {
-      suggestedProfile = 'visual';
+    let message = '';
+    if (key === 'autoAdaptContent') {
+      message = value 
+        ? 'Adaptation automatique du contenu activée' 
+        : 'Adaptation automatique du contenu désactivée';
+    } else if (key === 'enhancedVisuals') {
+      message = value 
+        ? 'Mode visuel amélioré activé' 
+        : 'Mode visuel standard activé';
+    } else if (key === 'contentPacing') {
+      message = `Rythme de contenu défini sur : ${value}`;
     }
     
-    if (engagementLevel === 'high') {
-      suggestedProfile = 'immersive';
-    }
-    
-    setDetectedProfile(suggestedProfile);
-    
-    toast.success(`Profile détecté: ${suggestedProfile}`, {
-      description: "Voulez-vous appliquer ce profil aux paramètres?"
-    });
+    toast.success(message);
   };
-  
-  const applyDetectedProfile = () => {
-    if (!detectedProfile) return;
-    
-    updateConfig({
-      cognitiveProfile: detectedProfile as any,
-      // Update other settings based on detected profile
-      microRewardsIntensity: detectedProfile === 'visual' ? 70 : 
-                              detectedProfile === 'analytical' ? 30 : 50,
-      moodIntensity: detectedProfile === 'immersive' ? 80 : 50,
-      animationSpeed: detectedProfile === 'analytical' ? 'reduced' : 'standard',
-    });
-    
-    toast.success("Profil cognitif appliqué", {
-      description: "L'interface s'adaptera à votre profil cognitif"
-    });
+
+  const handleSave = () => {
+    setEditing(false);
+    toast.success("Profil cognitif mis à jour", 
+      "Vos préférences ont été enregistrées");
   };
-  
+
+  const calculateCognitiveScore = () => {
+    const { focus, attention, creativity, cognition } = profile;
+    return Math.round((focus + attention + creativity + cognition) / 4);
+  };
+
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="h-5 w-5" />
-          Profil Cognitif
-        </CardTitle>
-        <CardDescription>
-          Personnalisez l'interface en fonction de votre profil cognitif
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="text-sm font-medium">Type de Profil</h4>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={detectProfile}
-              className="flex items-center gap-1"
-            >
-              <Zap className="h-3.5 w-3.5" />
-              <span>Détecter</span>
-            </Button>
+    <div className="bg-card border rounded-lg p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="bg-primary/10 p-3 rounded-full">
+            <Brain className="h-6 w-6 text-primary" />
           </div>
-          
-          <RadioGroup 
-            value={config.cognitiveProfile} 
-            onValueChange={(value) => updateConfig({ 
-              cognitiveProfile: value as 'visual' | 'analytical' | 'balanced' | 'immersive' 
-            })}
-            className="grid grid-cols-2 gap-2"
-          >
-            <div className="flex items-start space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="visual" id="visual" />
-              <Label htmlFor="visual" className="grid gap-1 cursor-pointer">
-                <div className="flex items-center gap-1">
-                  <Eye className="h-3.5 w-3.5" />
-                  <span>Visuel</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  Privilégie les stimuli visuels et les animations
-                </span>
-              </Label>
-            </div>
-            
-            <div className="flex items-start space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="analytical" id="analytical" />
-              <Label htmlFor="analytical" className="grid gap-1 cursor-pointer">
-                <div className="flex items-center gap-1">
-                  <BarChart2 className="h-3.5 w-3.5" />
-                  <span>Analytique</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  Préfère les informations structurées, animations réduites
-                </span>
-              </Label>
-            </div>
-            
-            <div className="flex items-start space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="balanced" id="balanced" />
-              <Label htmlFor="balanced" className="grid gap-1 cursor-pointer">
-                <div className="flex items-center gap-1">
-                  <Compass className="h-3.5 w-3.5" />
-                  <span>Équilibré</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  Équilibre entre visuels et informations structurées
-                </span>
-              </Label>
-            </div>
-            
-            <div className="flex items-start space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="immersive" id="immersive" />
-              <Label htmlFor="immersive" className="grid gap-1 cursor-pointer">
-                <div className="flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Immersif</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  Expérience riche avec effets visuels amplifiés
-                </span>
-              </Label>
-            </div>
-          </RadioGroup>
-          
-          {detectedProfile && (
-            <Button
-              onClick={applyDetectedProfile}
-              className="w-full mt-2"
-            >
-              Appliquer le profil détecté ({detectedProfile})
-            </Button>
-          )}
+          <div>
+            <h3 className="font-semibold text-lg">Profil Cognitif</h3>
+            <p className="text-muted-foreground text-sm">Personnalisation basée sur vos préférences cognitives</p>
+          </div>
         </div>
-        
-        <Separator />
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium">Adaptation Circadienne</h4>
-            </div>
-            <Switch 
-              checked={config.autoAdapt}
-              onCheckedChange={(checked) => updateConfig({ autoAdapt: checked })}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Adapte automatiquement l'interface en fonction de l'heure et de votre rythme circadien
-          </p>
-          
-          {config.autoAdapt && (
-            <div className="rounded-md bg-muted/50 p-3 text-sm">
-              <p className="font-medium">Détection actuelle:</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Moment de la journée:</span>
-                  <span className="font-medium capitalize">{circadian.timeOfDay}</span>
+        <Button size="sm" variant={editing ? "secondary" : "outline"} onClick={() => setEditing(!editing)}>
+          <Edit2 className="h-4 w-4 mr-2" />
+          {editing ? "Annuler" : "Modifier"}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          {/* Cognitive metrics */}
+          <div className="space-y-4">
+            <h4 className="font-medium">Métriques Cognitives</h4>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Focus</span>
+                  <span className="font-medium">{profile.focus}%</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phase circadienne:</span>
-                  <span className="font-medium capitalize">{circadian.circadianPhase}</span>
+                {editing ? (
+                  <Slider 
+                    value={[profile.focus]} 
+                    onValueChange={(val) => setProfile({...profile, focus: val[0]})} 
+                    max={100} 
+                    step={1}
+                  />
+                ) : (
+                  <Progress value={profile.focus} className="h-2" />
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Attention</span>
+                  <span className="font-medium">{profile.attention}%</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ambiance suggérée:</span>
-                  <span className="font-medium capitalize">{circadian.suggestedMood}</span>
+                {editing ? (
+                  <Slider 
+                    value={[profile.attention]} 
+                    onValueChange={(val) => setProfile({...profile, attention: val[0]})} 
+                    max={100} 
+                    step={1}
+                  />
+                ) : (
+                  <Progress value={profile.attention} className="h-2" />
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Créativité</span>
+                  <span className="font-medium">{profile.creativity}%</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Vos préférences:</span>
-                  <span className="font-medium capitalize">{profile.preferredTimeOfDay || "inconnues"}</span>
+                {editing ? (
+                  <Slider 
+                    value={[profile.creativity]} 
+                    onValueChange={(val) => setProfile({...profile, creativity: val[0]})} 
+                    max={100} 
+                    step={1}
+                  />
+                ) : (
+                  <Progress value={profile.creativity} className="h-2" />
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Cognition</span>
+                  <span className="font-medium">{profile.cognition}%</span>
                 </div>
+                {editing ? (
+                  <Slider 
+                    value={[profile.cognition]} 
+                    onValueChange={(val) => setProfile({...profile, cognition: val[0]})} 
+                    max={100} 
+                    step={1}
+                  />
+                ) : (
+                  <Progress value={profile.cognition} className="h-2" />
+                )}
               </div>
             </div>
+          </div>
+          
+          {/* Score section */}
+          <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg">
+            <div>
+              <span className="text-sm text-muted-foreground">Score Cognitif</span>
+              <div className="text-2xl font-bold">{calculateCognitiveScore()}</div>
+            </div>
+            <div className="bg-primary/10 p-3 rounded-full">
+              <Crown className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+          
+          {editing && (
+            <Button onClick={handleSave} className="w-full">Sauvegarder les modifications</Button>
           )}
         </div>
         
-        <Separator />
-        
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Ajustements avancés</h4>
+        <div className="space-y-6">
+          <h4 className="font-medium">Préférences d'expérience</h4>
           
           <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="contrast">Contraste</Label>
-                <span className="text-xs text-muted-foreground capitalize">{config.contrastLevel}</span>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center space-x-2">
+                  <ZapFast className="h-4 w-4 text-primary" />
+                  <span className="font-medium">Adaptation automatique du contenu</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Ajuster automatiquement l'expérience cognitive</p>
               </div>
-              <RadioGroup 
-                value={config.contrastLevel} 
-                onValueChange={(value) => updateConfig({ 
-                  contrastLevel: value as 'low' | 'standard' | 'high' 
-                })}
-                className="flex justify-between"
-                id="contrast"
-              >
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="low" id="contrast-low" />
-                  <Label htmlFor="contrast-low" className="text-xs">Bas</Label>
+              <Switch 
+                checked={userPreferences.autoAdaptContent} 
+                onCheckedChange={(checked) => handlePreferenceChange('autoAdaptContent', checked)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center space-x-2">
+                  <Eye className="h-4 w-4 text-blue-500" />
+                  <span className="font-medium">Visuels améliorés</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="standard" id="contrast-standard" />
-                  <Label htmlFor="contrast-standard" className="text-xs">Standard</Label>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="high" id="contrast-high" />
-                  <Label htmlFor="contrast-high" className="text-xs">Élevé</Label>
-                </div>
-              </RadioGroup>
+                <p className="text-sm text-muted-foreground">Utiliser des effets visuels dynamiques</p>
+              </div>
+              <Switch 
+                checked={userPreferences.enhancedVisuals}
+                onCheckedChange={(checked) => handlePreferenceChange('enhancedVisuals', checked)}
+              />
             </div>
             
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="animation-speed">Vitesse d'animation</Label>
-                <span className="text-xs text-muted-foreground capitalize">{config.animationSpeed}</span>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-amber-500" />
+                <span className="font-medium">Rythme du contenu</span>
               </div>
-              <RadioGroup 
-                value={config.animationSpeed} 
-                onValueChange={(value) => updateConfig({ 
-                  animationSpeed: value as 'reduced' | 'standard' | 'enhanced' 
-                })}
-                className="flex justify-between"
-                id="animation-speed"
-              >
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="reduced" id="animation-reduced" />
-                  <Label htmlFor="animation-reduced" className="text-xs">Réduite</Label>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="standard" id="animation-standard" />
-                  <Label htmlFor="animation-standard" className="text-xs">Standard</Label>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RadioGroupItem value="enhanced" id="animation-enhanced" />
-                  <Label htmlFor="animation-enhanced" className="text-xs">Dynamique</Label>
-                </div>
-              </RadioGroup>
+              <p className="text-sm text-muted-foreground mb-2">Définir la vitesse à laquelle le contenu est présenté</p>
+              
+              <div className="flex border rounded-lg overflow-hidden">
+                {['lent', 'équilibré', 'rapide'].map((pace) => (
+                  <button
+                    key={pace}
+                    className={`flex-1 text-center py-2 text-sm ${
+                      userPreferences.contentPacing === pace ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                    }`}
+                    onClick={() => handlePreferenceChange('contentPacing', pace)}
+                  >
+                    {pace}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+          
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h5 className="font-medium mb-2">À propos du profil cognitif</h5>
+            <p className="text-sm text-muted-foreground">
+              Votre profil cognitif influence la façon dont le contenu est présenté et organisé pour vous.
+              L'IA adapte l'expérience en fonction de vos préférences pour optimiser votre engagement et votre satisfaction.
+            </p>
+          </div>
         </div>
-      </CardContent>
-      
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={resetBehaviorData}
-        >
-          Réinitialiser les données
-        </Button>
-        <Button 
-          size="sm"
-          onClick={() => {
-            updateConfig({
-              ...defaultConfig,
-              cognitiveProfile: 'balanced',
-              contrastLevel: 'standard',
-              animationSpeed: 'standard'
-            });
-            toast.success("Paramètres réinitialisés");
-          }}
-        >
-          Rétablir les paramètres par défaut
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };
 

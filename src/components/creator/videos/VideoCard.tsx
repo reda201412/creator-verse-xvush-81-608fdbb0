@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { VideoData } from '@/services/creatorService';
+import { VideoData } from '@/types/video';
 import { Play, MoreVertical } from 'lucide-react';
 
 interface VideoCardProps {
@@ -44,7 +44,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         <h3 className="font-medium truncate">{video.title}</h3>
         <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{video.description}</p>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-muted-foreground">{video.views} views</p>
+          <p className="text-xs text-muted-foreground">{video.viewCount || 0} views</p>
           {video.isPremium && (
             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
               Premium

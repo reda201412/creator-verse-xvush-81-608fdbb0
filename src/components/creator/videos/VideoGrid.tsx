@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-import { VideoData } from '@/services/creatorService';
+import { VideoData } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
-import { Skeleton } from '@/components/ui/skeleton'; 
-import { VideoMetadata } from '@/types/video';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface VideoGridProps {
   videos: VideoData[];
@@ -104,7 +102,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             }
           </p>
           <VideoUploader 
-            onUploadComplete={(metadata: any) => onUploadComplete(metadata)} 
+            onUploadComplete={(metadata: VideoData) => onUploadComplete(metadata)} 
             isCreator={true} 
           />
         </div>

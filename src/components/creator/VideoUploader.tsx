@@ -3,16 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata, ContentType } from '@/types/video';
+import { VideoData } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
 import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
-import { VideoFirestoreData, convertVideoMetadataToVideoData } from '@/services/creatorService';
+import { VideoFirestoreData } from '@/services/creatorService';
 
 interface VideoUploaderProps {
-  onUploadComplete: (metadata: VideoMetadata) => void;
+  onUploadComplete: (metadata: VideoData) => void;
   isCreator: boolean;
   className?: string;
 }
@@ -49,35 +49,31 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   // Check for authentication
   useEffect(() => {
     if (isOpen && !user) {
-      toast.error("Authentification requise", {
-        description: "Vous devez être connecté pour téléverser des vidéos."
-      });
+      toast.error("Authentification requise", 
+        "Vous devez être connecté pour téléverser des vidéos.");
       setIsOpen(false);
     }
   }, [isOpen, user]);
 
   const handleSuccessfulUpload = (firestoreData: VideoFirestoreData, originalVideoFile: File) => {
-    // Construct the full VideoMetadata object needed by onUploadComplete
-    const completeMetadata: VideoMetadata = {
+    // Construct the full VideoData object needed by onUploadComplete
+    const completeData: VideoData = {
       id: firestoreData.id || '',
       title: firestoreData.title,
       description: firestoreData.description || '',
-      type: firestoreData.type as ContentType || 'standard',
-      videoFile: originalVideoFile, // The actual File object
+      creatorId: firestoreData.creatorId,
       thumbnailUrl: firestoreData.thumbnailUrl,
-      video_url: firestoreData.videoUrl,
-      url: firestoreData.videoUrl,
+      videoUrl: firestoreData.videoUrl,
       format: firestoreData.format || '16:9',
       isPremium: firestoreData.isPremium || false,
       tokenPrice: firestoreData.tokenPrice,
     };
 
-    onUploadComplete(completeMetadata);
+    onUploadComplete(completeData);
     triggerMicroReward('interaction');
 
-    toast.success("Vidéo téléchargée avec succès", {
-      description: "Votre vidéo a été mise en ligne et est maintenant visible."
-    });
+    toast.success("Vidéo téléchargée avec succès", 
+      "Votre vidéo a été mise en ligne et est maintenant visible.");
 
     setTimeout(() => {
       setIsOpen(false);
@@ -142,9 +138,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               }}
               onSubmit={async (values: VideoFormValues, onUploadProgress: (progress: number) => void) => {
                 if (!videoFile) {
-                  toast.error("Information manquante", {
-                    description: "Veuillez fournir une vidéo et un titre."
-                  });
+                  toast.error("Information manquante",
+                    "Veuillez fournir une vidéo et un titre.");
                   return;
                 }
 
@@ -156,9 +151,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);
-                  toast.error("Erreur de téléchargement", {
-                    description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
-                  });
+                  toast.error("Erreur de téléchargement",
+                    error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.");
                 }
               }}
               setVideoFile={setVideoFile}

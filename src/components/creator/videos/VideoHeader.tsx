@@ -1,11 +1,11 @@
 
 import React from 'react';
 import VideoUploader from '@/components/creator/VideoUploader';
-import { VideoMetadata } from '@/types/video';
+import { VideoData } from '@/types/video';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface VideoHeaderProps {
-  onUploadComplete: (metadata: VideoMetadata) => void;
+  onUploadComplete: (metadata: VideoData) => void;
 }
 
 const VideoHeader: React.FC<VideoHeaderProps> = ({ onUploadComplete }) => {

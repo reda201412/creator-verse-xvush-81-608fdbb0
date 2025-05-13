@@ -1,73 +1,62 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 import { useStories } from '@/hooks/use-stories';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
-import { StoryGroup } from '@/types/stories';
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { StoryGroup } from '@/utils/story-types';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from '@/hooks/use-toast';
 
-const StoriesTimeline: React.FC = () => {
-  const { user } = useAuth();
-  const { storyGroups, loading, openViewer, openPublisher } = useStories();
-  const [scrollPosition, setScrollPosition] = useState(0);
+interface StoriesTimelineProps {
+  onStoryClick: (groupIndex: number) => void;
+  storyGroups: StoryGroup[];
+}
 
-  useEffect(() => {
-    const timeline = document.querySelector('.timeline-scroll');
-    if (timeline) {
-      timeline.scrollLeft = scrollPosition;
-    }
-  }, [scrollPosition]);
-
-  const handleStoryClick = (groupIndex: number) => {
-    openViewer(groupIndex, 0);
+const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ onStoryClick, storyGroups }) => {
+  const { openPublisher } = useStories();
+  
+  const handleCreate = () => {
+    openPublisher();
   };
-
-  const handleScroll = () => {
-    const timeline = document.querySelector('.timeline-scroll');
-    if (timeline) {
-      setScrollPosition(timeline.scrollLeft);
+  
+  const handleStoryClick = (index: number) => {
+    if (index < 0 || index >= storyGroups.length) {
+      toast.error("Story not found");
+      return;
     }
+    
+    onStoryClick(index);
   };
-
+  
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Stories</h2>
-        <Button variant="outline" size="icon" onClick={openPublisher}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <ScrollArea className="w-full">
-        <div className="timeline-scroll flex space-x-4 py-2" onScroll={handleScroll}>
-          {loading ? (
-            Array(5).fill(0).map((_, i) => (
-              <div key={i} className="flex flex-col items-center justify-center w-20">
-                <Skeleton className="h-16 w-16 rounded-full mb-1" />
-                <Skeleton className="h-4 w-16" />
-              </div>
-            ))
-          ) : storyGroups.length === 0 ? (
-            <p className="text-muted-foreground">Aucune story à afficher pour le moment.</p>
-          ) : (
-            storyGroups.map((group, groupIndex) => (
-              <div
-                key={group.creator.id}
-                className="flex flex-col items-center justify-center w-20 cursor-pointer"
-                onClick={() => handleStoryClick(groupIndex)}
-              >
-                <Avatar className="h-16 w-16 border-2 border-primary">
-                  <AvatarImage src={group.creator.avatar_url} alt={group.creator.display_name} />
-                  <AvatarFallback>{group.creator.display_name}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-nowrap text-muted-foreground">{group.creator.display_name}</span>
-              </div>
-            ))
-          )}
+    <div className="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
+      <div
+        className="flex flex-col items-center cursor-pointer"
+        onClick={handleCreate}
+      >
+        <div className="relative">
+          <Avatar className="w-16 h-16 border-2 border-primary">
+            <AvatarImage src="/placeholder.svg" />
+            <AvatarFallback>+</AvatarFallback>
+          </Avatar>
+          <div className="absolute bottom-0 right-0 bg-primary rounded-full w-6 h-6 flex items-center justify-center text-white font-bold text-xs">+</div>
         </div>
-      </ScrollArea>
+        <span className="text-xs mt-2 text-center">Add Story</span>
+      </div>
+      
+      {storyGroups.map((group, index) => (
+        <div 
+          key={group.id} 
+          className="flex flex-col items-center cursor-pointer"
+          onClick={() => handleStoryClick(index)}
+        >
+          <div className={`rounded-full p-1 ${group.hasUnviewed ? 'bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500' : 'bg-muted'}`}>
+            <Avatar className="w-14 h-14 border-2 border-background">
+              <AvatarImage src={group.avatarUrl} />
+              <AvatarFallback>{group.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </div>
+          <span className="text-xs mt-2 text-center truncate w-16">{group.username}</span>
+        </div>
+      ))}
     </div>
   );
 };

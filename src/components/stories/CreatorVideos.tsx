@@ -6,7 +6,8 @@ import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
-import { getCreatorVideos, VideoFirestoreData, VideoData } from '@/services/creatorService';
+import { getCreatorVideos } from '@/services/creatorService';
+import { VideoData } from '@/types/video';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/firebase';
 
@@ -34,11 +35,11 @@ const CreatorVideos: React.FC = () => {
         const fetchedVideos = await getCreatorVideos(user.uid);
         console.log("Vidéos récupérées:", fetchedVideos);
         
-        // Convert VideoFirestoreData to VideoData by adding required properties
+        // Convert VideoFirestoreData to VideoData
         const videoData: VideoData[] = fetchedVideos.map(video => ({
           ...video,
-          creatorId: user.uid, // Add the required creatorId field
-          // Add any other required fields from VideoData
+          creatorId: video.creatorId || user.uid,
+          description: video.description || ''
         }));
         
         setVideos(videoData);
@@ -58,7 +59,7 @@ const CreatorVideos: React.FC = () => {
     fetchVideos();
   }, [user, toast]);
 
-  // Convert VideoFirestoreData to VideoData for the component props
+  // Handle completed video upload
   const handleUploadComplete = (data: VideoData) => {
     // Add the new video to the beginning of the list with proper typing
     setVideos(prev => [data, ...prev]);
@@ -129,10 +130,13 @@ const CreatorVideos: React.FC = () => {
         videos={videos} 
         activeTab={activeTab}
         searchQuery={searchQuery}
-        onDeleteVideo={handleDeleteVideo}
-        onEditVideo={handleEditVideo}
-        onPromoteVideo={handlePromoteVideo}
-        onAnalyticsVideo={handleAnalyticsVideo}
+        onDeleteVideo={(id) => {}}
+        onEditVideo={(id) => {}}
+        onPromoteVideo={(id) => {}}
+        onAnalyticsVideo={(id) => {
+          setSelectedVideoId(id);
+          setIsAnalyticsModalOpen(true);
+        }}
         isLoading={loading}
         onUploadComplete={handleUploadComplete}
       />

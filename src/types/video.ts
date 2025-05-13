@@ -18,7 +18,27 @@ export interface VideoData {
   createdAt?: string | Date;
   publishedAt?: string | Date;
   revenueGenerated?: number;
+  type?: ContentType;
+  views?: number;
+  watchHours?: number;
+  likes?: number;
 }
+
+export interface VideoMetadata {
+  id: string;
+  title: string;
+  description: string;
+  type?: ContentType;
+  videoFile?: File; 
+  thumbnailUrl?: string;
+  video_url?: string;
+  url?: string;
+  format?: string;
+  isPremium?: boolean;
+  tokenPrice?: number;
+}
+
+export type ContentType = 'standard' | 'premium' | 'teaser' | 'vip';
 
 export interface VideoUploadProgress {
   id: string;
