@@ -1,32 +1,16 @@
-
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
 import BottomNavigation from '@/components/navigation/BottomNavigation';
-import Index from '@/pages/Index';
-import Auth from '@/pages/Auth';
-import CreatorProfile from '@/pages/CreatorProfile';
-import CreatorsFeed from '@/pages/CreatorsFeed';
-import Dashboard from '@/pages/Dashboard';
-import Messages from '@/pages/Messages';
-import CreatorVideos from '@/pages/CreatorVideos';
-import ExclusiveContent from '@/pages/ExclusiveContent';
-import TokensPage from '@/pages/TokensPage';
-import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
-import SubscribersManagement from '@/pages/SubscribersManagement';
-import CalendarView from '@/pages/CalendarView';
-import ProfileSettings from '@/pages/ProfileSettings';
-import NotFound from '@/pages/NotFound';
-import TrendingContent from '@/pages/TrendingContent';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useCallback } from 'react';
+import { Toaster } from '@/components/ui/toaster';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { useState, useEffect, useCallback } from 'react';
 import { RouteChangeProps } from '@/types/navigation';
 
 const ProtectedRoute = ({ children, onRouteChange }: RouteChangeProps & { children: React.ReactNode }) => {

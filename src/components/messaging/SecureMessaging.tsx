@@ -161,7 +161,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               messages: newThreadsMap.get(change.doc.id)?.messages || [],
             } as ExtendedFirestoreMessageThread;
             if (change.type === "added" || change.type === "modified") {
-              newThreadsMap.set(change.doc.id, changedThreadData as ExtendedFirestoreMessageThread);
+              newThreadsMap.set(change.doc.id, changedThreadData);
             } else if (change.type === "removed") {
               newThreadsMap.delete(change.doc.id);
             }
@@ -186,18 +186,22 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     if (!isInitialLoad && !hasMoreMessages) return;
     setIsLoadingMessages(true);
     try {
-      const { messages: newMessagesData, lastVisibleDoc: newLastVisibleDoc } = await fetchMessagesForThread(
+      const messagesResult = await fetchMessagesForThread(
         activeThreadId,
         20,
         isInitialLoad ? null : lastVisibleMessageDoc
       );
       
-      // Map raw messages to ExtendedFirestoreMessage type
-      const extendedMessages = newMessagesData.map(convertToExtendedMessage);
+      // Extract messages and lastVisibleDoc from the result
+      const newMessagesData = messagesResult.messages;
+      const newLastVisibleDoc = messagesResult.lastVisibleDoc;
       
       setThreads((prevThreads) =>
         prevThreads.map((thread) => {
           if (thread.id === activeThreadId) {
+            // Convert each message to ExtendedFirestoreMessage
+            const extendedMessages = newMessagesData.map((msg) => convertToExtendedMessage(msg));
+            
             return {
               ...thread,
               messages:
@@ -354,10 +358,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       });
       if (supportData) {
         triggerHaptic('strong'); 
-        toast({
-          title: "Message de soutien envoyé",
-          description: "Votre message de soutien a été envoyé avec succès"
-        });
+        toast("Message de soutien envoyé");
       }
     } catch (error) {
       console.error('Error sending message:', error);

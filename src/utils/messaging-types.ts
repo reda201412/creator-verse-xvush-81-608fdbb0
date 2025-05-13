@@ -20,7 +20,7 @@ export interface FirestoreMessageThread {
   id?: string;
   participantIds: string[];
   name?: string;
-  messages: FirestoreMessage[]; // Make sure messages exists and is required
+  messages?: FirestoreMessage[]; // Make messages optional but exist
   readStatus?: Record<string, Timestamp>;
   participants?: string[]; 
   lastActivity?: Timestamp;
