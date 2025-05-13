@@ -1,22 +1,30 @@
 
-// Import the toast notification types and functions from sonner
-import { toast as sonnerToast, ToastT } from "sonner";
+import { toast as sonnerToast } from "sonner";
 
-export interface ToastProps {
-  title?: string;
-  description?: string;
+// Define the types for our toast functions
+export type ToastProps = {
+  description?: React.ReactNode;
   action?: React.ReactNode;
-  cancel?: React.ReactNode;
   variant?: "default" | "destructive";
-}
+};
 
-// Custom hook that provides toast functionality
+// Create a custom toast hook that wraps the Sonner toast
 export function useToast() {
-  // Return the sonnerToast function directly
-  return {
-    toast: sonnerToast
+  // This function simply passes the title and other properties to the Sonner toast
+  const toast = (title: string, props?: ToastProps) => {
+    if (props?.variant === "destructive") {
+      return sonnerToast.error(title, { description: props.description });
+    }
+    return sonnerToast(title, { description: props.description, action: props.action });
   };
+
+  return { toast };
 }
 
-// Export direct toast function for backward compatibility
-export const toast = sonnerToast;
+// Export the toast function directly for convenience
+export const toast = (title: string, props?: ToastProps) => {
+  if (props?.variant === "destructive") {
+    return sonnerToast.error(title, { description: props.description });
+  }
+  return sonnerToast(title, { description: props.description, action: props.action });
+};

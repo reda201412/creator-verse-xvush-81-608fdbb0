@@ -28,33 +28,16 @@ import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'f
 import { Spinner } from '@/components/ui/spinner'; 
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils';
-import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
-import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 import {
+  FirestoreMessage, 
+  FirestoreMessageThread,
+  ExtendedFirestoreMessage, 
+  ExtendedFirestoreMessageThread,
   adaptExtendedFirestoreThreadsToMessageThreads,
   timestampToISOString
 } from '@/utils/messaging-types';
-
-// Use our own definition, don't import conflicting one
-interface LocalExtendedFirestoreMessageThread {
-  id?: string;
-  participantIds: string[];
-  name?: string;
-  messages: FirestoreMessage[];
-  readStatus?: Record<string, Timestamp>;
-  participants?: string[]; 
-  lastActivity?: Timestamp;
-  isGated?: boolean;
-  createdAt: Timestamp;
-  participantInfo?: Record<string, {
-    displayName: string;
-    avatarUrl: string;
-  }>;
-  lastMessageText?: string;
-  lastMessageSenderId?: string;
-  lastMessageCreatedAt?: Timestamp;
-}
+import { useModals } from '@/hooks/use-modals';
 
 interface SecureMessagingProps {
   userId?: string;
@@ -76,7 +59,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
   const { openModal, closeModal, openModals } = useModals();
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<LocalExtendedFirestoreMessageThread[]>([]);
+  const [threads, setThreads] = useState<ExtendedFirestoreMessageThread[]>([]);
   const [showConversationList, setShowConversationList] = useState(true);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
@@ -101,9 +84,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       setThreads(threadsData.map(t => ({
         ...t, 
         messages: t.messages || [],
-        participantIds: t.participantIds || [], // Ensure participantIds exists
-        participants: t.participantIds || [], // Ensure participants exists
-        createdAt: t.createdAt || Timestamp.now() // Ensure createdAt exists
+        participantIds: t.participantIds || [], 
+        participants: t.participantIds || [], 
+        createdAt: t.createdAt || Timestamp.now() 
       })));
 
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
@@ -177,7 +160,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               id: change.doc.id,
               ...change.doc.data(),
               messages: newThreadsMap.get(change.doc.id)?.messages || [],
-            } as LocalExtendedFirestoreMessageThread;
+            } as ExtendedFirestoreMessageThread;
             if (change.type === "added" || change.type === "modified") {
               newThreadsMap.set(change.doc.id, changedThreadData);
             } else if (change.type === "removed") {
@@ -225,7 +208,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
             : thread
         )
       );
-      setLastVisibleMessageDoc(newLastVisibleDoc);
+      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, effectiveUserId);
     } catch (error) {
@@ -327,7 +310,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
 
   const handleSendMessage = async (content: string, supportData?: any) => {
     if (!activeThreadId || !content.trim() || !effectiveUserId) return;
-    const optimisticMessage: FirestoreMessage = {
+    const optimisticMessage: ExtendedFirestoreMessage = {
       id: `optimistic_${Date.now()}`,
       senderId: effectiveUserId,
       content,
@@ -335,7 +318,10 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       createdAt: Timestamp.now(),
       isEncrypted: isSecurityEnabled,
       ...(supportData && { monetization: supportData }),
+      sender_name: effectiveUserName,
+      sender_avatar: effectiveUserAvatar,
     };
+    
     setThreads((prevThreads) =>
       prevThreads.map((thread) =>
         thread.id === activeThreadId
@@ -357,11 +343,15 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
         isEncrypted: isSecurityEnabled,
         monetizationData: supportData,
       });
-      if (supportData) {triggerHaptic('strong'); toast({ title: "Message de soutien envoyé" });}
+      if (supportData) {
+        triggerHaptic('strong'); 
+        toast("Message de soutien envoyé", {
+          description: "Votre message de soutien a été envoyé avec succès"
+        });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast({
-        title: "Failed to send message",
+      toast("Failed to send message", {
         description: "Please check your connection and try again.",
         variant: "destructive",
       });
@@ -441,9 +431,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       messages: thread.messages.map(m => ({
         id: m.id || '',
         senderId: m.senderId || '',
-        senderName: m.sender_name || '', // Using property from extended type
-        senderAvatar: m.sender_avatar || '', // Using property from extended type
-        recipientId: m.recipientId || '', // Using property from extended type
+        senderName: m.sender_name || '', 
+        senderAvatar: m.sender_avatar || '', 
+        recipientId: m.recipientId || '', 
         content: m.content || '',
         type: (m.type as any) || 'text',
         timestamp: timestampToISOString(m.createdAt),

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -52,7 +51,6 @@ const ProfileSettingsModal = ({
   initialData,
   onSave
 }: ProfileSettingsModalProps) => {
-  const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   
   const form = useForm<ProfileFormValues>({
@@ -68,17 +66,15 @@ const ProfileSettingsModal = ({
       
       onSave(data);
       
-      toast({
-        title: "Profil mis à jour",
-        description: "Vos modifications ont été enregistrées avec succès.",
+      toast("Profil mis à jour", {
+        description: "Vos modifications ont été enregistrées avec succès."
       });
       
       onOpenChange(false);
     } catch (error) {
-      toast({
-        title: "Erreur",
+      toast("Erreur", {
         description: "Une erreur s'est produite lors de la sauvegarde.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);

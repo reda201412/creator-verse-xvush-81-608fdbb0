@@ -1,86 +1,78 @@
 
-import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
-import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
-// Updated ExtendedFirestoreMessageThread to fix inheritance issues
-export interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, "lastActivity"> {
-  id?: string;
-  name?: string;
-  lastActivity?: Timestamp;
-  messages?: ExtendedFirestoreMessage[];
-  readStatus?: Record<string, any>;
-  participants?: string[]; 
-  participantIds: string[];
-  isGated?: boolean;
-  createdAt: Timestamp; // Required
-  participantInfo?: Record<string, {
-    displayName: string;
-    avatarUrl: string;
-  }>;
-}
-
-// Extended FirestoreMessage with additional properties
-export interface ExtendedFirestoreMessage extends FirestoreMessage {
-  status?: 'sent' | 'delivered' | 'read' | 'monetized';
+// Enhanced FirestoreMessage type with additional properties for compatibility
+export interface FirestoreMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  createdAt: Timestamp;
+  type: string;
+  isEncrypted?: boolean;
   monetization?: any;
+  // Additional properties needed for compatibility
   sender_name?: string;
   sender_avatar?: string;
   recipientId?: string;
 }
 
-// Helper function to safely convert a Timestamp to an ISO string
-export function timestampToISOString(timestamp: any): string {
-  if (!timestamp) return new Date().toISOString();
-  
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate().toISOString();
-  }
-  
-  if (timestamp instanceof Date) {
-    return timestamp.toISOString();
-  }
-  
-  // If it's a number or string, try to create a new Date
-  try {
-    return new Date(timestamp).toISOString();
-  } catch (error) {
-    console.error('Error converting timestamp:', error);
-    return new Date().toISOString();
-  }
+export interface FirestoreMessageThread {
+  id?: string;
+  participantIds: string[];
+  name?: string;
+  messages?: FirestoreMessage[];
+  readStatus?: Record<string, Timestamp>;
+  participants?: string[]; 
+  lastActivity?: Timestamp;
+  isGated?: boolean;
+  createdAt: Timestamp;
+  participantInfo?: Record<string, {
+    displayName: string;
+    avatarUrl: string;
+  }>;
+  lastMessageText?: string;
+  lastMessageSenderId?: string;
+  lastMessageCreatedAt?: Timestamp;
 }
 
-// Adapter functions to convert between types
-export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMessageThread): MessageThread {
-  return {
+// Convert Firebase Timestamp objects to ISO strings for React components
+export function timestampToISOString(timestamp?: Timestamp): string {
+  if (!timestamp || !timestamp.toDate) return new Date().toISOString();
+  return timestamp.toDate().toISOString();
+}
+
+// Extended types for adapting Firestore data to MessageThread format
+export interface ExtendedFirestoreMessage extends FirestoreMessage {
+  sender_name?: string;
+  sender_avatar?: string;
+  recipientId?: string;
+}
+
+export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: ExtendedFirestoreMessage[];
+}
+
+// Function to adapt Firestore threads to MessageThread format
+export function adaptExtendedFirestoreThreadsToMessageThreads(
+  firebaseThreads: ExtendedFirestoreMessageThread[]
+) {
+  // Implementation would go here
+  return firebaseThreads.map(thread => ({
     id: thread.id || '',
-    participants: thread.participantIds || thread.participants || [],
+    participants: thread.participantIds || [],
     name: thread.name || '',
     lastActivity: timestampToISOString(thread.lastActivity),
-    messages: thread.messages ? thread.messages.map(adaptFirestoreMessageToMessage) : [],
-    isGated: !!thread.isGated || false,
-    lastSeen: timestampToISOString(thread.createdAt)
-  };
-}
-
-export function adaptFirestoreMessageToMessage(message: ExtendedFirestoreMessage): Message {
-  return {
-    id: message.id || '',
-    senderId: message.senderId || '',
-    senderName: message.sender_name || '',
-    senderAvatar: message.sender_avatar || '',
-    recipientId: message.recipientId || '',
-    content: message.content || '',
-    type: (message.type as any) || 'text',
-    timestamp: timestampToISOString(message.createdAt),
-    status: message.status || 'sent',
-    isEncrypted: !!message.isEncrypted,
-    monetization: message.monetization,
-  };
-}
-
-export function adaptExtendedFirestoreThreadsToMessageThreads(
-  threads: ExtendedFirestoreMessageThread[]
-): MessageThread[] {
-  return threads.map(adaptFirestoreThreadToMessageThread);
+    messages: (thread.messages || []).map(m => ({
+      id: m.id || '',
+      senderId: m.senderId || '',
+      content: m.content || '',
+      timestamp: timestampToISOString(m.createdAt),
+      type: m.type || 'text',
+      status: 'sent',
+      senderName: m.sender_name || '',
+      senderAvatar: m.sender_avatar || '',
+      isEncrypted: !!m.isEncrypted
+    })),
+    isGated: !!thread.isGated
+  }));
 }
