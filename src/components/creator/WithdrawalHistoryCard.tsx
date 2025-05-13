@@ -27,6 +27,11 @@ interface Withdrawal {
   txHash?: string;
 }
 
+interface WithdrawalRequest {
+  amount: number;
+  destinationAddress: string;
+}
+
 const WithdrawalHistoryCard: React.FC = () => {
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [amount, setAmount] = useState('');
@@ -79,10 +84,12 @@ const WithdrawalHistoryCard: React.FC = () => {
     
     setIsProcessing(true);
     try {
-      await requestWithdrawal({
+      const withdrawalRequest: WithdrawalRequest = {
         amount: amountValue,
         destinationAddress: address
-      });
+      };
+      
+      await requestWithdrawal(withdrawalRequest);
       
       toast.success("Demande de retrait soumise avec succès");
       setWithdrawDialogOpen(false);
