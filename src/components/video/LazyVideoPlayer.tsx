@@ -1,18 +1,29 @@
 
 import React from 'react';
 import { useLazyLoad } from '@/hooks/use-lazy-load';
-import XteaseVideoPlayer, { XteaseVideoPlayerProps } from './XteaseVideoPlayer';
+import XteaseVideoPlayer from './XteaseVideoPlayer';
 import { cn } from '@/lib/utils';
 
-interface LazyVideoPlayerProps extends XteaseVideoPlayerProps {
+interface LazyVideoPlayerProps {
+  playbackId: string;
+  title?: string;
+  poster?: string;
   previewHeight?: string;
   className?: string;
+  autoPlay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
 }
 
 const LazyVideoPlayer: React.FC<LazyVideoPlayerProps> = ({ 
+  playbackId,
+  title,
+  poster,
   previewHeight = 'h-[300px]',
   className,
-  ...videoProps
+  autoPlay = false,
+  muted = false,
+  loop = false
 }) => {
   const { elementRef, isVisible, hasLoaded } = useLazyLoad({ threshold: 0.1 });
 
@@ -22,11 +33,11 @@ const LazyVideoPlayer: React.FC<LazyVideoPlayerProps> = ({
       className={cn(
         'w-full overflow-hidden transition-all duration-300', 
         previewHeight,
-        hasLoaded ? 'aspect-[9/16]' : '',
+        hasLoaded ? 'aspect-video' : '',
         className
       )}
     >
-      {/* Affiche un placeholder jusqu'à ce que l'élément soit visible */}
+      {/* Display a placeholder until the element is visible */}
       {!hasLoaded && !isVisible && (
         <div className="w-full h-full bg-muted/20 flex items-center justify-center rounded-lg animate-pulse">
           <div className="flex flex-col items-center">
@@ -36,9 +47,16 @@ const LazyVideoPlayer: React.FC<LazyVideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Charge le lecteur vidéo seulement si l'élément est/a été visible */}
+      {/* Load the video player only if the element is/has been visible */}
       {(isVisible || hasLoaded) && (
-        <XteaseVideoPlayer {...videoProps} />
+        <XteaseVideoPlayer 
+          playbackId={playbackId}
+          title={title}
+          poster={poster}
+          autoPlay={autoPlay}
+          muted={muted}
+          loop={loop}
+        />
       )}
     </div>
   );

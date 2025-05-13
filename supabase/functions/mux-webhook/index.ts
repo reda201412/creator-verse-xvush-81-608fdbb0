@@ -1,8 +1,15 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { crypto } from "https://deno.land/std@0.185.0/crypto/mod.ts";
 
-// [1] Définition des types TypeScript
+// CORS headers for browser requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Type definitions for better code structure
 interface ErrorResponse {
   code: string;
   error: string;
@@ -21,7 +28,7 @@ interface AssetCreatedData {
 
 interface AssetReadyData {
   id: string;
-  playback_ids: { id: string }[];
+  playback_ids: { id: string; policy: string }[];
   duration: number;
   max_stored_resolution: string;
 }
@@ -41,19 +48,24 @@ type WebhookEvent =
   | MuxEvent<AssetErroredData> & { type: 'video.asset.errored' };
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // [2] Vérification de la signature (avec code d'erreur spécifique)
+    // Verify MUX signature for security
     const signature = req.headers.get('mux-signature');
-    if (!signature) throw createError('signature_missing', 'En-tête de signature manquant');
+    if (!signature) throw createError('signature_missing', 'Signature header missing');
 
     const body = await req.text();
-    const secret = Deno.env.get('MUX_WEBHOOK_SECRET');
-    if (!secret) throw createError('config_missing', 'Secret webhook non configuré');
+    const webhookSecret = Deno.env.get('MUX_WEBHOOK_SECRET');
+    if (!webhookSecret) throw createError('config_missing', 'Webhook secret not configured');
 
-    const isValid = await verifySignature(signature, body, secret);
-    if (!isValid) throw createError('invalid_signature', 'Signature invalide');
+    const isValid = await verifySignature(signature, body, webhookSecret);
+    if (!isValid) throw createError('invalid_signature', 'Invalid signature');
 
-    // [3] Traitement typé de l'événement
+    // Process the event based on its type
     const event = JSON.parse(body) as WebhookEvent;
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -69,19 +81,19 @@ Deno.serve(async (req) => {
         await handleAssetReady(supabase, event.data);
         break;
 
-      case 'video.asset.errored': // [4] Nouveau handler d'erreur
+      case 'video.asset.errored':
         await handleAssetErrored(supabase, event.data);
         break;
 
       default:
-        console.warn(`Événement non géré: ${event.type}`);
+        console.warn(`Unhandled event type: ${event.type}`);
         return jsonResponse(200, { status: 'unhandled_event', event_type: event.type });
     }
 
     return jsonResponse(200, { status: 'processed' });
 
   } catch (err) {
-    // [5] Gestion d'erreur typée
+    // Typed error handling
     const error = err as ErrorResponse;
     console.error(`[${error.code}] ${error.error}: ${error.details}`);
     
@@ -89,7 +101,7 @@ Deno.serve(async (req) => {
   }
 });
 
-// [6] Helpers typés
+// Helper functions
 function createError(code: string, message: string, details?: string): ErrorResponse {
   return { code, error: message, details };
 }
@@ -115,45 +127,44 @@ async function verifySignature(signature: string, body: string, secret: string):
 function jsonResponse(status: number, data: object): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
   });
 }
 
-// [7] Handlers d'événements avec typage strict
+// Event handlers
 async function handleAssetCreated(supabase: any, data: AssetCreatedData) {
-  if (!data.upload_id) throw createError('invalid_data', 'upload_id manquant');
+  if (!data.upload_id) throw createError('invalid_data', 'upload_id missing');
 
   const { error } = await supabase
     .from('videos')
     .update({
-      asset_id: data.id,
+      mux_asset_id: data.id,
       status: 'processing',
       updated_at: new Date().toISOString()
     })
     .eq('upload_id', data.upload_id);
 
-  if (error) throw createError('database_error', 'Échec mise à jour asset', error.message);
+  if (error) throw createError('database_error', 'Failed to update asset', error.message);
 }
 
 async function handleAssetReady(supabase: any, data: AssetReadyData) {
   const playbackId = data.playback_ids?.[0]?.id;
-  if (!playbackId) throw createError('invalid_data', 'playback_id manquant');
+  if (!playbackId) throw createError('invalid_data', 'playback_id missing');
 
   const { error } = await supabase
     .from('videos')
     .update({
-      playback_id: playbackId,
+      mux_playback_id: playbackId,
       status: 'ready',
       duration: data.duration,
       resolution: data.max_stored_resolution,
       updated_at: new Date().toISOString()
     })
-    .eq('asset_id', data.id);
+    .eq('mux_asset_id', data.id);
 
-  if (error) throw createError('database_error', 'Échec mise à jour playback', error.message);
+  if (error) throw createError('database_error', 'Failed to update playback', error.message);
 }
 
-// [8] Nouveau handler pour les erreurs
 async function handleAssetErrored(supabase: any, data: AssetErroredData) {
   const updateData: any = {
     status: 'error',
@@ -161,14 +172,14 @@ async function handleAssetErrored(supabase: any, data: AssetErroredData) {
     error_details: data.errors
   };
 
-  // Essayer de trouver par upload_id ou asset_id
+  // Try to find by upload_id or asset_id
   const query = data.upload_id ? 
     supabase.from('videos').update(updateData).eq('upload_id', data.upload_id) :
-    supabase.from('videos').update(updateData).eq('asset_id', data.id);
+    supabase.from('videos').update(updateData).eq('mux_asset_id', data.id);
 
   const { error } = await query;
 
-  if (error) throw createError('database_error', 'Échec mise à jour erreur', error.message);
+  if (error) throw createError('database_error', 'Failed to update error', error.message);
 }
 
 function hexToBuffer(hex: string) {

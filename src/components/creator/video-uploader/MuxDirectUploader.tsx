@@ -1,7 +1,9 @@
-import React from 'react';
-import MuxUploader, { MuxUploaderStatus, MuxUploaderDrop } from '@mux/mux-uploader-react'; // Corrected import
+
+import React, { useState } from 'react';
+import MuxUploader, { MuxUploaderDrop } from '@mux/mux-uploader-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/integrations/firebase/firebase';
+import { toast } from 'sonner';
 
 // Define the expected structure of the success event detail from MuxUploader
 interface MuxSuccessEventDetail {
@@ -24,28 +26,27 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
   onError,
   setVideoFile,
 }) => {
-  // const { user } = useAuth(); -- REMOVE THIS LINE
-  // Removed local status state and setStatus as MuxUploaderDrop handles status display
-  // const [status, setStatus] = React.useState<typeof MuxUploaderStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const getUploadUrl = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+    setIsLoading(true);
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error("Veuillez vous connecter pour téléverser des vidéos");
+        throw new Error('User not authenticated');
+      }
+      
       // Get the Firebase ID token from the user object
       const token = await user.getIdToken();
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}`, // Ensure this URL is correct
+        `${import.meta.env.VITE_API_BASE_URL}/create-mux-upload`, // Make sure the endpoint is correct
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          // You might send video metadata here if your Edge Function expects it
-          // body: JSON.stringify({ title: "Initial Title" }),
         }
       );
 
@@ -54,21 +55,30 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
         throw new Error(errorData.details || 'Failed to get Mux upload URL');
       }
       const data = await response.json();
-      return data.uploadUrl; // The 'uploadUrl' from your create-mux-upload function
+      setIsLoading(false);
+      return data.uploadUrl; // The 'uploadUrl' from our edge function
     } catch (error) {
       console.error('Error getting Mux upload URL:', error);
+      setIsLoading(false);
+      onError && onError(error);
       throw error;
     }
   };
 
   return (
-    <div>
+    <div className="w-full">
+      {isLoading && (
+        <div className="flex items-center justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-sm text-muted-foreground">Préparation de l'upload...</span>
+        </div>
+      )}
       <MuxUploader
-        endpoint={getUploadUrl} // Pass the function that returns the Mux upload URL
+        endpoint={getUploadUrl}
         onUploadStart={() => {
+          setIsLoading(false);
           onUploadStart && onUploadStart();
         }}
-        // Correctly type the event and access the detail property
         onSuccess={(event: CustomEvent<MuxSuccessEventDetail>) => {
           console.log('Mux upload initiated successfully:', event.detail);
           const uploadId = event.detail?.id; // Access id from the detail property
@@ -82,7 +92,6 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
             onError(error);
           }
         }}
-        // Removed onStatusChange prop
         onChange={(files) => {
           if (files && files[0]) {
             setVideoFile(files[0]);
@@ -91,10 +100,20 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
           }
         }}
       >
-        {/* MuxUploaderDrop children will automatically react to the status */}
         <MuxUploaderDrop>
-          {/* Conditional rendering based on status is handled by MuxUploaderDrop */}
-          <p>Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier</p>
+          {({ isDragActive }) => (
+            <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}>
+              <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                <div className="text-3xl mb-2">📤</div>
+                <p className="text-sm font-medium">
+                  {isDragActive ? "Déposez la vidéo ici" : "Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  MP4, MOV ou WebM. 1080p ou supérieur recommandé.
+                </p>
+              </div>
+            </div>
+          )}
         </MuxUploaderDrop>
       </MuxUploader>
     </div>
