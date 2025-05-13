@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { StoryGroup, Story } from '@/utils/story-types';
 import { toast } from './use-toast';
@@ -59,16 +58,30 @@ export const StoriesProvider = ({ children }: { children: React.ReactNode }) => 
   const loadStories = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch stories from API
-      // This is a placeholder - in a real app, you'd fetch from your API
-      const mockStoryGroups: StoryGroup[] = [];
+      // Fetch stories from API (mock example)
+      const mockStoryGroups: StoryGroup[] = [
+        {
+          id: '1',
+          userId: 'user1',
+          username: 'john_doe',
+          avatar: 'https://placehold.co/150x150 ',
+          stories: [
+            {
+              id: 's1',
+              mediaUrl: 'https://placehold.co/800x600 ',
+              type: 'image',
+              timestamp: Date.now(),
+            },
+          ],
+        },
+      ];
       setStoryGroups(mockStoryGroups);
     } catch (err) {
       setError('Failed to load stories');
       toast({
         title: 'Error',
         description: 'Failed to load stories',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -95,47 +108,40 @@ export const StoriesProvider = ({ children }: { children: React.ReactNode }) => 
 
   const deleteStory = useCallback(async (storyId: string) => {
     try {
-      // Delete story logic would go here
-      // For now, we'll just update our local state
-      setStoryGroups(prevGroups => 
-        prevGroups.map(group => ({
-          ...group,
-          stories: group.stories.filter(story => story.id !== storyId)
-        })).filter(group => group.stories.length > 0)
+      setStoryGroups(prevGroups =>
+        prevGroups
+          .map(group => ({
+            ...group,
+            stories: group.stories.filter(story => story.id !== storyId),
+          }))
+          .filter(group => group.stories.length > 0)
       );
       return true;
     } catch (err) {
       toast({
         title: 'Error',
         description: 'Failed to delete story',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return false;
     }
   }, []);
 
-  // Add setNextStory function
   const setNextStory = useCallback(() => {
     if (activeStoryIndex < currentStoryGroup.length - 1) {
-      // Move to next story in current group
       setActiveStoryIndex(activeStoryIndex + 1);
     } else if (activeGroupIndex < storyGroups.length - 1) {
-      // Move to first story of next group
       setActiveGroupIndex(activeGroupIndex + 1);
       setActiveStoryIndex(0);
     } else {
-      // Close viewer if at the end
       closeViewer();
     }
   }, [activeStoryIndex, currentStoryGroup.length, activeGroupIndex, storyGroups.length, closeViewer]);
 
-  // Add setPreviousStory function
   const setPreviousStory = useCallback(() => {
     if (activeStoryIndex > 0) {
-      // Move to previous story in current group
       setActiveStoryIndex(activeStoryIndex - 1);
     } else if (activeGroupIndex > 0) {
-      // Move to last story of previous group
       setActiveGroupIndex(activeGroupIndex - 1);
       const prevGroupStories = storyGroups[activeGroupIndex - 1]?.stories || [];
       setActiveStoryIndex(Math.max(0, prevGroupStories.length - 1));
