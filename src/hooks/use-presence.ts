@@ -1,9 +1,9 @@
 
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, Database } from 'firebase/database';
 import { useState, useEffect } from 'react';
-import { realtimeDb } from '@/integrations/firebase/firebase';
 
-const usePresence = (userId: string | undefined) => {
+// Instead of importing realtimeDb directly, take it as a parameter
+const usePresence = (userId: string | undefined, realtimeDb?: Database | null) => {
   const [presence, setPresence] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ const usePresence = (userId: string | undefined) => {
     return () => {
       off(userStatusRef);
     };
-  }, [userId]);
+  }, [userId, realtimeDb]);
 
   return presence;
 };

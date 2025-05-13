@@ -100,21 +100,23 @@ const MuxDirectUploader: React.FC<MuxDirectUploaderProps> = ({
           }
         }}
       >
-        <MuxUploaderDrop>
-          {({ isDragActive }: { isDragActive: boolean }) => (
-            <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}>
-              <div className="flex flex-col items-center justify-center space-y-2 py-4">
-                <div className="text-3xl mb-2">📤</div>
-                <p className="text-sm font-medium">
-                  {isDragActive ? "Déposez la vidéo ici" : "Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  MP4, MOV ou WebM. 1080p ou supérieur recommandé.
-                </p>
+        {(props: { isDragActive: boolean }) => (
+          <MuxUploaderDrop>
+            {({ isDragActive }: { isDragActive: boolean }) => (
+              <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                  <div className="text-3xl mb-2">📤</div>
+                  <p className="text-sm font-medium">
+                    {isDragActive ? "Déposez la vidéo ici" : "Glissez-déposez votre vidéo ou cliquez pour sélectionner un fichier"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    MP4, MOV ou WebM. 1080p ou supérieur recommandé.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </MuxUploaderDrop>
+            )}
+          </MuxUploaderDrop>
+        )}
       </MuxUploader>
     </div>
   );

@@ -1,149 +1,187 @@
-
 import React, { useState, useEffect } from 'react';
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { db } from '@/integrations/firebase/firebase';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import usePresence from '@/hooks/use-presence';
+import { Spinner } from '@/components/ui/spinner';
 
-// Define a more complete interface that matches what we get from the service
+// Define a proper interface for the creator data
 interface Creator {
+  id: string;
   uid: string;
-  id?: string;
-  username?: string;
-  displayName?: string;
-  avatarUrl?: string;
-  bio?: string;
-  // Add any other fields that might be needed
+  username: string; 
+  displayName: string;
+  name: string;
+  avatarUrl: string;
+  avatar: string;
+  bio: string;
 }
 
 interface CreatorSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
   onSelectCreator: (creator: Creator) => void;
-  onCancel: () => void;
 }
 
-const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCancel }) => {
+const CreatorSelector: React.FC<CreatorSelectorProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSelectCreator 
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [creators, setCreators] = useState<Creator[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { toast } = useToast();
-  const { triggerHaptic } = useHapticFeedback();
-  
+  const [filteredCreators, setFilteredCreators] = useState<Creator[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+
+  // Fetch creators when the component mounts
   useEffect(() => {
-    const loadCreators = async () => {
-      setIsLoading(true);
-      try {
-        // This function needs to be updated to return data that matches the Creator interface
-        const fetchedCreators = await getAllCreators(); 
-        
-        // Map the data to match our Creator interface
-        const mappedCreators: Creator[] = fetchedCreators.map(creator => ({
-          uid: creator.id || creator.uid || '',
-          id: creator.id || creator.uid || '',
-          username: creator.username || '',
-          displayName: creator.name || creator.displayName || creator.username || '',
-          avatarUrl: creator.avatar || creator.avatarUrl || '',
-          bio: creator.bio || ''
-        }));
-        
-        setCreators(mappedCreators);
-      } catch (error) {
-        console.error("Error loading creators for selector:", error);
-        toast({ title: "Erreur", description: "Impossible de charger les créateurs.", variant: "destructive" });
-      }
-      setIsLoading(false);
-    };
+    if (isOpen && user) {
+      fetchCreators();
+    }
+  }, [isOpen, user]);
+
+  // Filter creators based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCreators(creators);
+      return;
+    }
+
+    const lowerCaseQuery = searchQuery.toLowerCase();
+    const filtered = creators.filter(creator => 
+      creator.username?.toLowerCase().includes(lowerCaseQuery) ||
+      creator.displayName?.toLowerCase().includes(lowerCaseQuery) ||
+      creator.name?.toLowerCase().includes(lowerCaseQuery)
+    );
     
-    loadCreators();
-  }, [toast]);
-  
-  const filteredCreators = creators.filter(creator => {
-    const searchLower = searchTerm.toLowerCase();
-    const nameLower = creator.displayName?.toLowerCase() || '';
-    const usernameLower = creator.username?.toLowerCase() || '';
-    return nameLower.includes(searchLower) || usernameLower.includes(searchLower);
-  });
-  
-  const handleSelectCreator = (creator: Creator) => {
-    triggerHaptic('light');
-    onSelectCreator(creator);
+    setFilteredCreators(filtered);
+  }, [searchQuery, creators]);
+
+  const fetchCreators = async () => {
+    if (!db || !user) return;
+    
+    setIsLoading(true);
+    try {
+      // Query creators from Firestore
+      const creatorsQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'creator'),
+        limit(50)
+      );
+      
+      const snapshot = await getDocs(creatorsQuery);
+      const creatorsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          uid: doc.id,
+          username: data.username || '',
+          displayName: data.displayName || data.name || data.username || '',
+          name: data.name || '',
+          avatarUrl: data.avatarUrl || data.photoURL || '',
+          avatar: data.avatar || data.photoURL || '',
+          bio: data.bio || '',
+        };
+      }).filter(creator => creator.id !== user.uid); // Filter out the current user
+      
+      setCreators(creatorsData);
+      setFilteredCreators(creatorsData);
+    } catch (error) {
+      console.error('Error fetching creators:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-xl font-bold mb-4">Démarrer une conversation</h2>
+
+  const handleSelectCreator = (creator: Creator) => {
+    onSelectCreator(creator);
+    onClose();
+  };
+
+  const CreatorItem = ({ creator }: { creator: Creator }) => {
+    const presence = usePresence(creator.id);
+    const isOnline = presence === 'online';
+    
+    return (
+      <div 
+        className="flex items-center p-3 hover:bg-muted rounded-md cursor-pointer transition-colors"
+        onClick={() => handleSelectCreator(creator)}
+      >
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400" size={18} />
-          <Input 
-            placeholder="Rechercher un créateur..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={creator.avatarUrl || creator.avatar} alt={creator.displayName || creator.username} />
+            <AvatarFallback>
+              {(creator.displayName || creator.username || 'U').charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {isOnline && (
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+          )}
+        </div>
+        <div className="ml-3 flex-1 overflow-hidden">
+          <p className="font-medium text-sm">{creator.displayName || creator.username}</p>
+          <p className="text-xs text-muted-foreground truncate">@{creator.username}</p>
         </div>
       </div>
-      
-      <ScrollArea className="flex-1 p-4">
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Démarrer une conversation</DialogTitle>
+        </DialogHeader>
+        
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Rechercher un créateur..."
+            className="pl-8 pr-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-0 top-0 h-9 w-9 p-0"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredCreators.length > 0 ? (
-          <div className="space-y-2">
-            {filteredCreators.map((creator) => (
-              <div
-                key={creator.uid}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                onClick={() => handleSelectCreator(creator)}
-              >
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
-                    <img 
-                      src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.uid}`} 
-                      alt={creator.displayName || creator.username}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  {/* Le statut en ligne (pastille verte) nécessiterait une vraie gestion de présence */}
-                  {/* <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span> */}
-                </div>
-                
-                <div className="flex-1">
-                  <h3 className="font-semibold">{creator.displayName || creator.username}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
-                    {creator.bio || `@${creator.username}`}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-center py-8">
+            <Spinner size="lg" />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-center">
-              {searchTerm ? "Aucun créateur trouvé pour votre recherche" : "Aucun créateur disponible pour le moment"}
-            </p>
-          </div>
+          <ScrollArea className="h-[300px] pr-4">
+            {filteredCreators.length > 0 ? (
+              <div className="space-y-1">
+                {filteredCreators.map((creator) => (
+                  <CreatorItem key={creator.id} creator={creator} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery ? 'Aucun créateur trouvé' : 'Aucun créateur disponible'}
+              </div>
+            )}
+          </ScrollArea>
         )}
-      </ScrollArea>
-      
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <Button variant="outline" className="w-full" onClick={onCancel}>
-          Annuler
-        </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

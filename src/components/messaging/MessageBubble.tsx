@@ -4,11 +4,20 @@ import { FirestoreMessage } from '@/utils/create-conversation-utils';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { Heart, ThumbsUp, MessageSquare, Share } from 'lucide-react';
+import { Heart, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Extended FirestoreMessage interface to include monetization
+interface ExtendedFirestoreMessage extends FirestoreMessage {
+  monetization?: {
+    tier: string;
+    price: number;
+    currency?: string;
+  };
+}
+
 interface MessageBubbleProps {
-  message: FirestoreMessage;
+  message: ExtendedFirestoreMessage;
   isCurrentUser: boolean;
   sessionKey: string;
   decryptMessage: (message: FirestoreMessage) => Promise<string>;
