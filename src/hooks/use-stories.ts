@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Story } from '@/types/stories';
 import { useAuth } from '@/contexts/AuthContext';
-import { getStoriesForUser, markStoryAsViewed } from '@/services/stories.service';
+import { getStoriesForUser, markStoryAsViewed, createStory } from '@/services/stories.service';
 
 type StoriesState = {
   allStories: Story[];
@@ -35,6 +35,9 @@ export function useStories() {
   const [currentStoryGroup, setCurrentStoryGroup] = useState<Story[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [publisherOpen, setPublisherOpen] = useState(false);
+  const [storyGroups, setStoryGroups] = useState<any[]>([]);
+  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
 
   // Load stories on component mount
   useEffect(() => {
@@ -51,16 +54,32 @@ export function useStories() {
   }, []);
 
   // Group stories by creator
-  const groupedStories = Object.values(
-    state.allStories.reduce((groups: Record<string, Story[]>, story) => {
-      const creatorId = story.creator_id;
-      if (!groups[creatorId]) {
-        groups[creatorId] = [];
-      }
-      groups[creatorId].push(story);
-      return groups;
-    }, {})
-  );
+  useEffect(() => {
+    // Create story groups from the loaded stories
+    const groups = Object.values(
+      state.allStories.reduce((groups: Record<string, any>, story) => {
+        const creatorId = story.creator_id;
+        if (!groups[creatorId]) {
+          groups[creatorId] = {
+            creator: story.creator,
+            stories: [],
+            hasUnviewed: false
+          };
+        }
+        
+        groups[creatorId].stories.push(story);
+        
+        // Check if this group has any unviewed stories
+        if (!story.viewed) {
+          groups[creatorId].hasUnviewed = true;
+        }
+        
+        return groups;
+      }, {})
+    );
+    
+    setStoryGroups(groups);
+  }, [state.allStories]);
 
   // Load stories from API
   const loadStories = async () => {
@@ -106,44 +125,26 @@ export function useStories() {
 
   // Open story viewer with appropriate content
   const openViewer = (category: string, groupIndex: number = 0) => {
-    let stories;
-    
-    switch (category) {
-      case 'user':
-        stories = state.userStories;
-        break;
-      case 'highlights':
-        stories = state.highlightedStories;
-        break;
-      case 'followed':
-        stories = state.followedCreatorStories;
-        break;
-      case 'all':
-      default:
-        stories = state.allStories;
-    }
-    
     setActiveCategory(category);
     
-    if (groupIndex < groupedStories.length) {
-      setCurrentStoryGroup(groupedStories[groupIndex]);
-      setCurrentGroupIndex(groupIndex);
-    } else if (groupedStories.length > 0) {
-      setCurrentStoryGroup(groupedStories[0]);
-      setCurrentGroupIndex(0);
+    if (groupIndex < storyGroups.length) {
+      setCurrentStoryGroup(storyGroups[groupIndex].stories);
+      setActiveGroupIndex(groupIndex);
+    } else if (storyGroups.length > 0) {
+      setCurrentStoryGroup(storyGroups[0].stories);
+      setActiveGroupIndex(0);
     }
     
+    setActiveStoryIndex(0); // Reset to first story
     setViewerOpen(true);
   };
 
   // Mark a story as viewed
-  const markAsViewed = async (storyId: string) => {
+  const markAsViewed = async (storyId: string, viewDuration?: number) => {
     if (!user) return;
 
     try {
-      // Convert the storyId to a string if it's not already
-      const storyIdString = String(storyId);
-      await markStoryAsViewed(user.uid, storyIdString);
+      await markStoryAsViewed(user.uid, storyId, viewDuration);
       
       // Update local state
       setState(prev => ({
@@ -173,21 +174,14 @@ export function useStories() {
   };
 
   // Move to next story
-  const goToNextStory = () => {
-    if (state.currentStoryIndex < currentStoryGroup.length - 1) {
-      setState(prev => ({
-        ...prev,
-        currentStoryIndex: prev.currentStoryIndex + 1
-      }));
+  const nextStory = () => {
+    if (activeStoryIndex < currentStoryGroup.length - 1) {
+      setActiveStoryIndex(prev => prev + 1);
     } else {
       // Move to next group or close if on last group
-      if (currentGroupIndex < groupedStories.length - 1) {
-        setCurrentGroupIndex(prev => prev + 1);
-        setCurrentStoryGroup(groupedStories[currentGroupIndex + 1]);
-        setState(prev => ({
-          ...prev,
-          currentStoryIndex: 0
-        }));
+      if (activeGroupIndex < storyGroups.length - 1) {
+        setActiveGroupIndex(prev => prev + 1);
+        setActiveStoryIndex(0);
       } else {
         closeViewer();
       }
@@ -195,49 +189,72 @@ export function useStories() {
   };
 
   // Move to previous story
-  const goToPrevStory = () => {
-    if (state.currentStoryIndex > 0) {
-      setState(prev => ({
-        ...prev,
-        currentStoryIndex: prev.currentStoryIndex - 1
-      }));
+  const prevStory = () => {
+    if (activeStoryIndex > 0) {
+      setActiveStoryIndex(prev => prev - 1);
     } else {
       // Move to previous group or stay at first if on first group
-      if (currentGroupIndex > 0) {
-        setCurrentGroupIndex(prev => prev - 1);
-        setCurrentStoryGroup(groupedStories[currentGroupIndex - 1]);
-        setState(prev => ({
-          ...prev,
-          currentStoryIndex: groupedStories[currentGroupIndex - 1].length - 1
-        }));
+      if (activeGroupIndex > 0) {
+        setActiveGroupIndex(prev => prev - 1);
+        setActiveStoryIndex(storyGroups[activeGroupIndex - 1].stories.length - 1);
       }
     }
   };
 
-  // Open story publisher
-  const openPublisher = () => {
-    setPublisherOpen(true);
-  };
-
-  // Close story publisher
-  const closePublisher = () => {
-    setPublisherOpen(false);
+  // Create new story
+  const handleCreateStory = async (storyData: Partial<Story>) => {
+    if (!user) return null;
+    
+    try {
+      // Add user data to story
+      const storyWithUser = {
+        ...storyData,
+        creator_id: user.uid,
+        creator: {
+          id: user.uid,
+          username: user.displayName || user.email?.split('@')[0] || 'user',
+          display_name: user.displayName || user.email?.split('@')[0] || 'User',
+          avatar_url: user.photoURL || 'https://i.pravatar.cc/150'
+        }
+      };
+      
+      // Create story
+      const newStory = await createStory(storyWithUser);
+      
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        allStories: [newStory, ...prev.allStories],
+        userStories: [newStory, ...prev.userStories]
+      }));
+      
+      return newStory;
+    } catch (error) {
+      console.error('Error creating story:', error);
+      return null;
+    }
   };
 
   return {
     ...state,
-    groupedStories,
+    storyGroups,
     viewerOpen,
+    activeStoryIndex,
+    activeGroupIndex,
     currentStoryGroup,
     currentGroupIndex,
     publisherOpen,
     openViewer,
     closeViewer,
-    markAsViewed,
-    goToNextStory,
-    goToPrevStory,
-    openPublisher,
-    closePublisher,
+    markStoryAsViewed: markAsViewed,
+    nextStory,
+    prevStory,
+    createStory: handleCreateStory,
+    loadStories,
+    setActiveGroupIndex,
+    setActiveStoryIndex,
+    openPublisher: () => setPublisherOpen(true),
+    closePublisher: () => setPublisherOpen(false),
     refreshStories: loadStories
   };
 }

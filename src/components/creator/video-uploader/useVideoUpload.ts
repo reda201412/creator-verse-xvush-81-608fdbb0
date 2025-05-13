@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { ContentType } from '@/types/video';
 import { z } from 'zod';
 
@@ -16,7 +15,8 @@ export const videoSchema = z.object({
 export type VideoFormValues = z.infer<typeof videoSchema>;
 
 export const useVideoUpload = () => {
-  const { isMobile } = useIsMobile();
+  // Use boolean instead of an object with isMobile property
+  const isMobile = window.innerWidth < 768;
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
@@ -166,7 +166,7 @@ export const useVideoUpload = () => {
         uploadProgress: 100,
         uploadedAt: new Date(),
         format: videoFormat,
-        type: values.type,
+        type: values.type as ContentType,
         isPremium: values.isPremium,
         tokenPrice: values.tokenPrice,
         tags: values.tags || []
@@ -205,4 +205,5 @@ export const useVideoUpload = () => {
   };
 };
 
+// Export the hook as both default and named export
 export default useVideoUpload;

@@ -11,7 +11,7 @@ export interface ExtendedFirestoreMessageThread {
   messages?: FirestoreMessage[];
   readStatus?: Record<string, any>;
   participants?: string[]; 
-  participantIds?: string[];
+  participantIds: string[]; // Making this required to match FirestoreMessageThread
   isGated?: boolean;
   createdAt?: Timestamp | Date;
 }
@@ -26,10 +26,10 @@ export interface ExtendedFirestoreMessage extends FirestoreMessage {
 }
 
 // Helper function to safely convert a Timestamp to an ISO string
-function timestampToISOString(timestamp: any): string {
+export function timestampToISOString(timestamp: any): string {
   if (!timestamp) return new Date().toISOString();
   
-  if (timestamp instanceof Timestamp && typeof timestamp.toDate === 'function') {
+  if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
   }
   
