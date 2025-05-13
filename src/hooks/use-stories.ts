@@ -1,242 +1,271 @@
 
-import { useState, useEffect } from 'react';
-import { Story } from '@/types/stories';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback, useEffect } from 'react';
+import { Story, StoryGroup } from '@/types/stories';
 import { getStoriesForUser, markStoryAsViewed, createStory } from '@/services/stories.service';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
-type StoriesState = {
-  allStories: Story[];
-  userStories: Story[];
-  highlightedStories: Story[];
-  followedCreatorStories: Story[];
-  currentStoryIndex: number;
-  loading: boolean;
-  error: string | null;
-};
-
-const initialState: StoriesState = {
-  allStories: [],
-  userStories: [],
-  highlightedStories: [],
-  followedCreatorStories: [],
-  currentStoryIndex: 0,
-  loading: true,
-  error: null
-};
-
-// Constant for story duration in milliseconds
-const DEFAULT_STORY_DURATION = 5000; // 5 seconds
-
-export function useStories() {
-  const { user } = useAuth();
-  const [state, setState] = useState<StoriesState>(initialState);
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [currentStoryGroup, setCurrentStoryGroup] = useState<Story[]>([]);
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
-  const [publisherOpen, setPublisherOpen] = useState(false);
-  const [storyGroups, setStoryGroups] = useState<any[]>([]);
-  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
-  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-
-  // Load stories on component mount
-  useEffect(() => {
-    loadStories();
-  }, [user]);
-
-  // Refresh stories at defined interval (e.g., every 5 minutes)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadStories();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Group stories by creator
-  useEffect(() => {
-    // Create story groups from the loaded stories
-    const groups = Object.values(
-      state.allStories.reduce((groups: Record<string, any>, story) => {
-        const creatorId = story.creator_id;
-        if (!groups[creatorId]) {
-          groups[creatorId] = {
-            creator: story.creator,
-            stories: [],
-            hasUnviewed: false
-          };
-        }
-        
-        groups[creatorId].stories.push(story);
-        
-        // Check if this group has any unviewed stories
-        if (!story.viewed) {
-          groups[creatorId].hasUnviewed = true;
-        }
-        
-        return groups;
-      }, {})
+// Group stories by creator
+const groupStoriesByCreator = (stories: Story[]): StoryGroup[] => {
+  const groupsMap = new Map<string, Story[]>();
+  
+  stories.forEach(story => {
+    const creatorId = story.creator_id;
+    if (!groupsMap.has(creatorId)) {
+      groupsMap.set(creatorId, []);
+    }
+    groupsMap.get(creatorId)?.push(story);
+  });
+  
+  const result: StoryGroup[] = [];
+  
+  groupsMap.forEach((stories, creatorId) => {
+    // Sort stories by created_at date (newest first)
+    const sortedStories = [...stories].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     
-    setStoryGroups(groups);
-  }, [state.allStories]);
+    const hasUnviewed = sortedStories.some(story => !story.viewed);
+    const creator = sortedStories[0].creator; // Use the creator from the first story
+    
+    result.push({
+      creator,
+      stories: sortedStories,
+      hasUnviewed
+    });
+  });
+  
+  // Sort groups with unviewed stories first, then by most recent story
+  return result.sort((a, b) => {
+    if (a.hasUnviewed && !b.hasUnviewed) return -1;
+    if (!a.hasUnviewed && b.hasUnviewed) return 1;
+    
+    const aLatestStory = a.stories[0];
+    const bLatestStory = b.stories[0];
+    
+    return new Date(bLatestStory.created_at).getTime() - 
+           new Date(aLatestStory.created_at).getTime();
+  });
+};
 
-  // Load stories from API
-  const loadStories = async () => {
-    if (!user) return;
-
-    setState(prev => ({ ...prev, loading: true, error: null }));
-
+export const useStories = () => {
+  const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [publisherOpen, setPublisherOpen] = useState(false);
+  const { user } = useAuth();
+  
+  // Get the currently displayed stories based on active indices
+  const currentStoryGroup = storyGroups[activeGroupIndex]?.stories || [];
+  const currentGroupIndex = activeGroupIndex;
+  
+  // Load stories from the API
+  const loadStories = useCallback(async () => {
+    setLoading(true);
     try {
-      const storiesData = await getStoriesForUser(user.uid);
+      if (!user) {
+        setStoryGroups([]);
+        return;
+      }
       
-      // Categorize stories
-      const userStories = storiesData.filter(
-        story => story.creator_id === user.uid
-      );
-      
-      const highlightedStories = storiesData.filter(
-        story => story.is_highlighted
-      );
-      
-      // For real implementation, you would check if creator is followed by the user
-      // This is a mock implementation
-      const followedCreatorStories = storiesData.filter(
-        story => story.creator_id !== user.uid
-      );
-      
-      setState(prev => ({
-        ...prev,
-        allStories: storiesData,
-        userStories,
-        highlightedStories,
-        followedCreatorStories,
-        loading: false
-      }));
-    } catch (error) {
-      console.error('Error loading stories:', error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to load stories'
-      }));
+      const stories = await getStoriesForUser(user.id);
+      const grouped = groupStoriesByCreator(stories);
+      setStoryGroups(grouped);
+      setError('');
+    } catch (err) {
+      console.error('Error loading stories:', err);
+      setError('Failed to load stories');
+      toast.error('Failed to load stories');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Open story viewer with appropriate content
-  const openViewer = (category: string, groupIndex: number = 0) => {
-    setActiveCategory(category);
-    
-    if (groupIndex < storyGroups.length) {
-      setCurrentStoryGroup(storyGroups[groupIndex].stories);
-      setActiveGroupIndex(groupIndex);
-    } else if (storyGroups.length > 0) {
-      setCurrentStoryGroup(storyGroups[0].stories);
-      setActiveGroupIndex(0);
-    }
-    
-    setActiveStoryIndex(0); // Reset to first story
-    setViewerOpen(true);
-  };
-
+  }, [user]);
+  
   // Mark a story as viewed
   const markAsViewed = async (storyId: string, viewDuration?: number) => {
-    if (!user) return;
-
     try {
-      await markStoryAsViewed(user.uid, storyId, viewDuration);
+      if (!user) return;
       
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        allStories: prev.allStories.map(story => 
-          story.id === storyId ? { ...story, viewed: true } : story
-        ),
-        userStories: prev.userStories.map(story => 
-          story.id === storyId ? { ...story, viewed: true } : story
-        ),
-        highlightedStories: prev.highlightedStories.map(story => 
-          story.id === storyId ? { ...story, viewed: true } : story
-        ),
-        followedCreatorStories: prev.followedCreatorStories.map(story => 
-          story.id === storyId ? { ...story, viewed: true } : story
-        )
-      }));
+      await markStoryAsViewed(user.id, storyId, viewDuration);
       
-    } catch (error) {
-      console.error('Error marking story as viewed:', error);
+      // Update local state to mark the story as viewed
+      setStoryGroups(prevGroups => {
+        return prevGroups.map(group => {
+          const updatedStories = group.stories.map(story => {
+            if (story.id === storyId) {
+              return { ...story, viewed: true };
+            }
+            return story;
+          });
+          
+          return {
+            ...group,
+            stories: updatedStories,
+            hasUnviewed: updatedStories.some(story => !story.viewed)
+          };
+        });
+      });
+    } catch (err) {
+      console.error('Error marking story as viewed:', err);
     }
   };
-
-  // Close viewer
+  
+  // Delete a story
+  const deleteStory = async (storyId: string): Promise<boolean> => {
+    try {
+      // In a real implementation, this would make an API call to delete the story
+      // For now, we'll just update the local state
+      
+      setStoryGroups(prevGroups => {
+        const newGroups = prevGroups.map(group => {
+          const filteredStories = group.stories.filter(story => story.id !== storyId);
+          if (filteredStories.length === 0) {
+            return null; // Mark the group for removal
+          }
+          return {
+            ...group,
+            stories: filteredStories,
+            hasUnviewed: filteredStories.some(story => !story.viewed)
+          };
+        }).filter(Boolean) as StoryGroup[]; // Remove empty groups
+        
+        return newGroups;
+      });
+      
+      toast.success('Story deleted successfully');
+      return true;
+    } catch (err) {
+      console.error('Error deleting story:', err);
+      toast.error('Failed to delete story');
+      return false;
+    }
+  };
+  
+  // Open the story viewer
+  const openViewer = (category: string, groupIndex: number = 0) => {
+    setActiveGroupIndex(groupIndex);
+    setActiveStoryIndex(0);
+    setViewerOpen(true);
+  };
+  
+  // Close the story viewer
   const closeViewer = () => {
     setViewerOpen(false);
   };
-
-  // Move to next story
-  const nextStory = () => {
+  
+  // Navigate to the next story
+  const goToNextStory = () => {
     if (activeStoryIndex < currentStoryGroup.length - 1) {
-      setActiveStoryIndex(prev => prev + 1);
+      // Move to the next story in the current group
+      setActiveStoryIndex(prevIndex => prevIndex + 1);
     } else {
-      // Move to next group or close if on last group
+      // Move to the first story of the next group
       if (activeGroupIndex < storyGroups.length - 1) {
-        setActiveGroupIndex(prev => prev + 1);
+        setActiveGroupIndex(prevIndex => prevIndex + 1);
         setActiveStoryIndex(0);
       } else {
+        // We've reached the end, close the viewer
         closeViewer();
       }
     }
   };
-
-  // Move to previous story
-  const prevStory = () => {
+  
+  // Navigate to the previous story
+  const goToPrevStory = () => {
     if (activeStoryIndex > 0) {
-      setActiveStoryIndex(prev => prev - 1);
+      // Move to the previous story in the current group
+      setActiveStoryIndex(prevIndex => prevIndex - 1);
     } else {
-      // Move to previous group or stay at first if on first group
+      // Move to the last story of the previous group
       if (activeGroupIndex > 0) {
-        setActiveGroupIndex(prev => prev - 1);
-        setActiveStoryIndex(storyGroups[activeGroupIndex - 1].stories.length - 1);
+        const prevGroupIndex = activeGroupIndex - 1;
+        const prevGroupStories = storyGroups[prevGroupIndex].stories;
+        setActiveGroupIndex(prevGroupIndex);
+        setActiveStoryIndex(prevGroupStories.length - 1);
       }
+      // If we're at the first story of the first group, do nothing
     }
   };
-
-  // Create new story
-  const handleCreateStory = async (storyData: Partial<Story>) => {
-    if (!user) return null;
-    
+  
+  // Open the story publisher
+  const openPublisher = () => {
+    setPublisherOpen(true);
+  };
+  
+  // Close the story publisher
+  const closePublisher = () => {
+    setPublisherOpen(false);
+  };
+  
+  // Create a new story
+  const publishStory = async (data: FormData) => {
     try {
-      // Add user data to story
-      const storyWithUser = {
-        ...storyData,
-        creator_id: user.uid,
+      if (!user) {
+        toast.error('You must be logged in to publish a story');
+        return null;
+      }
+      
+      // Create a base story object
+      const storyData: Partial<Story> = {
+        creator_id: user.id,
+        media_url: URL.createObjectURL(data.get('mediaFile') as File),
+        thumbnail_url: URL.createObjectURL(data.get('thumbnailFile') as File || data.get('mediaFile') as File),
+        caption: (data.get('caption') as string) || '',
         creator: {
-          id: user.uid,
-          username: user.displayName || user.email?.split('@')[0] || 'user',
-          display_name: user.displayName || user.email?.split('@')[0] || 'User',
-          avatar_url: user.photoURL || 'https://i.pravatar.cc/150'
+          id: user.id,
+          username: user.email || '',
+          display_name: user.email?.split('@')[0] || '',
+          avatar_url: ''
         }
       };
       
-      // Create story
-      const newStory = await createStory(storyWithUser);
+      const newStory = await createStory(storyData);
       
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        allStories: [newStory, ...prev.allStories],
-        userStories: [newStory, ...prev.userStories]
-      }));
+      // Update local state to include the new story
+      setStoryGroups(prevGroups => {
+        // Check if there's already a group for this creator
+        const creatorGroupIndex = prevGroups.findIndex(group => 
+          group.creator.id === user.id
+        );
+        
+        if (creatorGroupIndex >= 0) {
+          // Add to existing group
+          const updatedGroups = [...prevGroups];
+          updatedGroups[creatorGroupIndex] = {
+            ...updatedGroups[creatorGroupIndex],
+            stories: [newStory, ...updatedGroups[creatorGroupIndex].stories],
+            hasUnviewed: true
+          };
+          return updatedGroups;
+        } else {
+          // Create new group
+          return [{
+            creator: newStory.creator,
+            stories: [newStory],
+            hasUnviewed: true
+          }, ...prevGroups];
+        }
+      });
       
+      closePublisher();
+      toast.success('Story published successfully');
       return newStory;
-    } catch (error) {
-      console.error('Error creating story:', error);
+    } catch (err) {
+      console.error('Error publishing story:', err);
+      toast.error('Failed to publish story');
       return null;
     }
   };
-
+  
+  // Load stories on mount and when user changes
+  useEffect(() => {
+    loadStories();
+  }, [loadStories]);
+  
   return {
-    ...state,
     storyGroups,
     viewerOpen,
     activeStoryIndex,
@@ -246,15 +275,15 @@ export function useStories() {
     publisherOpen,
     openViewer,
     closeViewer,
-    markStoryAsViewed: markAsViewed,
-    nextStory,
-    prevStory,
-    createStory: handleCreateStory,
+    goToNextStory,
+    goToPrevStory,
+    markAsViewed,
+    openPublisher,
+    closePublisher,
+    publishStory,
+    loading,
     loadStories,
-    setActiveGroupIndex,
-    setActiveStoryIndex,
-    openPublisher: () => setPublisherOpen(true),
-    closePublisher: () => setPublisherOpen(false),
-    refreshStories: loadStories
+    deleteStory,
+    error
   };
-}
+};

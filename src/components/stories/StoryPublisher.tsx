@@ -1,509 +1,278 @@
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { Camera, Image, X, Upload } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
-import { Camera, Image, Clock, Tag, Send, X, Video } from 'lucide-react';
-import { useStories } from '@/hooks/use-stories';
-import { StoryFilter, StoryUploadParams } from '@/types/stories';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import { useAuth } from '@/contexts/AuthContext';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger } from '@/components/ui/sheet';
-import { useUserBehavior } from '@/hooks/use-user-behavior';
+import { Story } from '@/types/stories';
 
-const StoryPublisher: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'camera' | 'gallery'>('camera');
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+// Define interfaces that might be missing from types/stories
+interface StoryFilter {
+  id: string;
+  name: string;
+  preview: string;
+}
+
+interface StoryUploadParams {
+  caption: string;
+  mediaFile: File;
+  thumbnailFile?: File | null;
+  duration?: number;
+  filter?: string;
+}
+
+interface StoryPublisherProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onPublish: (data: FormData) => Promise<Story | null>;
+}
+
+const StoryPublisher: React.FC<StoryPublisherProps> = ({
+  isOpen,
+  onClose,
+  onPublish
+}) => {
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string>('');
   const [caption, setCaption] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<StoryFilter>('none');
-  const [duration, setDuration] = useState(10);
-  const [expiresIn, setExpiresIn] = useState(24);
-  const [tags, setTags] = useState('');
+  const [isVideo, setIsVideo] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [showLocation, setShowLocation] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string>('none');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
   
-  const { createStory } = useStories();
-  const { triggerMicroReward } = useNeuroAesthetic();
-  const { isCreator } = useAuth();
-  const { toast } = useToast();
-  const { trackInteraction } = useUserBehavior();
+  const availableFilters: StoryFilter[] = [
+    { id: 'none', name: 'Original', preview: '' },
+    { id: 'sepia', name: 'Sépia', preview: 'sepia(100%)' },
+    { id: 'grayscale', name: 'Noir & Blanc', preview: 'grayscale(100%)' },
+    { id: 'saturate', name: 'Vif', preview: 'saturate(200%)' },
+    { id: 'contrast', name: 'Contraste', preview: 'contrast(150%)' },
+  ];
   
-  // Initialiser la caméra
-  const initCamera = useCallback(async () => {
-    try {
-      if (!videoRef.current) return;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
       
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: true
-      });
+      // Check file type
+      const isVideoFile = file.type.startsWith('video/');
+      setIsVideo(isVideoFile);
       
-      videoRef.current.srcObject = stream;
-      
-      // Préparer l'enregistreur
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, {
-          type: 'video/webm'
-        });
-        
-        const file = new File([blob], `video-${Date.now()}.webm`, {
-          type: 'video/webm'
-        });
-        
-        setSelectedFile(file);
-        setMediaPreview(URL.createObjectURL(blob));
-        recordedChunksRef.current = [];
-      };
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'accéder à votre caméra",
-        variant: "destructive"
-      });
-      setActiveTab('gallery');
-    }
-  }, [toast]);
-  
-  // Enregistrer un média
-  const startRecording = () => {
-    if (!mediaRecorderRef.current) return;
-    
-    recordedChunksRef.current = [];
-    mediaRecorderRef.current.start();
-    setIsRecording(true);
-    
-    // Arrêter automatiquement après la durée sélectionnée
-    setTimeout(() => {
-      if (mediaRecorderRef.current?.state === 'recording') {
-        stopRecording();
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size exceeds 10MB limit');
+        return;
       }
-    }, duration * 1000);
-  };
-  
-  const stopRecording = () => {
-    if (!mediaRecorderRef.current) return;
-    
-    if (mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+      
+      setMediaFile(file);
+      setMediaPreview(URL.createObjectURL(file));
     }
-    
-    setIsRecording(false);
   };
   
-  // Prendre une photo
-  const takePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    ctx?.drawImage(video, 0, 0);
-    
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      
-      const file = new File([blob], `photo-${Date.now()}.jpg`, {
-        type: 'image/jpeg'
-      });
-      
-      setSelectedFile(file);
-      setMediaPreview(URL.createObjectURL(blob));
-    }, 'image/jpeg', 0.9);
-  };
-  
-  // Sélectionner un fichier de la galerie
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setSelectedFile(file);
-    setMediaPreview(URL.createObjectURL(file));
-    trackInteraction('select', { feature: 'story_media' });
-  };
-  
-  // Appliquer un filtre
-  const applyFilter = (filter: StoryFilter) => {
-    if (!canvasRef.current || !mediaPreview) return;
-    
-    setSelectedFilter(filter);
-    
-    // Logique d'application du filtre visuel ici
-    // (dans un vrai produit, ceci utiliserait WebGL/Canvas pour appliquer
-    // des filtres en temps réel)
-    
-    triggerMicroReward('creative', { type: 'filter_applied' });
-  };
-  
-  // Publier la story
-  const publishStory = async () => {
-    if (!selectedFile) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un média à publier",
-        variant: "destructive"
-      });
+  const handleGenerate = async () => {
+    if (!mediaFile) {
+      toast.error('Please select a media file first');
       return;
     }
     
+    if (caption.length > 100) {
+      toast.error('Caption must be less than 100 characters');
+      return;
+    }
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('mediaFile', mediaFile);
+    if (thumbnailFile) formData.append('thumbnailFile', thumbnailFile);
+    formData.append('caption', caption);
+    formData.append('filter', selectedFilter);
+    
+    setIsUploading(true);
+    
     try {
-      setIsUploading(true);
-      
-      const params: StoryUploadParams = {
-        mediaFile: selectedFile,
-        caption,
-        filter: selectedFilter,
-        duration,
-        expiresIn,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
-        metadata: {}
-      };
-      
-      // Ajouter la localisation si activée
-      if (showLocation) {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
-        
-        params.metadata = {
-          location: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }
-        };
-      }
-      
-      const result = await createStory(params);
-      
-      if (result) {
-        // Réinitialiser le formulaire
-        setSelectedFile(null);
-        setMediaPreview(null);
-        setCaption('');
-        setSelectedFilter('none');
-        setDuration(10);
-        setTags('');
-        setIsOpen(false);
-        
-        triggerMicroReward('achievement', { type: 'story_published' });
-      }
+      await onPublish(formData);
+      resetForm();
     } catch (error) {
       console.error('Error publishing story:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de publier votre story",
-        variant: "destructive"
-      });
+      toast.error('Failed to publish story');
     } finally {
       setIsUploading(false);
     }
   };
   
-  // Fermer et nettoyer
-  const handleClose = () => {
-    // Arrêter la caméra si active
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-    }
-    
-    setIsOpen(false);
-    setActiveTab('camera');
-    setSelectedFile(null);
-    setMediaPreview(null);
+  const resetForm = () => {
+    setMediaFile(null);
+    setThumbnailFile(null);
+    setMediaPreview('');
     setCaption('');
+    setIsVideo(false);
     setSelectedFilter('none');
-    setDuration(10);
-    setExpiresIn(24);
-    setTags('');
   };
   
-  // Initialiser la caméra lorsque l'onglet caméra est actif
-  React.useEffect(() => {
-    if (isOpen && activeTab === 'camera') {
-      initCamera();
-    }
-    
-    return () => {
-      // Nettoyer
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [isOpen, activeTab, initCamera]);
-  
-  // Seulement les créateurs peuvent publier des stories
-  if (!isCreator) return null;
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
   
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button 
-          className="rounded-full" 
-          variant="outline" 
-          size="icon"
-          onClick={() => {
-            setIsOpen(true);
-            trackInteraction('click', { feature: 'open_story_publisher' });
-          }}
-        >
-          <Camera className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="sm:max-w-md" side="bottom">
-        <SheetHeader>
-          <SheetTitle>Créer une Story</SheetTitle>
-          <div className="flex space-x-2 pt-2">
-            <Button 
-              variant={activeTab === 'camera' ? 'default' : 'outline'} 
-              onClick={() => setActiveTab('camera')}
-            >
-              <Camera className="mr-2 h-4 w-4" />
-              Caméra
-            </Button>
-            <Button 
-              variant={activeTab === 'gallery' ? 'default' : 'outline'} 
-              onClick={() => setActiveTab('gallery')}
-            >
-              <Image className="mr-2 h-4 w-4" />
-              Galerie
-            </Button>
-          </div>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Créer une Story</DialogTitle>
+        </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          {activeTab === 'camera' && (
-            <div className="relative">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted
-                className={`w-full h-[60vh] object-cover rounded-lg ${
-                  selectedFilter !== 'none' ? `filter-${selectedFilter}` : ''
-                }`}
+        <div className="space-y-4">
+          {!mediaPreview ? (
+            <div 
+              className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Cliquez pour sélectionner une image ou vidéo
+              </p>
+              <Button variant="outline" size="sm" className="mt-4">
+                <Upload className="h-4 w-4 mr-2" /> Choisir un fichier
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*,video/*"
+                className="hidden"
               />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-4">
-                {isRecording ? (
-                  <Button 
-                    variant="destructive" 
-                    size="icon" 
-                    className="rounded-full w-12 h-12"
-                    onClick={stopRecording}
-                  >
-                    <X className="h-6 w-6" />
-                  </Button>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="aspect-[9/16] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                {isVideo ? (
+                  <video 
+                    src={mediaPreview} 
+                    className="w-full h-full object-cover"
+                    controls
+                    style={{ filter: availableFilters.find(f => f.id === selectedFilter)?.preview || 'none' }}
+                  />
                 ) : (
-                  <>
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
-                      className="rounded-full w-12 h-12"
-                      onClick={takePhoto}
-                    >
-                      <Camera className="h-6 w-6" />
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      size="icon" 
-                      className="rounded-full w-12 h-12"
-                      onClick={startRecording}
-                    >
-                      <Video className="h-6 w-6" />
-                    </Button>
-                  </>
+                  <img 
+                    src={mediaPreview} 
+                    alt="Story preview" 
+                    className="w-full h-full object-cover"
+                    style={{ filter: availableFilters.find(f => f.id === selectedFilter)?.preview || 'none' }}
+                  />
                 )}
               </div>
-            </div>
-          )}
-          
-          {activeTab === 'gallery' && (
-            <div className="flex flex-col items-center justify-center h-[60vh] border-2 border-dashed rounded-lg p-12">
-              {mediaPreview ? (
-                <div className="relative w-full h-full">
-                  {selectedFile?.type.startsWith('video') ? (
-                    <video 
-                      src={mediaPreview} 
-                      controls 
-                      className="w-full h-full object-contain rounded-lg"
-                    />
-                  ) : (
-                    <img 
-                      src={mediaPreview} 
-                      alt="Preview" 
-                      className={`w-full h-full object-contain rounded-lg ${
-                        selectedFilter !== 'none' ? `filter-${selectedFilter}` : ''
-                      }`}
-                    />
-                  )}
-                  <Button 
-                    variant="destructive" 
-                    size="icon" 
-                    className="absolute top-2 right-2 rounded-full"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setMediaPreview(null);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  <Button 
-                    variant="outline" 
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Image className="mr-2 h-4 w-4" />
-                    Sélectionner un média
-                  </Button>
-                </>
-              )}
+              <Button
+                size="icon"
+                variant="destructive"
+                className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                onClick={() => {
+                  setMediaFile(null);
+                  setMediaPreview('');
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           )}
           
           {mediaPreview && (
-            <div className="space-y-4">
-              <div>
-                <Label>Filtres</Label>
-                <RadioGroup 
-                  value={selectedFilter} 
-                  onValueChange={(v) => applyFilter(v as StoryFilter)}
-                  className="flex flex-wrap gap-2 mt-2"
-                >
-                  {(['none', 'sepia', 'grayscale', 'blur', 'vintage', 'neon', 'vibrant', 'minimal'] as StoryFilter[]).map((filter) => (
-                    <div key={filter} className="flex flex-col items-center">
-                      <RadioGroupItem 
-                        value={filter} 
-                        id={`filter-${filter}`} 
-                        className="sr-only"
-                      />
-                      <Label 
-                        htmlFor={`filter-${filter}`} 
-                        className={`cursor-pointer p-2 rounded-full border-2 ${
-                          selectedFilter === filter ? 'border-primary' : 'border-transparent'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-full bg-background filter-${filter}`} />
-                      </Label>
-                      <span className="text-xs mt-1 capitalize">{filter}</span>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-              
-              <div>
-                <Label htmlFor="caption">Légende</Label>
-                <Input 
-                  id="caption" 
-                  placeholder="Ajouter une légende..." 
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="caption">Caption</Label>
+                <Textarea
+                  id="caption"
+                  placeholder="Add a caption..."
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
+                  maxLength={100}
                 />
-              </div>
-              
-              <div>
-                <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
-                <Input 
-                  id="tags" 
-                  placeholder="tag1, tag2, tag3" 
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <div className="flex justify-between">
-                  <Label htmlFor="duration">Durée (secondes)</Label>
-                  <span>{duration}s</span>
+                <div className="text-xs text-right text-muted-foreground">
+                  {caption.length}/100
                 </div>
-                <Slider 
-                  id="duration"
-                  min={5} 
-                  max={60} 
-                  step={5}
-                  value={[duration]}
-                  onValueChange={(values) => setDuration(values[0])}
-                  className="mt-2"
-                />
               </div>
               
-              <div>
-                <div className="flex justify-between">
-                  <Label htmlFor="expires">Expire après (heures)</Label>
-                  <span>{expiresIn}h</span>
+              <div className="space-y-2">
+                <Label>Filtre</Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {availableFilters.map((filter) => (
+                    <div
+                      key={filter.id}
+                      className={`cursor-pointer rounded-md p-1 border-2 ${
+                        selectedFilter === filter.id 
+                          ? 'border-primary' 
+                          : 'border-transparent'
+                      }`}
+                      onClick={() => setSelectedFilter(filter.id)}
+                    >
+                      <div className="aspect-square rounded overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        {mediaPreview ? (
+                          <div 
+                            className="w-full h-full bg-cover bg-center"
+                            style={{ 
+                              backgroundImage: `url(${mediaPreview})`,
+                              filter: filter.preview || 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <Image className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-center mt-1 truncate">{filter.name}</p>
+                    </div>
+                  ))}
                 </div>
-                <Slider 
-                  id="expires"
-                  min={1} 
-                  max={48} 
-                  step={1}
-                  value={[expiresIn]}
-                  onValueChange={(values) => setExpiresIn(values[0])}
-                  className="mt-2"
-                />
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="location" 
-                  checked={showLocation}
-                  onCheckedChange={setShowLocation}
-                />
-                <Label htmlFor="location">Ajouter ma localisation</Label>
-              </div>
-            </div>
+            </>
           )}
         </div>
         
-        <SheetFooter>
+        <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            Annuler
+            Cancel
           </Button>
           <Button 
-            onClick={publishStory} 
-            disabled={!selectedFile || isUploading}
+            onClick={handleGenerate} 
+            disabled={!mediaFile || isUploading}
           >
-            {isUploading ? 'Publication...' : 'Publier'}
-            {!isUploading && <Send className="ml-2 h-4 w-4" />}
+            {isUploading ? (
+              <>
+                <span className="mr-2">
+                  <svg 
+                    className="animate-spin h-4 w-4 text-white" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24"
+                  >
+                    <circle 
+                      className="opacity-25" 
+                      cx="12" 
+                      cy="12" 
+                      r="10" 
+                      stroke="currentColor" 
+                      strokeWidth="4"
+                    ></circle>
+                    <path 
+                      className="opacity-75" 
+                      fill="currentColor" 
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </span>
+                Publication...
+              </>
+            ) : (
+              'Publier'
+            )}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,10 +1,9 @@
-
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStories } from '@/hooks/use-stories';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, EyeIcon, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -15,7 +14,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 const Stories: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const { stories, loading, loadStories, deleteStory } = useStories();
+  const { storyGroups, loading, loadStories, deleteStory } = useStories();
   const { toast } = useToast();
   const { triggerMicroReward } = useNeuroAesthetic();
   
@@ -93,15 +92,15 @@ const Stories: React.FC = () => {
               Array(6).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse h-64 bg-gray-300 rounded" />
               ))
-            ) : stories.length === 0 ? (
+            ) : storyGroups.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">
                   Aucune story disponible pour le moment
                 </p>
               </div>
             ) : (
-              stories
-                .filter(story => story.creator_id !== user.id)
+              storyGroups.flatMap(group => group.stories)
+                .filter(story => story.creator_id !== user?.id)
                 .map(story => (
                   <Card key={story.id} className="overflow-hidden">
                     <div className="aspect-video relative overflow-hidden">
@@ -165,7 +164,8 @@ const Stories: React.FC = () => {
               Array(3).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse h-64 bg-gray-300 rounded" />
               ))
-            ) : stories.filter(story => story.creator_id === user.id).length === 0 ? (
+            ) : storyGroups.flatMap(group => group.stories)
+                .filter(story => story.creator_id === user?.id).length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground mb-4">
                   Vous n'avez pas encore publié de stories
@@ -173,8 +173,8 @@ const Stories: React.FC = () => {
                 <Button>Créer une story</Button>
               </div>
             ) : (
-              stories
-                .filter(story => story.creator_id === user.id)
+              storyGroups.flatMap(group => group.stories)
+                .filter(story => story.creator_id === user?.id)
                 .map(story => (
                   <Card key={story.id} className="overflow-hidden">
                     <div className="aspect-video relative overflow-hidden">

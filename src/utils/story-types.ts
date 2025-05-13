@@ -41,23 +41,17 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
         firestoreStory.createdAt.toDate().toISOString() : 
         new Date(firestoreStory.createdAt).toISOString()) : 
       new Date().toISOString(),
-    expires_at: firestoreStory.expiresAt ? 
-      (typeof firestoreStory.expiresAt.toDate === 'function' ? 
-        firestoreStory.expiresAt.toDate().toISOString() : 
-        new Date(firestoreStory.expiresAt).toISOString()) : 
-      new Date().toISOString(),
-    format: convertFormat(firestoreStory.format || '9:16'),
-    viewed: firestoreStory.viewed || false,
     duration: firestoreStory.duration || 10,
+    viewed: firestoreStory.viewed || false,
     view_count: firestoreStory.view_count || 0,
+    caption: firestoreStory.title,
+    filter_used: '',
     is_highlighted: firestoreStory.is_highlighted || false,
     creator: {
       id: firestoreStory.creatorId,
       username: '',
       display_name: '',
-      avatar_url: '',
-      bio: '',
-      role: 'fan'
+      avatar_url: ''
     }
   };
 }

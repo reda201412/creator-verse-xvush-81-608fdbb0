@@ -14,6 +14,6 @@ export interface VideoMetadata {
   type?: ContentType;
   format?: string;
   videoFile?: File;
-  restrictions?: any; // Added restrictions property
+  restrictions?: any;
   tags?: string[];
 }

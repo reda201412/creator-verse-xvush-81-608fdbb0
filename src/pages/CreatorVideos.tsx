@@ -6,10 +6,10 @@ import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
-import { getCreatorVideos, VideoFirestoreData } from '@/services/creatorService';
+import { getCreatorVideos, VideoFirestoreData, VideoData } from '@/services/creatorService';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/firebase';
-import { VideoMetadata } from '@/types/video';
+import { VideoMetadata, ContentType } from '@/types/video';
 
 const CreatorVideos: React.FC = () => {
   const [videos, setVideos] = useState<VideoFirestoreData[]>([]);
@@ -124,23 +124,6 @@ const CreatorVideos: React.FC = () => {
     setIsAnalyticsModalOpen(true);
   };
 
-  // Convert FirestoreData to VideoMetadata for the grid component
-  const convertToVideoMetadata = (videos: VideoFirestoreData[]): VideoMetadata[] => {
-    return videos.map(video => ({
-      id: video.id || '',
-      title: video.title,
-      description: video.description || '',
-      type: video.type,
-      videoFile: new File([], 'placeholder'), // Placeholder file since we don't have the actual file
-      thumbnailUrl: video.thumbnailUrl,
-      video_url: video.videoUrl,
-      url: video.videoUrl,
-      format: video.format || '16:9',
-      isPremium: video.isPremium || false,
-      tokenPrice: video.tokenPrice,
-    }));
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Pass the handler that accepts VideoFirestoreData */}
@@ -158,7 +141,7 @@ const CreatorVideos: React.FC = () => {
       </div>
 
       <VideoGrid 
-        videos={videos as unknown as VideoMetadata[]} 
+        videos={videos} 
         activeTab={activeTab}
         searchQuery={searchQuery}
         onDeleteVideo={handleDeleteVideo}

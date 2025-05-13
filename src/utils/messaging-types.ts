@@ -4,7 +4,7 @@ import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
 // Extended FirestoreMessageThread with messages property
-export interface ExtendedFirestoreMessageThread {
+export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   id?: string;
   name?: string;
   lastActivity?: Timestamp | Date;
@@ -16,7 +16,7 @@ export interface ExtendedFirestoreMessageThread {
   createdAt?: Timestamp | Date;
 }
 
-// Extended FirestoreMessage with status property
+// Extended FirestoreMessage with additional properties
 export interface ExtendedFirestoreMessage extends FirestoreMessage {
   status?: 'sent' | 'delivered' | 'read' | 'monetized';
   monetization?: any;
@@ -55,7 +55,7 @@ export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMes
     lastActivity: timestampToISOString(thread.lastActivity),
     messages: thread.messages ? thread.messages.map(adaptFirestoreMessageToMessage) : [],
     isGated: !!thread.isGated || false,
-    timestamp: timestampToISOString(thread.createdAt)
+    createdAt: timestampToISOString(thread.createdAt)
   };
 }
 
