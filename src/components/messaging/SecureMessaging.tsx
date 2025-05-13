@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -38,14 +37,23 @@ import {
 } from '@/utils/messaging-types';
 
 // Use our own definition, don't import conflicting one
-interface LocalExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'lastActivity'> {
+interface LocalExtendedFirestoreMessageThread {
   id?: string;
+  participantIds: string[];
+  name?: string;
   messages: FirestoreMessage[];
   readStatus?: Record<string, Timestamp>;
-  participants: string[]; 
+  participants?: string[]; 
   lastActivity?: Timestamp;
   isGated?: boolean;
-  createdAt?: Timestamp;
+  createdAt: Timestamp;
+  participantInfo?: Record<string, {
+    displayName: string;
+    avatarUrl: string;
+  }>;
+  lastMessageText?: string;
+  lastMessageSenderId?: string;
+  lastMessageCreatedAt?: Timestamp;
 }
 
 interface SecureMessagingProps {
@@ -93,7 +101,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       setThreads(threadsData.map(t => ({
         ...t, 
         messages: t.messages || [],
-        participants: t.participantIds || [] // Ensure participants exists
+        participantIds: t.participantIds || [], // Ensure participantIds exists
+        participants: t.participantIds || [], // Ensure participants exists
+        createdAt: t.createdAt || Timestamp.now() // Ensure createdAt exists
       })));
 
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
@@ -431,9 +441,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       messages: thread.messages.map(m => ({
         id: m.id || '',
         senderId: m.senderId || '',
-        senderName: m.sender_name || '',
-        senderAvatar: m.sender_avatar || '',
-        recipientId: m.recipientId || '',
+        senderName: m.sender_name || '', // Using property from extended type
+        senderAvatar: m.sender_avatar || '', // Using property from extended type
+        recipientId: m.recipientId || '', // Using property from extended type
         content: m.content || '',
         type: (m.type as any) || 'text',
         timestamp: timestampToISOString(m.createdAt),
@@ -441,7 +451,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
         isEncrypted: !!m.isEncrypted,
       })),
       isGated: !!thread.isGated,
-      createdAt: timestampToISOString(thread.createdAt),
+      lastSeen: timestampToISOString(thread.createdAt),
     };
   });
 

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; 
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -9,6 +10,7 @@ import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { adaptCreatorProfile, StandardizedCreatorProfile } from '@/utils/creator-profile-adapter';
 import { useStories } from '@/hooks/use-stories';
+import { Story } from '@/types/stories'; // Import Story type
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');

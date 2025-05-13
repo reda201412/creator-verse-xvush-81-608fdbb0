@@ -67,6 +67,7 @@ export interface MessageThread {
   isGated: boolean;
   requiredTier?: MonetizationTier;
   lastActivity: string;
+  lastSeen?: string; // Add this property
   emotionalMap?: {
     dominantEmotion: EmotionType;
     volatility: number; // 0-100

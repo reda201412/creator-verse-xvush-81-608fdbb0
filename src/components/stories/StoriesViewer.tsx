@@ -28,14 +28,23 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
 }) => {
   const {
     storyGroups,
+    viewerOpen,
     activeStoryIndex,
     activeGroupIndex,
-    loadStories,
-    nextStory,
-    prevStory,
-    markStoryAsViewed,
-    setActiveGroupIndex,
-    setActiveStoryIndex
+    currentStoryGroup,
+    currentGroupIndex,
+    publisherOpen,
+    setPublisherOpen,
+    openPublisher,
+    openViewer,
+    closeViewer,
+    loading,
+    error,
+    nextStory = () => {},
+    prevStory = () => {},
+    markStoryAsViewed = () => {},
+    setActiveGroupIndex = () => {},
+    setActiveStoryIndex = () => {},
   } = useStories();
   
   const [progress, setProgress] = useState(0);

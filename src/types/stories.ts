@@ -23,6 +23,7 @@ export interface Story {
   caption?: string;
   filter_used?: string;
   is_highlighted?: boolean;
+  format?: string; // Added format property
   tags?: StoryTag[];
   creator: StoryCreator;
 }

@@ -59,7 +59,10 @@ const Auth = () => {
         updatedAt: serverTimestamp(),
       });
       
-      toast.success("Inscription réussie ! Redirection...");
+      toast({
+        title: "Inscription réussie",
+        description: "Vous êtes maintenant inscrit"
+      });
       // La redirection sera gérée par AuthContext et App.tsx suite à la mise à jour de l'utilisateur
       // navigate('/'); // Plus besoin de naviguer ici, AuthContext s'en chargera
       setActiveTab('login'); // Optionnel: revenir à l'onglet de connexion
@@ -91,7 +94,10 @@ const Auth = () => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast.success("Connexion réussie ! Redirection...");
+      toast({
+        title: "Connexion réussie",
+        description: "Vous êtes maintenant connecté"
+      });
         // Update the user state in AuthContext
         login();
       // La redirection sera gérée par AuthContext et App.tsx suite à la mise à jour de l'utilisateur
