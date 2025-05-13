@@ -3,17 +3,17 @@ import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-convers
 import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
-// Extended FirestoreMessageThread with messages property
-export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+// Updated ExtendedFirestoreMessageThread to fix the lastActivity type error
+export interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'lastActivity'> {
   id?: string;
   name?: string;
-  lastActivity?: Timestamp | Date;
+  lastActivity?: Timestamp;
   messages?: FirestoreMessage[];
   readStatus?: Record<string, any>;
   participants?: string[]; 
   participantIds: string[]; // Making this required to match FirestoreMessageThread
   isGated?: boolean;
-  createdAt?: Timestamp | Date;
+  createdAt?: Timestamp;
 }
 
 // Extended FirestoreMessage with additional properties

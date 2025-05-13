@@ -15,7 +15,7 @@ interface VideoGridProps {
   onEditVideo: (videoId: string) => void;
   onPromoteVideo: (videoId: string) => void;
   onAnalyticsVideo: (videoId: string) => void;
-  onUploadComplete: (metadata: VideoMetadata) => void;
+  onUploadComplete: (metadata: VideoData) => void;
   isLoading?: boolean;
 }
 
@@ -104,7 +104,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             }
           </p>
           <VideoUploader 
-            onUploadComplete={onUploadComplete} 
+            onUploadComplete={(metadata: any) => onUploadComplete(metadata)} 
             isCreator={true} 
           />
         </div>

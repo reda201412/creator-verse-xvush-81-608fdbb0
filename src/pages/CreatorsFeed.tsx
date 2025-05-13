@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; 
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -9,6 +8,7 @@ import StoryPublisher from '@/components/stories/StoryPublisher';
 import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; 
 import { Skeleton } from '@/components/ui/skeleton';
 import { adaptCreatorProfile, StandardizedCreatorProfile } from '@/utils/creator-profile-adapter';
+import { useStories } from '@/hooks/use-stories';
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +17,8 @@ const CreatorsFeed: React.FC = () => {
   const [filteredCreators, setFilteredCreators] = useState<StandardizedCreatorProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPublisherOpen, setIsPublisherOpen] = useState(false);
+  const { publishStory } = useStories();
 
   useEffect(() => {
     const fetchCreators = async () => {
@@ -92,11 +94,39 @@ const CreatorsFeed: React.FC = () => {
       });
   };
 
+  // Handle story publication
+  const handlePublishStory = async (formData: FormData): Promise<Story | null> => {
+    try {
+      const mediaFile = formData.get('mediaFile') as File;
+      const thumbnailFile = formData.get('thumbnailFile') as File || null;
+      const caption = formData.get('caption') as string;
+      const filter = formData.get('filter') as string;
+      
+      // Create a story upload object
+      const result = await publishStory({
+        mediaFile,
+        thumbnailFile, 
+        caption,
+        filter
+      });
+      
+      setIsPublisherOpen(false);
+      return result;
+    } catch (error) {
+      console.error('Error publishing story:', error);
+      return null;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Créateurs</h1>
-        <StoryPublisher /> 
+        <StoryPublisher
+          isOpen={isPublisherOpen}
+          onClose={() => setIsPublisherOpen(false)}
+          onPublish={handlePublishStory}
+        />
       </div>
       
       <StoriesTimeline />

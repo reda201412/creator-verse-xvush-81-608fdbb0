@@ -47,11 +47,12 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
     caption: firestoreStory.title,
     filter_used: '',
     is_highlighted: firestoreStory.is_highlighted || false,
+    format: firestoreStory.format || '9:16',
     creator: {
       id: firestoreStory.creatorId,
       username: '',
       display_name: '',
-      avatar_url: ''
+      avatar_url: '',
     }
   };
 }

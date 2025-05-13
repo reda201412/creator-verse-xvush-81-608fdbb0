@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import VideoHeader from '@/components/creator/videos/VideoHeader';
@@ -9,10 +10,9 @@ import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal
 import { getCreatorVideos, VideoFirestoreData, VideoData } from '@/services/creatorService';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/firebase';
-import { VideoMetadata, ContentType } from '@/types/video';
 
 const CreatorVideos: React.FC = () => {
-  const [videos, setVideos] = useState<VideoFirestoreData[]>([]);
+  const [videos, setVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +34,15 @@ const CreatorVideos: React.FC = () => {
       try {
         const fetchedVideos = await getCreatorVideos(user.uid);
         console.log("Vidéos récupérées:", fetchedVideos);
-        setVideos(fetchedVideos);
+        
+        // Convert VideoFirestoreData to VideoData by adding required properties
+        const videoData: VideoData[] = fetchedVideos.map(video => ({
+          ...video,
+          creatorId: user.uid, // Add the required creatorId field
+          // Add any other required fields from VideoData
+        }));
+        
+        setVideos(videoData);
       } catch (error) {
         console.error('Error fetching videos:', error);
         toast({
@@ -51,32 +59,10 @@ const CreatorVideos: React.FC = () => {
     fetchVideos();
   }, [user, toast]);
 
-  // Convert VideoFirestoreData to VideoMetadata for the component props
-  const handleUploadComplete = (data: any) => {
-    // Check if it's already a VideoFirestoreData or VideoMetadata and handle accordingly
-    const firestoreData = 'userId' in data ? data : {
-      // Convert VideoMetadata to VideoFirestoreData
-      id: data.id,
-      userId: user?.uid,
-      title: data.title,
-      description: data.description,
-      muxUploadId: '',
-      muxAssetId: '',
-      muxPlaybackId: '',
-      thumbnailUrl: data.thumbnailUrl,
-      videoUrl: data.video_url || data.url,
-      status: 'uploaded',
-      format: data.format,
-      type: data.type,
-      isPremium: data.isPremium,
-      tokenPrice: data.tokenPrice,
-      uploadedAt: new Date(),
-      views: 0,
-      likes: 0,
-    };
-
-    // Add the new video to the beginning of the list
-    setVideos(prev => [firestoreData, ...prev]);
+  // Convert VideoFirestoreData to VideoData for the component props
+  const handleUploadComplete = (data: VideoData) => {
+    // Add the new video to the beginning of the list with proper typing
+    setVideos(prev => [data, ...prev]);
   };
 
   const handleDeleteVideo = async (videoId: string) => {
@@ -126,7 +112,7 @@ const CreatorVideos: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Pass the handler that accepts VideoFirestoreData */}
+      {/* Pass the handler that accepts VideoData */}
       <VideoHeader onUploadComplete={handleUploadComplete} /> 
       
       <div className="mb-6 space-y-4">

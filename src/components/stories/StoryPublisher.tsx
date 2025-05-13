@@ -10,19 +10,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label';
 import { Story } from '@/types/stories';
 
-// Define interfaces that might be missing from types/stories
+// Define interfaces for this component
 interface StoryFilter {
   id: string;
   name: string;
   preview: string;
-}
-
-interface StoryUploadParams {
-  caption: string;
-  mediaFile: File;
-  thumbnailFile?: File | null;
-  duration?: number;
-  filter?: string;
 }
 
 interface StoryPublisherProps {

@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-// import { useIsMobile } from '@/hooks/use-mobile'; // Non utilisé, peut être réintroduit
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import {
   ArrowLeft, X, Lock, Key, Zap
@@ -26,21 +26,26 @@ import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/integrations/firebase/firebase';
 import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
-import { Spinner } from '@/components/ui/spinner'; // Fixed import
+import { Spinner } from '@/components/ui/spinner'; 
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils';
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 import {
-  adaptExtendedFirestoreThreadsToMessageThreads
+  adaptExtendedFirestoreThreadsToMessageThreads,
+  timestampToISOString
 } from '@/utils/messaging-types';
 
 // Use our own definition, don't import conflicting one
-interface LocalExtendedFirestoreMessageThread extends FirestoreMessageThread {
+interface LocalExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'lastActivity'> {
+  id?: string;
   messages: FirestoreMessage[];
   readStatus?: Record<string, Timestamp>;
-  participants: string[]; // Make participants required
+  participants: string[]; 
+  lastActivity?: Timestamp;
+  isGated?: boolean;
+  createdAt?: Timestamp;
 }
 
 interface SecureMessagingProps {
@@ -170,7 +175,8 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
             }
           });
           return Array.from(newThreadsMap.values()).sort((a, b) =>
-            (b.lastActivity as Timestamp).toMillis() - (a.lastActivity as Timestamp).toMillis()
+            ((b.lastActivity as Timestamp)?.toMillis?.() || 0) - 
+            ((a.lastActivity as Timestamp)?.toMillis?.() || 0)
           );
         });
         setIsLoadingThreads(false);
@@ -202,7 +208,8 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                   isInitialLoad
                     ? newMessagesData
                     : [...newMessagesData, ...thread.messages].sort(
-                        (a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()
+                        (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
+                                  ((b.createdAt as Timestamp)?.toMillis?.() || 0)
                       ),
               }
             : thread
@@ -260,7 +267,8 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                     ...thread,
                     messages:
                       [...thread.messages, ...newMessages].sort(
-                        (a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()
+                        (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
+                                  ((b.createdAt as Timestamp)?.toMillis?.() || 0)
                       ),
                     lastActivity: newMessages[newMessages.length - 1].createdAt as Timestamp,
                     lastMessageText: newMessages[newMessages.length - 1].content,
@@ -405,7 +413,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       const lastReadByCurrentUser = (thread.readStatus && effectiveUserId && thread.readStatus[effectiveUserId] as Timestamp | undefined)?.toMillis() || 0;
       return (
         thread.lastMessageCreatedAt &&
-        (thread.lastMessageCreatedAt as Timestamp).toMillis() > lastReadByCurrentUser &&
+        ((thread.lastMessageCreatedAt as Timestamp)?.toMillis?.() || 0) > lastReadByCurrentUser &&
         thread.lastMessageSenderId !== effectiveUserId
       );
     }
@@ -414,27 +422,26 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
   });
 
   // Create proper MessageThread[] for ConversationList
-  // Explicitly cast threads to match the MessageThread[] type
   const messageThreads: MessageThread[] = threads.map(thread => {
     return {
       id: thread.id || '',
       participants: thread.participantIds || [],
       name: thread.name || '',
-      lastActivity: thread.lastActivity ? new Date(thread.lastActivity).toISOString() : new Date().toISOString(),
+      lastActivity: timestampToISOString(thread.lastActivity),
       messages: thread.messages.map(m => ({
-        id: m.id,
-        senderId: m.senderId,
+        id: m.id || '',
+        senderId: m.senderId || '',
         senderName: m.sender_name || '',
         senderAvatar: m.sender_avatar || '',
         recipientId: m.recipientId || '',
-        content: m.content,
-        type: m.type as any,
-        timestamp: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString(),
+        content: m.content || '',
+        type: (m.type as any) || 'text',
+        timestamp: timestampToISOString(m.createdAt),
         status: 'sent',
         isEncrypted: !!m.isEncrypted,
       })),
-      isGated: !!thread.is_gated,
-      createdAt: thread.createdAt ? new Date(thread.createdAt).toISOString() : new Date().toISOString(),
+      isGated: !!thread.isGated,
+      createdAt: timestampToISOString(thread.createdAt),
     };
   });
 
@@ -514,7 +521,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                 userAvatar={effectiveUserAvatar}
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
-                userType={userType}
+                userType={userType === 'admin' ? 'creator' : userType}
                 onConversationCreated={handleNewConversationCreated}
               />
             </motion.div>
@@ -537,7 +544,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                   isSecurityEnabled={isSecurityEnabled}
                   onOpenSupport={() => openModal('supportCreator')}
                   onOpenGifts={() => openModal('giftCreator')}
-                  userType={userType}
+                  userType={userType === 'admin' ? 'creator' : userType}
                   isLoadingMessages={isLoadingMessages}
                   onLoadMoreMessages={() => loadMoreMessages(false)}
                   hasMoreMessages={hasMoreMessages}

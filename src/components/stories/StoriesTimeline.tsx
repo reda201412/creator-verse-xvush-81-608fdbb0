@@ -9,11 +9,13 @@ import { PlusCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserBehavior } from '@/hooks/use-user-behavior';
+import { Story } from '@/types/stories';
 
 const StoriesTimeline: React.FC = () => {
-  const { storyGroups, loading } = useStories();
+  const { storyGroups, loading, publishStory } = useStories();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
+  const [publisherOpen, setPublisherOpen] = useState(false);
   const { user, isCreator } = useAuth();
   const { trackInteraction } = useUserBehavior();
   
@@ -21,6 +23,29 @@ const StoriesTimeline: React.FC = () => {
     setSelectedGroupIndex(index);
     setViewerOpen(true);
     trackInteraction('click', { feature: 'open_story', index });
+  };
+
+  const handlePublishStory = async (formData: FormData): Promise<Story | null> => {
+    try {
+      const mediaFile = formData.get('mediaFile') as File;
+      const thumbnailFile = formData.get('thumbnailFile') as File || null;
+      const caption = formData.get('caption') as string;
+      const filter = formData.get('filter') as string;
+      
+      // Create a story upload object
+      const result = await publishStory({
+        mediaFile,
+        thumbnailFile,
+        caption,
+        filter
+      });
+      
+      setPublisherOpen(false);
+      return result;
+    } catch (error) {
+      console.error('Error publishing story:', error);
+      return null;
+    }
   };
   
   if (loading) {
@@ -48,7 +73,14 @@ const StoriesTimeline: React.FC = () => {
         <div className="flex space-x-4 px-4">
           {isCreator && (
             <div className="flex flex-col items-center space-y-1">
-              <StoryPublisher />
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="w-16 h-16 rounded-full border-dashed border-2" 
+                onClick={() => setPublisherOpen(true)}
+              >
+                <PlusCircle className="h-8 w-8 text-muted-foreground" />
+              </Button>
               <span className="text-xs text-muted-foreground">Nouveau</span>
             </div>
           )}
@@ -87,6 +119,12 @@ const StoriesTimeline: React.FC = () => {
         isOpen={viewerOpen} 
         onClose={() => setViewerOpen(false)} 
         initialGroupIndex={selectedGroupIndex}
+      />
+
+      <StoryPublisher
+        isOpen={publisherOpen}
+        onClose={() => setPublisherOpen(false)}
+        onPublish={handlePublishStory}
       />
     </>
   );
