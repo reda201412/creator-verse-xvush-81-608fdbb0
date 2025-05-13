@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Story, StoryGroup, StoryUploadParams } from '@/types/stories';
 import { StoriesService } from '@/services/stories.service';
@@ -23,42 +24,61 @@ export const useStories = () => {
     try {
       setLoading(true);
       const activeStories = await StoriesService.getActiveStories();
-      setStories(adaptFirestoreStoriesToStories(activeStories as unknown as FirestoreStory[]));
+      const adaptedStories = adaptFirestoreStoriesToStories(activeStories as unknown as FirestoreStory[]);
+      setStories(adaptedStories);
       
       // Grouper les stories par créateur
       const groups: Record<string, StoryGroup> = {};
       
-      activeStories.forEach(story => {
+      activeStories.forEach((story: any) => {
         const fsStory = story as unknown as FirestoreStory;
         if (!fsStory.creatorId) return;
         
         const creatorId = fsStory.creatorId;
         if (!groups[creatorId]) {
           groups[creatorId] = {
-            creator: story.creator,
+            creator: {
+              id: creatorId,
+              username: '',
+              display_name: '',
+              avatar_url: '',
+              bio: '',
+              role: 'creator'
+            },
             stories: [],
-            lastUpdated: story.created_at,
+            lastUpdated: fsStory.createdAt || new Date(),
             hasUnviewed: false
           };
         }
         
-        groups[creatorId].stories.push(story);
+        // Adapt the story before adding to the group
+        const adaptedStory = adaptFirestoreStoryToStory(fsStory);
+        groups[creatorId].stories.push(adaptedStory);
         
         // Mettre à jour lastUpdated si cette story est plus récente
-        if (new Date(story.created_at) > new Date(groups[creatorId].lastUpdated)) {
-          groups[creatorId].lastUpdated = story.created_at;
+        const storyDate = fsStory.createdAt ? 
+          (typeof fsStory.createdAt.toDate === 'function' ? fsStory.createdAt.toDate() : fsStory.createdAt) : 
+          new Date();
+        const groupDate = groups[creatorId].lastUpdated ? 
+          (typeof groups[creatorId].lastUpdated === 'object' ? groups[creatorId].lastUpdated : new Date(groups[creatorId].lastUpdated)) : 
+          new Date();
+          
+        if (storyDate > groupDate) {
+          groups[creatorId].lastUpdated = storyDate;
         }
         
         // Vérifier si la story n'a pas été vue
-        if (!story.viewed) {
+        if (fsStory.viewed === false) {
           groups[creatorId].hasUnviewed = true;
         }
       });
       
       // Convertir en tableau et trier par dernier mis à jour
-      const groupArray = Object.values(groups).sort((a, b) => 
-        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-      );
+      const groupArray = Object.values(groups).sort((a, b) => {
+        const dateA = typeof a.lastUpdated === 'object' ? a.lastUpdated : new Date(a.lastUpdated);
+        const dateB = typeof b.lastUpdated === 'object' ? b.lastUpdated : new Date(b.lastUpdated);
+        return dateB.getTime() - dateA.getTime();
+      });
       
       setStoryGroups(groupArray);
     } catch (error) {
@@ -71,7 +91,7 @@ export const useStories = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, triggerMicroReward]);
+  }, [user, toast]);
   
   // Créer une nouvelle story
   const createStory = useCallback(async (params: StoryUploadParams) => {
@@ -111,11 +131,11 @@ export const useStories = () => {
   }, [user, profile, toast, triggerMicroReward]);
   
   // Marquer une story comme vue
-  const markStoryAsViewed = useCallback(async (storyId: string, viewDuration: number = 0) => {
+  const markStoryAsViewed = useCallback(async (storyId: string, viewDuration?: number) => {
     if (!user) return;
     
     try {
-      await StoriesService.markStoryAsViewed(storyId as string, viewDuration);
+      await StoriesService.markStoryAsViewed(storyId, viewDuration || 0);
       
       // Mettre à jour l'état local
       setStories(prev => 

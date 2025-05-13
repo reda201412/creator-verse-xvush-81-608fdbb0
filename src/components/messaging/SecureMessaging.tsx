@@ -33,14 +33,14 @@ import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-convers
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 import {
-  ExtendedFirestoreMessageThread,
   adaptExtendedFirestoreThreadsToMessageThreads
 } from '@/utils/messaging-types';
 
 // Extend FirestoreMessageThread to include messages property
-interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+interface LocalExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
   readStatus?: Record<string, Timestamp>;
+  participants?: string[];
 }
 
 interface SecureMessagingProps {
@@ -63,7 +63,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
   const { openModal, closeModal, openModals } = useModals();
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<ExtendedFirestoreMessageThread[]>([]);
+  const [threads, setThreads] = useState<LocalExtendedFirestoreMessageThread[]>([]);
   const [showConversationList, setShowConversationList] = useState(true);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
@@ -157,7 +157,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               id: change.doc.id,
               ...change.doc.data(),
               messages: newThreadsMap.get(change.doc.id)?.messages || [],
-            } as ExtendedFirestoreMessageThread;
+            } as LocalExtendedFirestoreMessageThread;
             if (change.type === "added" || change.type === "modified") {
               newThreadsMap.set(change.doc.id, changedThreadData);
             } else if (change.type === "removed") {
@@ -397,6 +397,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     return true;
   });
 
+  // Create proper MessageThread[] for ConversationList
+  const messageThreads: MessageThread[] = adaptExtendedFirestoreThreadsToMessageThreads(filteredThreads as any);
+
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
       <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
@@ -467,18 +470,14 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               className="h-full"
             >
               <ConversationList
-                threads={adaptExtendedFirestoreThreadsToMessageThreads(filteredThreads)}
+                threads={messageThreads}
                 userId={effectiveUserId!}
                 userName={effectiveUserName}
                 userAvatar={effectiveUserAvatar}
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
                 userType={userType}
-                onConversationCreated={(threadId: string) => {
-                  // Convert function to match expected signature
-                  setActiveThreadId(threadId);
-                  setShowConversationList(false);
-                }}
+                onConversationCreated={handleThreadSelect}
               />
             </motion.div>
           ) : (
@@ -492,7 +491,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                 className="h-full"
               >
                 <ConversationView
-                  thread={activeThreadData}
+                  thread={activeThreadData as any}
                   userId={effectiveUserId!}
                   userName={effectiveUserName}
                   onSendMessage={handleSendMessage}

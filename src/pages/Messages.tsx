@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner } from '@/components/ui/spinner';
@@ -17,11 +16,7 @@ const Messages = () => {
   
   return (
     <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-      <Spinner 
-        size="xl" 
-        color="primary" 
-        label="Redirection vers la messagerie sécurisée..." 
-      />
+      <Spinner size="xl" />
       <p className="text-sm text-muted-foreground animate-pulse">
         Mise à jour vers notre nouvelle expérience de messagerie...
       </p>

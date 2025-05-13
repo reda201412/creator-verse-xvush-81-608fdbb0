@@ -52,7 +52,29 @@ const CreatorVideos: React.FC = () => {
   }, [user, toast]);
 
   // Convert VideoFirestoreData to VideoMetadata for the component props
-  const handleUploadComplete = (firestoreData: VideoFirestoreData) => {
+  const handleUploadComplete = (data: any) => {
+    // Check if it's already a VideoFirestoreData or VideoMetadata and handle accordingly
+    const firestoreData = 'userId' in data ? data : {
+      // Convert VideoMetadata to VideoFirestoreData
+      id: data.id,
+      userId: user?.uid,
+      title: data.title,
+      description: data.description,
+      muxUploadId: '',
+      muxAssetId: '',
+      muxPlaybackId: '',
+      thumbnailUrl: data.thumbnailUrl,
+      videoUrl: data.video_url || data.url,
+      status: 'uploaded',
+      format: data.format,
+      type: data.type,
+      isPremium: data.isPremium,
+      tokenPrice: data.tokenPrice,
+      uploadedAt: new Date(),
+      views: 0,
+      likes: 0,
+    };
+
     // Add the new video to the beginning of the list
     setVideos(prev => [firestoreData, ...prev]);
   };
@@ -144,7 +166,7 @@ const CreatorVideos: React.FC = () => {
         onPromoteVideo={handlePromoteVideo}
         onAnalyticsVideo={handleAnalyticsVideo}
         isLoading={loading}
-        onUploadComplete={(metadata) => handleUploadComplete(metadata as unknown as VideoFirestoreData)}
+        onUploadComplete={handleUploadComplete}
       />
 
       <VideoAnalyticsModal

@@ -1,6 +1,7 @@
 
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { Message, MessageThread } from '@/types/messaging';
+import { Timestamp } from 'firebase/firestore';
 
 // Extended FirestoreMessageThread with messages property
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
@@ -15,9 +16,9 @@ export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMes
     id: thread.id || '',
     participants: thread.participantIds || [],
     name: thread.name || '',
-    lastActivity: thread.lastActivity || new Date(),
+    lastActivity: thread.lastActivity ? (thread.lastActivity.toDate ? thread.lastActivity.toDate() : thread.lastActivity) : new Date(),
     messages: thread.messages.map(adaptFirestoreMessageToMessage),
-    createdAt: thread.createdAt || new Date(),
+    createdAt: thread.createdAt ? (thread.createdAt.toDate ? thread.createdAt.toDate() : thread.createdAt) : new Date(),
   };
 }
 
@@ -27,9 +28,9 @@ export function adaptFirestoreMessageToMessage(message: FirestoreMessage): Messa
     senderId: message.senderId,
     content: message.content,
     type: message.type as any,
-    status: message.status as any,
+    status: message.status ? message.status as any : 'sent',
     isEncrypted: message.isEncrypted,
-    createdAt: message.createdAt as any,
+    createdAt: message.createdAt ? message.createdAt.toDate ? message.createdAt.toDate() : message.createdAt : new Date(),
     monetization: (message as any).monetization,
   };
 }
