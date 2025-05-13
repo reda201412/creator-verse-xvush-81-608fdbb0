@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ContentType } from '@/types/video';
@@ -38,7 +37,7 @@ const useVideoUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState<string>('prêt');
-  const { isMobile } = useIsMobile();
+  const { isMobile } = useIsMobile(); // Fixed: this is a hook returning a boolean, not a Boolean object
   const { user } = useAuth();
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,7 +135,14 @@ const useVideoUpload = () => {
   return {
     videoFile, thumbnailFile, videoPreviewUrl, thumbnailPreviewUrl, videoFormat,
     isUploading, uploadProgress, uploadError, uploadStage,
-    handleVideoChange, handleThumbnailChange, generateThumbnail, resetForm,
+    handleVideoChange, handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setThumbnailFile(file);
+        setThumbnailPreviewUrl(URL.createObjectURL(file));
+      }
+    },
+    generateThumbnail, resetForm,
     uploadVideoAndSaveMetadata, setVideoFile, setUploadProgress, setUploadStage
   };
 };

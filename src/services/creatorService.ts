@@ -1,4 +1,3 @@
-
 import { db } from '@/integrations/firebase/firebase';
 import {
   collection,
@@ -15,7 +14,7 @@ import {
   writeBatch,
   getCountFromServer
 } from 'firebase/firestore';
-import { UserProfile } from '@/contexts/AuthContext'; // Réutiliser le type de profil
+import { UserProfile } from '@/types/auth'; // Changed from @/contexts/AuthContext';
 
 // Étendre UserProfile pour inclure les métriques spécifiques au créateur si nécessaire
 export interface CreatorProfileData extends UserProfile {

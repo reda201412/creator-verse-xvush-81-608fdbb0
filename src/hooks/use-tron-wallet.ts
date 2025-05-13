@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,13 +26,12 @@ export function useTronWallet() {
     // MOCK IMPLEMENTATION
     await new Promise(resolve => setTimeout(resolve, 500));
     const mockData: WalletResponse = {
-        wallet: {
-            tron_address: "TRON_ADDRESS_MOCK",
-            balance_trx: 100,
-            balance_usdt: 50,
-            created_at: new Date().toISOString(),
-            user_id: user.uid
-        }
+      wallet: {
+        tron_address: "TRON_ADDRESS_MOCK",
+        balance_usdt: 50, // Keep only properties that exist in WalletData
+        created_at: new Date().toISOString(),
+        user_id: user.uid
+      }
     };
     setWalletInfo(mockData);
     setLoading(false);

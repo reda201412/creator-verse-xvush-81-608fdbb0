@@ -356,8 +356,9 @@ const activeThreads = filteredThreads
       <Dialog open={isCreatorSelectorOpen} onOpenChange={setIsCreatorSelectorOpen}>
         <DialogContent className="sm:max-w-md h-4/5 flex flex-col">
           <CreatorSelector
+            isOpen={isCreatorSelectorOpen}
+            onClose={() => setIsCreatorSelectorOpen(false)}
             onSelectCreator={handleCreatorSelected}
-            onCancel={() => setIsCreatorSelectorOpen(false)}
           />
         </DialogContent>
       </Dialog>

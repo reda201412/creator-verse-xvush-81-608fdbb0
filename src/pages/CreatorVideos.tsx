@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import VideoHeader from '@/components/creator/videos/VideoHeader';
@@ -136,8 +135,8 @@ const CreatorVideos: React.FC = () => {
         />
       </div>
 
-      <VideoGrid
-        videos={convertToVideoMetadata(videos)} // Convert to VideoMetadata
+      <VideoGrid 
+        videos={videos as unknown as VideoMetadata[]} 
         activeTab={activeTab}
         searchQuery={searchQuery}
         onDeleteVideo={handleDeleteVideo}
@@ -145,6 +144,7 @@ const CreatorVideos: React.FC = () => {
         onPromoteVideo={handlePromoteVideo}
         onAnalyticsVideo={handleAnalyticsVideo}
         isLoading={loading}
+        onUploadComplete={(metadata) => handleUploadComplete(metadata as unknown as VideoFirestoreData)}
       />
 
       <VideoAnalyticsModal

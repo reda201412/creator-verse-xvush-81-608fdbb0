@@ -1,10 +1,10 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Story, StoryGroup, StoryUploadParams } from '@/types/stories';
 import { StoriesService } from '@/services/stories.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useToast } from '@/hooks/use-toast';
+import { FirestoreStory, adaptFirestoreStoriesToStories, adaptFirestoreStoryToStory } from '@/utils/story-types';
 
 export const useStories = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -23,15 +23,16 @@ export const useStories = () => {
     try {
       setLoading(true);
       const activeStories = await StoriesService.getActiveStories();
-      setStories(activeStories);
+      setStories(adaptFirestoreStoriesToStories(activeStories as unknown as FirestoreStory[]));
       
       // Grouper les stories par créateur
       const groups: Record<string, StoryGroup> = {};
       
       activeStories.forEach(story => {
-        if (!story.creator) return;
+        const fsStory = story as unknown as FirestoreStory;
+        if (!fsStory.creatorId) return;
         
-        const creatorId = story.creator.id;
+        const creatorId = fsStory.creatorId;
         if (!groups[creatorId]) {
           groups[creatorId] = {
             creator: story.creator,
@@ -87,7 +88,7 @@ export const useStories = () => {
       const newStory = await StoriesService.createStory(params, user.id);
       
       // Mettre à jour la liste des stories
-      setStories(prev => [newStory, ...prev]);
+      setStories(prev => [adaptFirestoreStoryToStory(newStory as unknown as FirestoreStory), ...prev]);
       
       // Déclencher une micro-récompense
       triggerMicroReward('creative', { type: 'story_created' });
@@ -114,7 +115,7 @@ export const useStories = () => {
     if (!user) return;
     
     try {
-      await StoriesService.markStoryAsViewed(storyId, viewDuration);
+      await StoriesService.markStoryAsViewed(storyId as string, viewDuration);
       
       // Mettre à jour l'état local
       setStories(prev => 

@@ -32,6 +32,10 @@ import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThre
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
+import {
+  ExtendedFirestoreMessageThread,
+  adaptExtendedFirestoreThreadsToMessageThreads
+} from '@/utils/messaging-types';
 
 // Extend FirestoreMessageThread to include messages property
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
@@ -463,14 +467,18 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               className="h-full"
             >
               <ConversationList
-                threads={filteredThreads}
+                threads={adaptExtendedFirestoreThreadsToMessageThreads(filteredThreads)}
                 userId={effectiveUserId!}
                 userName={effectiveUserName}
                 userAvatar={effectiveUserAvatar}
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
                 userType={userType}
-                onConversationCreated={handleNewConversationCreated}
+                onConversationCreated={(threadId: string) => {
+                  // Convert function to match expected signature
+                  setActiveThreadId(threadId);
+                  setShowConversationList(false);
+                }}
               />
             </motion.div>
           ) : (

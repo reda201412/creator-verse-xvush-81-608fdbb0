@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -24,15 +25,17 @@ interface Creator {
 }
 
 interface CreatorSelectorProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onSelectCreator: (creator: Creator) => void;
+  onCancel?: () => void;
 }
 
 const CreatorSelector: React.FC<CreatorSelectorProps> = ({ 
   isOpen, 
   onClose, 
-  onSelectCreator 
+  onSelectCreator,
+  onCancel
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [creators, setCreators] = useState<Creator[]>([]);
@@ -102,7 +105,12 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({
 
   const handleSelectCreator = (creator: Creator) => {
     onSelectCreator(creator);
-    onClose();
+    if (onClose) onClose();
+  };
+
+  const handleClose = () => {
+    if (onCancel) onCancel();
+    if (onClose) onClose();
   };
 
   const CreatorItem = ({ creator }: { creator: Creator }) => {
@@ -179,6 +187,14 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({
               </div>
             )}
           </ScrollArea>
+        )}
+        
+        {onCancel && (
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={handleClose}>
+              Annuler
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>

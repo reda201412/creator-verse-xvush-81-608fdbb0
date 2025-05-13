@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Heart, ThumbsUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Extended FirestoreMessage interface to include monetization
+// Add monetization to FirestoreMessage interface
 interface ExtendedFirestoreMessage extends FirestoreMessage {
   monetization?: {
     tier: string;
@@ -21,8 +21,8 @@ interface MessageBubbleProps {
   isCurrentUser: boolean;
   sessionKey: string;
   decryptMessage: (message: FirestoreMessage) => Promise<string>;
-  renderContent: (message: FirestoreMessage) => React.ReactNode;
-  onReaction: (messageId: string, reactionType: string) => void;
+  renderContent?: (message: FirestoreMessage) => React.ReactNode;
+  onReaction?: (messageId: string, reactionType: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ 
@@ -59,11 +59,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  // Default render function if none provided
+  const defaultRenderContent = (msg: FirestoreMessage) => <span>{msg.content}</span>;
+
   // Determine the message content to display
   const displayContent = () => {
     // If message is not encrypted, show content directly
     if (!message.isEncrypted) {
-      return renderContent(message);
+      return renderContent ? renderContent(message) : defaultRenderContent(message);
     }
     
     // If message is encrypted but not yet decrypted
@@ -83,6 +86,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     
     // If message is decrypted
     return decryptedContent;
+  };
+
+  // Default reaction handler
+  const defaultReactionHandler = (messageId: string, reactionType: string) => {
+    console.log(`Reaction ${reactionType} on message ${messageId}`);
   };
 
   return (
@@ -128,7 +136,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             size="icon" 
             variant="ghost" 
             className="h-6 w-6 rounded-full"
-            onClick={() => onReaction(message.id, 'like')}
+            onClick={() => (onReaction || defaultReactionHandler)(message.id, 'like')}
           >
             <ThumbsUp size={12} />
           </Button>
@@ -136,7 +144,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             size="icon" 
             variant="ghost" 
             className="h-6 w-6 rounded-full"
-            onClick={() => onReaction(message.id, 'heart')}
+            onClick={() => (onReaction || defaultReactionHandler)(message.id, 'heart')}
           >
             <Heart size={12} />
           </Button>
