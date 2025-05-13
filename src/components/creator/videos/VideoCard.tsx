@@ -72,6 +72,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
     }
   };
 
+  // Détermine l'URL vidéo à utiliser (gestion des différents formats d'URL possibles)
+  const getVideoUrl = () => {
+    // Vérifier toutes les propriétés possibles qui pourraient contenir l'URL
+    return video.video_url || video.url || '';
+  };
+
+  // Log les métadonnées pour le débogage
+  console.log("Video metadata dans VideoCard:", video);
+  console.log("Video URL utilisée:", getVideoUrl());
+
   return (
     <div 
       className="bg-card rounded-lg overflow-hidden shadow transition-all hover:shadow-md"
@@ -180,9 +190,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Video Preview Dialog */}
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
         <DialogContent className="sm:max-w-3xl p-0">
-          {video.video_url ? (
+          {getVideoUrl() ? (
             <EnhancedVideoPlayer
-              src={video.video_url}
+              src={getVideoUrl()}
               thumbnailUrl={video.thumbnailUrl}
               title={video.title}
               autoPlay={true}

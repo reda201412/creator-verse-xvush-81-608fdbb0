@@ -13,10 +13,11 @@ export interface VideoMetadata {
   title: string;
   description: string;
   type: ContentType;
-  videoFile: File;
+  videoFile?: File;
   thumbnailUrl?: string;
-  video_url?: string;
-  url?: string; // Alias for video_url for backward compatibility
+  video_url?: string; // URL MUX ou Firebase
+  url?: string; // Alias pour video_url pour compatibilité
+  playbackId?: string; // ID de lecture MUX
   format: '16:9' | '9:16' | '1:1' | 'other';
   isPremium: boolean;
   tokenPrice?: number;
