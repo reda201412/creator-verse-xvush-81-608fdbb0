@@ -8,8 +8,8 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata, ContentType } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import useVideoUpload, { VideoFormValues } from './video-uploader/useVideoUpload';
-import { VideoFirestoreData } from '@/services/creatorService';
+import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
+import { VideoFirestoreData, convertVideoMetadataToVideoData } from '@/services/creatorService';
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata: VideoMetadata) => void;
@@ -49,8 +49,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   // Check for authentication
   useEffect(() => {
     if (isOpen && !user) {
-      toast({
-        title: "Authentification requise",
+      toast.error("Authentification requise", {
         description: "Vous devez être connecté pour téléverser des vidéos."
       });
       setIsOpen(false);
@@ -63,7 +62,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       id: firestoreData.id || '',
       title: firestoreData.title,
       description: firestoreData.description || '',
-      type: firestoreData.type as ContentType,
+      type: firestoreData.type as ContentType || 'standard',
       videoFile: originalVideoFile, // The actual File object
       thumbnailUrl: firestoreData.thumbnailUrl,
       video_url: firestoreData.videoUrl,
@@ -76,8 +75,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     onUploadComplete(completeMetadata);
     triggerMicroReward('interaction');
 
-    toast({
-      title: "Vidéo téléchargée avec succès",
+    toast.success("Vidéo téléchargée avec succès", {
       description: "Votre vidéo a été mise en ligne et est maintenant visible."
     });
 
@@ -85,6 +83,19 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       setIsOpen(false);
       resetForm();
     }, 1000);
+  };
+
+  // Wrapper functions for handleVideoChange and handleThumbnailChange that adapt to the expected types
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleVideoChange(e.target.files[0]);
+    }
+  };
+
+  const handleThumbnailFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleThumbnailChange(e.target.files[0]);
+    }
   };
 
   return (
@@ -107,8 +118,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="video-upload-dialog-description">
           <DialogHeader>
             <DialogTitle>Uploader une vidéo</DialogTitle>
-            <p id="video-upload-dialog-description" className="sr-only">Formulaire pour téléverser une nouvelle vidéo.</p>
           </DialogHeader>
+          <p id="video-upload-dialog-description" className="sr-only">Formulaire pour téléverser une nouvelle vidéo.</p>
 
           {user ? (
             <VideoUploadForm
@@ -121,8 +132,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               uploadProgress={uploadProgress}
               uploadError={error}
               uploadStage={uploadStage}
-              handleVideoChange={handleVideoChange}
-              handleThumbnailChange={handleThumbnailChange}
+              handleVideoChange={handleVideoFileChange}
+              handleThumbnailChange={handleThumbnailFileChange}
               generateThumbnail={generateThumbnail}
               resetForm={resetForm}
               onClose={() => {
@@ -131,8 +142,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               }}
               onSubmit={async (values: VideoFormValues, onUploadProgress: (progress: number) => void) => {
                 if (!videoFile) {
-                  toast({
-                    title: "Information manquante",
+                  toast.error("Information manquante", {
                     description: "Veuillez fournir une vidéo et un titre."
                   });
                   return;
@@ -146,8 +156,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);
-                  toast({
-                    title: "Erreur de téléchargement",
+                  toast.error("Erreur de téléchargement", {
                     description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
                   });
                 }

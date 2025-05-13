@@ -1,12 +1,13 @@
+
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-import { VideoMetadata } from '@/types/video';
+import { VideoData, VideoMetadata, convertVideoMetadataToVideoData } from '@/services/creatorService';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
-  videos: VideoMetadata[];
+  videos: VideoData[] | VideoMetadata[];
   activeTab: string;
   searchQuery: string;
   onDeleteVideo: (videoId: string) => void;
@@ -60,6 +61,16 @@ const VideoGrid: React.FC<VideoGridProps> = ({
 
   const filteredVideos = getFilteredVideos();
 
+  // Convert VideoMetadata to VideoData if needed
+  const convertedVideos: VideoData[] = filteredVideos.map(video => {
+    // Check if it's already VideoData
+    if ('videoUrl' in video) {
+      return video as VideoData;
+    } 
+    // If it's VideoMetadata, convert it
+    return convertVideoMetadataToVideoData(video as VideoMetadata);
+  });
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,9 +89,9 @@ const VideoGrid: React.FC<VideoGridProps> = ({
 
   return (
     <>
-      {filteredVideos.length > 0 ? (
+      {convertedVideos.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVideos.map((video) => (
+          {convertedVideos.map((video) => (
             <VideoCard
               key={video.id}
               video={video}

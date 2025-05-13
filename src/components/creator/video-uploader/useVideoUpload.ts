@@ -1,7 +1,4 @@
 
-// This file contains the useVideoUpload hook logic
-// Add the appropriate imports and code here based on your project needs
-// For example:
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ContentType } from '@/types/video';
@@ -19,7 +16,7 @@ export const videoSchema = z.object({
 export type VideoFormValues = z.infer<typeof videoSchema>;
 
 export const useVideoUpload = () => {
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
@@ -165,7 +162,7 @@ export const useVideoUpload = () => {
         thumbnailUrl: thumbnailPreviewUrl || 'https://via.placeholder.com/640x360',
         videoUrl: videoPreviewUrl || 'https://example.com/video.mp4',
         userId: 'current-user-id',
-        uploadStatus: 'complete',
+        uploadStatus: 'complete' as 'complete',
         uploadProgress: 100,
         uploadedAt: new Date(),
         format: videoFormat,
@@ -195,6 +192,7 @@ export const useVideoUpload = () => {
     videoPreviewUrl,
     thumbnailPreviewUrl,
     videoFormat,
+    uploadStage,
     setVideoFile,
     setThumbnailFile,
     handleVideoChange,

@@ -1,6 +1,13 @@
-
 import { useState } from 'react';
-import { getTronWalletData, TronWalletResponse } from '@/services/tron.service';
+
+// Define basic wallet data interface
+export interface TronWalletResponse {
+  address: string;
+  balance: number;
+  is_verified: boolean;
+  transactions?: any[];
+  createdAt?: Date;
+}
 
 // Define extended wallet types with subscription property
 export interface WalletData extends TronWalletResponse {
@@ -30,6 +37,17 @@ export interface WalletInfo {
     };
   } | null;
 }
+
+// Mock service - normally would be imported from a real service file
+const getTronWalletData = async (userId: string): Promise<TronWalletResponse> => {
+  return {
+    address: `T${Math.random().toString(36).substring(2, 15)}`,
+    balance: Math.floor(Math.random() * 1000),
+    is_verified: true,
+    transactions: [],
+    createdAt: new Date()
+  };
+};
 
 export const useTronWallet = () => {
   const [wallet, setWallet] = useState<WalletData>({

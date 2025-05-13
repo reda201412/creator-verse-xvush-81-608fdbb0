@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
@@ -58,10 +59,9 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
       title: '',
       description: '',
       type: 'standard',
-      tier: 'free',
-      sharingAllowed: false,
-      downloadsAllowed: false,
-      tokenPrice: 0
+      isPremium: false,
+      tokenPrice: 0,
+      tags: []
     },
   });
 

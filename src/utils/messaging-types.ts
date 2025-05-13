@@ -4,12 +4,16 @@ import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
 // Extended FirestoreMessageThread with messages property
-export interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'participantIds'> {
+export interface ExtendedFirestoreMessageThread {
+  id?: string;
+  name?: string;
+  lastActivity?: Timestamp | Date;
   messages?: FirestoreMessage[];
   readStatus?: Record<string, any>;
-  participants?: string[]; // Add participants property to make it compatible with MessageThread
-  participantIds?: string[]; // Original property that might be in the data
+  participants?: string[]; 
+  participantIds?: string[];
   isGated?: boolean;
+  createdAt?: Timestamp | Date;
 }
 
 // Extended FirestoreMessage with status property
@@ -51,7 +55,7 @@ export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMes
     lastActivity: timestampToISOString(thread.lastActivity),
     messages: thread.messages ? thread.messages.map(adaptFirestoreMessageToMessage) : [],
     isGated: !!thread.isGated || false,
-    createdAt: timestampToISOString(thread.createdAt),
+    timestamp: timestampToISOString(thread.createdAt)
   };
 }
 

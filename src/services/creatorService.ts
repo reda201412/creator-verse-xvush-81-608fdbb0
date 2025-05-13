@@ -17,7 +17,7 @@ export interface CreatorProfile {
 // Alias CreatorProfileData for backward compatibility
 export type CreatorProfileData = CreatorProfile;
 
-// Example video data
+// Video data interface
 export interface VideoData {
   id: string;
   title: string;
@@ -25,10 +25,10 @@ export interface VideoData {
   thumbnailUrl: string;
   videoUrl: string;
   creatorId: string;
-  creatorName: string;
-  creatorAvatar: string;
+  creatorName?: string;
+  creatorAvatar?: string;
   views: number;
-  likes: number;
+  likes?: number;
   isPremium: boolean;
   tokenPrice?: number;
   uploadedAt: Date;
@@ -41,6 +41,7 @@ export interface VideoFirestoreData {
   title: string;
   description?: string;
   thumbnailUrl?: string;
+  videoUrl?: string;
   isPremium?: boolean;
   tokenPrice?: number;
   tags?: string[];
@@ -48,7 +49,6 @@ export interface VideoFirestoreData {
   uploadProgress?: number;
   userId: string;
   uploadedAt: Date;
-  videoUrl?: string;
   format?: string;
   type?: string;
   views?: number;
@@ -109,32 +109,36 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoFirestor
       title: "Morning Coffee Routine",
       description: "How to make the perfect morning coffee",
       thumbnailUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
+      videoUrl: "https://example.com/video1.mp4",
       isPremium: true,
       userId: creatorId,
       uploadedAt: new Date(),
-      videoUrl: "https://example.com/video1.mp4",
       format: "16:9",
       type: "premium",
       views: 5600,
       likes: 1200,
       watchHours: 450,
-      revenueGenerated: 350
+      revenueGenerated: 350,
+      uploadStatus: "complete",
+      uploadProgress: 100
     },
     {
       id: "video2",
       title: "Sunset at the Mountain",
       description: "Beautiful sunset time-lapse",
       thumbnailUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop",
+      videoUrl: "https://example.com/video2.mp4",
       isPremium: false,
       userId: creatorId,
       uploadedAt: new Date(),
-      videoUrl: "https://example.com/video2.mp4",
       format: "16:9",
       type: "standard",
       views: 12400,
       likes: 2300,
       watchHours: 950,
-      revenueGenerated: 0
+      revenueGenerated: 0,
+      uploadStatus: "complete",
+      uploadProgress: 100
     }
   ]);
 };
@@ -149,16 +153,18 @@ export const getVideoByIdFromFirestore = async (videoId: string): Promise<VideoF
     title: "Sample Video",
     description: "This is a sample video description",
     thumbnailUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
+    videoUrl: "https://example.com/sample.mp4",
     isPremium: true,
     userId: "creator1",
     uploadedAt: new Date(),
-    videoUrl: "https://example.com/sample.mp4",
     format: "16:9",
     type: "premium",
     views: 5600,
     likes: 1200,
     watchHours: 450,
-    revenueGenerated: 350
+    revenueGenerated: 350,
+    uploadStatus: "complete",
+    uploadProgress: 100
   });
 };
 
@@ -233,4 +239,22 @@ export const unfollowCreator = async (userId: string, creatorId: string): Promis
 export const getUserFollowedCreatorIds = async (userId: string): Promise<string[]> => {
   // In a real implementation, this would fetch the creator IDs a user follows
   return Promise.resolve(["creator1_uid", "creator3_uid"]);
+};
+
+// Helper function to convert VideoMetadata to VideoData
+export const convertVideoMetadataToVideoData = (videoMetadata: VideoMetadata): VideoData => {
+  return {
+    id: videoMetadata.id,
+    title: videoMetadata.title || 'Untitled Video',
+    description: videoMetadata.description || '',
+    thumbnailUrl: videoMetadata.thumbnailUrl || '',
+    videoUrl: videoMetadata.video_url || videoMetadata.url || '',
+    creatorId: '',  // This would be filled in by the actual implementation
+    views: 0,
+    isPremium: videoMetadata.isPremium || false,
+    tokenPrice: videoMetadata.tokenPrice,
+    uploadedAt: new Date(),
+    type: videoMetadata.type,
+    format: videoMetadata.format
+  };
 };

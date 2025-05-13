@@ -47,23 +47,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('User signed out');
     setUser(null);
     setProfile(null);
+    localStorage.removeItem('userId');
   };
 
   // Alias for firebaseSignOut
-  const firebaseSignOut = signOut;
+  const firebaseSignOut = async (): Promise<void> => {
+    return signOut();
+  };
 
   // Mock implementation for login
   const login = async (email: string, password: string): Promise<void> => {
     // Implementation would go here
     console.log('User logged in', email);
-    setUser({ uid: 'user123', id: 'user123', email });
+    const userId = 'user123';
+    setUser({ uid: userId, id: userId, email });
     setProfile({
-      id: 'user123',
-      uid: 'user123',
+      id: userId,
+      uid: userId,
       username: 'testuser',
       displayName: 'Test User',
       role: 'fan'
     });
+    localStorage.setItem('userId', userId);
   };
 
   // Mock implementation for update profile
@@ -83,17 +88,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Effect to simulate loading the user on mount
   useEffect(() => {
     // Simulate fetching the user
-    setTimeout(() => {
-      setUser({ uid: 'user123', id: 'user123', email: 'user@example.com' });
-      setProfile({
-        id: 'user123',
-        uid: 'user123',
-        username: 'testuser',
-        displayName: 'Test User',
-        role: 'fan'
-      });
+    const userId = localStorage.getItem('userId');
+    
+    if (userId) {
+      setTimeout(() => {
+        setUser({ uid: userId, id: userId, email: 'user@example.com' });
+        setProfile({
+          id: userId,
+          uid: userId,
+          username: 'testuser',
+          displayName: 'Test User',
+          role: 'fan'
+        });
+        setIsLoading(false);
+      }, 500);
+    } else {
       setIsLoading(false);
-    }, 1000);
+    }
   }, []);
 
   // Value object that will be passed to consuming components

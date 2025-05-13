@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import CreatorCard from '@/components/creator/CreatorCard';
 import VideoCard from '@/components/creator/videos/VideoCard';
 import { Input } from '@/components/ui/input';
-import { Search, Users, Video } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 const TrendingContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -43,10 +43,6 @@ const TrendingContent: React.FC = () => {
 
   const handleVideoClick = (video: VideoData) => {
     console.log('Video clicked:', video);
-  };
-  
-  const handleCreatorClick = (creator: CreatorProfile) => {
-    console.log('Creator clicked:', creator);
   };
 
   return (

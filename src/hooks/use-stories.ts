@@ -1,224 +1,243 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Story } from '@/types/stories';
-import { FirestoreStory, adaptFirestoreStoryToStory, adaptFirestoreStoriesToStories } from '@/utils/story-types';
+import { useAuth } from '@/contexts/AuthContext';
+import { getStoriesForUser, markStoryAsViewed } from '@/services/stories.service';
 
-export interface UseStoriesOptions {
-  groupByCreator?: boolean;
-  filterByCreator?: string;
-  includeExpired?: boolean;
-  limit?: number;
-}
-
-export const useStories = (options: UseStoriesOptions = {}) => {
-  const { groupByCreator = false, filterByCreator, includeExpired = false, limit } = options;
-  
-  const [stories, setStories] = useState<Story[]>([]);
-  const [storyGroups, setStoryGroups] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
-  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-  
-  // Mock function to fetch stories from Firestore
-  const fetchStoriesFromFirestore = async (): Promise<FirestoreStory[]> => {
-    // In a real implementation, this would fetch from Firestore
-    return [
-      {
-        id: '1',
-        creatorId: 'creator1',
-        createdAt: new Date(),
-        mediaUrl: 'https://example.com/story1.mp4',
-        format: '9:16',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        viewed: false,
-        duration: 15,
-        view_count: 120,
-        is_highlighted: true
-      },
-      {
-        id: '2',
-        creatorId: 'creator2',
-        createdAt: new Date(),
-        mediaUrl: 'https://example.com/story2.mp4',
-        format: '9:16',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        viewed: true,
-        duration: 10,
-        view_count: 85,
-        is_highlighted: false
-      }
-    ];
-  };
-  
-  // Mock function to mark a story as viewed in Firestore
-  const markStoryAsViewedInFirestore = async (storyId: string): Promise<void> => {
-    // In a real implementation, this would update Firestore
-    console.log(`Marking story ${storyId} as viewed`);
-  };
-  
-  // Mock function to get story views count
-  const getStoryViewsCount = async (storyId: string): Promise<number> => {
-    // In a real implementation, this would fetch from Firestore
-    return Promise.resolve(Math.floor(Math.random() * 1000));
-  };
-  
-  const fetchStories = async () => {
-    try {
-      setLoading(true);
-      const storiesData = await fetchStoriesFromFirestore();
-      setStories(adaptFirestoreStoriesToStories(storiesData));
-
-      // If grouping is required, also convert types
-      if (groupByCreator) {
-        const storyGroups = {};
-        storiesData.forEach(story => {
-          const creatorId = story.creatorId;
-          if (!storyGroups[creatorId]) {
-            storyGroups[creatorId] = {
-              creator: {
-                id: creatorId,
-                username: '',
-                display_name: '',
-                avatar_url: '',
-                bio: '',
-                role: 'fan'
-              },
-              stories: [],
-              lastUpdated: story.createdAt ? 
-                (typeof story.createdAt.toDate === 'function' ? 
-                  story.createdAt.toDate().toISOString() : 
-                  new Date(story.createdAt).toISOString()) : 
-                new Date().toISOString(),
-              hasUnviewed: !story.viewed
-            };
-          }
-          storyGroups[creatorId].stories.push(adaptFirestoreStoryToStory(story));
-          // Update lastUpdated if this story is more recent
-          const storyDate = story.createdAt ? 
-            (typeof story.createdAt.toDate === 'function' ? 
-              story.createdAt.toDate() : 
-              new Date(story.createdAt)) : 
-            new Date();
-            
-          const groupDate = new Date(storyGroups[creatorId].lastUpdated);
-          if (storyDate > groupDate) {
-            storyGroups[creatorId].lastUpdated = storyDate.toISOString();
-          }
-          // Check if any story is unviewed
-          if (!story.viewed) {
-            storyGroups[creatorId].hasUnviewed = true;
-          }
-        });
-        setStoryGroups(Object.values(storyGroups));
-      }
-    } catch (error) {
-      console.error('Failed to fetch stories:', error);
-      setError('Failed to load stories. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const markStoryAsViewed = useCallback(async (storyId: string) => {
-    try {
-      await markStoryAsViewedInFirestore(storyId);
-      setStories(prev => 
-        prev.map(story => 
-          story.id === storyId ? { ...story, viewed: true } : story
-        )
-      );
-    } catch (error) {
-      console.error('Failed to mark story as viewed:', error);
-    }
-  }, []);
-  
-  const nextStory = useCallback(() => {
-    if (groupByCreator) {
-      const currentGroup = storyGroups[activeGroupIndex];
-      if (activeStoryIndex < currentGroup.stories.length - 1) {
-        setActiveStoryIndex(prev => prev + 1);
-      } else {
-        // Move to next group if available
-        if (activeGroupIndex < storyGroups.length - 1) {
-          setActiveGroupIndex(prev => prev + 1);
-          setActiveStoryIndex(0);
-        }
-      }
-    } else {
-      if (activeStoryIndex < stories.length - 1) {
-        setActiveStoryIndex(prev => prev + 1);
-      }
-    }
-  }, [activeGroupIndex, activeStoryIndex, groupByCreator, stories.length, storyGroups]);
-  
-  const previousStory = useCallback(() => {
-    if (groupByCreator) {
-      if (activeStoryIndex > 0) {
-        setActiveStoryIndex(prev => prev - 1);
-      } else {
-        // Move to previous group if available
-        if (activeGroupIndex > 0) {
-          setActiveGroupIndex(prev => prev - 1);
-          const prevGroupStories = storyGroups[activeGroupIndex - 1].stories;
-          setActiveStoryIndex(prevGroupStories.length - 1);
-        }
-      }
-    } else {
-      if (activeStoryIndex > 0) {
-        setActiveStoryIndex(prev => prev - 1);
-      }
-    }
-  }, [activeGroupIndex, activeStoryIndex, groupByCreator, storyGroups]);
-  
-  const loadStoryViewsCount = useCallback(async (storyId: string) => {
-    try {
-      const viewsCount = await getStoryViewsCount(storyId); // Make sure this expects a string parameter
-      return viewsCount.toString();
-    } catch (error) {
-      console.error('Failed to load story views count:', error);
-      return '0';
-    }
-  }, []);
-  
-  const getCurrentStory = useCallback(() => {
-    if (groupByCreator && storyGroups.length > 0) {
-      const currentGroup = storyGroups[activeGroupIndex];
-      return currentGroup.stories[activeStoryIndex];
-    } else if (stories.length > 0) {
-      return stories[activeStoryIndex];
-    }
-    return null;
-  }, [activeGroupIndex, activeStoryIndex, groupByCreator, stories, storyGroups]);
-  
-  const getCurrentGroup = useCallback(() => {
-    if (groupByCreator && storyGroups.length > 0) {
-      return storyGroups[activeGroupIndex];
-    }
-    return null;
-  }, [activeGroupIndex, groupByCreator, storyGroups]);
-  
-  useEffect(() => {
-    fetchStories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterByCreator, includeExpired, limit]);
-  
-  return {
-    stories,
-    storyGroups,
-    loading,
-    error,
-    activeStoryIndex,
-    activeGroupIndex,
-    setActiveStoryIndex,
-    setActiveGroupIndex,
-    markStoryAsViewed,
-    nextStory,
-    previousStory,
-    loadStoryViewsCount,
-    getCurrentStory,
-    getCurrentGroup,
-    refreshStories: fetchStories
-  };
+type StoriesState = {
+  allStories: Story[];
+  userStories: Story[];
+  highlightedStories: Story[];
+  followedCreatorStories: Story[];
+  currentStoryIndex: number;
+  loading: boolean;
+  error: string | null;
 };
 
-export default useStories;
+const initialState: StoriesState = {
+  allStories: [],
+  userStories: [],
+  highlightedStories: [],
+  followedCreatorStories: [],
+  currentStoryIndex: 0,
+  loading: true,
+  error: null
+};
+
+// Constant for story duration in milliseconds
+const DEFAULT_STORY_DURATION = 5000; // 5 seconds
+
+export function useStories() {
+  const { user } = useAuth();
+  const [state, setState] = useState<StoriesState>(initialState);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [currentStoryGroup, setCurrentStoryGroup] = useState<Story[]>([]);
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [publisherOpen, setPublisherOpen] = useState(false);
+
+  // Load stories on component mount
+  useEffect(() => {
+    loadStories();
+  }, [user]);
+
+  // Refresh stories at defined interval (e.g., every 5 minutes)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadStories();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Group stories by creator
+  const groupedStories = Object.values(
+    state.allStories.reduce((groups: Record<string, Story[]>, story) => {
+      const creatorId = story.creator_id;
+      if (!groups[creatorId]) {
+        groups[creatorId] = [];
+      }
+      groups[creatorId].push(story);
+      return groups;
+    }, {})
+  );
+
+  // Load stories from API
+  const loadStories = async () => {
+    if (!user) return;
+
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const storiesData = await getStoriesForUser(user.uid);
+      
+      // Categorize stories
+      const userStories = storiesData.filter(
+        story => story.creator_id === user.uid
+      );
+      
+      const highlightedStories = storiesData.filter(
+        story => story.is_highlighted
+      );
+      
+      // For real implementation, you would check if creator is followed by the user
+      // This is a mock implementation
+      const followedCreatorStories = storiesData.filter(
+        story => story.creator_id !== user.uid
+      );
+      
+      setState(prev => ({
+        ...prev,
+        allStories: storiesData,
+        userStories,
+        highlightedStories,
+        followedCreatorStories,
+        loading: false
+      }));
+    } catch (error) {
+      console.error('Error loading stories:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to load stories'
+      }));
+    }
+  };
+
+  // Open story viewer with appropriate content
+  const openViewer = (category: string, groupIndex: number = 0) => {
+    let stories;
+    
+    switch (category) {
+      case 'user':
+        stories = state.userStories;
+        break;
+      case 'highlights':
+        stories = state.highlightedStories;
+        break;
+      case 'followed':
+        stories = state.followedCreatorStories;
+        break;
+      case 'all':
+      default:
+        stories = state.allStories;
+    }
+    
+    setActiveCategory(category);
+    
+    if (groupIndex < groupedStories.length) {
+      setCurrentStoryGroup(groupedStories[groupIndex]);
+      setCurrentGroupIndex(groupIndex);
+    } else if (groupedStories.length > 0) {
+      setCurrentStoryGroup(groupedStories[0]);
+      setCurrentGroupIndex(0);
+    }
+    
+    setViewerOpen(true);
+  };
+
+  // Mark a story as viewed
+  const markAsViewed = async (storyId: string) => {
+    if (!user) return;
+
+    try {
+      // Convert the storyId to a string if it's not already
+      const storyIdString = String(storyId);
+      await markStoryAsViewed(user.uid, storyIdString);
+      
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        allStories: prev.allStories.map(story => 
+          story.id === storyId ? { ...story, viewed: true } : story
+        ),
+        userStories: prev.userStories.map(story => 
+          story.id === storyId ? { ...story, viewed: true } : story
+        ),
+        highlightedStories: prev.highlightedStories.map(story => 
+          story.id === storyId ? { ...story, viewed: true } : story
+        ),
+        followedCreatorStories: prev.followedCreatorStories.map(story => 
+          story.id === storyId ? { ...story, viewed: true } : story
+        )
+      }));
+      
+    } catch (error) {
+      console.error('Error marking story as viewed:', error);
+    }
+  };
+
+  // Close viewer
+  const closeViewer = () => {
+    setViewerOpen(false);
+  };
+
+  // Move to next story
+  const goToNextStory = () => {
+    if (state.currentStoryIndex < currentStoryGroup.length - 1) {
+      setState(prev => ({
+        ...prev,
+        currentStoryIndex: prev.currentStoryIndex + 1
+      }));
+    } else {
+      // Move to next group or close if on last group
+      if (currentGroupIndex < groupedStories.length - 1) {
+        setCurrentGroupIndex(prev => prev + 1);
+        setCurrentStoryGroup(groupedStories[currentGroupIndex + 1]);
+        setState(prev => ({
+          ...prev,
+          currentStoryIndex: 0
+        }));
+      } else {
+        closeViewer();
+      }
+    }
+  };
+
+  // Move to previous story
+  const goToPrevStory = () => {
+    if (state.currentStoryIndex > 0) {
+      setState(prev => ({
+        ...prev,
+        currentStoryIndex: prev.currentStoryIndex - 1
+      }));
+    } else {
+      // Move to previous group or stay at first if on first group
+      if (currentGroupIndex > 0) {
+        setCurrentGroupIndex(prev => prev - 1);
+        setCurrentStoryGroup(groupedStories[currentGroupIndex - 1]);
+        setState(prev => ({
+          ...prev,
+          currentStoryIndex: groupedStories[currentGroupIndex - 1].length - 1
+        }));
+      }
+    }
+  };
+
+  // Open story publisher
+  const openPublisher = () => {
+    setPublisherOpen(true);
+  };
+
+  // Close story publisher
+  const closePublisher = () => {
+    setPublisherOpen(false);
+  };
+
+  return {
+    ...state,
+    groupedStories,
+    viewerOpen,
+    currentStoryGroup,
+    currentGroupIndex,
+    publisherOpen,
+    openViewer,
+    closeViewer,
+    markAsViewed,
+    goToNextStory,
+    goToPrevStory,
+    openPublisher,
+    closePublisher,
+    refreshStories: loadStories
+  };
+}
