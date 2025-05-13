@@ -1,3 +1,3 @@
 
 // Re-export from the hooks file for backward compatibility
-export { useToast, toast } from "@/hooks/use-toast";
+export { useToast, toast, type ToastProps } from "@/hooks/use-toast";

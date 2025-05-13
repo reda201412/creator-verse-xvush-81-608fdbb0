@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageCircle, Clock, Heart } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface FeedbackMessage {
   id: string;
@@ -26,7 +25,6 @@ interface FeedbackLoopProps {
 const FeedbackLoop = ({ feedbackMessages = [], isCreator = false, className }: FeedbackLoopProps) => {
   const [activeTab, setActiveTab] = useState<string>('comments');
   const [newMessage, setNewMessage] = useState('');
-  const { toast } = useToast();
   
   const comments = feedbackMessages.filter(msg => msg.type === 'comment');
   const requests = feedbackMessages.filter(msg => msg.type === 'request');
@@ -35,8 +33,7 @@ const FeedbackLoop = ({ feedbackMessages = [], isCreator = false, className }: F
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
     
-    toast({
-      title: "Message envoyé",
+    toast("Message envoyé", {
       description: "Votre message a bien été envoyé au créateur",
     });
     

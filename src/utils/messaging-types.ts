@@ -4,16 +4,16 @@ import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
 // Updated ExtendedFirestoreMessageThread to fix inheritance issues
-export interface ExtendedFirestoreMessageThread {
+export interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, "lastActivity"> {
   id?: string;
   name?: string;
   lastActivity?: Timestamp;
-  messages?: FirestoreMessage[];
+  messages?: ExtendedFirestoreMessage[];
   readStatus?: Record<string, any>;
   participants?: string[]; 
   participantIds: string[];
   isGated?: boolean;
-  createdAt: Timestamp; // Made this required since it's required in base interface
+  createdAt: Timestamp; // Required
   participantInfo?: Record<string, {
     displayName: string;
     avatarUrl: string;
@@ -59,7 +59,7 @@ export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMes
     lastActivity: timestampToISOString(thread.lastActivity),
     messages: thread.messages ? thread.messages.map(adaptFirestoreMessageToMessage) : [],
     isGated: !!thread.isGated || false,
-    lastSeen: timestampToISOString(thread.createdAt) // Use this instead of createdAt
+    lastSeen: timestampToISOString(thread.createdAt)
   };
 }
 

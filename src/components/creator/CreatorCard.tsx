@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, UserPlus, UserMinus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { followCreator, unfollowCreator, checkUserFollowsCreator } from '@/services/creatorService';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface CreatorCardProps {
@@ -28,7 +28,6 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
   isOnline
 }) => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localFollowersCount, setLocalFollowersCount] = useState(followersCount);
@@ -47,10 +46,8 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 
   const handleFollowToggle = async () => {
     if (!user) {
-      toast({
-        title: "Authentification requise",
+      toast("Authentification requise", {
         description: "Vous devez être connecté pour suivre un créateur",
-        variant: "destructive"
       });
       return;
     }
@@ -63,8 +60,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
         if (success) {
           setIsFollowing(false);
           setLocalFollowersCount(prev => prev - 1);
-          toast({
-            title: "Désabonnement",
+          toast("Désabonnement", {
             description: `Vous ne suivez plus ${displayName}`
           });
         }
@@ -73,18 +69,15 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
         if (success) {
           setIsFollowing(true);
           setLocalFollowersCount(prev => prev + 1);
-          toast({
-            title: "Abonnement",
+          toast("Abonnement", {
             description: `Vous suivez maintenant ${displayName}`
           });
         }
       }
     } catch (error) {
       console.error('Failed to toggle follow status:', error);
-      toast({
-        title: "Erreur",
+      toast("Erreur", {
         description: "Une erreur s'est produite. Veuillez réessayer.",
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
