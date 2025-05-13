@@ -15,6 +15,9 @@ export interface FirestoreStory {
   isPrivate?: boolean;
   tags?: string[];
   viewed?: boolean;
+  duration?: number;
+  view_count?: number;
+  is_highlighted?: boolean;
 }
 
 // Adapter function to convert FirestoreStory to Story
@@ -27,6 +30,9 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
     expires_at: firestoreStory.expiresAt || new Date(),
     format: convertFormat(firestoreStory.format || '9:16'),
     viewed: firestoreStory.viewed || false,
+    duration: firestoreStory.duration || 10,
+    view_count: firestoreStory.view_count || 0,
+    is_highlighted: firestoreStory.is_highlighted || false,
     creator: {
       id: firestoreStory.creatorId,
       username: '',

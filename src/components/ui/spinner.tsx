@@ -1,23 +1,27 @@
 
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { cn } from '@/lib/utils';
 
-interface SpinnerProps {
-  className?: string;
+export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({ className, size = 'md' }) => {
-  const sizeClass = {
-    'sm': 'h-4 w-4',
-    'md': 'h-6 w-6',
-    'lg': 'h-8 w-8',
-    'xl': 'h-12 w-12',
-  }[size];
+export const Spinner = ({ size = 'md', className, ...props }: SpinnerProps) => {
+  const sizeClasses = {
+    sm: 'h-4 w-4',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8',
+    xl: 'h-12 w-12',
+  };
 
   return (
-    <Loader2 className={cn("animate-spin text-primary", sizeClass, className)} />
+    <div
+      className={cn(
+        'animate-spin rounded-full border-2 border-current border-t-transparent',
+        sizeClasses[size],
+        className
+      )}
+      {...props}
+    />
   );
 };
-
-export { Loader2 };

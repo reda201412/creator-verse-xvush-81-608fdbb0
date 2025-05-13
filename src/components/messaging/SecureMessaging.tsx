@@ -36,11 +36,11 @@ import {
   adaptExtendedFirestoreThreadsToMessageThreads
 } from '@/utils/messaging-types';
 
-// Extend FirestoreMessageThread to include messages property
+// Use our own definition, don't import conflicting one
 interface LocalExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
   readStatus?: Record<string, Timestamp>;
-  participants?: string[];
+  participants: string[]; // Make participants required
 }
 
 interface SecureMessagingProps {
@@ -84,7 +84,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(effectiveUserId);
-      setThreads(threadsData.map(t => ({...t, messages: t.messages || [] })));
+      // Ensure messages property exists for every thread
+      setThreads(threadsData.map(t => ({
+        ...t, 
+        messages: t.messages || [],
+        participants: t.participantIds || [] // Ensure participants exists
+      })));
 
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
       let threadToActivate = null;
@@ -354,25 +359,36 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
 
   const toggleSecurityMode = () => { setIsSecurityEnabled(!isSecurityEnabled); /* ... toast ... */ };
 
-  const handleNewConversationCreated = async (newThreadInfo: { creatorId: string; creatorName: string; creatorAvatar: string | null }) => {
-    if (!effectiveUserId || !effectiveUserName) return;
-    const { creatorId, creatorName, creatorAvatar } = newThreadInfo;
-    const existingThread = threads.find(
-      (t) => t.participantIds.includes(creatorId) && t.participantIds.includes(effectiveUserId)
-    );
-    if (existingThread && existingThread.id) { setActiveThreadId(existingThread.id); setShowConversationList(false); return; }
-    try {
-      const result = await createNewConversationWithCreator({
-        userId: effectiveUserId!,
-        userName: effectiveUserName!,
-        userAvatar: effectiveUserAvatar!,
-        creatorId,
-        creatorName,
-        creatorAvatar,
-      });
-      if (result.success && result.threadId) {setActiveThreadId(result.threadId); setShowConversationList(false);}
-      else sonnerToast.error(result.error?.message || "Impossible de créer la conversation.");
-    } catch (error) { console.error("Error creating new conversation:", error); sonnerToast.error("Erreur."); }
+  // Update the function signature of handleNewConversationCreated to match the expected type
+  const handleNewConversationCreated = async (threadId: string) => {
+    // If threadId is actually an object with creatorId
+    if (typeof threadId === 'object' && threadId !== null) {
+      const newThreadInfo = threadId as unknown as { creatorId: string; creatorName: string; creatorAvatar: string | null };
+      
+      if (!effectiveUserId || !effectiveUserName) return;
+      const { creatorId, creatorName, creatorAvatar } = newThreadInfo;
+      
+      const existingThread = threads.find(
+        (t) => t.participantIds.includes(creatorId) && t.participantIds.includes(effectiveUserId)
+      );
+      if (existingThread && existingThread.id) { setActiveThreadId(existingThread.id); setShowConversationList(false); return; }
+      try {
+        const result = await createNewConversationWithCreator({
+          userId: effectiveUserId!,
+          userName: effectiveUserName!,
+          userAvatar: effectiveUserAvatar!,
+          creatorId,
+          creatorName,
+          creatorAvatar,
+        });
+        if (result.success && result.threadId) {setActiveThreadId(result.threadId); setShowConversationList(false);}
+        else sonnerToast.error(result.error?.message || "Impossible de créer la conversation.");
+      } catch (error) { console.error("Error creating new conversation:", error); sonnerToast.error("Erreur."); }
+    } else {
+      // It's a real thread ID
+      setActiveThreadId(threadId);
+      setShowConversationList(false);
+    }
   };
   // CI-DESSOUS EST LE BLOC DE RETOUR PRINCIPAL
   if (isLoadingThreads && threads.length === 0 && !activeThreadId) {
@@ -398,7 +414,29 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
   });
 
   // Create proper MessageThread[] for ConversationList
-  const messageThreads: MessageThread[] = adaptExtendedFirestoreThreadsToMessageThreads(filteredThreads as any);
+  // Explicitly cast threads to match the MessageThread[] type
+  const messageThreads: MessageThread[] = threads.map(thread => {
+    return {
+      id: thread.id || '',
+      participants: thread.participantIds || [],
+      name: thread.name || '',
+      lastActivity: thread.lastActivity ? new Date(thread.lastActivity).toISOString() : new Date().toISOString(),
+      messages: thread.messages.map(m => ({
+        id: m.id,
+        senderId: m.senderId,
+        senderName: m.sender_name || '',
+        senderAvatar: m.sender_avatar || '',
+        recipientId: m.recipientId || '',
+        content: m.content,
+        type: m.type as any,
+        timestamp: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString(),
+        status: 'sent',
+        isEncrypted: !!m.isEncrypted,
+      })),
+      isGated: !!thread.is_gated,
+      createdAt: thread.createdAt ? new Date(thread.createdAt).toISOString() : new Date().toISOString(),
+    };
+  });
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
@@ -477,7 +515,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
                 onSelectThread={handleThreadSelect}
                 activeThreadId={activeThreadId}
                 userType={userType}
-                onConversationCreated={handleThreadSelect}
+                onConversationCreated={handleNewConversationCreated}
               />
             </motion.div>
           ) : (

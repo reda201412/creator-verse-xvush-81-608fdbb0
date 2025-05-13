@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { getAllVideos, getAllCreators, VideoFirestoreData, CreatorProfileData } from '@/services/creatorService';
-import { VideoMetadata, ContentType } from '@/types/video';
-import { CreatorCard } from '@/components/creator/CreatorCard';
-import { VideoCard } from '@/components/creator/videos/VideoCard';
+import { motion } from 'framer-motion';
+import { getAllVideos } from '@/services/creatorService';
+import CreatorCard from '@/components/creator/CreatorCard';
+import VideoCard from '@/components/creator/videos/VideoCard';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Search } from 'lucide-react';
