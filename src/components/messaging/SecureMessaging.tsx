@@ -123,8 +123,6 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       if (threadToActivate) {
         setActiveThreadId(threadToActivate);
         setShowConversationList(false);
-      } else if (threadsData.length > 0 && !activeThreadId && showConversationList) {
-        // setActiveThreadId(threadsData[0].id!); // Laisser le listener des threads gérer ça ou une autre logique
       }
       if (shouldClearLocationState) {
         navigate(location.pathname, { replace: true, state: {} });
@@ -135,8 +133,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     } finally {
       setIsLoadingThreads(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, location.state, navigate]);
+  }, [effectiveUserId, location.state, navigate, location.pathname, effectiveUserName, effectiveUserAvatar]);
 
   useEffect(() => {
     if (effectiveUserId) {
@@ -189,16 +186,18 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     if (!isInitialLoad && !hasMoreMessages) return;
     setIsLoadingMessages(true);
     try {
-      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(
+      const { messages: newMessagesData, lastVisibleDoc: newLastVisibleDoc } = await fetchMessagesForThread(
         activeThreadId,
         20,
         isInitialLoad ? null : lastVisibleMessageDoc
       );
+      
+      // Map raw messages to ExtendedFirestoreMessage type
+      const extendedMessages = newMessagesData.map(convertToExtendedMessage);
+      
       setThreads((prevThreads) =>
         prevThreads.map((thread) => {
           if (thread.id === activeThreadId) {
-            // Convert regular FirestoreMessages to ExtendedFirestoreMessages
-            const extendedMessages = newMessagesData.map(convertToExtendedMessage);
             return {
               ...thread,
               messages:
@@ -295,7 +294,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
         console.error(`Error listening to new messages for thread ${activeThreadId}:`, error)
     );
     return () => unsubscribeMessages();
-  }, [activeThreadId, effectiveUserId, triggerHaptic, threads]); // `threads` est ajouté pour potentiellement recréer le listener si les messages initiaux changent radicalement
+  }, [activeThreadId, effectiveUserId, triggerHaptic, threads]);
 
   useEffect(() => {
     threads.forEach((thread) => {
@@ -410,7 +409,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       setShowConversationList(false);
     }
   };
-  // CI-DESSOUS EST LE BLOC DE RETOUR PRINCIPAL
+  
   if (isLoadingThreads && threads.length === 0 && !activeThreadId) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useUserBehavior, InteractionType } from "@/hooks/use-user-behavior";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/hooks/use-toast";
 import FocusMode from "@/components/ambient/FocusMode";
 import AmbientSoundscapes from "@/components/ambient/AmbientSoundscapes";
 import { AdaptiveMoodLighting } from "@/components/neuro-aesthetic/AdaptiveMoodLighting";
@@ -18,14 +17,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 import XDoseLogo from "@/components/XDoseLogo";
 import { cn } from "@/lib/utils";
-// import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client'; // Ancienne importation
 import { 
   followCreator, 
   unfollowCreator, 
   getUserFollowedCreatorIds, 
-  checkUserFollowsCreator, // Ajouté au cas où c'est utilisé pour un créateur spécifique
-  CreatorProfileData // Pour typer recommendedCreators si besoin
-} from '@/services/creatorService'; // Modifié pour Firebase
+  checkUserFollowsCreator,
+  CreatorProfileData
+} from '@/services/creatorService';
 
 // Sample content data with more premium and VIP content
 const trendingContent = [

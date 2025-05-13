@@ -1,6 +1,6 @@
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
