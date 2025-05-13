@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 
 // Enhanced FirestoreMessage type with additional properties for compatibility
 export interface FirestoreMessage {
-  id: string; // Make id required, not optional
+  id: string; // id is required, not optional
   senderId: string;
   content: string;
   createdAt: Timestamp;
@@ -20,7 +20,7 @@ export interface FirestoreMessageThread {
   id?: string;
   participantIds: string[];
   name?: string;
-  messages?: FirestoreMessage[]; // Make messages optional but exist
+  messages?: FirestoreMessage[]; // Making messages explicitly optional
   readStatus?: Record<string, Timestamp>;
   participants?: string[]; 
   lastActivity?: Timestamp;

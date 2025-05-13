@@ -1,19 +1,28 @@
 
-// Define video-related types for the application
-export type ContentType = 'standard' | 'premium' | 'teaser' | 'vip';
-
-export interface VideoMetadata {
+export interface VideoData {
   id: string;
   title: string;
-  description?: string;
+  description: string;  // Make description required
+  creatorId: string;
   thumbnailUrl?: string;
-  video_url?: string;
-  url?: string;
+  videoUrl?: string;
   isPremium?: boolean;
   tokenPrice?: number;
-  type?: ContentType;
-  format?: string;
-  videoFile?: File;
-  restrictions?: any;
   tags?: string[];
+  uploadStatus?: 'pending' | 'processing' | 'complete' | 'error';
+  format?: string;
+  duration?: number;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  createdAt?: string | Date;
+  publishedAt?: string | Date;
+  revenueGenerated?: number;
+}
+
+export interface VideoUploadProgress {
+  id: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'processing' | 'complete' | 'error';
+  error?: string;
 }

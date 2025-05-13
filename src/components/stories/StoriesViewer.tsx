@@ -26,6 +26,8 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   onClose,
   initialGroupIndex = 0
 }) => {
+  // Get stories context and define defaults for any potentially missing properties
+  const storiesContext = useStories();
   const {
     storyGroups,
     viewerOpen,
@@ -34,18 +36,26 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
     currentStoryGroup,
     currentGroupIndex,
     publisherOpen,
-    setPublisherOpen,
+    error,
     openPublisher,
     openViewer,
     closeViewer,
-    loading,
-    error,
-    nextStory = () => {},
-    prevStory = () => {},
-    markStoryAsViewed = () => {},
-    setActiveGroupIndex = () => {},
-    setActiveStoryIndex = () => {},
-  } = useStories();
+    loading
+  } = storiesContext;
+  
+  // Define fallback functions
+  const nextStory = storiesContext.nextStory || (() => {});
+  const prevStory = storiesContext.prevStory || (() => {});
+  const markStoryAsViewed = storiesContext.markStoryAsViewed || (() => {});
+  const setActiveGroupIndex = storiesContext.setActiveGroupIndex || (() => {});
+  const setActiveStoryIndex = storiesContext.setActiveStoryIndex || (() => {});
+  const setPublisherOpen = (value: boolean) => {
+    if (storiesContext.setPublisherOpen) {
+      storiesContext.setPublisherOpen(value);
+    }
+  };
+  
+  const loadStories = storiesContext.loadStories || (() => {});
   
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);

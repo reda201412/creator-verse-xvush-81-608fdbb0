@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
@@ -9,6 +10,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
+import Index from '@/pages/Index';
+import Auth from '@/pages/Auth';
+import CreatorsFeed from '@/pages/CreatorsFeed';
+import CreatorProfile from '@/pages/CreatorProfile';
+import TrendingContent from '@/pages/TrendingContent';
+import Dashboard from '@/pages/Dashboard';
+import CreatorVideos from '@/pages/CreatorVideos';
+import SubscribersManagement from '@/pages/SubscribersManagement';
+import CalendarView from '@/pages/CalendarView';
+import ExclusiveContent from '@/pages/ExclusiveContent';
+import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
+import Messages from '@/pages/Messages';
+import TokensPage from '@/pages/TokensPage';
+import ProfileSettings from '@/pages/ProfileSettings';
+import NotFound from '@/pages/NotFound';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
 import { RouteChangeProps } from '@/types/navigation';

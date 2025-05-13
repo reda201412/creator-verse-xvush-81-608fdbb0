@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { updateProfile } from '@/services/userService';
 import { UserProfile } from '@/types/auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,9 +15,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Edit, Check, User } from 'lucide-react';
 import { Switch } from "@/components/ui/switch"
 import { cn } from '@/lib/utils';
+import { Spinner } from '@/components/ui/spinner';
 
 const ProfileSettings: React.FC = () => {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -35,7 +37,8 @@ const ProfileSettings: React.FC = () => {
         bio: profile.bio || '',
       });
       setAvatarUrl(profile.avatarUrl || null);
-      setIsPublicProfile(profile.isPublicProfile !== undefined ? profile.isPublicProfile : true);
+      // Default to true if not defined
+      setIsPublicProfile(true);
     }
   }, [profile]);
 
@@ -61,7 +64,7 @@ const ProfileSettings: React.FC = () => {
     setLoading(true);
     try {
       if (!user) {
-        toast.error("Vous devez être connecté pour enregistrer les modifications.");
+        toast("Vous devez être connecté pour enregistrer les modifications.");
         return;
       }
 
@@ -76,11 +79,17 @@ const ProfileSettings: React.FC = () => {
 
       await updateProfile(user.uid, updateData, newAvatar);
 
-      toast.success("Profil mis à jour avec succès!");
+      toast({
+        title: "Profil mis à jour avec succès!"
+      });
       setIsEditMode(false);
     } catch (error: any) {
       console.error("Erreur lors de la mise à jour du profil:", error);
-      toast.error("Erreur lors de la mise à jour du profil: " + (error.message || "Inconnue"));
+      toast({
+        title: "Erreur lors de la mise à jour du profil",
+        description: error.message || "Erreur inconnue",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStories } from '@/hooks/use-stories';
@@ -20,8 +21,8 @@ const StoriesTimeline: React.FC = () => {
     }
   }, [scrollPosition]);
 
-  const handleStoryClick = (groupIndex: number, storyIndex: number) => {
-    openViewer(groupIndex, storyIndex);
+  const handleStoryClick = (groupIndex: number) => {
+    openViewer(groupIndex, 0);
   };
 
   const handleScroll = () => {
@@ -55,7 +56,7 @@ const StoriesTimeline: React.FC = () => {
               <div
                 key={group.creator.id}
                 className="flex flex-col items-center justify-center w-20 cursor-pointer"
-                onClick={() => handleStoryClick(groupIndex, 0)}
+                onClick={() => handleStoryClick(groupIndex)}
               >
                 <Avatar className="h-16 w-16 border-2 border-primary">
                   <AvatarImage src={group.creator.avatar_url} alt={group.creator.display_name} />
