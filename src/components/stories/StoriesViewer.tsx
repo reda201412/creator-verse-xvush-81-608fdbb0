@@ -62,7 +62,9 @@ const StoriesViewer = () => {
       storyTimer.current = timer;
       
       // Mark the current story as viewed
-      if (activeStoryIndex !== undefined && activeGroupIndex !== undefined && currentStoryGroup[activeStoryIndex]) {
+      if (activeStoryIndex !== undefined && 
+          activeGroupIndex !== undefined && 
+          currentStoryGroup[activeStoryIndex]) {
         markAsViewed(currentStoryGroup[activeStoryIndex].id);
       }
       
@@ -174,6 +176,22 @@ const StoriesViewer = () => {
       />
     );
   }
+
+  // Format date handling with safety checks
+  const formatDate = (date: any) => {
+    if (!date) return '';
+    
+    try {
+      if (typeof date === 'object' && date.toDate && typeof date.toDate === 'function') {
+        return date.toDate().toLocaleString();
+      }
+      
+      return new Date(date).toLocaleString();
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return '';
+    }
+  };
   
   return (
     <Dialog open={viewerOpen} onOpenChange={closeViewer}>
@@ -225,15 +243,15 @@ const StoriesViewer = () => {
               <div className="flex items-center">
                 <Avatar className="h-12 w-12 border-2 border-white cursor-pointer" onClick={handleProfileClick}>
                   <AvatarImage src={currentGroupInfo?.avatarUrl} />
-                  <AvatarFallback>{currentGroupInfo?.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{currentGroupInfo?.username?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 
                 <div className="ml-3 flex-1 min-w-0">
                   <h3 className="text-white font-medium cursor-pointer" onClick={handleProfileClick}>
-                    {currentGroupInfo?.username}
+                    {currentGroupInfo?.username || 'Unknown User'}
                   </h3>
                   <p className="text-xs text-white/70">
-                    {new Date((currentStory.created_at || currentStory.createdAt).toDate()).toLocaleString()}
+                    {formatDate(currentStory.created_at || currentStory.createdAt)}
                   </p>
                 </div>
                 
