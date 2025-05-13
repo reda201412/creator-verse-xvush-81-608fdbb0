@@ -1,13 +1,15 @@
-
 import React, { useState } from 'react';
-import { VideoMetadata } from '@/types/video';
+// Use the Supabase data type
+import { VideoSupabaseData } from '@/services/creatorService'; 
 import { 
   MoreVertical, 
   Play, 
   Trash2, 
   Edit, 
   BarChart3, 
-  Share
+  Share,
+  Loader2, // Added Loader icon
+  AlertCircle // Added Alert icon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,17 +28,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+
 import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
 import { MediaCacheService } from '@/services/media-cache.service';
 import { useMicroRewards } from '@/hooks/use-microrewards';
+import { useToast } from '@/hooks/use-toast'; // Import useToast hook
 
 interface VideoCardProps {
-  video: VideoMetadata;
-  onDelete: (videoId: string) => void;
-  onEdit: (videoId: string) => void;
-  onPromote: (videoId: string) => void;
-  onAnalytics: (videoId: string) => void;
+  // Use the Supabase data type
+  video: VideoSupabaseData;
+  onDelete: (videoId: number) => void; // Updated to use number ID
+  onEdit: (videoId: number) => void; // Updated to use number ID
+  onPromote: (videoId: number) => void; // Updated to use number ID
+  onAnalytics: (videoId: number) => void; // Updated to use number ID
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({
@@ -49,8 +55,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const { triggerMediaReward } = useMicroRewards();
+  const { toast } = useToast(); // Call the useToast hook
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = (type?: string | null) => {
+     if (!type) return 'Standard'; // Default label if type is null/undefined
     switch (type) {
       case 'standard': return 'Gratuit';
       case 'teaser': return 'Xtease';
@@ -60,27 +68,47 @@ const VideoCard: React.FC<VideoCardProps> = ({
     }
   };
 
-  // Preload video when hover
+  // Determine the video URL based on MUX playback ID and status
+  const getPlaybackUrl = () => {
+    if (video.status === 'ready' && video.mux_playback_id) {
+      return `https://stream.mux.com/${video.mux_playback_id}.m3u8`; // Mux HLS streaming URL
+    }
+    return null; // Return null if not ready or no playback ID
+  };
+
+   // Get the current video status message
+   const getStatusMessage = () => {
+       switch (video.status) {
+           case 'created':
+           case 'processing':
+               return 'Vidéo en cours de traitement...';
+           case 'error':
+               return 'Erreur lors du traitement de la vidéo.';
+           default:
+               // If status is 'ready' or null/undefined but no playback ID
+               return 'Vidéo non disponible.';
+       }
+   };
+
+  // Preload video when hover (only if status is ready)
   const handleHover = async () => {
-    if (video.video_url && MediaCacheService.isCacheAvailable()) {
+    const playbackUrl = getPlaybackUrl();
+    if (playbackUrl && MediaCacheService.isCacheAvailable()) {
       try {
-        // Pre-fetch the video resource to speed up playback
-        await fetch(video.video_url, { method: 'HEAD' });
+        await fetch(playbackUrl, { method: 'HEAD' });
       } catch (error) {
         console.error('Error preloading video:', error);
       }
     }
   };
 
-  // Détermine l'URL vidéo à utiliser (gestion des différents formats d'URL possibles)
-  const getVideoUrl = () => {
-    // Vérifier toutes les propriétés possibles qui pourraient contenir l'URL
-    return video.video_url || video.url || '';
-  };
-
-  // Log les métadonnées pour le débogage
+  // Log metadata for debugging
   console.log("Video metadata dans VideoCard:", video);
-  console.log("Video URL utilisée:", getVideoUrl());
+  console.log("Playback URL used:", getPlaybackUrl());
+  console.log("Video status:", video.status);
+
+   const playbackUrl = getPlaybackUrl();
+   const isVideoReady = !!playbackUrl; // Check if we have a valid playback URL
 
   return (
     <div 
@@ -91,24 +119,49 @@ const VideoCard: React.FC<VideoCardProps> = ({
       <div 
         className="relative aspect-video bg-muted cursor-pointer"
         onClick={() => {
-          setVideoDialogOpen(true);
-          triggerMediaReward();
+          // Only open the dialog if the video is ready for playback
+          if (isVideoReady) {
+             setVideoDialogOpen(true);
+             triggerMediaReward(); // Trigger reward on play
+          } else {
+             // Show a toast with the status message
+              toast({
+                  title: "Statut de la vidéo",
+                  description: getStatusMessage(),
+                  variant: video.status === 'error' ? 'destructive' : 'default',
+              });
+          }
         }}
       >
-        {video.thumbnailUrl ? (
+        {/* Thumbnail - use thumbnail_url from Supabase schema */}
+        {video.thumbnail_url ? (
           <img 
-            src={video.thumbnailUrl} 
-            alt={video.title} 
+            src={video.thumbnail_url} 
+            alt={video.title || 'Video thumbnail'} 
             className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
             loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-primary/10">
-            <Play className="h-12 w-12 text-primary opacity-50" />
+            {/* Show loading/error icon based on status if no thumbnail */}
+             {!isVideoReady && video.status === 'processing' && <Loader2 className="h-12 w-12 text-primary opacity-50 animate-spin" />} 
+             {!isVideoReady && video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive opacity-50" />} 
+             {!isVideoReady && !video.status && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Default if status is missing */}
+             {isVideoReady && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Show play icon if ready */}
           </div>
         )}
+
+        {/* Overlay with Play button / Status Indicator */}
         <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-          <Play className="h-12 w-12 text-white" />
+           {isVideoReady ? (
+              <Play className="h-12 w-12 text-white" />
+           ) : (
+              <div className="text-white text-center p-2">
+                 {video.status === 'processing' && <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />}
+                 {video.status === 'error' && <AlertCircle className="h-8 w-8 mx-auto mb-2" />}
+                 <p className="text-sm font-medium">{getStatusMessage()}</p>
+              </div>
+           )}
         </div>
         
         {/* Video Type Badge */}
@@ -118,7 +171,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </div>
       
       {/* Video Details */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-space-y-2">
         <div className="flex items-start justify-between">
           <h3 className="font-medium line-clamp-1">{video.title}</h3>
           
@@ -159,9 +212,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </p>
         )}
         
-        {video.isPremium && video.tokenPrice && (
+        {/* Use is_premium and token_price from Supabase schema */}
+        {video.is_premium && video.token_price !== undefined && video.token_price !== null && (
           <div className="text-sm font-medium text-primary">
-            {video.tokenPrice} tokens
+            {video.token_price} tokens
           </div>
         )}
       </div>
@@ -172,14 +226,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette vidéo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. La vidéo sera définitivement supprimée.
+              Cette action est irréversible. La vidéo sera définitivement supprimée. (Le fichier Mux devra également être supprimé via une action backend).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDelete(video.id)}
+              onClick={() => onDelete(video.id)} // Pass the number ID
             >
               Supprimer
             </AlertDialogAction>
@@ -187,30 +241,37 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Video Preview Dialog */}
+      {/* Video Playback Dialog */}
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        {/* Added accessible title for DialogContent as per console warning */}
+         <DialogTitle className="sr-only"><VisuallyHidden>Video Playback</VisuallyHidden></DialogTitle>
+         <DialogDescription className="sr-only"><VisuallyHidden>Dialog for video playback</VisuallyHidden></DialogDescription>
+
         <DialogContent className="sm:max-w-3xl p-0">
-          {getVideoUrl() ? (
+          {/* Render player only if video is ready and playbackUrl exists */}
+          {isVideoReady ? (
             <EnhancedVideoPlayer
-              src={getVideoUrl()}
-              thumbnailUrl={video.thumbnailUrl}
-              title={video.title}
+              src={playbackUrl as string} // Cast to string as we checked isVideoReady
+              thumbnailUrl={video.thumbnail_url || undefined} // Use thumbnail_url
+              title={video.title || undefined}
               autoPlay={true}
               onPlay={() => {
                 triggerMediaReward();
               }}
             />
           ) : (
+             // Display status message if video is not ready
             <div className="aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
-              <p className="text-white">Erreur: Vidéo non disponible</p>
+              <div className="text-white text-center p-4">
+                 {video.status === 'processing' && <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />}
+                 {video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
+                 <p className="text-lg font-medium">{getStatusMessage()}</p>
+                 {video.status === 'error' && video.error_details && (
+                    <p className="text-sm text-muted-foreground mt-2">Détails: {JSON.stringify(video.error_details)}</p>
+                 )}
+              </div>
             </div>
           )}
-          <div className="p-4">
-            <h3 className="text-lg font-medium">{video.title}</h3>
-            {video.description && (
-              <p className="text-sm text-muted-foreground mt-2">{video.description}</p>
-            )}
-          </div>
         </DialogContent>
       </Dialog>
     </div>

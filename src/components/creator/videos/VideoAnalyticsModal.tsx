@@ -9,11 +9,11 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EyeIcon, TrendingUp, DollarSign, ChartBar } from 'lucide-react';
 // import { getVideoById } from '@/integrations/supabase/client'; // Ancienne importation
-import { getVideoByIdFromFirestore, VideoFirestoreData } from '@/services/creatorService'; // Modifié pour Firebase
+import { getVideoById, VideoSupabaseData } from '@/services/creatorService'; // Modifié pour utiliser le nom mis à jour et le type Supabase
 import { formatNumber } from '@/lib/utils';
 
 interface VideoAnalyticsModalProps {
-  videoId: string | null;
+  videoId: number | null; // Changed to number as per Supabase schema
   isOpen: boolean;
   onClose: () => void;
 }
@@ -34,50 +34,59 @@ interface VideoAnalytics {
 }
 
 const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOpen, onClose }) => {
-  const [videoDetails, setVideoDetails] = useState<VideoFirestoreData | null>(null);
+  const [videoDetails, setVideoDetails] = useState<VideoSupabaseData | null>(null); // Updated type
   const [analytics, setAnalytics] = useState<VideoAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    if (isOpen && videoId) {
+    if (isOpen && videoId !== null) { // Added null check for videoId
       setLoading(true);
       setVideoDetails(null); // Réinitialiser pour éviter d'afficher d'anciennes données
       setAnalytics(null);
       
       const fetchData = async () => {
         try {
-          const fetchedVideo = await getVideoByIdFromFirestore(videoId);
+          // Use the correctly imported and renamed function
+          const fetchedVideo = await getVideoById(videoId);
           if (fetchedVideo) {
             setVideoDetails(fetchedVideo);
             // TODO: Remplacer par la récupération des vraies données analytiques pour cette vidéo
             // Soit depuis MUX Data API, soit depuis une collection Firestore où vous stockez ces stats.
-            generateMockAnalytics(fetchedVideo); 
+            // Pass the fetchedVideo data, but generate mock analytics independently for now
+            generateMockAnalytics(); 
           } else {
             console.error('Video not found for analytics');
             // Gérer le cas où la vidéo n'est pas trouvée
+             setLoading(false); // Ensure loading is set to false even if video not found
           }
         } catch (error) {
           console.error('Error fetching video details for analytics:', error);
-        } finally {
-          // setLoading(false); // Le setLoading sera géré dans generateMockAnalytics ou la vraie fonction de fetch analytics
+           setLoading(false); // Ensure loading is set to false on error
         }
       };
 
       fetchData();
+    } else if (!isOpen) {
+        // Reset state when modal is closed
+        setVideoDetails(null);
+        setAnalytics(null);
+        setLoading(true);
+        setActiveTab('overview');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, videoId]); // generateMockAnalytics n'est pas une dépendance stable si définie dans le scope
+  }, [isOpen, videoId]); // generateMockAnalytics is not a stable dependency if defined within the scope
 
-  // Fonction pour générer des données analytiques mock (à remplacer par des vraies données)
-  const generateMockAnalytics = (video: VideoFirestoreData) => {
+  // Function to generate mock analytics data (to be replaced with real data)
+  // This function now generates random data and does not rely on properties from the video object
+  const generateMockAnalytics = () => {
     const mockAnalytics: VideoAnalytics = {
-      views: video.views || Math.floor(Math.random() * 15000) + 500,
+      views: Math.floor(Math.random() * 15000) + 500,
       uniqueViewers: Math.floor(Math.random() * 8000) + 300,
-      watchTime: video.watchHours || Math.floor(Math.random() * 100) + 20,
+      watchTime: Math.floor(Math.random() * 100) + 20,
       completionRate: Math.random() * 0.5 + 0.4,
-      revenue: video.revenueGenerated || Math.floor(Math.random() * 1000) + 50,
-      likes: video.likes || Math.floor(Math.random() * 2000) + 100,
+      revenue: Math.floor(Math.random() * 1000) + 50,
+      likes: Math.floor(Math.random() * 2000) + 100,
       comments: Math.floor(Math.random() * 300) + 10,
       shares: Math.floor(Math.random() * 500) + 20,
       dailyViews: [],
@@ -104,7 +113,13 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOp
     mockAnalytics.engagement[0].value = mockAnalytics.likes;
     mockAnalytics.engagement[1].value = mockAnalytics.comments;
     mockAnalytics.engagement[2].value = mockAnalytics.shares;
-    mockAnalytics.revenueBreakdown[0].amount = Math.floor(mockAnalytics.revenue * 0.6);
+    // The distribution of revenue breakdown should sum up to the total mock revenue
+    const premiumRevenue = Math.floor(mockAnalytics.revenue * 0.6);
+    const tipsRevenue = Math.floor(mockAnalytics.revenue * 0.2);
+    const sponsorshipsRevenue = mockAnalytics.revenue - premiumRevenue - tipsRevenue;
+    mockAnalytics.revenueBreakdown[0].amount = premiumRevenue;
+    mockAnalytics.revenueBreakdown[1].amount = tipsRevenue;
+    mockAnalytics.revenueBreakdown[2].amount = sponsorshipsRevenue;
 
     setAnalytics(mockAnalytics);
     setLoading(false); // Mettre fin au chargement après avoir généré/récupéré les analytics
@@ -117,7 +132,7 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOp
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
-            {loading || !videoDetails ? 'Chargement des statistiques...' : `Statistiques: ${videoDetails.title}`}
+            {loading || !videoDetails ? 'Chargement des statistiques...' : `Statistiques: ${videoDetails?.title}`}
           </DialogTitle>
         </DialogHeader>
 

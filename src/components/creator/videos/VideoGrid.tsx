@@ -1,19 +1,25 @@
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-import { VideoMetadata } from '@/types/video';
+// Import the Supabase data type
+import { VideoSupabaseData } from '@/services/creatorService';
+// Removed original VideoMetadata import:
+// import { VideoMetadata } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
-  videos: VideoMetadata[];
+  // Use the Supabase data type for the videos array
+  videos: VideoSupabaseData[];
   activeTab: string;
   searchQuery: string;
-  onDeleteVideo: (videoId: string) => void;
-  onEditVideo: (videoId: string) => void;
-  onPromoteVideo: (videoId: string) => void;
-  onAnalyticsVideo: (videoId: string) => void;
-  onUploadComplete: (metadata: VideoMetadata) => void;
+  // Update videoId type to number to match Supabase ID
+  onDeleteVideo: (videoId: number) => void;
+  onEditVideo: (videoId: number) => void;
+  onPromoteVideo: (videoId: number) => void;
+  onAnalyticsVideo: (videoId: number) => void;
+  // Update onUploadComplete type to match CreatorVideos.tsx
+  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
   isLoading?: boolean;
 }
 
@@ -31,24 +37,26 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   const getFilteredVideos = () => {
     let filteredVideos = videos;
 
-    // Filter by tab
+    // Filter by tab (video.type should exist in VideoSupabaseData)
     if (activeTab !== 'all') {
       filteredVideos = filteredVideos.filter(video => video.type === activeTab);
     }
 
-    // Filter by search query
+    // Filter by search query (video.title, video.description should exist)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filteredVideos = filteredVideos.filter(video => 
-        video.title.toLowerCase().includes(query) || 
-        video.description?.toLowerCase().includes(query)
+        (video.title && video.title.toLowerCase().includes(query)) || 
+        (video.description && video.description.toLowerCase().includes(query))
       );
     }
 
     return filteredVideos;
   };
 
-  const getTypeLabel = (type: string) => {
+  // getTypeLabel function remains the same, it works with string types
+  const getTypeLabel = (type?: string | null) => { // Allow null/undefined type
+     if (!type) return 'Standard';
     switch (type) {
       case 'standard': return 'Gratuit';
       case 'teaser': return 'Xtease';
@@ -82,12 +90,12 @@ const VideoGrid: React.FC<VideoGridProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVideos.map((video) => (
             <VideoCard
-              key={video.id}
-              video={video}
-              onDelete={onDeleteVideo}
-              onEdit={onEditVideo}
-              onPromote={onPromoteVideo}
-              onAnalytics={onAnalyticsVideo}
+              key={video.id} // Use video.id (number)
+              video={video} // Pass the VideoSupabaseData object
+              onDelete={onDeleteVideo} // Pass the handler (expects number)
+              onEdit={onEditVideo} // Pass the handler (expects number)
+              onPromote={onPromoteVideo} // Pass the handler (expects number)
+              onAnalytics={onAnalyticsVideo} // Pass the handler (expects number)
             />
           ))}
         </div>
@@ -101,6 +109,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
               : `Vous n'avez pas encore ajouté de vidéo${activeTab !== 'all' ? ` de type ${getTypeLabel(activeTab)}` : ''}.`
             }
           </p>
+          {/* Ensure VideoUploader also uses the updated onUploadComplete type */}
           <VideoUploader 
             onUploadComplete={onUploadComplete} 
             isCreator={true} 

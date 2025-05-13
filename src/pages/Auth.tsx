@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { auth, db } from '@/integrations/firebase/firebase'; // Importation de Firebase
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+// import { auth, db } from '@/integrations/firebase/firebase'; // Removed Firebase
+// import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'; // Removed Firebase Auth
+// import { doc, setDoc, serverTimestamp } from 'firebase/firestore'; // Removed Firestore
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,8 @@ import { toast } from '@/components/ui/sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
-import { useAuth } from '@/contexts/AuthContext'; // Pour vérifier l'utilisateur actuel si besoin
+import { useAuth } from '@/contexts/AuthContext'; 
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -24,10 +25,10 @@ const Auth = () => {
   const [userRole, setUserRole] = useState<'fan' | 'creator'>('fan');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth(); // Récupérer l'utilisateur du contexte pour la redirection
+  const { user: currentUser } = useAuth(); // Get current user from context
 
   useEffect(() => {
-    // Rediriger si l'utilisateur est déjà connecté (via le contexte)
+    // Redirect if the user is already logged in (via context)
     if (currentUser) {
       navigate('/');
     }
@@ -43,39 +44,62 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-
-      // Créer un document utilisateur dans Firestore
-      await setDoc(doc(db, "users", firebaseUser.uid), {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: username,
-        displayName: username, // Ou un champ séparé si vous le souhaitez
-        avatarUrl: null, // Peut être mis à jour plus tard
-        bio: null, // Peut être mis à jour plus tard
-        role: userRole,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      // Use Supabase Auth signUp
+      // The database trigger 'after_user_insert' will automatically create the profile.
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          // While role and username can be passed here,
+          // the database trigger currently sets username/display_name from email.
+          // You might adjust the trigger or use a function hook if you need to
+          // use the submitted username/role for the initial profile.
+          data: { 
+             // Pass metadata if needed, but profile creation is handled by trigger
+             submitted_username: username,
+             submitted_role: userRole,
+          }
+        },
       });
-      
-      toast.success("Inscription réussie ! Redirection...");
-      // La redirection sera gérée par AuthContext et App.tsx suite à la mise à jour de l'utilisateur
-      // navigate('/'); // Plus besoin de naviguer ici, AuthContext s'en chargera
-      setActiveTab('login'); // Optionnel: revenir à l'onglet de connexion
-    } catch (error: any) {
-      console.error("Erreur d'inscription Firebase:", error);
-      const errorCode = error.code;
-      let errorMessage = "Une erreur est survenue lors de l'inscription.";
-      if (errorCode === 'auth/email-already-in-use') {
-        errorMessage = "Cette adresse e-mail est déjà utilisée.";
-      } else if (errorCode === 'auth/weak-password') {
-        errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
-      } else if (error.message) {
-        errorMessage = error.message;
+
+      if (error) {
+        console.error("Erreur d'inscription Supabase:", error);
+        // Map Supabase errors to user-friendly messages
+        let errorMessage = "Une erreur est survenue lors de l'inscription.";
+        if (error.message.includes('already registered')) {
+          errorMessage = "Cette adresse e-mail est déjà utilisée.";
+        } else if (error.message.includes('Password should be')) {
+           errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
+        } else if (error.message) {
+           errorMessage = error.message;
+        }
+        toast.error(errorMessage);
+        setLoading(false);
+        return; // Stop execution if there's an auth error
       }
+
+      // Check if email confirmation is required (data.user will be null if so)
+       if (data && data.user) {
+           // User signed up and possibly signed in directly (if email confirm is off)
+           console.log("Inscription réussie et utilisateur créé:", data.user);
+           // Profile creation is handled by the database trigger
+            toast.success("Inscription réussie ! Redirection...");
+             // Redirection handled by AuthContext listener
+       } else {
+           // User requires email confirmation
+           console.log("Inscription réussie. Vérification de l'e-mail requise.");
+            toast.success("Inscription réussie ! Veuillez vérifier votre e-mail.");
+            // Suggest login after confirmation
+            setActiveTab('login');
+       }
+
+      setLoading(false);
+      // No need to navigate here, AuthContext listener handles it based on auth state
+    } catch (error: any) {
+      console.error("Une erreur inattendue est survenue pendant l'inscription:", error);
+       let errorMessage = "Une erreur inattendue est survenue lors de l'inscription.";
+       if (error.message) errorMessage = error.message;
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -90,21 +114,36 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast.success("Connexion réussie ! Redirection...");
-      // La redirection sera gérée par AuthContext et App.tsx suite à la mise à jour de l'utilisateur
-      // navigate('/'); // Plus besoin de naviguer ici
-    } catch (error: any) {
-      console.error("Erreur de connexion Firebase:", error);
-      const errorCode = error.code;
-      let errorMessage = "Identifiants incorrects ou erreur de connexion.";
-      if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-        errorMessage = "Adresse e-mail ou mot de passe incorrect.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      // Use Supabase Auth signInWithPassword
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Erreur de connexion Supabase:", error);
+         // Map Supabase errors to user-friendly messages
+        let errorMessage = "Identifiants incorrects ou erreur de connexion.";
+         if (error.message.includes('Invalid login credentials')) {
+             errorMessage = "Adresse e-mail ou mot de passe incorrect.";
+         } else if (error.message) {
+             errorMessage = error.message;
+         }
+        toast.error(errorMessage);
+         setLoading(false);
+         return; // Stop execution if there's an auth error
       }
+
+      // If sign-in is successful, the AuthContext listener will handle
+      // setting the user and fetching/creating the profile, and then redirection.
+      toast.success("Connexion réussie ! Redirection...");
+      // No need to navigate here, context listener does it
+
+    } catch (error: any) {
+      console.error("Une erreur inattendue est survenue pendant la connexion:", error);
+       let errorMessage = "Une erreur inattendue est survenue lors de la connexion.";
+        if (error.message) errorMessage = error.message;
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
     }
   };

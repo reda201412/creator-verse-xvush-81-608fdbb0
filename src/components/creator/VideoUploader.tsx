@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoMetadata } from '@/types/video';
+// Import the Supabase data type
+import { VideoSupabaseData } from '@/services/creatorService';
+// Removed old VideoMetadata import:
+// import { VideoMetadata } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
 import useVideoUpload from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
-  onUploadComplete: (metadata: VideoMetadata) => void;
+  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
   isCreator: boolean;
   className?: string;
 }
@@ -39,7 +41,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     handleThumbnailChange,
     generateThumbnail,
     resetForm,
-    uploadVideoAndSaveMetadata // Changed from uploadToSupabase
+    uploadVideoAndSaveMetadata,
+    setUploadError
   } = useVideoUpload();
 
   // Check for authentication
@@ -52,18 +55,26 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   }, [isOpen, user]);
 
-  const handleUploadComplete = (metadata: VideoMetadata) => {
+  const handleUploadCompleteInternal = (metadata?: VideoSupabaseData | null) => {
     onUploadComplete(metadata);
-    triggerMicroReward('interaction');
     
-    toast("Vidéo téléchargée avec succès", {
-      description: "Votre vidéo a été mise en ligne et est maintenant visible."
-    });
-    
+    // *** Modified condition to explicitly check for metadata and metadata.id ***
+    if(metadata && typeof metadata.id === 'number') { 
+       triggerMicroReward('interaction');
+        toast("Vidéo initiée", {
+          description: "Votre vidéo est en cours de téléchargement et de traitement."
+        });
+    } else { 
+         // This else block covers cases where metadata is null, undefined, or doesn't have a valid id
+         toast("Échec de l'initiation de l'upload", {
+            description: "Une erreur s'est produite et l'upload n'a pas pu être démarré."
+         });
+    }
+
     setTimeout(() => {
       setIsOpen(false);
       resetForm();
-    }, 1000);
+    }, metadata ? 1000 : 3000); 
   };
 
   return (
@@ -116,16 +127,15 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  // Changed from uploadToSupabase to uploadVideoAndSaveMetadata
-                  const metadata = await uploadVideoAndSaveMetadata(values);
-                  if (metadata) {
-                    handleUploadComplete(metadata);
-                  }
+                  const metadata: VideoSupabaseData | null = await uploadVideoAndSaveMetadata(values);
+                   handleUploadCompleteInternal(metadata);
                 } catch (error: any) {
-                  console.error('Upload error:', error);
+                  console.error('Upload process error (caught in onSubmit):', error);
+                  setUploadError(error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.");
                   toast("Erreur de téléchargement", {
                     description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
                   });
+                   handleUploadCompleteInternal(null);
                 }
               }}
             />
