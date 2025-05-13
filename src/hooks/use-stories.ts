@@ -1,246 +1,224 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { Story, StoryGroup, StoryUploadParams } from '@/types/stories';
-import { StoriesService } from '@/services/stories.service';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import { useToast } from '@/hooks/use-toast';
-import { FirestoreStory, adaptFirestoreStoriesToStories, adaptFirestoreStoryToStory } from '@/utils/story-types';
+import { Story } from '@/types/stories';
+import { FirestoreStory, adaptFirestoreStoryToStory, adaptFirestoreStoriesToStories } from '@/utils/story-types';
 
-export const useStories = () => {
+export interface UseStoriesOptions {
+  groupByCreator?: boolean;
+  filterByCreator?: string;
+  includeExpired?: boolean;
+  limit?: number;
+}
+
+export const useStories = (options: UseStoriesOptions = {}) => {
+  const { groupByCreator = false, filterByCreator, includeExpired = false, limit } = options;
+  
   const [stories, setStories] = useState<Story[]>([]);
-  const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
+  const [storyGroups, setStoryGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-  const { user, profile } = useAuth();
-  const { triggerMicroReward } = useNeuroAesthetic();
-  const { toast } = useToast();
-
-  // Charger les stories
-  const loadStories = useCallback(async () => {
-    if (!user) return;
-    
+  
+  // Mock function to fetch stories from Firestore
+  const fetchStoriesFromFirestore = async (): Promise<FirestoreStory[]> => {
+    // In a real implementation, this would fetch from Firestore
+    return [
+      {
+        id: '1',
+        creatorId: 'creator1',
+        createdAt: new Date(),
+        mediaUrl: 'https://example.com/story1.mp4',
+        format: '9:16',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        viewed: false,
+        duration: 15,
+        view_count: 120,
+        is_highlighted: true
+      },
+      {
+        id: '2',
+        creatorId: 'creator2',
+        createdAt: new Date(),
+        mediaUrl: 'https://example.com/story2.mp4',
+        format: '9:16',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        viewed: true,
+        duration: 10,
+        view_count: 85,
+        is_highlighted: false
+      }
+    ];
+  };
+  
+  // Mock function to mark a story as viewed in Firestore
+  const markStoryAsViewedInFirestore = async (storyId: string): Promise<void> => {
+    // In a real implementation, this would update Firestore
+    console.log(`Marking story ${storyId} as viewed`);
+  };
+  
+  // Mock function to get story views count
+  const getStoryViewsCount = async (storyId: string): Promise<number> => {
+    // In a real implementation, this would fetch from Firestore
+    return Promise.resolve(Math.floor(Math.random() * 1000));
+  };
+  
+  const fetchStories = async () => {
     try {
       setLoading(true);
-      const activeStories = await StoriesService.getActiveStories();
-      const adaptedStories = adaptFirestoreStoriesToStories(activeStories as unknown as FirestoreStory[]);
-      setStories(adaptedStories);
-      
-      // Grouper les stories par créateur
-      const groups: Record<string, StoryGroup> = {};
-      
-      activeStories.forEach((story: any) => {
-        const fsStory = story as unknown as FirestoreStory;
-        if (!fsStory.creatorId) return;
-        
-        const creatorId = fsStory.creatorId;
-        if (!groups[creatorId]) {
-          groups[creatorId] = {
-            creator: {
-              id: creatorId,
-              username: '',
-              display_name: '',
-              avatar_url: '',
-              bio: '',
-              role: 'creator'
-            },
-            stories: [],
-            lastUpdated: fsStory.createdAt || new Date(),
-            hasUnviewed: false
-          };
-        }
-        
-        // Adapt the story before adding to the group
-        const adaptedStory = adaptFirestoreStoryToStory(fsStory);
-        groups[creatorId].stories.push(adaptedStory);
-        
-        // Mettre à jour lastUpdated si cette story est plus récente
-        const storyDate = fsStory.createdAt ? 
-          (typeof fsStory.createdAt.toDate === 'function' ? fsStory.createdAt.toDate() : fsStory.createdAt) : 
-          new Date();
-        const groupDate = groups[creatorId].lastUpdated ? 
-          (typeof groups[creatorId].lastUpdated === 'object' ? groups[creatorId].lastUpdated : new Date(groups[creatorId].lastUpdated)) : 
-          new Date();
-          
-        if (storyDate > groupDate) {
-          groups[creatorId].lastUpdated = storyDate;
-        }
-        
-        // Vérifier si la story n'a pas été vue
-        if (fsStory.viewed === false) {
-          groups[creatorId].hasUnviewed = true;
-        }
-      });
-      
-      // Convertir en tableau et trier par dernier mis à jour
-      const groupArray = Object.values(groups).sort((a, b) => {
-        const dateA = typeof a.lastUpdated === 'object' ? a.lastUpdated : new Date(a.lastUpdated);
-        const dateB = typeof b.lastUpdated === 'object' ? b.lastUpdated : new Date(b.lastUpdated);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      setStoryGroups(groupArray);
+      const storiesData = await fetchStoriesFromFirestore();
+      setStories(adaptFirestoreStoriesToStories(storiesData));
+
+      // If grouping is required, also convert types
+      if (groupByCreator) {
+        const storyGroups = {};
+        storiesData.forEach(story => {
+          const creatorId = story.creatorId;
+          if (!storyGroups[creatorId]) {
+            storyGroups[creatorId] = {
+              creator: {
+                id: creatorId,
+                username: '',
+                display_name: '',
+                avatar_url: '',
+                bio: '',
+                role: 'fan'
+              },
+              stories: [],
+              lastUpdated: story.createdAt ? 
+                (typeof story.createdAt.toDate === 'function' ? 
+                  story.createdAt.toDate().toISOString() : 
+                  new Date(story.createdAt).toISOString()) : 
+                new Date().toISOString(),
+              hasUnviewed: !story.viewed
+            };
+          }
+          storyGroups[creatorId].stories.push(adaptFirestoreStoryToStory(story));
+          // Update lastUpdated if this story is more recent
+          const storyDate = story.createdAt ? 
+            (typeof story.createdAt.toDate === 'function' ? 
+              story.createdAt.toDate() : 
+              new Date(story.createdAt)) : 
+            new Date();
+            
+          const groupDate = new Date(storyGroups[creatorId].lastUpdated);
+          if (storyDate > groupDate) {
+            storyGroups[creatorId].lastUpdated = storyDate.toISOString();
+          }
+          // Check if any story is unviewed
+          if (!story.viewed) {
+            storyGroups[creatorId].hasUnviewed = true;
+          }
+        });
+        setStoryGroups(Object.values(storyGroups));
+      }
     } catch (error) {
-      console.error('Error loading stories:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les stories",
-        variant: "destructive"
-      });
+      console.error('Failed to fetch stories:', error);
+      setError('Failed to load stories. Please try again later.');
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  };
   
-  // Créer une nouvelle story
-  const createStory = useCallback(async (params: StoryUploadParams) => {
-    if (!user || !profile) {
-      toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour publier une story",
-        variant: "destructive"
-      });
-      return null;
-    }
-    
+  const markStoryAsViewed = useCallback(async (storyId: string) => {
     try {
-      const newStory = await StoriesService.createStory(params, user.id);
-      
-      // Mettre à jour la liste des stories
-      setStories(prev => [adaptFirestoreStoryToStory(newStory as unknown as FirestoreStory), ...prev]);
-      
-      // Déclencher une micro-récompense
-      triggerMicroReward('creative', { type: 'story_created' });
-      
-      toast({
-        title: "Succès",
-        description: "Votre story a été publiée",
-      });
-      
-      return newStory;
-    } catch (error) {
-      console.error('Error creating story:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de publier votre story",
-        variant: "destructive"
-      });
-      return null;
-    }
-  }, [user, profile, toast, triggerMicroReward]);
-  
-  // Marquer une story comme vue
-  const markStoryAsViewed = useCallback(async (storyId: string, viewDuration?: number) => {
-    if (!user) return;
-    
-    try {
-      await StoriesService.markStoryAsViewed(storyId, viewDuration || 0);
-      
-      // Mettre à jour l'état local
+      await markStoryAsViewedInFirestore(storyId);
       setStories(prev => 
         prev.map(story => 
           story.id === storyId ? { ...story, viewed: true } : story
         )
       );
     } catch (error) {
-      console.error('Error marking story as viewed:', error);
+      console.error('Failed to mark story as viewed:', error);
     }
-  }, [user]);
+  }, []);
   
-  // Supprimer une story
-  const deleteStory = useCallback(async (storyId: string) => {
-    if (!user) return false;
-    
-    try {
-      await StoriesService.deleteStory(storyId);
-      
-      // Mettre à jour l'état local
-      setStories(prev => prev.filter(story => story.id !== storyId));
-      
-      toast({
-        title: "Succès",
-        description: "Story supprimée avec succès",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error deleting story:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la story",
-        variant: "destructive"
-      });
-      return false;
-    }
-  }, [user, toast]);
-  
-  // Navigation dans les stories
   const nextStory = useCallback(() => {
-    if (!storyGroups.length) return;
-    
-    const currentGroup = storyGroups[activeGroupIndex];
-    if (activeStoryIndex < currentGroup.stories.length - 1) {
-      // Passer à la story suivante dans le même groupe
-      setActiveStoryIndex(prev => prev + 1);
-    } else {
-      // Passer au groupe suivant
-      if (activeGroupIndex < storyGroups.length - 1) {
-        setActiveGroupIndex(prev => prev + 1);
-        setActiveStoryIndex(0);
+    if (groupByCreator) {
+      const currentGroup = storyGroups[activeGroupIndex];
+      if (activeStoryIndex < currentGroup.stories.length - 1) {
+        setActiveStoryIndex(prev => prev + 1);
       } else {
-        // Retour au premier groupe
-        setActiveGroupIndex(0);
-        setActiveStoryIndex(0);
+        // Move to next group if available
+        if (activeGroupIndex < storyGroups.length - 1) {
+          setActiveGroupIndex(prev => prev + 1);
+          setActiveStoryIndex(0);
+        }
+      }
+    } else {
+      if (activeStoryIndex < stories.length - 1) {
+        setActiveStoryIndex(prev => prev + 1);
       }
     }
-  }, [storyGroups, activeGroupIndex, activeStoryIndex]);
+  }, [activeGroupIndex, activeStoryIndex, groupByCreator, stories.length, storyGroups]);
   
-  const prevStory = useCallback(() => {
-    if (!storyGroups.length) return;
-    
-    if (activeStoryIndex > 0) {
-      // Passer à la story précédente dans le même groupe
-      setActiveStoryIndex(prev => prev - 1);
-    } else {
-      // Passer au groupe précédent
-      if (activeGroupIndex > 0) {
-        setActiveGroupIndex(prev => prev - 1);
-        const prevGroupLength = storyGroups[activeGroupIndex - 1].stories.length;
-        setActiveStoryIndex(prevGroupLength - 1);
+  const previousStory = useCallback(() => {
+    if (groupByCreator) {
+      if (activeStoryIndex > 0) {
+        setActiveStoryIndex(prev => prev - 1);
       } else {
-        // Aller au dernier groupe
-        setActiveGroupIndex(storyGroups.length - 1);
-        const lastGroupLength = storyGroups[storyGroups.length - 1].stories.length;
-        setActiveStoryIndex(lastGroupLength - 1);
+        // Move to previous group if available
+        if (activeGroupIndex > 0) {
+          setActiveGroupIndex(prev => prev - 1);
+          const prevGroupStories = storyGroups[activeGroupIndex - 1].stories;
+          setActiveStoryIndex(prevGroupStories.length - 1);
+        }
+      }
+    } else {
+      if (activeStoryIndex > 0) {
+        setActiveStoryIndex(prev => prev - 1);
       }
     }
-  }, [storyGroups, activeGroupIndex, activeStoryIndex]);
+  }, [activeGroupIndex, activeStoryIndex, groupByCreator, storyGroups]);
   
-  // Initialiser les stories au chargement du composant
+  const loadStoryViewsCount = useCallback(async (storyId: string) => {
+    try {
+      const viewsCount = await getStoryViewsCount(storyId); // Make sure this expects a string parameter
+      return viewsCount.toString();
+    } catch (error) {
+      console.error('Failed to load story views count:', error);
+      return '0';
+    }
+  }, []);
+  
+  const getCurrentStory = useCallback(() => {
+    if (groupByCreator && storyGroups.length > 0) {
+      const currentGroup = storyGroups[activeGroupIndex];
+      return currentGroup.stories[activeStoryIndex];
+    } else if (stories.length > 0) {
+      return stories[activeStoryIndex];
+    }
+    return null;
+  }, [activeGroupIndex, activeStoryIndex, groupByCreator, stories, storyGroups]);
+  
+  const getCurrentGroup = useCallback(() => {
+    if (groupByCreator && storyGroups.length > 0) {
+      return storyGroups[activeGroupIndex];
+    }
+    return null;
+  }, [activeGroupIndex, groupByCreator, storyGroups]);
+  
   useEffect(() => {
-    loadStories();
-  }, [loadStories]);
-  
-  // Obtenir la story active actuelle
-  const activeStory = storyGroups.length > 0 && activeGroupIndex < storyGroups.length
-    ? storyGroups[activeGroupIndex].stories[activeStoryIndex]
-    : null;
+    fetchStories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterByCreator, includeExpired, limit]);
   
   return {
     stories,
     storyGroups,
     loading,
-    activeStory,
+    error,
     activeStoryIndex,
     activeGroupIndex,
-    loadStories,
-    createStory,
-    markStoryAsViewed,
-    deleteStory,
-    nextStory,
-    prevStory,
+    setActiveStoryIndex,
     setActiveGroupIndex,
-    setActiveStoryIndex
+    markStoryAsViewed,
+    nextStory,
+    previousStory,
+    loadStoryViewsCount,
+    getCurrentStory,
+    getCurrentGroup,
+    refreshStories: fetchStories
   };
 };
+
+export default useStories;

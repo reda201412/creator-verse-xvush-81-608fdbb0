@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -90,6 +89,11 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add onClick handler for compatibility with components that pass it
+  const handleClick = () => {
+    // Implementation left empty to handle onClick prop if passed
   };
 
   // Initiales pour l'avatar fallback

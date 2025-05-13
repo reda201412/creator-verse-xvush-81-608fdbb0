@@ -4,17 +4,37 @@ import { Message, MessageThread } from '@/types/messaging';
 import { Timestamp } from 'firebase/firestore';
 
 // Extended FirestoreMessageThread with messages property
-export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+export interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'participantIds'> {
   messages: FirestoreMessage[];
   readStatus?: Record<string, any>;
   participants?: string[]; // Add participants property to make it compatible with MessageThread
   participantIds?: string[]; // Original property that might be in the data
+  isGated?: boolean;
 }
 
 // Extended FirestoreMessage with status property
 export interface ExtendedFirestoreMessage extends FirestoreMessage {
   status?: 'sent' | 'delivered' | 'read' | 'monetized';
   monetization?: any;
+  sender_name?: string;
+  sender_avatar?: string;
+  recipientId?: string;
+}
+
+// Helper function to safely convert a Timestamp to an ISO string
+function timestampToISOString(timestamp: any): string {
+  if (!timestamp) return new Date().toISOString();
+  
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().toISOString();
+  }
+  
+  if (timestamp instanceof Date) {
+    return timestamp.toISOString();
+  }
+  
+  // If it's a number or string, try to create a new Date
+  return new Date(timestamp).toISOString();
 }
 
 // Adapter functions to convert between types
@@ -23,18 +43,14 @@ export function adaptFirestoreThreadToMessageThread(thread: ExtendedFirestoreMes
     id: thread.id || '',
     participants: thread.participantIds || thread.participants || [],
     name: thread.name || '',
-    lastActivity: thread.lastActivity ? (thread.lastActivity.toDate ? thread.lastActivity.toDate().toISOString() : new Date(thread.lastActivity).toISOString()) : new Date().toISOString(),
+    lastActivity: timestampToISOString(thread.lastActivity),
     messages: thread.messages ? thread.messages.map(adaptFirestoreMessageToMessage) : [],
-    createdAt: thread.createdAt ? (thread.createdAt.toDate ? thread.createdAt.toDate().toISOString() : new Date(thread.createdAt).toISOString()) : new Date().toISOString(),
-    isGated: !!thread.is_gated || false,
+    createdAt: timestampToISOString(thread.createdAt),
+    isGated: !!thread.isGated || false,
   };
 }
 
 export function adaptFirestoreMessageToMessage(message: ExtendedFirestoreMessage): Message {
-  const timestamp = message.createdAt 
-    ? (message.createdAt.toDate ? message.createdAt.toDate().toISOString() : new Date(message.createdAt).toISOString())
-    : new Date().toISOString();
-  
   return {
     id: message.id || '',
     senderId: message.senderId || '',
@@ -43,7 +59,7 @@ export function adaptFirestoreMessageToMessage(message: ExtendedFirestoreMessage
     recipientId: message.recipientId || '',
     content: message.content || '',
     type: (message.type as any) || 'text',
-    timestamp: timestamp,
+    timestamp: timestampToISOString(message.createdAt),
     status: message.status || 'sent',
     isEncrypted: !!message.isEncrypted,
     monetization: message.monetization,

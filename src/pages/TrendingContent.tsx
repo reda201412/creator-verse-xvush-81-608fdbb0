@@ -1,201 +1,115 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VideoData, getCreators, CreatorProfile } from '@/services/creatorService';
 import { getAllVideos } from '@/services/creatorService';
+import { useAuth } from '@/contexts/AuthContext';
 import CreatorCard from '@/components/creator/CreatorCard';
 import VideoCard from '@/components/creator/videos/VideoCard';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Search } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton"
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-// Import the creator adapter
-import { adaptCreatorProfile } from '@/utils/creator-profile-adapter';
+import { ContentType } from '@/types/video';
+import { Input } from '@/components/ui/input';
+import { Search, Users, Video } from 'lucide-react';
 
-interface TrendingContentItem {
-  id: string;
-  title: string;
-  description: string;
-  thumbnailUrl: string;
-  videoUrl: string;
-  creatorId: string;
-  creatorUsername: string;
-  creatorAvatar: string;
-  views: number;
-  likes: number;
-  isPremium: boolean;
-  tokenPrice: number;
+interface TrendingContentProps {
+  // Define any props this component might receive
 }
 
-const TrendingContent: React.FC = () => {
-  const [videos, setVideos] = useState<VideoMetadata[]>([]);
-  const [creators, setCreators] = useState<CreatorProfileData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('videos');
-  const [searchQuery, setSearchQuery] = useState('');
-  const { toast } = useToast();
+const TrendingContent: React.FC<TrendingContentProps> = () => {
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Update video and creator state types
+  const [videos, setVideos] = useState<VideoData[]>([]);
+  const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const { user } = useAuth();
 
+  // Fix the getAllCreators call
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
-        const fetchedVideos = await getAllVideos();
-        const fetchedCreators = await getAllCreators();
-
-        // Convert VideoFirestoreData to VideoMetadata
-        const videoMetadata: VideoMetadata[] = fetchedVideos.map(video => ({
-          id: video.id || '',
-          title: video.title,
-          description: video.description || '',
-          type: video.type as ContentType,
-          videoFile: new File([], 'placeholder'), // Placeholder file
-          thumbnailUrl: video.thumbnailUrl,
-          video_url: video.videoUrl,
-          url: video.videoUrl,
-          format: video.format || '16:9',
-          isPremium: video.isPremium || false,
-          tokenPrice: video.tokenPrice,
-        }));
-
-        setVideos(videoMetadata);
-        setCreators(fetchedCreators);
+        const videoData = await getAllVideos();
+        setVideos(videoData.map(video => ({
+          ...video,
+          type: video.type as ContentType || 'standard',
+        })));
+        
+        const creatorData = await getCreators();
+        setCreators(creatorData);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger le contenu. Veuillez réessayer.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
+        console.error('Error fetching content:', error);
       }
     };
-
+    
     fetchData();
-  }, [toast]);
+  }, []);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+  // Fix the filtering logic for videos
+  const filteredVideos = videos.filter(video => {
+    if (activeTab !== 'all' && video.format !== activeTab) {
+      return false;
+    }
+    if (searchQuery && !video.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    return true;
+  });
+
+  const handleVideoClick = (video: VideoData) => {
+    // Handle video click logic
+    console.log('Video clicked:', video);
   };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  const handleVideoClick = (videoId: string) => {
-    console.log("Video clicked:", videoId);
-    toast({ title: "Fonctionnalité à implémenter", description: `Voir la vidéo ID: ${videoId}` });
-  };
-
-  const handleCreatorClick = (creatorId: string) => {
-    console.log("Creator clicked:", creatorId);
-    toast({ title: "Fonctionnalité à implémenter", description: `Voir le profil du créateur ID: ${creatorId}` });
-  };
-
-  const filteredVideos = videos.filter(video =>
-    video.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredCreators = creators.filter(creator =>
-    creator.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (creator.displayName && creator.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Tendances</h1>
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6">Contenu Tendance</h1>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher du contenu ou un créateur..."
-          className="pl-10"
-          value={searchQuery}
-          onChange={handleSearchChange}
-        />
+      <div className="flex flex-col md:flex-row items-center justify-between mb-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+          <TabsList>
+            <TabsTrigger value="all">Tous</TabsTrigger>
+            <TabsTrigger value="9:16">Xtease</TabsTrigger>
+            <TabsTrigger value="16:9">Standard</TabsTrigger>
+            {/* Add more tabs as needed */}
+          </TabsList>
+        </Tabs>
+
+        <div className="relative w-full md:w-64 mt-4 md:mt-0">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+          <Input
+            type="text"
+            placeholder="Rechercher..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
-      <Tabs defaultValue="videos" value={activeTab} onValueChange={handleTabChange} className="mb-6">
-        <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="videos">Vidéos</TabsTrigger>
-          <TabsTrigger value="creators">Créateurs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="videos" className="mt-4">
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {Array(6).fill(0).map((_, i) => (
-                <div key={i} className="p-4 border rounded-lg animate-pulse">
-                  <Skeleton className="h-32 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4 mb-1" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : filteredVideos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredVideos.map(video => (
-                <VideoCard
-                  key={video.id}
-                  id={video.id}
-                  title={video.title}
-                  description={video.description}
-                  thumbnailUrl={video.thumbnailUrl}
-                  videoUrl={video.video_url}
-                  onClick={() => handleVideoClick(video.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-lg text-muted-foreground">Aucune vidéo trouvée correspondant à vos critères.</p>
-            </div>
-          )}
-        </TabsContent>
-        <TabsContent value="creators" className="mt-4">
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {Array(6).fill(0).map((_, i) => (
-                <div key={i} className="p-4 border rounded-lg animate-pulse">
-                  <div className="flex items-center space-x-4 mb-2">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div>
-                      <Skeleton className="h-4 w-24 mb-1" />
-                      <Skeleton className="h-3 w-16" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              ))}
-            </div>
-          ) : filteredCreators.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredCreators.map(creatorData => {
-                // Update any creator access to use our adapter
-                const standardizedCreator = adaptCreatorProfile(creatorData);
+      <h2 className="text-2xl font-semibold mb-4">Vidéos Tendances</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredVideos.map(video => (
+          <VideoCard
+            key={video.id}
+            video={video}
+            onClick={() => handleVideoClick(video)}
+          />
+        ))}
+      </div>
 
-                return (
-                  <CreatorCard
-                    key={standardizedCreator.uid}
-                    id={standardizedCreator.uid}
-                    username={standardizedCreator.username}
-                    displayName={standardizedCreator.displayName}
-                    avatarUrl={standardizedCreator.avatarUrl}
-                    bio={standardizedCreator.bio}
-                    followersCount={0} // Add default value for required prop
-                    isOnline={false} // Add default for isOnline
-                    onClick={() => handleCreatorClick(standardizedCreator.uid)}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-lg text-muted-foreground">Aucun créateur trouvé correspondant à vos critères.</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      <h2 className="text-2xl font-semibold mt-8 mb-4">Créateurs Populaires</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {creators.map(creator => (
+          <CreatorCard
+            key={creator.id}
+            id={creator.id}
+            username={creator.username}
+            displayName={creator.displayName}
+            avatarUrl={creator.avatarUrl}
+            bio={creator.bio || ''}
+            followersCount={creator.followersCount || 0}
+            isOnline={false}
+          />
+        ))}
+      </div>
     </div>
   );
 };

@@ -8,7 +8,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata, ContentType } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import useVideoUpload, { VideoFormValues } from './video-uploader/useVideoUpload';
+import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
 import { VideoFirestoreData } from '@/services/creatorService';
 
 interface VideoUploaderProps {

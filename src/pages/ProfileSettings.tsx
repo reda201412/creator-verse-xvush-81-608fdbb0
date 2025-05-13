@@ -53,9 +53,8 @@ const ProfileSettings = () => {
         isPublicProfile,
         isOnline
       });
-      toast({
-        title: "Profil mis à jour!",
-        description: "Vos informations ont été mises à jour avec succès.",
+      toast.success("Profil mis à jour!", {
+        description: "Vos informations ont été mises à jour avec succès."
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -73,9 +72,8 @@ const ProfileSettings = () => {
     setPending(true);
     try {
       await becomeCreator();
-      toast({
-        title: "Statut créateur activé!",
-        description: "Votre compte a été mis à niveau vers un compte créateur.",
+      toast.success("Statut créateur activé!", {
+        description: "Votre compte a été mis à niveau vers un compte créateur."
       });
     } catch (error: any) {
       console.error("Error becoming creator:", error);

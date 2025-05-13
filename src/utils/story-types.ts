@@ -26,13 +26,22 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
     id: firestoreStory.id,
     creator_id: firestoreStory.creatorId,
     media_url: firestoreStory.mediaUrl || '',
-    created_at: firestoreStory.createdAt || new Date(),
-    expires_at: firestoreStory.expiresAt || new Date(),
+    created_at: firestoreStory.createdAt ? 
+      (typeof firestoreStory.createdAt.toDate === 'function' ? 
+        firestoreStory.createdAt.toDate().toISOString() : 
+        new Date(firestoreStory.createdAt).toISOString()) : 
+      new Date().toISOString(),
+    expires_at: firestoreStory.expiresAt ? 
+      (typeof firestoreStory.expiresAt.toDate === 'function' ? 
+        firestoreStory.expiresAt.toDate().toISOString() : 
+        new Date(firestoreStory.expiresAt).toISOString()) : 
+      new Date().toISOString(),
     format: convertFormat(firestoreStory.format || '9:16'),
     viewed: firestoreStory.viewed || false,
     duration: firestoreStory.duration || 10,
     view_count: firestoreStory.view_count || 0,
     is_highlighted: firestoreStory.is_highlighted || false,
+    thumbnail_url: firestoreStory.thumbnailUrl,
     creator: {
       id: firestoreStory.creatorId,
       username: '',

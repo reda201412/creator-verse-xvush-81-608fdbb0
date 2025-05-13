@@ -1,24 +1,18 @@
 
-export type ContentType = 'standard' | 'teaser' | 'premium' | 'vip';
-
-export interface VideoRestrictions {
-  tier?: 'free' | 'fan' | 'superfan' | 'vip' | 'exclusive';
-  sharingAllowed?: boolean;
-  downloadsAllowed?: boolean;
-  expiresAt?: Date;
-}
+// Define the video content types
+export type ContentType = 'standard' | 'premium' | 'teaser' | 'vip';
 
 export interface VideoMetadata {
   id: string;
   title: string;
-  description: string;
-  type: ContentType;
-  videoFile: File;
+  description?: string;
   thumbnailUrl?: string;
+  videoFile?: File;
   video_url?: string;
-  url?: string; // Alias for video_url for backward compatibility
-  format: '16:9' | '9:16' | '1:1' | 'other';
-  isPremium: boolean;
+  url?: string;
+  isPremium?: boolean;
   tokenPrice?: number;
-  restrictions?: VideoRestrictions;
+  type?: ContentType;
+  format?: string;
+  tags?: string[];
 }
