@@ -6,7 +6,6 @@ export function Toaster() {
     <SonnerToaster 
       position="bottom-right"
       toastOptions={{
-        className: "toast-custom-class",
         duration: 3000,
       }}
     />

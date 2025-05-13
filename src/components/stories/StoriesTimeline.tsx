@@ -19,7 +19,10 @@ const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ onStoryClick, storyGr
   
   const handleStoryClick = (index: number) => {
     if (index < 0 || index >= storyGroups.length) {
-      toast.error("Story not found");
+      toast({
+        title: "Story not found",
+        variant: "destructive"
+      });
       return;
     }
     

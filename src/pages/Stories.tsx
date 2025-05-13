@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStories } from '@/hooks/use-stories';
@@ -11,10 +11,11 @@ import { fr } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { StoryGroup } from '@/utils/story-types';
 
 const Stories: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const { storyGroups, loading, loadStories, deleteStory } = useStories();
+  const { storyGroups, loading, loadStories, deleteStory, openViewer } = useStories();
   const { toast } = useToast();
   const { triggerMicroReward } = useNeuroAesthetic();
   
@@ -41,6 +42,10 @@ const Stories: React.FC = () => {
         triggerMicroReward('action', { type: 'story_deleted' });
       }
     }
+  };
+
+  const handleStoryClick = (groupIndex: number) => {
+    openViewer(groupIndex);
   };
   
   if (authLoading) {
@@ -78,7 +83,10 @@ const Stories: React.FC = () => {
         Explorez les stories éphémères de vos créateurs préférés
       </p>
       
-      <StoriesTimeline />
+      <StoriesTimeline 
+        storyGroups={storyGroups} 
+        onStoryClick={handleStoryClick} 
+      />
       
       <Tabs defaultValue="explore" className="mt-6">
         <TabsList className="mb-4">

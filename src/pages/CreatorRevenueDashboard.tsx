@@ -1,4 +1,3 @@
-
 import React, { useEffect, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -30,6 +29,34 @@ const CardSkeleton = () => (
     </CardContent>
   </Card>
 );
+
+// Mock withdrawal data 
+const withdrawals = [
+  {
+    id: '1',
+    amount: 120.50,
+    currency: 'USDT',
+    status: 'completed',
+    timestamp: new Date('2023-05-15T10:30:00'),
+    address: '0x1234...5678'
+  },
+  {
+    id: '2',
+    amount: 75.25,
+    currency: 'USDT',
+    status: 'pending',
+    timestamp: new Date('2023-05-10T14:15:00'),
+    address: '0x8765...4321'
+  },
+  {
+    id: '3',
+    amount: 200.00,
+    currency: 'USDT',
+    status: 'completed',
+    timestamp: new Date('2023-05-01T09:45:00'),
+    address: '0x5432...9876'
+  }
+];
 
 const CreatorRevenueDashboard: React.FC<RouteChangeProps> = ({ onRouteChange }) => {
   const { user, isCreator } = useAuth();
@@ -144,7 +171,7 @@ const CreatorRevenueDashboard: React.FC<RouteChangeProps> = ({ onRouteChange }) 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div className="col-span-1 lg:col-span-2">
                   <Suspense fallback={<CardSkeleton />}>
-                    <WithdrawalHistoryCard />
+                    <WithdrawalHistoryCard withdrawals={withdrawals} />
                   </Suspense>
                 </div>
                 

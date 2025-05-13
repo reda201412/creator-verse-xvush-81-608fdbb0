@@ -1,4 +1,6 @@
 
+import { Timestamp } from 'firebase/firestore';
+
 export interface VideoData {
   id: string;
   title: string;
@@ -15,8 +17,8 @@ export interface VideoData {
   viewCount?: number;
   likeCount?: number;
   commentCount?: number;
-  createdAt?: string | Date;
-  publishedAt?: string | Date;
+  createdAt?: string | Date | Timestamp; // Allow Timestamp type
+  publishedAt?: string | Date | Timestamp; // Allow Timestamp type
   revenueGenerated?: number;
   type?: ContentType;
   views?: number;
@@ -36,6 +38,7 @@ export interface VideoMetadata {
   format?: string;
   isPremium?: boolean;
   tokenPrice?: number;
+  restrictions?: any; // Add this property to fix mockVideos errors
 }
 
 export type ContentType = 'standard' | 'premium' | 'teaser' | 'vip';

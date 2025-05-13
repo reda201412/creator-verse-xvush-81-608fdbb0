@@ -1,12 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; 
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; 
+import { getCreators, CreatorProfile } from '@/services/creatorService'; 
 import { Skeleton } from '@/components/ui/skeleton';
 import { adaptCreatorProfile, StandardizedCreatorProfile } from '@/utils/creator-profile-adapter';
 import { useStories } from '@/hooks/use-stories';
@@ -15,7 +14,7 @@ import { Story } from '@/types/stories'; // Import Story type
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [creators, setCreators] = useState<StandardizedCreatorProfile[]>([]);
+  const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [filteredCreators, setFilteredCreators] = useState<StandardizedCreatorProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,20 +22,23 @@ const CreatorsFeed: React.FC = () => {
   const { publishStory } = useStories();
 
   useEffect(() => {
-    const fetchCreators = async () => {
+    const fetchCreators = useCallback(async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const fetchedCreators = await getAllCreators(); // Utilise le service Firebase
-        const standardizedCreators = fetchedCreators.map(adaptCreatorProfile);
-        setCreators(standardizedCreators);
-      } catch (err: any) {
-        console.error('Failed to fetch creators:', err);
-        setError('Impossible de charger les créateurs. Veuillez réessayer.');
+        const creatorsData = await getCreators();
+        setCreators(creatorsData);
+      } catch (error) {
+        console.error('Error fetching creators:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load creators",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
-    };
+    }, []);
 
     fetchCreators();
   }, []);
@@ -82,10 +84,9 @@ const CreatorsFeed: React.FC = () => {
   const handleRetryFetch = () => {
     setIsLoading(true);
     setError(null);
-    getAllCreators()
-      .then(fetchedCreators => {
-        const standardizedCreators = fetchedCreators.map(adaptCreatorProfile);
-        setCreators(standardizedCreators);
+    getCreators()
+      .then(creatorsData => {
+        setCreators(creatorsData);
       })
       .catch(err => {
         console.error('Failed to refetch creators:', err);
@@ -121,7 +122,7 @@ const CreatorsFeed: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Créateurs</h1>
         <StoryPublisher
@@ -131,7 +132,10 @@ const CreatorsFeed: React.FC = () => {
         />
       </div>
       
-      <StoriesTimeline />
+      <StoriesTimeline 
+        storyGroups={[]} 
+        onStoryClick={(index) => storiesContext.openViewer(index)}
+      />
       
       <div className="relative mb-6">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

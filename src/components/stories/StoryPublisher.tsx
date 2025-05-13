@@ -20,12 +20,14 @@ interface StoryFilter {
 interface StoryPublisherProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenChange?: (open: boolean) => void; // Add this to match usage in StoriesViewer
   onPublish: (data: FormData) => Promise<Story | null>;
 }
 
 const StoryPublisher: React.FC<StoryPublisherProps> = ({
   isOpen,
   onClose,
+  onOpenChange,
   onPublish
 }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -107,7 +109,8 @@ const StoryPublisher: React.FC<StoryPublisherProps> = ({
   
   const handleClose = () => {
     resetForm();
-    onClose();
+    if (onOpenChange) onOpenChange(false);
+    else onClose();
   };
   
   return (

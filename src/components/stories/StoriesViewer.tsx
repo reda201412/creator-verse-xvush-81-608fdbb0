@@ -13,6 +13,7 @@ import { loadStories, markAsViewed } from '@/services/stories.service';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { Story } from '@/utils/story-types';
 
 const StoriesViewer = () => {
   const storiesContext = useStories();
@@ -29,12 +30,14 @@ const StoriesViewer = () => {
     publisherOpen, 
     closeViewer,
     openPublisher,
-    closePublisher,
-    goToNext,
-    goToPrevious
+    closePublisher
   } = storiesContext;
   const [progress, setProgress] = useState(0);
   const storyTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Add missing functions from context
+  const goToNext = () => storiesContext.setNextStory?.();
+  const goToPrevious = () => storiesContext.setPreviousStory?.();
   
   // Handle story timer and progression
   useEffect(() => {
@@ -69,7 +72,7 @@ const StoriesViewer = () => {
         }
       };
     }
-  }, [viewerOpen, activeStoryIndex, activeGroupIndex, currentStoryGroup]);
+  }, [viewerOpen, activeStoryIndex, activeGroupIndex, currentStoryGroup, goToNext]);
   
   // Handle keyboard navigation
   useEffect(() => {
@@ -162,12 +165,19 @@ const StoriesViewer = () => {
   };
   
   if (publisherOpen) {
-    return <StoryPublisher isOpen={publisherOpen} onOpenChange={handlePublisherToggle} />;
+    return (
+      <StoryPublisher 
+        isOpen={publisherOpen} 
+        onOpenChange={handlePublisherToggle}
+        onClose={closePublisher}
+        onPublish={async () => null} // Stub implementation
+      />
+    );
   }
   
   return (
     <Dialog open={viewerOpen} onOpenChange={closeViewer}>
-      <DialogContent className="max-w-md p-0 h-[80vh] max-h-[700px] rounded-xl overflow-hidden" hideCloseButton>
+      <DialogContent className="max-w-md p-0 h-[80vh] max-h-[700px] rounded-xl overflow-hidden">
         {currentStory ? (
           <div className="relative h-full flex flex-col bg-black">
             {/* Progress indicators */}
@@ -203,7 +213,7 @@ const StoriesViewer = () => {
             {/* Story content */}
             <div 
               className="flex-1 w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${currentStory.mediaUrl})` }}
+              style={{ backgroundImage: `url(${currentStory.media_url || currentStory.mediaUrl})` }}
               onClick={handleStoryClick}
             >
               {/* Add dark gradient at bottom for better text visibility */}
@@ -223,7 +233,7 @@ const StoriesViewer = () => {
                     {currentGroupInfo?.username}
                   </h3>
                   <p className="text-xs text-white/70">
-                    {new Date(currentStory.createdAt).toLocaleString()}
+                    {new Date((currentStory.created_at || currentStory.createdAt).toDate()).toLocaleString()}
                   </p>
                 </div>
                 
@@ -243,8 +253,8 @@ const StoriesViewer = () => {
                 )}
               </div>
               
-              {currentStory.text && (
-                <p className="mt-2 text-white text-sm">{currentStory.text}</p>
+              {(currentStory.caption || currentStory.text) && (
+                <p className="mt-2 text-white text-sm">{currentStory.caption || currentStory.text}</p>
               )}
             </div>
           </div>

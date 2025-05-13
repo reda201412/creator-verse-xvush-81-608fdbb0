@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Brain, ZapFast, Crown, Edit2, Clock, Eye } from 'lucide-react';
+import { Brain, User, Sparkles, Moon, Sun, Zap, BarChart4, Activity } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const CognitiveProfilePanel = () => {
@@ -173,7 +172,7 @@ const CognitiveProfilePanel = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <div className="flex items-center space-x-2">
-                  <ZapFast className="h-4 w-4 text-primary" />
+                  <Zap className="h-4 w-4 text-primary" />
                   <span className="font-medium">Adaptation automatique du contenu</span>
                 </div>
                 <p className="text-sm text-muted-foreground">Ajuster automatiquement l'expérience cognitive</p>
