@@ -19,8 +19,8 @@ interface StoriesContextProps {
   openPublisher: () => void;
   closePublisher: () => void;
   deleteStory: (storyId: string) => Promise<boolean>;
-  setNextStory: () => void; // Add this function
-  setPreviousStory: () => void; // Add this function
+  setNextStory: () => void;
+  setPreviousStory: () => void;
 }
 
 const StoriesContext = createContext<StoriesContextProps>({
@@ -39,8 +39,8 @@ const StoriesContext = createContext<StoriesContextProps>({
   openPublisher: () => {},
   closePublisher: () => {},
   deleteStory: async () => false,
-  setNextStory: () => {}, // Add this function
-  setPreviousStory: () => {}, // Add this function
+  setNextStory: () => {},
+  setPreviousStory: () => {},
 });
 
 export const StoriesProvider = ({ children }: { children: React.ReactNode }) => {
