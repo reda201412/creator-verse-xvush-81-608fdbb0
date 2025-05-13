@@ -15,4 +15,23 @@ export interface VideoMetadata {
   type?: ContentType;
   format?: string;
   tags?: string[];
+  views?: number;
+  likes?: number;
+  watchHours?: number;
+  revenueGenerated?: number;
+}
+
+// Additional types for video restrictions
+export interface VideoRestrictions {
+  ageRestricted?: boolean;
+  minimumAge?: number;
+  geoblocked?: boolean;
+  allowedCountries?: string[];
+  tokenGated?: boolean;
+  requiredTokens?: number;
+}
+
+// Extended VideoMetadata with restrictions
+export interface EnhancedVideoMetadata extends VideoMetadata {
+  restrictions?: VideoRestrictions;
 }

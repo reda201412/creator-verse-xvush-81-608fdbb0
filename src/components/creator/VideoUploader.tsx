@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoMetadata, ContentType } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
+import useVideoUpload, { VideoFormValues } from './video-uploader/useVideoUpload';
 import { VideoFirestoreData } from '@/services/creatorService';
 
 interface VideoUploaderProps {
@@ -34,7 +34,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     videoFormat,
     isUploading,
     uploadProgress,
-    uploadError,
+    error,
     uploadStage,
     handleVideoChange,
     handleThumbnailChange,
@@ -49,7 +49,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   // Check for authentication
   useEffect(() => {
     if (isOpen && !user) {
-      toast("Authentification requise", {
+      toast({
+        title: "Authentification requise",
         description: "Vous devez être connecté pour téléverser des vidéos."
       });
       setIsOpen(false);
@@ -75,7 +76,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     onUploadComplete(completeMetadata);
     triggerMicroReward('interaction');
 
-    toast("Vidéo téléchargée avec succès", {
+    toast({
+      title: "Vidéo téléchargée avec succès",
       description: "Votre vidéo a été mise en ligne et est maintenant visible."
     });
 
@@ -117,7 +119,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               videoFormat={videoFormat}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
-              uploadError={uploadError}
+              uploadError={error}
               uploadStage={uploadStage}
               handleVideoChange={handleVideoChange}
               handleThumbnailChange={handleThumbnailChange}
@@ -129,7 +131,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               }}
               onSubmit={async (values: VideoFormValues, onUploadProgress: (progress: number) => void) => {
                 if (!videoFile) {
-                  toast("Information manquante", {
+                  toast({
+                    title: "Information manquante",
                     description: "Veuillez fournir une vidéo et un titre."
                   });
                   return;
@@ -143,7 +146,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   }
                 } catch (error: any) {
                   console.error('Upload error:', error);
-                  toast("Erreur de téléchargement", {
+                  toast({
+                    title: "Erreur de téléchargement",
                     description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
                   });
                 }

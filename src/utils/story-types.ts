@@ -20,12 +20,22 @@ export interface FirestoreStory {
   is_highlighted?: boolean;
 }
 
+// Helper function to convert format string to acceptable format type
+function convertFormat(format: string): '16:9' | '9:16' | '1:1' {
+  if (format === '16:9' || format === '9:16' || format === '1:1') {
+    return format as '16:9' | '9:16' | '1:1';
+  }
+  // Default to 9:16 if format is invalid
+  return '9:16';
+}
+
 // Adapter function to convert FirestoreStory to Story
 export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Story {
   return {
     id: firestoreStory.id,
     creator_id: firestoreStory.creatorId,
     media_url: firestoreStory.mediaUrl || '',
+    thumbnail_url: firestoreStory.thumbnailUrl,
     created_at: firestoreStory.createdAt ? 
       (typeof firestoreStory.createdAt.toDate === 'function' ? 
         firestoreStory.createdAt.toDate().toISOString() : 
@@ -41,7 +51,6 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
     duration: firestoreStory.duration || 10,
     view_count: firestoreStory.view_count || 0,
     is_highlighted: firestoreStory.is_highlighted || false,
-    thumbnail_url: firestoreStory.thumbnailUrl,
     creator: {
       id: firestoreStory.creatorId,
       username: '',
@@ -51,15 +60,6 @@ export function adaptFirestoreStoryToStory(firestoreStory: FirestoreStory): Stor
       role: 'fan'
     }
   };
-}
-
-// Helper function to convert format string to acceptable format type
-function convertFormat(format: string): '16:9' | '9:16' | '1:1' {
-  if (format === '16:9' || format === '9:16' || format === '1:1') {
-    return format as '16:9' | '9:16' | '1:1';
-  }
-  // Default to 9:16 if format is invalid
-  return '9:16';
 }
 
 export function adaptFirestoreStoriesToStories(firestoreStories: FirestoreStory[]): Story[] {

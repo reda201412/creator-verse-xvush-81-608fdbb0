@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { getTronWalletData, TronWalletResponse } from '@/services/tron.service';
 
@@ -12,7 +13,13 @@ export interface WalletInfo {
   balance_trx?: number;
   is_verified: boolean;
   transactions?: any[];
-  created_at?: Date | string;
+  createdAt?: Date | string;
+  wallet?: {
+    balance_usdt: number;
+    tron_address?: string;
+    is_verified: boolean;
+    balance_trx?: number;
+  };
   subscription?: {
     id: string;
     is_active: boolean;
@@ -30,7 +37,7 @@ export const useTronWallet = () => {
     balance: 0,
     is_verified: false,
     transactions: [],
-    created_at: new Date()
+    createdAt: new Date()
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -40,7 +47,12 @@ export const useTronWallet = () => {
     balance_usdt: wallet.balance,
     tron_address: wallet.address,
     is_verified: wallet.is_verified || false,
-    created_at: wallet.createdAt,
+    createdAt: wallet.createdAt,
+    wallet: {
+      balance_usdt: wallet.balance,
+      tron_address: wallet.address,
+      is_verified: wallet.is_verified || false,
+    },
     subscription: {
       id: 'sub_123',
       is_active: true,
@@ -59,7 +71,10 @@ export const useTronWallet = () => {
     try {
       const userId = localStorage.getItem('userId') || 'default-user';
       const walletData = await getTronWalletData(userId);
-      setWallet(walletData);
+      setWallet({
+        ...walletData,
+        createdAt: new Date()
+      });
     } catch (err) {
       setError('Failed to load wallet information');
       console.error(err);
@@ -76,7 +91,7 @@ export const useTronWallet = () => {
       balance: 100,
       is_verified: true,
       transactions: [],
-      created_at: new Date()
+      createdAt: new Date()
     });
     return true;
   };

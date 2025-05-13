@@ -1,36 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { VideoData, getCreators, CreatorProfile } from '@/services/creatorService';
-import { getAllVideos } from '@/services/creatorService';
+import { VideoData, getCreators, getAllVideos, CreatorProfile } from '@/services/creatorService';
 import { useAuth } from '@/contexts/AuthContext';
 import CreatorCard from '@/components/creator/CreatorCard';
 import VideoCard from '@/components/creator/videos/VideoCard';
-import { ContentType } from '@/types/video';
 import { Input } from '@/components/ui/input';
 import { Search, Users, Video } from 'lucide-react';
 
-interface TrendingContentProps {
-  // Define any props this component might receive
-}
-
-const TrendingContent: React.FC<TrendingContentProps> = () => {
+const TrendingContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // Update video and creator state types
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const { user } = useAuth();
 
-  // Fix the getAllCreators call
   useEffect(() => {
     const fetchData = async () => {
       try {
         const videoData = await getAllVideos();
-        setVideos(videoData.map(video => ({
-          ...video,
-          type: video.type as ContentType || 'standard',
-        })));
+        setVideos(videoData);
         
         const creatorData = await getCreators();
         setCreators(creatorData);
@@ -42,7 +31,6 @@ const TrendingContent: React.FC<TrendingContentProps> = () => {
     fetchData();
   }, []);
 
-  // Fix the filtering logic for videos
   const filteredVideos = videos.filter(video => {
     if (activeTab !== 'all' && video.format !== activeTab) {
       return false;
@@ -54,8 +42,11 @@ const TrendingContent: React.FC<TrendingContentProps> = () => {
   });
 
   const handleVideoClick = (video: VideoData) => {
-    // Handle video click logic
     console.log('Video clicked:', video);
+  };
+  
+  const handleCreatorClick = (creator: CreatorProfile) => {
+    console.log('Creator clicked:', creator);
   };
 
   return (
@@ -68,7 +59,6 @@ const TrendingContent: React.FC<TrendingContentProps> = () => {
             <TabsTrigger value="all">Tous</TabsTrigger>
             <TabsTrigger value="9:16">Xtease</TabsTrigger>
             <TabsTrigger value="16:9">Standard</TabsTrigger>
-            {/* Add more tabs as needed */}
           </TabsList>
         </Tabs>
 
@@ -106,7 +96,7 @@ const TrendingContent: React.FC<TrendingContentProps> = () => {
             avatarUrl={creator.avatarUrl}
             bio={creator.bio || ''}
             followersCount={creator.followersCount || 0}
-            isOnline={false}
+            isOnline={creator.isOnline || false}
           />
         ))}
       </div>

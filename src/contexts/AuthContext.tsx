@@ -9,10 +9,11 @@ export interface AuthContextProps {
   isCreator: boolean;
   isLoading: boolean;
   error: string | null;
-  signOut: () => Promise<void>; // Add signOut method
-  firebaseSignOut: () => Promise<void>; // Add firebaseSignOut method
-  updateProfile: (profile: Partial<UserProfile>) => Promise<void>; // Add updateProfile method
-  becomeCreator: () => Promise<void>; // Add becomeCreator method
+  signOut: () => Promise<void>; 
+  firebaseSignOut: () => Promise<void>; 
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>; 
+  becomeCreator: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
 }
 
 // Create the context with a default value
@@ -22,10 +23,11 @@ const AuthContext = createContext<AuthContextProps>({
   isCreator: false,
   isLoading: true,
   error: null,
-  signOut: async () => {}, // Provide empty implementations
+  signOut: async () => {}, 
   firebaseSignOut: async () => {},
   updateProfile: async () => {},
-  becomeCreator: async () => {}
+  becomeCreator: async () => {},
+  login: async () => {}
 });
 
 // Export the custom hook for consuming the context
@@ -49,6 +51,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Alias for firebaseSignOut
   const firebaseSignOut = signOut;
+
+  // Mock implementation for login
+  const login = async (email: string, password: string): Promise<void> => {
+    // Implementation would go here
+    console.log('User logged in', email);
+    setUser({ uid: 'user123', id: 'user123', email });
+    setProfile({
+      id: 'user123',
+      uid: 'user123',
+      username: 'testuser',
+      displayName: 'Test User',
+      role: 'fan'
+    });
+  };
 
   // Mock implementation for update profile
   const updateProfile = async (updatedProfile: Partial<UserProfile>): Promise<void> => {
@@ -90,7 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     firebaseSignOut,
     updateProfile,
-    becomeCreator
+    becomeCreator,
+    login
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
