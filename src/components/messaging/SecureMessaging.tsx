@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,7 +36,8 @@ import {
   ExtendedFirestoreMessage, 
   ExtendedFirestoreMessageThread,
   adaptExtendedFirestoreThreadsToMessageThreads,
-  timestampToISOString
+  timestampToISOString,
+  convertToExtendedMessage
 } from '@/utils/messaging-types';
 import { useModals } from '@/hooks/use-modals';
 
@@ -162,7 +164,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
               messages: newThreadsMap.get(change.doc.id)?.messages || [],
             } as ExtendedFirestoreMessageThread;
             if (change.type === "added" || change.type === "modified") {
-              newThreadsMap.set(change.doc.id, changedThreadData);
+              newThreadsMap.set(change.doc.id, changedThreadData as ExtendedFirestoreMessageThread);
             } else if (change.type === "removed") {
               newThreadsMap.delete(change.doc.id);
             }
@@ -193,22 +195,25 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
         isInitialLoad ? null : lastVisibleMessageDoc
       );
       setThreads((prevThreads) =>
-        prevThreads.map((thread) =>
-          thread.id === activeThreadId
-            ? {
-                ...thread,
-                messages:
-                  isInitialLoad
-                    ? newMessagesData
-                    : [...newMessagesData, ...thread.messages].sort(
-                        (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
-                                  ((b.createdAt as Timestamp)?.toMillis?.() || 0)
-                      ),
-              }
-            : thread
-        )
+        prevThreads.map((thread) => {
+          if (thread.id === activeThreadId) {
+            // Convert regular FirestoreMessages to ExtendedFirestoreMessages
+            const extendedMessages = newMessagesData.map(convertToExtendedMessage);
+            return {
+              ...thread,
+              messages:
+                isInitialLoad
+                  ? extendedMessages
+                  : [...extendedMessages, ...thread.messages].sort(
+                      (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
+                                ((b.createdAt as Timestamp)?.toMillis?.() || 0)
+                    ),
+            };
+          }
+          return thread;
+        })
       );
-      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
+      setLastVisibleMessageDoc(newLastVisibleDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, effectiveUserId);
     } catch (error) {
@@ -247,33 +252,37 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
     const unsubscribeMessages = onSnapshot(
       queryRef,
       (snapshot) => {
-        const newMessages: FirestoreMessage[] = [];
+        const newMessages: ExtendedFirestoreMessage[] = [];
         snapshot.docChanges().forEach((change) => {
-          if (change.type === "added")
-            newMessages.push({ id: change.doc.id, ...change.doc.data() } as FirestoreMessage);
+          if (change.type === "added") {
+            const messageData = { id: change.doc.id, ...change.doc.data() } as FirestoreMessage;
+            // Convert to ExtendedFirestoreMessage
+            newMessages.push(convertToExtendedMessage(messageData));
+          }
         });
         if (newMessages.length > 0) {
           setThreads((prevThreads) =>
-            prevThreads.map((thread) =>
-              thread.id === activeThreadId
-                ? {
-                    ...thread,
-                    messages:
-                      [...thread.messages, ...newMessages].sort(
-                        (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
-                                  ((b.createdAt as Timestamp)?.toMillis?.() || 0)
-                      ),
-                    lastActivity: newMessages[newMessages.length - 1].createdAt as Timestamp,
-                    lastMessageText: newMessages[newMessages.length - 1].content,
-                    lastMessageSenderId: newMessages[newMessages.length - 1].senderId,
-                    readStatus: {
-                      ...(thread.readStatus || {}),
-                      [newMessages[newMessages.length - 1].senderId]:
-                        newMessages[newMessages.length - 1].createdAt as Timestamp,
-                    },
-                  }
-                : thread
-            )
+            prevThreads.map((thread) => {
+              if (thread.id === activeThreadId) {
+                return {
+                  ...thread,
+                  messages:
+                    [...thread.messages, ...newMessages].sort(
+                      (a, b) => ((a.createdAt as Timestamp)?.toMillis?.() || 0) - 
+                                ((b.createdAt as Timestamp)?.toMillis?.() || 0)
+                    ),
+                  lastActivity: newMessages[newMessages.length - 1].createdAt as Timestamp,
+                  lastMessageText: newMessages[newMessages.length - 1].content,
+                  lastMessageSenderId: newMessages[newMessages.length - 1].senderId,
+                  readStatus: {
+                    ...(thread.readStatus || {}),
+                    [newMessages[newMessages.length - 1].senderId]:
+                      newMessages[newMessages.length - 1].createdAt as Timestamp,
+                  },
+                };
+              }
+              return thread;
+            })
           );
           const lastNewMessage = newMessages[newMessages.length - 1];
           if (lastNewMessage.senderId !== effectiveUserId) {
@@ -320,6 +329,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       ...(supportData && { monetization: supportData }),
       sender_name: effectiveUserName,
       sender_avatar: effectiveUserAvatar,
+      recipientId: '',  // We'll set this to a default empty string
     };
     
     setThreads((prevThreads) =>
@@ -345,13 +355,15 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({
       });
       if (supportData) {
         triggerHaptic('strong'); 
-        toast("Message de soutien envoyé", {
+        toast({
+          title: "Message de soutien envoyé",
           description: "Votre message de soutien a été envoyé avec succès"
         });
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast("Failed to send message", {
+      toast({
+        title: "Failed to send message",
         description: "Please check your connection and try again.",
         variant: "destructive",
       });

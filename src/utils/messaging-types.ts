@@ -52,6 +52,16 @@ export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: ExtendedFirestoreMessage[];
 }
 
+// Helper function to convert FirestoreMessage to ExtendedFirestoreMessage
+export function convertToExtendedMessage(message: FirestoreMessage): ExtendedFirestoreMessage {
+  return {
+    ...message,
+    sender_name: message.sender_name || '',
+    sender_avatar: message.sender_avatar || '',
+    recipientId: message.recipientId || '',
+  };
+}
+
 // Function to adapt Firestore threads to MessageThread format
 export function adaptExtendedFirestoreThreadsToMessageThreads(
   firebaseThreads: ExtendedFirestoreMessageThread[]
