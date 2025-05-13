@@ -1,13 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { useStories } from '@/hooks/use-stories';
+import React, { useEffect } from 'react';
+import { useStories, StoriesProvider } from '@/hooks/use-stories';
 import StoriesViewer from '@/components/stories/StoriesViewer';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
-import { StoriesProvider } from '@/hooks/use-stories';
 
 const Index = () => {
-  const [loading, setLoading] = useState(true);
-  
   return (
     <StoriesProvider>
       <IndexContent />
@@ -19,8 +16,8 @@ const IndexContent = () => {
   const { storyGroups, openViewer, loadStories, isLoading } = useStories();
   
   useEffect(() => {
-    loadStories().finally(() => {
-      console.log('Stories loaded');
+    loadStories().catch(error => {
+      console.error('Error loading stories:', error);
     });
   }, [loadStories]);
   

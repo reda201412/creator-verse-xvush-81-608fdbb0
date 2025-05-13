@@ -30,14 +30,16 @@ const StoriesViewer = () => {
     publisherOpen, 
     closeViewer,
     openPublisher,
-    closePublisher
+    closePublisher,
+    setNextStory,
+    setPreviousStory
   } = storiesContext;
   const [progress, setProgress] = useState(0);
   const storyTimer = useRef<NodeJS.Timeout | null>(null);
-
+  
   // Add missing functions from context
-  const goToNext = () => storiesContext.setNextStory?.();
-  const goToPrevious = () => storiesContext.setPreviousStory?.();
+  const goToNext = () => setNextStory();
+  const goToPrevious = () => setPreviousStory();
   
   // Handle story timer and progression
   useEffect(() => {
@@ -193,6 +195,12 @@ const StoriesViewer = () => {
     }
   };
   
+  // Get media URL with fallback
+  const getMediaUrl = (story: Story | null) => {
+    if (!story) return '';
+    return story.media_url || story.mediaUrl || '';
+  };
+  
   return (
     <Dialog open={viewerOpen} onOpenChange={closeViewer}>
       <DialogContent className="max-w-md p-0 h-[80vh] max-h-[700px] rounded-xl overflow-hidden">
@@ -231,7 +239,7 @@ const StoriesViewer = () => {
             {/* Story content */}
             <div 
               className="flex-1 w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${currentStory.media_url || currentStory.mediaUrl})` }}
+              style={{ backgroundImage: `url(${getMediaUrl(currentStory)})` }}
               onClick={handleStoryClick}
             >
               {/* Add dark gradient at bottom for better text visibility */}
@@ -243,7 +251,7 @@ const StoriesViewer = () => {
               <div className="flex items-center">
                 <Avatar className="h-12 w-12 border-2 border-white cursor-pointer" onClick={handleProfileClick}>
                   <AvatarImage src={currentGroupInfo?.avatarUrl} />
-                  <AvatarFallback>{currentGroupInfo?.username?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarFallback>{currentGroupInfo?.username?.substring(0, 2)?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 
                 <div className="ml-3 flex-1 min-w-0">

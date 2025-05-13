@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { StoryGroup, Story } from '@/utils/story-types';
 import { toast } from '@/hooks/use-toast';
@@ -64,12 +65,12 @@ export const StoriesProvider = ({ children }: { children: React.ReactNode }) => 
           id: '1',
           userId: 'user1',
           username: 'john_doe',
-          avatarUrl: 'https://placehold.co/150x150 ',
+          avatarUrl: 'https://placehold.co/150x150',
           stories: [
             {
               id: 's1',
               creator_id: 'user1',
-              media_url: 'https://placehold.co/800x600 ',
+              media_url: 'https://placehold.co/800x600',
               format: 'image',
               created_at: new Date(),
               expire_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
