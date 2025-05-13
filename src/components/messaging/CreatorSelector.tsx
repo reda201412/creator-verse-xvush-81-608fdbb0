@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-// import { fetchAvailableCreators } from '@/utils/create-conversation-utils'; // Supprimé
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; // Modifié
+import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -10,15 +9,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
-// Utiliser CreatorProfileData ou une version simplifiée si nécessaire
-// Pour l'instant, on s'aligne sur CreatorProfileData pour les champs disponibles
+// Define a more complete interface that matches what we get from the service
+interface Creator {
+  uid: string;
+  id?: string;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  bio?: string;
+  // Add any other fields that might be needed
+}
+
 interface CreatorSelectorProps {
-  onSelectCreator: (creator: CreatorProfileData) => void;
+  onSelectCreator: (creator: Creator) => void;
   onCancel: () => void;
 }
 
 const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCancel }) => {
-  const [creators, setCreators] = useState<CreatorProfileData[]>([]);
+  const [creators, setCreators] = useState<Creator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
@@ -28,8 +36,20 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
     const loadCreators = async () => {
       setIsLoading(true);
       try {
-        const fetchedCreators = await getAllCreators(); // Utilise la fonction de service Firebase
-        setCreators(fetchedCreators);
+        // This function needs to be updated to return data that matches the Creator interface
+        const fetchedCreators = await getAllCreators(); 
+        
+        // Map the data to match our Creator interface
+        const mappedCreators: Creator[] = fetchedCreators.map(creator => ({
+          uid: creator.id || creator.uid || '',
+          id: creator.id || creator.uid || '',
+          username: creator.username || '',
+          displayName: creator.name || creator.displayName || creator.username || '',
+          avatarUrl: creator.avatar || creator.avatarUrl || '',
+          bio: creator.bio || ''
+        }));
+        
+        setCreators(mappedCreators);
       } catch (error) {
         console.error("Error loading creators for selector:", error);
         toast({ title: "Erreur", description: "Impossible de charger les créateurs.", variant: "destructive" });
@@ -42,12 +62,12 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
   
   const filteredCreators = creators.filter(creator => {
     const searchLower = searchTerm.toLowerCase();
-    const nameLower = creator.displayName?.toLowerCase() || creator.username?.toLowerCase() || '';
+    const nameLower = creator.displayName?.toLowerCase() || '';
     const usernameLower = creator.username?.toLowerCase() || '';
     return nameLower.includes(searchLower) || usernameLower.includes(searchLower);
   });
   
-  const handleSelectCreator = (creator: CreatorProfileData) => {
+  const handleSelectCreator = (creator: Creator) => {
     triggerHaptic('light');
     onSelectCreator(creator);
   };
@@ -84,7 +104,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
           <div className="space-y-2">
             {filteredCreators.map((creator) => (
               <div
-                key={creator.uid} // Utiliser uid comme clé unique
+                key={creator.uid}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={() => handleSelectCreator(creator)}
               >

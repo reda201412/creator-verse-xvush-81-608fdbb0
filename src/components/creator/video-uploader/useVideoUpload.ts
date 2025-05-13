@@ -1,9 +1,8 @@
-
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ContentType } from '@/types/video';
 import { z } from 'zod';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { db } from '@/integrations/firebase/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { VideoFirestoreData } from '@/services/creatorService';
@@ -38,7 +37,7 @@ const useVideoUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState<string>('prêt');
-  const { isMobile } = useMobile();
+  const { isMobile } = useIsMobile();
   const { user } = useAuth();
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +130,7 @@ const useVideoUpload = () => {
         setIsUploading(false);
       }
     }
-  }, [user, videoFormat]);
+  }, [user, videoFormat, uploadStage]);
 
   return {
     videoFile, thumbnailFile, videoPreviewUrl, thumbnailPreviewUrl, videoFormat,

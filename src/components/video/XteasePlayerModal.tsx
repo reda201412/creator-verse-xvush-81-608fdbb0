@@ -9,7 +9,7 @@ import useHapticFeedback from '@/hooks/use-haptic-feedback';
 interface XteasePlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  videoSrc: string;
+  videoSrc: string; // This will be used as playbackId
   thumbnailUrl?: string;
   title?: string;
 }
@@ -57,7 +57,7 @@ const XteasePlayerModal: React.FC<XteasePlayerModalProps> = ({
       
       <div className="xtease-video-container h-full w-full">
         <XteaseVideoPlayer
-          src={videoSrc}
+          playbackId={videoSrc}
           thumbnailUrl={thumbnailUrl}
           title={title}
           autoPlay={true}

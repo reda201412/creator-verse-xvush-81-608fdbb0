@@ -1,18 +1,18 @@
+
 import { ref, onValue, off } from 'firebase/database';
 import { useState, useEffect } from 'react';
-import { db } from '@/integrations/firebase/firebase';
-
+import { realtimeDb } from '@/integrations/firebase/firebase';
 
 const usePresence = (userId: string | undefined) => {
   const [presence, setPresence] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !realtimeDb) {
       setPresence(null);
       return;
     }
 
-    const userStatusRef = ref(db, `status/${userId}/state`);
+    const userStatusRef = ref(realtimeDb, `status/${userId}/state`);
 
     const updatePresence = (snapshot: any) => {
       const status = snapshot.val();

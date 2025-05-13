@@ -9,7 +9,7 @@ import { useUserBehavior } from '@/hooks/use-user-behavior';
 import CreativeEconomy from './economy/CreativeEconomy';
 import ProgressionSystem from './progression/ProgressionSystem';
 import ImmersiveExperience from './immersive/ImmersiveExperience';
-import AdaptiveMoodLighting from './neuro-aesthetic/AdaptiveMoodLighting';
+import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 import CognitiveProfilePanel from './settings/CognitiveProfilePanel';
 import { Brain, Coins, Trophy, ArrowUpRight, Sparkles, LineChart, Layers, ScrollText } from 'lucide-react';
 import { Creator, Investment } from './economy/types';

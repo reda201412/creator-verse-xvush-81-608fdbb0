@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import {
   Lock, Image, Video, Phone, Loader2, ArrowUpCircle
 } from 'lucide-react';
+import { Message, MessageThread } from '@/types/messaging';
 import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; // Types Firestore
 import { MonetizationTier } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
@@ -13,11 +15,17 @@ import MessageInput from './MessageInput';
 import { decryptMessage } from '@/utils/encryption';
 import { Timestamp } from 'firebase/firestore'; // Importer Timestamp pour le tri
 
+// Extend FirestoreMessageThread to include messages property
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, Timestamp>;
+}
+
 interface ConversationViewProps {
   /**
    * The message thread to display.
    */
-  thread: FirestoreMessageThread;
+  thread: ExtendedFirestoreMessageThread;
   /**
    * The current user's ID.
    */
@@ -157,6 +165,18 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     onLoadMoreMessages();
   }
 
+  // Function to render content - was missing in the original file
+  const renderContent = (message: FirestoreMessage) => {
+    // Default implementation
+    return message.content as string;
+  };
+
+  // Function to handle reaction - was missing in the original file
+  const handleReaction = (messageId: string, reaction: string) => {
+    console.log(`Reaction ${reaction} for message ${messageId}`);
+    // Implement reaction handling
+  };
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header */}
@@ -199,6 +219,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({
               isCurrentUser={message.senderId === userId}
               sessionKey={sessionKey}
               decryptMessage={handleDecryptMessage}
+              renderContent={renderContent}
+              onReaction={handleReaction}
             />
           ))}
         </div>

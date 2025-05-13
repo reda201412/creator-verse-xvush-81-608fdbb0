@@ -10,17 +10,22 @@ interface XteaseVideoPlayerProps {
   muted?: boolean;     // Optional muted flag
   loop?: boolean;      // Optional loop flag
   className?: string;  // Optional class name for styling
+  thumbnailUrl?: string; // Alias for poster for compatibility
 }
 
 const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   playbackId,
   title = 'Xtease Video',
   poster,
+  thumbnailUrl,
   autoPlay = false,
   muted = false,
   loop = false,
   className,
 }) => {
+  // Use thumbnailUrl as a fallback for poster
+  const posterImage = poster || thumbnailUrl;
+
   if (!playbackId) {
     console.error('XteaseVideoPlayer: No playback ID provided');
     return (
@@ -35,7 +40,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
       playbackId={playbackId}
       streamType="on-demand"
       className={className}
-      poster={poster}
+      poster={posterImage}
       autoPlay={autoPlay}
       muted={muted}
       loop={loop}
