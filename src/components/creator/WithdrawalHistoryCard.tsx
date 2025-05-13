@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,14 +97,10 @@ const WithdrawalHistoryCard: React.FC<WithdrawalHistoryCardProps> = ({
       link.click();
       document.body.removeChild(link);
       
-      toast("Export réussi", {
-        description: "L'historique des retraits a été téléchargé"
-      });
+      toast("Export réussi - L'historique des retraits a été téléchargé");
     } catch (error) {
       console.error('Failed to export withdrawal history:', error);
-      toast("Erreur d'export", {
-        description: "Une erreur s'est produite lors de l'export"
-      });
+      toast("Erreur d'export - Une erreur s'est produite lors de l'export");
     } finally {
       setIsLoading(false);
     }

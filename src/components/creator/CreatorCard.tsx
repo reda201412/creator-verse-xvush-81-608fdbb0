@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -46,9 +47,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 
   const handleFollowToggle = async () => {
     if (!user) {
-      toast("Authentification requise", {
-        description: "Vous devez être connecté pour suivre un créateur",
-      });
+      toast("Authentification requise - Vous devez être connecté pour suivre un créateur");
       return;
     }
     
@@ -60,25 +59,19 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
         if (success) {
           setIsFollowing(false);
           setLocalFollowersCount(prev => prev - 1);
-          toast("Désabonnement", {
-            description: `Vous ne suivez plus ${displayName}`
-          });
+          toast("Désabonnement - Vous ne suivez plus " + displayName);
         }
       } else {
         const success = await followCreator(user.id, id);
         if (success) {
           setIsFollowing(true);
           setLocalFollowersCount(prev => prev + 1);
-          toast("Abonnement", {
-            description: `Vous suivez maintenant ${displayName}`
-          });
+          toast("Abonnement - Vous suivez maintenant " + displayName);
         }
       }
     } catch (error) {
       console.error('Failed to toggle follow status:', error);
-      toast("Erreur", {
-        description: "Une erreur s'est produite. Veuillez réessayer.",
-      });
+      toast("Erreur - Une erreur s'est produite. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
     }
