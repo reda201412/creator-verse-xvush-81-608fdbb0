@@ -3,6 +3,7 @@ import { toast as sonnerToast } from "sonner";
 
 // Define the types for our toast functions
 export type ToastProps = {
+  title?: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
   variant?: "default" | "destructive";
@@ -10,8 +11,7 @@ export type ToastProps = {
 
 // Create a custom toast hook that wraps the Sonner toast
 export function useToast() {
-  // This function simply passes the title and other properties to the Sonner toast
-  const toast = (title: string, props?: ToastProps) => {
+  const toast = (title: string, props?: Omit<ToastProps, "title">) => {
     if (props?.variant === "destructive") {
       return sonnerToast.error(title, { description: props.description });
     }
@@ -22,7 +22,7 @@ export function useToast() {
 }
 
 // Export the toast function directly for convenience
-export const toast = (title: string, props?: ToastProps) => {
+export const toast = (title: string, props?: Omit<ToastProps, "title">) => {
   if (props?.variant === "destructive") {
     return sonnerToast.error(title, { description: props.description });
   }

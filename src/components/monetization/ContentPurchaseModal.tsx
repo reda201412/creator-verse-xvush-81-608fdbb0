@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 interface ContentPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPurchaseComplete: () => void; // Add this missing prop
   contentId: string;
   contentTitle: string;
   contentThumbnail: string;
@@ -23,7 +25,8 @@ const ContentPurchaseModal = ({
   contentTitle,
   contentThumbnail,
   pricing,
-  userTokenBalance
+  userTokenBalance,
+  onPurchaseComplete
 }: ContentPurchaseModalProps) => {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isPurchased, setIsPurchased] = useState(false);
@@ -44,6 +47,7 @@ const ContentPurchaseModal = ({
       
       setTimeout(() => {
         onClose();
+        onPurchaseComplete(); // Call the onPurchaseComplete callback
       }, 1500);
       
       return true;

@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 
 // Enhanced FirestoreMessage type with additional properties for compatibility
 export interface FirestoreMessage {
-  id: string;
+  id: string; // Make id required, not optional
   senderId: string;
   content: string;
   createdAt: Timestamp;
@@ -20,7 +20,7 @@ export interface FirestoreMessageThread {
   id?: string;
   participantIds: string[];
   name?: string;
-  messages?: FirestoreMessage[];
+  messages: FirestoreMessage[]; // Make sure messages exists and is required
   readStatus?: Record<string, Timestamp>;
   participants?: string[]; 
   lastActivity?: Timestamp;
@@ -43,9 +43,9 @@ export function timestampToISOString(timestamp?: Timestamp): string {
 
 // Extended types for adapting Firestore data to MessageThread format
 export interface ExtendedFirestoreMessage extends FirestoreMessage {
-  sender_name?: string;
-  sender_avatar?: string;
-  recipientId?: string;
+  sender_name: string;
+  sender_avatar: string;
+  recipientId: string;
 }
 
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
