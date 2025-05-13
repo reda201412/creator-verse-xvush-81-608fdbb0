@@ -37,7 +37,7 @@ const StoriesViewer = () => {
   const [progress, setProgress] = useState(0);
   const storyTimer = useRef<NodeJS.Timeout | null>(null);
   
-  // Add missing functions from context
+  // Use the context methods directly to avoid undefined issues
   const goToNext = () => setNextStory();
   const goToPrevious = () => setPreviousStory();
   
@@ -67,7 +67,11 @@ const StoriesViewer = () => {
       if (activeStoryIndex !== undefined && 
           activeGroupIndex !== undefined && 
           currentStoryGroup[activeStoryIndex]) {
-        markAsViewed(currentStoryGroup[activeStoryIndex].id);
+        try {
+          markAsViewed(currentStoryGroup[activeStoryIndex].id);
+        } catch (error) {
+          console.error("Error marking story as viewed:", error);
+        }
       }
       
       return () => {
@@ -107,13 +111,17 @@ const StoriesViewer = () => {
   // Reload stories when viewer is opened
   useEffect(() => {
     if (viewerOpen) {
-      loadStories().catch(error => {
-        console.error('Error loading stories:', error);
-      });
+      try {
+        loadStories().catch(error => {
+          console.error('Error loading stories:', error);
+        });
+      } catch (error) {
+        console.error('Error calling loadStories:', error);
+      }
     }
   }, [viewerOpen]);
   
-  // Get current story
+  // Get current story with safety check
   const currentStory = activeStoryIndex !== undefined && 
                        currentStoryGroup?.length > 0 && 
                        activeStoryIndex < currentStoryGroup.length
@@ -174,7 +182,11 @@ const StoriesViewer = () => {
         isOpen={publisherOpen} 
         onOpenChange={handlePublisherToggle}
         onClose={closePublisher}
-        onPublish={async () => null} // Stub implementation
+        onPublish={async (formData) => {
+          console.log("Publish story with data:", formData);
+          // This is a stub implementation
+          return null;
+        }}
       />
     );
   }
@@ -184,13 +196,15 @@ const StoriesViewer = () => {
     if (!date) return '';
     
     try {
-      if (typeof date === 'object' && date.toDate && typeof date.toDate === 'function') {
+      // Handle Firebase Timestamp objects
+      if (date && typeof date === 'object' && date.toDate && typeof date.toDate === 'function') {
         return date.toDate().toLocaleString();
       }
       
+      // Handle regular Date objects or ISO strings
       return new Date(date).toLocaleString();
     } catch (err) {
-      console.error('Error formatting date:', err);
+      console.error('Error formatting date:', err, typeof date);
       return '';
     }
   };

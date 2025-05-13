@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Camera, Image, X, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -58,7 +58,11 @@ const StoryPublisher: React.FC<StoryPublisherProps> = ({
       
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size exceeds 10MB limit');
+        toast({
+          title: 'Error',
+          description: 'File size exceeds 10MB limit',
+          variant: 'destructive'
+        });
         return;
       }
       
@@ -69,12 +73,20 @@ const StoryPublisher: React.FC<StoryPublisherProps> = ({
   
   const handleGenerate = async () => {
     if (!mediaFile) {
-      toast.error('Please select a media file first');
+      toast({
+        title: 'Error',
+        description: 'Please select a media file first',
+        variant: 'destructive'
+      });
       return;
     }
     
     if (caption.length > 100) {
-      toast.error('Caption must be less than 100 characters');
+      toast({
+        title: 'Error',
+        description: 'Caption must be less than 100 characters',
+        variant: 'destructive'
+      });
       return;
     }
     
@@ -88,13 +100,24 @@ const StoryPublisher: React.FC<StoryPublisherProps> = ({
     setIsUploading(true);
     
     try {
-      await onPublish(formData);
+      const result = await onPublish(formData);
+      if (result) {
+        toast({
+          title: 'Success',
+          description: 'Story published successfully',
+        });
+      }
       resetForm();
     } catch (error) {
       console.error('Error publishing story:', error);
-      toast.error('Failed to publish story');
+      toast({
+        title: 'Error',
+        description: 'Failed to publish story',
+        variant: 'destructive'
+      });
     } finally {
       setIsUploading(false);
+      onClose();
     }
   };
   

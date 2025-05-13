@@ -60,6 +60,7 @@ export const StoriesProvider = ({ children }: { children: React.ReactNode }) => 
     setIsLoading(true);
     try {
       // Fetch stories from API (mock example)
+      // Ensure we're creating proper Date objects that won't cause issues when rendered
       const mockStoryGroups: StoryGroup[] = [
         {
           id: '1',
