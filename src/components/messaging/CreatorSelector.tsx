@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-// import { fetchAvailableCreators } from '@/utils/create-conversation-utils'; // Supprimé
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; // Modifié
+import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -10,8 +9,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
-// Utiliser CreatorProfileData ou une version simplifiée si nécessaire
-// Pour l'instant, on s'aligne sur CreatorProfileData pour les champs disponibles
 interface CreatorSelectorProps {
   onSelectCreator: (creator: CreatorProfileData) => void;
   onCancel: () => void;
@@ -28,7 +25,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
     const loadCreators = async () => {
       setIsLoading(true);
       try {
-        const fetchedCreators = await getAllCreators(); // Utilise la fonction de service Firebase
+        const fetchedCreators = await getAllCreators();
         setCreators(fetchedCreators);
       } catch (error) {
         console.error("Error loading creators for selector:", error);
@@ -84,20 +81,18 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
           <div className="space-y-2">
             {filteredCreators.map((creator) => (
               <div
-                key={creator.uid} // Utiliser uid comme clé unique
+                key={creator.id} // Use id as key instead of uid
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={() => handleSelectCreator(creator)}
               >
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
                     <img 
-                      src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.uid}`} 
+                      src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.id}`} 
                       alt={creator.displayName || creator.username}
                       className="object-cover w-full h-full"
                     />
                   </div>
-                  {/* Le statut en ligne (pastille verte) nécessiterait une vraie gestion de présence */}
-                  {/* <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span> */}
                 </div>
                 
                 <div className="flex-1">

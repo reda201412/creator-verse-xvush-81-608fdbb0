@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react'; // Ajout de useEffect
+import React, { useState, useEffect } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// import { supabase, checkUserFollowStatus, followCreator, unfollowCreator } from '@/integrations/supabase/client'; // Ancienne importation Supabase
-import { checkUserFollowsCreator, followCreator, unfollowCreator } from '@/services/creatorService'; // Modifié pour Firebase
+import { checkUserFollowsCreator, followCreator, unfollowCreator } from '@/services/creatorService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
@@ -12,8 +11,8 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface ContentCreatorCardProps {
   creator: {
-    id: string | number; // L'ID du document créateur (souvent uid)
-    userId: string; // Assurez-vous que c'est bien l'UID Firebase du créateur
+    id: string | number;
+    userId: string;
     username: string;
     name: string;
     avatar: string;
@@ -46,7 +45,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
       navigate('/auth');
       return;
     }
-    if (user.uid === creator.userId) {
+    if (user.id === creator.userId) {
       toast.info("Vous ne pouvez pas vous suivre vous-même.");
       return;
     }
@@ -56,7 +55,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     try {
       if (isFollowing) {
         // Unfollow
-        const success = await unfollowCreator(user.uid, creator.userId);
+        const success = await unfollowCreator(user.id, creator.userId);
         if (success) {
           setIsFollowing(false);
           toast.success(`Vous ne suivez plus ${creator.name}`);
@@ -65,7 +64,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
         }
       } else {
         // Follow
-        const success = await followCreator(user.uid, creator.userId);
+        const success = await followCreator(user.id, creator.userId);
         if (success) {
           setIsFollowing(true);
           toast.success(`Vous suivez maintenant ${creator.name}`, {
@@ -92,16 +91,14 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     const checkFollow = async () => {
       if (!user || !creator.userId) return;
       // Ne pas vérifier si l'utilisateur essaie de se suivre lui-même
-      if (user.uid === creator.userId) return;
+      if (user.id === creator.userId) return;
 
-      setIsLoading(true); // Peut-être un état de chargement séparé pour ceci
+      setIsLoading(true);
       try {
-        // Utiliser checkUserFollowsCreator de creatorService
-        const currentlyFollowing = await checkUserFollowsCreator(user.uid, creator.userId);
+        const currentlyFollowing = await checkUserFollowsCreator(user.id, creator.userId);
         setIsFollowing(currentlyFollowing);
       } catch (error) {
         console.error('Error checking follow status:', error);
-        // Ne pas afficher de toast d'erreur ici pour ne pas être intrusif
       } finally {
         setIsLoading(false);
       }
@@ -170,14 +167,13 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
             </div>
           )}
           
-          {/* Le bouton "Contacter" pourrait naviguer vers la page de messagerie ou ouvrir un modal */}
           <button 
             className="flex items-center hover:text-white transition-colors"
             onClick={(e) => {
                 e.preventDefault(); 
                 e.stopPropagation(); 
                 if(!user) {toast.error("Connectez-vous pour contacter un créateur."); navigate("/auth"); return;}
-                if(user.uid === creator.userId) {toast.info("Vous ne pouvez pas vous contacter vous-même."); return;}
+                if(user.id === creator.userId) {toast.info("Vous ne pouvez pas vous contacter vous-même."); return;}
                 navigate('/secure-messaging', { state: { creatorId: creator.userId, creatorName: creator.name, creatorAvatar: creator.avatar } });
             }}
           >
@@ -188,15 +184,14 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
         
         <div className="flex gap-2">
           <Link 
-            to={`/creator/${creator.username}`} // Ou `/creator/${creator.userId}` si username n'est pas unique ou si vous préférez l'ID
+            to={`/creator/${creator.username}`}
             className="flex-1 text-center text-xs font-medium bg-white/10 hover:bg-white/20 rounded-full py-2"
-            onClick={(e) => e.stopPropagation()} // Pour éviter de déclencher le onClick de la carte parente
+            onClick={(e) => e.stopPropagation()}
           >
             Profil
           </Link>
           
-          {/* Ne pas afficher le bouton Suivre/Ne plus suivre si c'est le profil de l'utilisateur connecté */}
-          {user && user.uid !== creator.userId && (
+          {user && user.id !== creator.userId && (
             <button 
               className={cn(
                 "flex-1 text-center text-xs font-medium rounded-full py-2",

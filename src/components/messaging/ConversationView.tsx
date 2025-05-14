@@ -8,17 +8,23 @@ import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
   Lock, Image, Video, Phone, Loader2, ArrowUpCircle
 } from 'lucide-react';
-import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; // Types Firestore
+import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; 
 import { MonetizationTier } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import { decryptMessage } from '@/utils/encryption';
-import { Timestamp } from 'firebase/firestore'; // Importer Timestamp pour le tri
+import { Timestamp } from 'firebase/firestore'; 
+
+// Extend FirestoreMessageThread to include messages
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, Timestamp>;
+}
 
 interface ConversationViewProps {
-  thread: FirestoreMessageThread;
+  thread: ExtendedFirestoreMessageThread;
   userId: string;
-  userName: string; // Peut-être redondant si participantInfo est bien peuplé sur le thread
+  userName: string; 
   onSendMessage: (content: string, supportData?: any) => void;
   sessionKey: string;
   isSecurityEnabled: boolean;
@@ -45,7 +51,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   hasMoreMessages
 }) => {
   const [isComposing, setIsComposing] = useState(false);
-  // const [showMonetizationPanel, setShowMonetizationPanel] = useState(false); // Non utilisé, à vérifier
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
   const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
   const [monetizationAmount, setMonetizationAmount] = useState(1.99);
@@ -53,7 +58,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousScrollHeightRef = useRef<number | null>(null);
-  const { toast } = useToast(); // toast non utilisé, à vérifier si nécessaire
+  const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
   
   useEffect(() => {
@@ -93,12 +98,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const handleSendMessageWrapper = (content: string) => {
     if (!content.trim()) return;
     triggerHaptic('light');
-    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount, /* ... */ } : undefined;
+    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount /* ... */ } : undefined;
     onSendMessage(content, supportData);
     if (monetizationEnabled) setMonetizationEnabled(false);
   };
   
-  const toggleMonetization = () => {}; // Remplacé par une fonction vide pour tester
+  const toggleMonetization = () => {}; // Empty function placeholder
   
   const otherParticipant = getOtherParticipantInfo();
 
@@ -107,7 +112,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         previousScrollHeightRef.current = scrollAreaRef.current.scrollHeight;
     }
     onLoadMoreMessages();
-  }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
@@ -118,10 +123,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
               <img src={otherParticipant.avatarUrl || `https://i.pravatar.cc/150?u=${thread.participantIds.find(pId => pId !== userId)}`} alt={otherParticipant.displayName} className="w-full h-full object-cover" />
             </div>
-            {/* Statut en ligne à implémenter */}
           </div>
           <div className="flex-1"><h3 className="font-medium text-gray-900 dark:text-gray-100">{otherParticipant.displayName}</h3></div>
-          <div className="flex gap-2"> {/* ... boutons Phone/Video ... */} </div>
+          <div className="flex gap-2">{/* ... buttons ... */}</div>
         </div>
       </div>
 
@@ -144,7 +148,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({
              <div className="flex justify-center py-2"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         )}
         <div className="space-y-1">
-          {thread.messages && [...thread.messages].sort((a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()).map((message) => (
+          {thread.messages && [...thread.messages].sort(
+            (a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()
+          ).map((message) => (
             <MessageBubble
               key={message.id}
               message={message}
@@ -157,11 +163,49 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         <div ref={messagesEndRef} />
       </ScrollArea>
 
-      {isSecurityEnabled && ( <div className="px-4 py-1 flex items-center justify-center"><div className="flex items-center px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-700 dark:text-green-400"><Lock size={12} className="mr-1" />Messages chiffrés de bout en bout</div></div> )}
+      {isSecurityEnabled && ( 
+        <div className="px-4 py-1 flex items-center justify-center">
+          <div className="flex items-center px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-700 dark:text-green-400">
+            <Lock size={12} className="mr-1" />Messages chiffrés de bout en bout
+          </div>
+        </div> 
+      )}
+      
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <MessageInput onSendMessage={handleSendMessageWrapper} isComposing={isComposing} setIsComposing={setIsComposing} monetizationEnabled={monetizationEnabled} onToggleMonetization={userType === 'fan' ? toggleMonetization : undefined} monetizationTier={monetizationTier} setMonetizationTier={setMonetizationTier} monetizationAmount={monetizationAmount} setMonetizationAmount={setMonetizationAmount} isEncrypted={isSecurityEnabled} />
+        <MessageInput 
+          onSendMessage={handleSendMessageWrapper} 
+          isComposing={isComposing} 
+          setIsComposing={setIsComposing} 
+          monetizationEnabled={monetizationEnabled} 
+          onToggleMonetization={userType === 'fan' ? toggleMonetization : undefined} 
+          monetizationTier={monetizationTier} 
+          setMonetizationTier={setMonetizationTier} 
+          monetizationAmount={monetizationAmount} 
+          setMonetizationAmount={setMonetizationAmount} 
+          isEncrypted={isSecurityEnabled} 
+        />
       </div>
-      {userType === 'fan' && ( <div className="px-4 pb-3 flex gap-2 justify-center"><Button variant="outline" size="sm" className="text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={onOpenGifts}>Offrir un cadeau</Button><Button variant="outline" size="sm" className="text-pink-600 dark:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20" onClick={onOpenSupport}>Soutenir</Button></div> )}
+      
+      {userType === 'fan' && ( 
+        <div className="px-4 pb-3 flex gap-2 justify-center">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20" 
+            onClick={onOpenGifts}
+          >
+            Offrir un cadeau
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-pink-600 dark:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/20" 
+            onClick={onOpenSupport}
+          >
+            Soutenir
+          </Button>
+        </div> 
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
@@ -6,8 +7,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { decryptMessage, EncryptedContent } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
-
-// We're removing our local EncryptedContent interface and importing it from utils/encryption instead
 
 interface SecureMessageBubbleProps {
   content: string | EncryptedContent;

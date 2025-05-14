@@ -45,7 +45,7 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="tier"
+        name="type"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Niveau d'abonnement minimum</FormLabel>
@@ -72,14 +72,14 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="sharingAllowed"
+        name="isPremium"
         render={({ field }) => (
           <FormItem className="flex items-center space-x-2">
             <FormControl>
               <input
                 type="checkbox"
-                checked={field.value}
-                onChange={field.onChange}
+                checked={field.value ? true : false}
+                onChange={(e) => field.onChange(e.target.checked)}
                 className="h-4 w-4"
               />
             </FormControl>
@@ -90,14 +90,14 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="downloadsAllowed"
+        name="isPremium"
         render={({ field }) => (
           <FormItem className="flex items-center space-x-2">
             <FormControl>
               <input
                 type="checkbox"
-                checked={field.value}
-                onChange={field.onChange}
+                checked={field.value ? true : false}
+                onChange={(e) => field.onChange(e.target.checked)}
                 className="h-4 w-4"
               />
             </FormControl>
