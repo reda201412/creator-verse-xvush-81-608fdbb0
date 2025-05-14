@@ -220,6 +220,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          role: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       site_wallet: {
         Row: {
           commission_percentage: number | null
@@ -467,6 +500,33 @@ export type Database = {
         }
         Relationships: []
       }
+      uploads: {
+        Row: {
+          created_at: string | null
+          id: number
+          status: string
+          updated_at: string | null
+          upload_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: never
+          status: string
+          updated_at?: string | null
+          upload_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: never
+          status?: string
+          updated_at?: string | null
+          upload_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_follows: {
         Row: {
           created_at: string
@@ -608,15 +668,20 @@ export type Database = {
         Row: {
           creatorId: number | null
           description: string | null
+          error_details: Json | null
           format: string | null
           id: number
           is_premium: boolean | null
           isFree: boolean | null
+          mux_asset_id: string | null
+          mux_playback_id: string | null
           restrictions: Json | null
+          status: string | null
           thumbnail_url: string | null
           title: string | null
           token_price: number | null
           type: string | null
+          upload_id: string | null
           uploadedat: string | null
           user_id: string | null
           video_url: string | null
@@ -625,15 +690,20 @@ export type Database = {
         Insert: {
           creatorId?: number | null
           description?: string | null
+          error_details?: Json | null
           format?: string | null
           id?: number
           is_premium?: boolean | null
           isFree?: boolean | null
+          mux_asset_id?: string | null
+          mux_playback_id?: string | null
           restrictions?: Json | null
+          status?: string | null
           thumbnail_url?: string | null
           title?: string | null
           token_price?: number | null
           type?: string | null
+          upload_id?: string | null
           uploadedat?: string | null
           user_id?: string | null
           video_url?: string | null
@@ -642,15 +712,20 @@ export type Database = {
         Update: {
           creatorId?: number | null
           description?: string | null
+          error_details?: Json | null
           format?: string | null
           id?: number
           is_premium?: boolean | null
           isFree?: boolean | null
+          mux_asset_id?: string | null
+          mux_playback_id?: string | null
           restrictions?: Json | null
+          status?: string | null
           thumbnail_url?: string | null
           title?: string | null
           token_price?: number | null
           type?: string | null
+          upload_id?: string | null
           uploadedat?: string | null
           user_id?: string | null
           video_url?: string | null

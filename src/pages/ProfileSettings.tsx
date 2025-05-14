@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,33 +16,36 @@ import { useModals } from '@/hooks/use-modals';
 import { fileUploadService } from '@/services/file-upload.service';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import WalletModal from '@/components/modals/WalletModal';
-// import ProfileSettingsModal from '@/components/modals/ProfileSettingsModal'; // Pas utilisé ici
+import { Spinner } from '@/components/ui/spinner';
 
 const ProfileSettings = () => {
-  const { user, profile, isCreator, firebaseSignOut, updateProfile, becomeCreator } = useAuth(); // Corrigé ici
+  const { user, profile, isCreator, signOut, updateUserProfile, becomeCreator } = useAuth();
   const { triggerMicroReward } = useNeuroAesthetic();
   const { openModals, openModal, closeModal } = useModals();
   const navigate = useNavigate();
   
-  // Initialiser avec les valeurs de profile si elles existent, sinon chaînes vides ou valeurs par défaut
-  const [displayName, setDisplayName] = useState(profile?.displayName || profile?.username || '');
-  const [username, setUsername] = useState(profile?.username || '');
-  const [bio, setBio] = useState(profile?.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || ''); // Utiliser avatarUrl
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isBecomingCreator, setIsBecomingCreator] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Effet pour mettre à jour les champs du formulaire si le profil change (par exemple, après connexion)
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName || profile.username || '');
       setUsername(profile.username || '');
       setBio(profile.bio || '');
       setAvatarUrl(profile.avatarUrl || '');
+    } else if (user && !profile) {
+      setDisplayName('');
+      setUsername(user.email?.split('@')[0] || '');
+      setBio('');
+      setAvatarUrl('');
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleUpdateProfile = async () => {
     if (!username.trim()) {
@@ -54,11 +56,11 @@ const ProfileSettings = () => {
     try {
       setIsUpdating(true);
       
-      await updateProfile({
+      await updateUserProfile({
         username,
-        displayName: displayName, // Utiliser displayName du state local
+        displayName: displayName,
         bio,
-        avatarUrl: avatarUrl // Utiliser avatarUrl du state local
+        avatarUrl: avatarUrl
       });
       
       triggerMicroReward('like');
@@ -86,10 +88,11 @@ const ProfileSettings = () => {
   
   const handleSignOut = async () => {
     try {
-      await firebaseSignOut(); // Corrigé ici
+      await signOut();
       navigate('/auth');
+      toast.info("Déconnexion réussie.");
     } catch (error) {
-        toast.error("Erreur lors de la déconnexion.")
+        toast.error("Erreur lors de la déconnexion.");
         console.error("Sign out error:", error);
     }
   };
@@ -111,28 +114,15 @@ const ProfileSettings = () => {
     try {
       setIsUploading(true);
       const tempUrl = URL.createObjectURL(file);
-      setAvatarUrl(tempUrl); // Afficher la preview immédiatement
+      setAvatarUrl(tempUrl); 
       
-      // TODO: Intégrer le vrai upload vers Firebase Storage ici
-      // Exemple:
-      // const uploadedUrl = await fileUploadService.uploadAvatarToFirebaseStorage(file, user.uid);
-      // await updateProfile({ avatarUrl: uploadedUrl }); // Mettre à jour le profil avec la nouvelle URL
-      // setAvatarUrl(uploadedUrl); // Mettre à jour l'état local avec l'URL finale
-      
-      // Simulation pour l'instant (comme avant, mais avec commentaire)
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simuler délai d'upload
-      // Supposons que `fileUploadService.uploadFile` est adapté ou sera remplacé par une logique Firebase Storage
-      // const result = await fileUploadService.uploadFile(file, 'avatars');
-      // if (result.success) { 
-      //   triggerMicroReward('creative');
-      //   toast.success("Photo de profil mise à jour (simulation)");
-      // } else { /* ... */ }
-      toast.success("Photo de profil mise à jour (simulation). Intégrez Firebase Storage.");
+      await new Promise(resolve => setTimeout(resolve, 1500)); 
+      toast.success("Photo de profil mise à jour (simulation). Intégrez Supabase Storage.");
       triggerMicroReward('creative');
 
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'upload");
-      setAvatarUrl(profile?.avatarUrl || ''); // Revenir à l'URL précédente en cas d'erreur
+      setAvatarUrl(profile?.avatarUrl || ''); 
     } finally {
       setIsUploading(false);
     }
@@ -151,12 +141,13 @@ const ProfileSettings = () => {
     }
   };
 
-  if (!profile && !user) { // Si ni profil ni utilisateur ne sont chargés (initialisation)
+  if (!user && !profile) { 
     return (
         <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[300px]">
-            <Spinner size="lg" />
+            <Spinner size="lg" /> 
+            <p className="ml-2">Chargement des paramètres...</p>
         </div>
-    )
+    );
   }
 
   return (
@@ -198,7 +189,7 @@ const ProfileSettings = () => {
                     <div><Label htmlFor="username">Nom d'utilisateur</Label><Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="votrepseudo"/></div>
                     <div><Label htmlFor="displayName">Nom d'affichage</Label><Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Votre nom public"/></div>
                     <div><Label htmlFor="bio">Bio</Label><Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Parlez-nous de vous..." rows={4}/></div>
-                    <div><Label htmlFor="avatarUrl">URL de l'avatar (ou uploadez ci-dessus)</Label><Input id="avatarUrl" value={avatarUrl || ''} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://example.com/avatar.jpg"/></div>
+                    <div><Label htmlFor="avatarUrl">URL de l'avatar (ou uploadez ci-dessus)</Label><Input id="avatarUrl" value={avatarUrl || ''} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="URL de votre avatar"/></div>
                     <Button onClick={handleUpdateProfile} disabled={isUpdating}>{isUpdating ? "Mise à jour..." : "Enregistrer"}</Button>
                   </TabsContent>
                   <TabsContent value="account" className="space-y-4">

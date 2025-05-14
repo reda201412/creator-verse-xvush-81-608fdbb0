@@ -45,19 +45,15 @@ const Auth = () => {
     setLoading(true);
     try {
       // Use Supabase Auth signUp
-      // The database trigger 'after_user_insert' will automatically create the profile.
+      // The database trigger 'handle_new_user' will automatically create the profile.
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
-          // While role and username can be passed here,
-          // the database trigger currently sets username/display_name from email.
-          // You might adjust the trigger or use a function hook if you need to
-          // use the submitted username/role for the initial profile.
+          // Pass username and role so the DB trigger can use them
           data: { 
-             // Pass metadata if needed, but profile creation is handled by trigger
-             submitted_username: username,
-             submitted_role: userRole,
+             username: username, // Use 'username' key for the trigger
+             role: userRole,     // Use 'role' key for the trigger
           }
         },
       });
@@ -70,7 +66,10 @@ const Auth = () => {
           errorMessage = "Cette adresse e-mail est déjà utilisée.";
         } else if (error.message.includes('Password should be')) {
            errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
-        } else if (error.message) {
+        } else if (error.message.includes('User already registered')) { // Supabase might return this
+           errorMessage = "Cette adresse e-mail est déjà utilisée.";
+        }
+         else if (error.message) {
            errorMessage = error.message;
         }
         toast.error(errorMessage);
@@ -79,17 +78,18 @@ const Auth = () => {
       }
 
       // Check if email confirmation is required (data.user will be null if so)
-       if (data && data.user) {
-           // User signed up and possibly signed in directly (if email confirm is off)
+       if (data && data.user && data.session) { // User signed up and session created (email confirm might be off or auto-confirmed)
            console.log("Inscription réussie et utilisateur créé:", data.user);
-           // Profile creation is handled by the database trigger
             toast.success("Inscription réussie ! Redirection...");
              // Redirection handled by AuthContext listener
-       } else {
-           // User requires email confirmation
-           console.log("Inscription réussie. Vérification de l'e-mail requise.");
-            toast.success("Inscription réussie ! Veuillez vérifier votre e-mail.");
-            // Suggest login after confirmation
+       } else if (data && data.user && !data.session) { // User created, email confirmation needed
+            console.log("Inscription réussie. Vérification de l'e-mail requise.");
+            toast.success("Inscription réussie ! Veuillez vérifier votre e-mail pour confirmer votre compte.");
+            setActiveTab('login'); // Suggest login after confirmation
+       }
+       else { // Fallback for other cases, possibly older Supabase versions or unexpected responses
+           console.log("Inscription initiée. Si la confirmation par e-mail est activée, veuillez vérifier votre e-mail.");
+            toast.success("Inscription initiée ! Veuillez vérifier votre e-mail si la confirmation est requise.");
             setActiveTab('login');
        }
 
@@ -134,8 +134,6 @@ const Auth = () => {
          return; // Stop execution if there's an auth error
       }
 
-      // If sign-in is successful, the AuthContext listener will handle
-      // setting the user and fetching/creating the profile, and then redirection.
       toast.success("Connexion réussie ! Redirection...");
       // No need to navigate here, context listener does it
 
@@ -182,7 +180,7 @@ const Auth = () => {
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email-login">Email</Label>
                     <Input 
                       id="email-login"
                       type="email"
