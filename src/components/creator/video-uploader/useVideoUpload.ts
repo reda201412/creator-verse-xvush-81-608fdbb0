@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 // Import Supabase data type
 import { VideoSupabaseData } from '@/services/creatorService';
+import { VideoService } from '@/services/videoService';
 // Removed old VideoMetadata import:
 // import { VideoMetadata } from '@/types/video';
 
@@ -177,7 +177,7 @@ const useVideoUpload = () => {
   const uploadThumbnail = async (file: File, videoId: number): Promise<string | null> => {
     if (!user) throw new Error("Utilisateur non authentifié.");
     
-    const fileName = `video_thumbnails/${user.id}/${videoId}-${Date.now()}-${file.name}`;
+    const fileName = `video_thumbnails/${user.uid}/${videoId}-${Date.now()}-${file.name}`;
     const { data, error } = await supabase.storage
       .from('xtease-bucket') // Replace with your actual bucket name
       .upload(fileName, file, {
@@ -213,7 +213,7 @@ const useVideoUpload = () => {
       const { data: videoData, error: insertError } = await supabase
         .from('videos')
         .insert({
-          user_id: user.id, // Corrected from user.uid
+          user_id: user.uid, // Utilisez user.uid pour être compatible avec Firebase User
           title: values.title,
           description: values.description,
           type: values.type,
@@ -273,17 +273,15 @@ const useVideoUpload = () => {
     setUploadStage('creating_upload');
 
     try {
-      // 1. Create MUX Direct Upload URL via an edge function
-      // No manual token fetching, Supabase client handles it for edge functions.
-      const { data: uploadData, error: createUploadError } = await supabase.functions.invoke('create-mux-upload');
+      // 1. Create MUX Direct Upload URL via Vercel API
+      const uploadData = await VideoService.createUploadUrl();
       
-      if (createUploadError || !uploadData || !uploadData.url || !uploadData.id) {
-        console.error('Error creating Mux upload:', createUploadError, uploadData);
-        throw new Error(createUploadError?.message || "Impossible de préparer l'upload vidéo avec Mux.");
+      if (!uploadData || !uploadData.url || !uploadData.id) {
+        throw new Error("Impossible de préparer l'upload vidéo avec Mux.");
       }
       
-      const muxUploadUrl = uploadData.url as string;
-      const muxUploadId = uploadData.id as string;
+      const muxUploadUrl = uploadData.url;
+      const muxUploadId = uploadData.id;
 
       // 2. Upload video file to MUX using UpChunk
       setUploadStage('uploading');
@@ -302,13 +300,13 @@ const useVideoUpload = () => {
           console.log('Video uploaded to Mux successfully!');
           // 3. Save video metadata to Supabase
           try {
-            let initialThumbUrl: string | null = null;
+            const initialThumbUrl: string | null = null;
             // If user provided a thumbnail, upload it first
             if (thumbnailFile && !thumbnailPreviewUrl?.startsWith('blob:')) { // Ensure it's not a generated blob
-                // This logic might be tricky: if thumbnailFile is set but preview is a blob, it means it was generated.
-                // If thumbnailFile exists and preview is NOT a blob, it means user uploaded it.
-                // Let's simplify: if thumbnailFile exists, try to upload it.
-                // The saveVideoMetadata will handle its own thumbnail logic now.
+              // This logic might be tricky: if thumbnailFile is set but preview is a blob, it means it was generated.
+              // If thumbnailFile exists and preview is NOT a blob, it means user uploaded it.
+              // Let's simplify: if thumbnailFile exists, try to upload it.
+              // The saveVideoMetadata will handle its own thumbnail logic now.
             }
 
             const metadata = await saveVideoMetadata(values, muxUploadId, initialThumbUrl);

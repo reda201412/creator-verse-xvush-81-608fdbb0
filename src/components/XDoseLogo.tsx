@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
@@ -20,11 +19,6 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [randomColor, setRandomColor] = useState(0);
   
-  // Si hideInHeader est true et que la classe contient 'header', ne pas rendre le composant
-  if (hideInHeader && className.includes('header')) {
-    return null;
-  }
-  
   const colors = [
     'from-purple-500 to-pink-500',
     'from-blue-500 to-teal-400',
@@ -39,6 +33,11 @@ const XDoseLogo: React.FC<XDoseLogoProps> = ({
     lg: 'text-5xl',
     xl: 'text-7xl',
   };
+  
+  // Si hideInHeader est true et que la classe contient 'header', ne pas rendre le composant
+  if (hideInHeader && className.includes('header')) {
+    return null;
+  }
   
   useEffect(() => {
     if (isHovered) {

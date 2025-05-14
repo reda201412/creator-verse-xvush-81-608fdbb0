@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   query, 
@@ -22,8 +21,17 @@ import {
 } from './create-conversation-utils'; // Réutiliser les types définis là-bas
 import { MessageType } from '@/types/messaging'; // Types existants
 
+// Interface étendue qui inclut les propriétés utilisées dans SecureMessaging.tsx
+export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, Timestamp>;
+  lastMessageText?: string;
+  lastMessageSenderId?: string;
+  lastMessageCreatedAt?: Timestamp;
+}
+
 // Récupère les fils de discussion pour un utilisateur donné (métadonnées uniquement)
-export const fetchUserThreads = async (userId: string): Promise<FirestoreMessageThread[]> => {
+export const fetchUserThreads = async (userId: string): Promise<ExtendedFirestoreMessageThread[]> => {
   try {
     const q = query(
       collection(db, 'messageThreads'),
@@ -31,13 +39,14 @@ export const fetchUserThreads = async (userId: string): Promise<FirestoreMessage
       orderBy('lastActivity', 'desc')
     );
     const querySnapshot = await getDocs(q);
-    const threads: FirestoreMessageThread[] = querySnapshot.docs.map(threadDoc => {
-      const threadData = threadDoc.data() as Omit<FirestoreMessageThread, 'id' | 'messages'>;
+    const threads: ExtendedFirestoreMessageThread[] = querySnapshot.docs.map(threadDoc => {
+      const threadData = threadDoc.data() as Omit<FirestoreMessageThread, 'id'>;
       return {
         id: threadDoc.id,
         ...threadData,
-        messages: [] // Initialiser avec un tableau de messages vide, seront chargés à la demande
-      } as FirestoreMessageThread;
+        messages: [], // Initialiser avec un tableau de messages vide, seront chargés à la demande
+        readStatus: {} // Initialiser avec un objet readStatus vide
+      } as ExtendedFirestoreMessageThread;
     });
     return threads;
   } catch (error) {

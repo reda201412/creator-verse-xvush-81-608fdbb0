@@ -1,4 +1,3 @@
-
 // import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { db } from '@/integrations/firebase/firebase'; // Ajout Firebase db
 import { 
@@ -59,7 +58,7 @@ export const StoriesService = {
     const storageRef = ref(storage, filePath);
 
     // Compression (placeholder, comme avant)
-    let fileToUpload = file;
+    const fileToUpload = file;
     if (file.type.includes('video/') && file.size > 10 * 1024 * 1024) {
       console.log('Large video file detected, compression placeholder');
     }

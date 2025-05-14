@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatorProfileData, VideoSupabaseData, getCreatorVideos } from '@/services/creatorService'; // Assuming VideoSupabaseData is the correct type
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, UserPlus, Bell, Settings, Edit3, DollarSign, BarChart2, ShieldCheck, Video as VideoIcon, Image as ImageIcon, Music2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import XteasePlayerModal from '@/components/video/XteaseVideoPlayer';
+import XteasePlayerModal from '@/components/video/XteasePlayerModal';
 import {
   Tabs,
   TabsContent,
@@ -20,7 +20,7 @@ import {
 
 const CreatorProfile: React.FC = () => {
   const { creatorId } = useParams<{ creatorId: string }>();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [creatorData, setCreatorData] = useState<CreatorProfileData | null>(null);
@@ -55,7 +55,7 @@ const CreatorProfile: React.FC = () => {
         // The creatorId from params should be the user_id (UUID) of the creator
         
         // Try fetching from 'user_profiles' first for general info
-        let profileResponse = await supabase
+        const profileResponse = await supabase
           .from('user_profiles')
           .select(`
             id, 
@@ -76,7 +76,7 @@ const CreatorProfile: React.FC = () => {
             throw profileResponse.error;
         }
         
-        let fetchedCreatorData: Partial<CreatorProfileData> = {
+        const fetchedCreatorData: Partial<CreatorProfileData> = {
             id: profileResponse.data.id, // Changed from uid
             username: profileResponse.data.username,
             displayName: profileResponse.data.display_name,
@@ -239,63 +239,101 @@ const CreatorProfile: React.FC = () => {
     format: video.format as '16:9' | '9:16' | '1:1' || '16:9',
     thumbnailUrl: video.thumbnail_url || undefined,
     // videoUrl: video.mux_playback_id ? `https://stream.mux.com/${video.mux_playback_id}.m3u8` : undefined, // This will be handled by handleContentClick
-    data: video, // Pass the original video data for the click handler
+    originalVideo: video, // Renamed from 'data' to avoid confusion
     // Removed duration as it's not on VideoSupabaseData
   }));
 
+  // Create a map of video IDs to VideoSupabaseData for fast lookup
+  const videoMap = new Map(videos.map(video => 
+    [(video.id?.toString() || ''), video]
+  ));
+
+  const handleContentGridItemClick = (id: string) => {
+    const video = videoMap.get(id);
+    if (video) {
+      handleContentClick(video);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <CreatorHeader
-        avatarUrl={creatorData.avatarUrl || `https://avatar.vercel.sh/${creatorData.username}.png`}
-        displayName={creatorData.displayName || creatorData.username || "Créateur"}
-        username={creatorData.username || ""}
-        bio={creatorData.bio || "Bienvenue sur mon profil !"}
-        followerCount={followerCount}
-        isFollowing={isFollowing}
-        onFollowToggle={handleFollow}
-        isOwnProfile={isOwnProfile}
-        profileActions={profileActions}
-        coverImageUrl={creatorData.coverImageUrl} // Assuming this field exists or is added
-      />
-
-      <main className="container mx-auto px-2 sm:px-4 py-6">
-        <ProfileNav isOwnProfile={isOwnProfile} creatorId={creatorId!} />
-
-        <Tabs defaultValue="videos" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
-            <TabsTrigger value="videos"><VideoIcon className="mr-2 h-4 w-4"/>Vidéos ({videos.length})</TabsTrigger>
-            <TabsTrigger value="photos"><ImageIcon className="mr-2 h-4 w-4"/>Photos</TabsTrigger>
-            <TabsTrigger value="audio"><Music2 className="mr-2 h-4 w-4"/>Audio</TabsTrigger>
-            <TabsTrigger value="about">À Propos</TabsTrigger>
-          </TabsList>
+    <div className="container mx-auto px-4 py-6">
+      {creatorData && (
+        <>
+          <CreatorHeader
+            name={creatorData.displayName || creatorData.username || 'Créateur'}
+            username={creatorData.username || 'username'}
+            avatar={creatorData.avatarUrl || '/placeholder-avatar.jpg'}
+            bio={creatorData.bio || 'Aucune biographie disponible.'}
+            tier="bronze"
+            metrics={{
+              followers: followerCount,
+              revenue: 0,
+              nextTierProgress: 45,
+            }}
+            isOwner={isOwnProfile}
+          />
           
-          <TabsContent value="videos" className="mt-6">
-            {loadingVideos ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-72 w-full rounded-lg" />)}
-              </div>
-            ) : videos.length > 0 ? (
-              <ContentGrid contents={contentGridItems} layout="masonry" onItemClick={(item) => handleContentClick(item.data as VideoSupabaseData)} />
-            ) : (
-              <p className="text-center text-muted-foreground py-8">Ce créateur n'a pas encore publié de vidéos.</p>
-            )}
-          </TabsContent>
-          <TabsContent value="photos" className="mt-6">
-            <p className="text-center text-muted-foreground py-8">La section photos arrive bientôt !</p>
-          </TabsContent>
-          <TabsContent value="audio" className="mt-6">
-            <p className="text-center text-muted-foreground py-8">La section audio arrive bientôt !</p>
-          </TabsContent>
-          <TabsContent value="about" className="mt-6 prose dark:prose-invert max-w-none">
-            <h2 className="text-xl font-semibold mb-3">À propos de {creatorData.displayName || creatorData.username}</h2>
-            <p>{creatorData.bio || "Aucune biographie disponible."}</p>
-            {/* Add more sections like stats, links, etc. */}
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {selectedVideo && selectedVideo.mux_playback_id && (
+          {/* Navigation et contenu du profil */}
+          <div className="mt-8 space-y-6">
+            <div className="flex justify-between items-center">
+              <Tabs defaultValue="videos" className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="videos">Vidéos</TabsTrigger>
+                  <TabsTrigger value="images">Photos</TabsTrigger>
+                  <TabsTrigger value="audio">Audio</TabsTrigger>
+                  <TabsTrigger value="stats">Statistiques</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="videos" className="space-y-6">
+                  {loadingVideos ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {[...Array(4)].map((_, i) => (
+                        <Skeleton key={i} className="h-64 w-full rounded-lg" />
+                      ))}
+                    </div>
+                  ) : videos.length > 0 ? (
+                    <ContentGrid 
+                      contents={contentGridItems} 
+                      layout="masonry" 
+                      onItemClick={handleContentGridItemClick} 
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <VideoIcon size={48} className="mx-auto text-muted-foreground mb-4" />
+                      <p>Aucune vidéo disponible pour ce créateur.</p>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                {/* Autres onglets */}
+                <TabsContent value="images">
+                  <div className="text-center py-12">
+                    <ImageIcon size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p>Les photos seront disponibles prochainement.</p>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="audio">
+                  <div className="text-center py-12">
+                    <Music2 size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p>Les contenus audio seront disponibles prochainement.</p>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="stats">
+                  <div className="text-center py-12">
+                    <BarChart2 size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p>Les statistiques seront disponibles prochainement.</p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* Player modal */}
+      {selectedVideo && (
         <XteasePlayerModal
           isOpen={isPlayerOpen}
           onClose={() => setIsPlayerOpen(false)}

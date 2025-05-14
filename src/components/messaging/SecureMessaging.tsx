@@ -25,16 +25,22 @@ import { db } from '@/integrations/firebase/firebase';
 import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
 import { Spinner } from '@/components/ui/spinner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils'; 
+import { 
+  fetchUserThreads, 
+  sendMessage, 
+  markMessagesAsRead, 
+  fetchMessagesForThread,
+  ExtendedFirestoreMessageThread 
+} from '@/utils/messaging-utils'; 
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 
-// Extend FirestoreMessageThread to include messages
-interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
-  messages: FirestoreMessage[];
-  readStatus?: Record<string, Timestamp>;
-}
+// Interface déjà définie dans messaging-utils.ts
+// interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+//   messages: FirestoreMessage[];
+//   readStatus?: Record<string, Timestamp>;
+// }
 
 interface SecureMessagingProps {
   userId: string;
@@ -128,7 +134,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     const threadsQuery = query(collection(db, 'messageThreads'), where('participantIds', 'array-contains', userId), orderBy('lastActivity', 'desc'));
     const unsubscribeThreads = onSnapshot(threadsQuery, (snapshot) => {
       setThreads(prevThreads => {
-        let newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
+        const newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
         snapshot.docChanges().forEach((change) => {
           const changedThreadData = { 
             id: change.doc.id, 
@@ -173,7 +179,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             : thread
         )
       );
-      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
+      setLastVisibleMessageDoc(newLastVisibleDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {
@@ -376,7 +382,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     if (filterMode === 'all') return true;
     if (filterMode === 'unread') {
       const lastReadByCurrentUser = (thread.readStatus && userId && thread.readStatus[userId] as Timestamp | undefined)?.toMillis() || 0;
-      return thread.lastMessageCreatedAt && (thread.lastMessageCreatedAt as Timestamp).toMillis() > lastReadByCurrentUser && thread.lastMessageSenderId !== userId;
+      return thread.lastActivity && (thread.lastActivity as Timestamp).toMillis() > lastReadByCurrentUser && thread.lastMessageSenderId !== userId;
     }
     if (filterMode === 'supported') { 
       return thread.messages.some(m => m.senderId === userId && (m as any).monetization); 

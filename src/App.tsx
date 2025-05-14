@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -24,6 +23,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
+import NetworkTest from '@/pages/NetworkTest';
+import TestAuth from '@/pages/TestAuth';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
 import { useState, useEffect, useCallback } from 'react';
@@ -112,6 +113,11 @@ function App() {
                     <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
                     <Route path="/tokens" element={<ProtectedRoute><TokensPage /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+                    
+                    {/* Pages de diagnostic réseau et test */}
+                    <Route path="/network-test" element={<NetworkTest />} />
+                    <Route path="/test-auth" element={<TestAuth />} />
+                    
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

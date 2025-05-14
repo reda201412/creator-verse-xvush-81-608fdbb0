@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 
@@ -16,6 +15,48 @@ interface ParallaxLayersProps {
   mouseParallax?: boolean;
   scrollParallax?: boolean;
 }
+
+// Composant de couche séparé pour utiliser useTransform correctement
+const ParallaxLayer: React.FC<{
+  layer: Layer;
+  mousePosition: { x: number; y: number };
+  scrollYProgress: any;
+  moveFactor: number;
+  mouseParallax: boolean;
+  scrollParallax: boolean;
+}> = ({ layer, mousePosition, scrollYProgress, moveFactor, mouseParallax, scrollParallax }) => {
+  // Pour le parallaxe de souris
+  const x = mouseParallax ? mousePosition.x * moveFactor : 0;
+  const y = mouseParallax ? mousePosition.y * moveFactor : 0;
+  
+  // Pour le parallaxe de défilement
+  const scrollY = useTransform(
+    scrollYProgress, 
+    [0, 1], 
+    [moveFactor * 2, -moveFactor * 2]
+  );
+
+  return (
+    <motion.div
+      key={layer.id}
+      className={`absolute inset-0 ${layer.className || ''}`}
+      style={{ 
+        x: mouseParallax ? x : 0,
+        y: mouseParallax ? y : (scrollParallax ? scrollY : 0),
+        zIndex: Math.round(layer.depth * 10),
+        willChange: 'transform'
+      }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 60, 
+        damping: 30,
+        mass: layer.depth + 0.5 // Higher depth = more mass = slower movement
+      }}
+    >
+      {layer.children}
+    </motion.div>
+  );
+};
 
 const ParallaxLayers: React.FC<ParallaxLayersProps> = ({
   layers,
@@ -67,38 +108,16 @@ const ParallaxLayers: React.FC<ParallaxLayersProps> = ({
         // Depth of 0 means most movement, 1 means least movement
         const moveFactor = (1 - layer.depth) * sensitivity * 20;
         
-        // For mouse parallax
-        const x = mouseParallax ? mousePosition.x * moveFactor : 0;
-        const y = mouseParallax ? mousePosition.y * moveFactor : 0;
-        
-        // For scroll parallax
-        const scrollY = scrollParallax 
-          ? useTransform(
-              scrollYProgress, 
-              [0, 1], 
-              [moveFactor * 2, -moveFactor * 2]
-            ) 
-          : 0;
-          
         return (
-          <motion.div
+          <ParallaxLayer
             key={layer.id}
-            className={`absolute inset-0 ${layer.className || ''}`}
-            style={{ 
-              x: mouseParallax ? x : 0,
-              y: mouseParallax ? y : scrollY,
-              zIndex: Math.round(layer.depth * 10),
-              willChange: 'transform'
-            }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 60, 
-              damping: 30,
-              mass: layer.depth + 0.5 // Higher depth = more mass = slower movement
-            }}
-          >
-            {layer.children}
-          </motion.div>
+            layer={layer}
+            mousePosition={mousePosition}
+            scrollYProgress={scrollYProgress}
+            moveFactor={moveFactor}
+            mouseParallax={mouseParallax}
+            scrollParallax={scrollParallax}
+          />
         );
       })}
     </div>
