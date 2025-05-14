@@ -1,13 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; // TabsContent n'est pas utilisé ici directement
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService'; // Modifié pour Firebase
+import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,15 +17,33 @@ const CreatorsFeed: React.FC = () => {
   const [filteredCreators, setFilteredCreators] = useState<CreatorProfileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [followersCount, setFollowersCount] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const fetchCreators = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const fetchedCreators = await getAllCreators(); // Utilise le service Firebase
+        const fetchedCreators = await getAllCreators();
         setCreators(fetchedCreators);
-        // setFilteredCreators(fetchedCreators); // Le filtrage se fera dans le prochain useEffect
+        
+        // Fetch followers count for each creator
+        const creatorFollowers: Record<string, number> = {};
+        for (const creator of fetchedCreators) {
+          // Get count of followers from user_follows table in Supabase
+          const { count, error } = await supabase
+            .from('user_follows')
+            .select('*', { count: 'exact', head: true })
+            .eq('creator_id', creator.uid);
+            
+          if (error) {
+            console.error('Error fetching followers count:', error);
+            creatorFollowers[creator.uid] = 0;
+          } else {
+            creatorFollowers[creator.uid] = count || 0;
+          }
+        }
+        setFollowersCount(creatorFollowers);
       } catch (err: any) {
         console.error('Failed to fetch creators:', err);
         setError('Impossible de charger les créateurs. Veuillez réessayer.');
@@ -55,22 +74,16 @@ const CreatorsFeed: React.FC = () => {
 
     // Filtrer par onglet (isOnline est simulé pour l'instant dans le service)
     if (activeTab === 'online') {
-      // Note: la propriété `isOnline` est simulée dans le service actuel.
-      // Une vraie gestion du statut en ligne nécessiterait une solution de présence (ex: Firestore + Functions, ou Realtime Database).
       processedCreators = processedCreators.filter(creator => creator.isOnline);
     } else if (activeTab === 'popular') {
-      // Note: les métriques de popularité (followers) ne sont pas chargées par `getAllCreators` pour la performance.
-      // Pour un tri par popularité réel, ces données devraient être sur l'objet créateur ou chargées différemment.
-      // Pour l'instant, on ne trie pas ou on pourrait trier par un autre critère si disponible (ex: date de création).
-      // processedCreators = processedCreators.sort((a, b) => 
-      //   (b.metrics?.followers || 0) - (a.metrics?.followers || 0)
-      // );
-      // Pour l'exemple, trions par nom d'utilisateur si aucune métrique n'est disponible pour le tri
-      processedCreators.sort((a, b) => a.username.localeCompare(b.username));
+      // Trier par nombre de followers (données réelles maintenant)
+      processedCreators.sort((a, b) => 
+        (followersCount[b.uid] || 0) - (followersCount[a.uid] || 0)
+      );
     }
 
     setFilteredCreators(processedCreators);
-  }, [searchQuery, activeTab, creators]);
+  }, [searchQuery, activeTab, creators, followersCount]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -80,7 +93,6 @@ const CreatorsFeed: React.FC = () => {
     setActiveTab(value);
   };
 
-  // Bouton pour recharger les créateurs en cas d'erreur
   const handleRetryFetch = () => {
     setIsLoading(true);
     setError(null);
@@ -101,10 +113,10 @@ const CreatorsFeed: React.FC = () => {
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Créateurs</h1>
-        <StoryPublisher /> {/* Ce composant pourrait avoir besoin d'être adapté pour Firebase */}
+        <StoryPublisher />
       </div>
       
-      <StoriesTimeline /> {/* Ce composant pourrait avoir besoin d'être adapté pour Firebase */}
+      <StoriesTimeline />
       
       <div className="relative mb-6">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -122,7 +134,6 @@ const CreatorsFeed: React.FC = () => {
           <TabsTrigger value="online">En ligne</TabsTrigger>
           <TabsTrigger value="popular">Populaires</TabsTrigger>
         </TabsList>
-        {/* Pas de TabsContent explicite ici, le contenu est rendu directement ci-dessous */}
       </Tabs>
 
       {isLoading ? (
@@ -158,15 +169,14 @@ const CreatorsFeed: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredCreators.map((creator) => (
             <CreatorCard
-              key={creator.uid} // Utiliser uid comme clé unique
-              id={creator.uid} // Passer l'uid
+              key={creator.uid}
+              id={creator.uid}
               username={creator.username}
               displayName={creator.displayName || creator.username}
-              avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'} // Utiliser avatarUrl
+              avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'}
               bio={creator.bio || 'Aucune bio disponible'}
-              // Les métriques comme followersCount ne sont pas chargées par getAllCreators pour le moment
-              // followersCount={creator.metrics?.followers || 0} 
-              isOnline={creator.isOnline || false} // isOnline est simulé
+              followersCount={followersCount[creator.uid] || 0}
+              isOnline={creator.isOnline || false}
             />
           ))}
         </div>
