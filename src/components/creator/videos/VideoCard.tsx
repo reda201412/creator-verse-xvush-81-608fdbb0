@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'; // Corrected import if installed
 
 import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
 import { MediaCacheService } from '@/services/media-cache.service';
@@ -79,14 +79,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
    // Get the current video status message
    const getStatusMessage = () => {
        switch (video.status) {
-           case 'created':
+           case 'created': // Fallthrough
            case 'processing':
                return 'Vidéo en cours de traitement...';
            case 'error':
                return 'Erreur lors du traitement de la vidéo.';
            default:
-               // If status is 'ready' or null/undefined but no playback ID
-               return 'Vidéo non disponible.';
+               // If status is 'ready' or null/undefined but no playback ID (which getPlaybackUrl handles)
+               // or if status is an unexpected value.
+               if (video.mux_playback_id) return 'Vidéo prête.'; // Should be caught by getPlaybackUrl logic ideally
+               return 'Vidéo non disponible.'; // General fallback
        }
    };
 
@@ -103,9 +105,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   };
 
   // Log metadata for debugging
-  console.log("Video metadata dans VideoCard:", video);
-  console.log("Playback URL used:", getPlaybackUrl());
-  console.log("Video status:", video.status);
+  // console.log("Video metadata dans VideoCard:", video);
+  // console.log("Playback URL used:", getPlaybackUrl());
+  // console.log("Video status:", video.status);
 
    const playbackUrl = getPlaybackUrl();
    const isVideoReady = !!playbackUrl; // Check if we have a valid playback URL
@@ -146,8 +148,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
             {/* Show loading/error icon based on status if no thumbnail */}
              {!isVideoReady && video.status === 'processing' && <Loader2 className="h-12 w-12 text-primary opacity-50 animate-spin" />} 
              {!isVideoReady && video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive opacity-50" />} 
-             {!isVideoReady && !video.status && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Default if status is missing */}
-             {isVideoReady && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Show play icon if ready */}
+             {/* Default icon if status is not processing/error and video not ready */}
+             {!isVideoReady && video.status !== 'processing' && video.status !== 'error' && <Play className="h-12 w-12 text-primary opacity-50" />}
+             {isVideoReady && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Show play icon if ready and no thumbnail */}
           </div>
         )}
 
@@ -171,7 +174,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </div>
       
       {/* Video Details */}
-      <div className="p-4 space-space-y-2">
+      <div className="p-4 space-y-2"> {/* Corrected class from space-space-y-2 */}
         <div className="flex items-start justify-between">
           <h3 className="font-medium line-clamp-1">{video.title}</h3>
           
@@ -249,9 +252,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
         <DialogContent className="sm:max-w-3xl p-0">
           {/* Render player only if video is ready and playbackUrl exists */}
-          {isVideoReady ? (
+          {isVideoReady && playbackUrl ? ( // Ensure playbackUrl is also checked
             <EnhancedVideoPlayer
-              src={playbackUrl as string} // Cast to string as we checked isVideoReady
+              src={playbackUrl} // playbackUrl is guaranteed to be a string here
               thumbnailUrl={video.thumbnail_url || undefined} // Use thumbnail_url
               title={video.title || undefined}
               autoPlay={true}
@@ -267,7 +270,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                  {video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
                  <p className="text-lg font-medium">{getStatusMessage()}</p>
                  {video.status === 'error' && video.error_details && (
-                    <p className="text-sm text-muted-foreground mt-2">Détails: {JSON.stringify(video.error_details)}</p>
+                    <p className="text-sm text-muted-foreground mt-2">Détails: {typeof video.error_details === 'string' ? video.error_details : JSON.stringify(video.error_details)}</p>
                  )}
               </div>
             </div>

@@ -1,388 +1,309 @@
-
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useParams } from 'react-router-dom';
-import CreatorHeader from '@/components/CreatorHeader';
-import ContentGrid from '@/components/ContentGrid';
-import TabNav from '@/components/TabNav';
-import SubscriptionPanel from '@/components/SubscriptionPanel';
-import ProfileNav from '@/components/ProfileNav';
-import { useToast } from '@/hooks/use-toast';
-import CreatorDNA from '@/components/creator/CreatorDNA';
-import CreatorJourney from '@/components/creator/CreatorJourney';
-import FeedbackLoop from '@/components/creator/FeedbackLoop';
-import ValueVault from '@/components/creator/ValueVault';
-import MonetizedContentSection from '@/components/creator/MonetizedContentSection';
-import { ContentType, RestrictedContentType, ContentItem, FeedbackType, FeedbackMessage } from '@/types/content';
+import React, { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCreatorById, getCreatorVideos } from '@/services/creatorService';
 import { supabase } from '@/integrations/supabase/client';
+import { CreatorProfileData, VideoSupabaseData, getCreatorVideos } from '@/services/creatorService'; // Assuming VideoSupabaseData is the correct type
+import CreatorHeader from '@/components/CreatorHeader';
+import ProfileNav from '@/components/ProfileNav';
+import ContentGrid from '@/components/ContentGrid';
+import { Button } from '@/components/ui/button';
+import { MessageCircle, UserPlus, Bell, Settings, Edit3, DollarSign, BarChart2, ShieldCheck, Video as VideoIcon, Image as ImageIcon, Music2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CreatorProfileRouteProps } from '@/types/navigation';
+import XteasePlayerModal from '@/components/video/XteaseVideoPlayer';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 const CreatorProfile: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('grid');
-  const { toast } = useToast();
-  const { user, profile, isCreator } = useAuth();
-  const params = useParams<{ id: string }>();
-  const creatorId = params.id;
+  const { creatorId } = useParams<{ creatorId: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [creatorData, setCreatorData] = useState<any>(null);
-  const [creatorContent, setCreatorContent] = useState<any[]>([]);
-  const [creatorMetrics, setCreatorMetrics] = useState<any>({
-    followers: 0,
-    following: 0,
-    revenue: 0,
-    growthRate: 0,
-    nextTierProgress: 0,
-    retentionRate: 0,
-    superfans: 0,
-    watchMinutes: 0
-  });
-  
-  // Using these for now, but they should be fetched from the database in a real implementation
-  const [creatorDNA, setCreatorDNA] = useState({
-    skills: ['Photographie', 'Narration visuelle', 'Editing photo', 'Direction artistique', 'Stylisme'],
-    style: ['Minimaliste', 'Poétique', 'Lumineux', 'Architectural', 'Émotionnel'],
-    achievements: ['100K abonnés en 2023', 'Collaboration Vogue', 'Exposition Paris Photo', 'Award Creator Impact']
-  });
-  
-  const [feedbackMessages, setFeedbackMessages] = useState<FeedbackMessage[]>([]);
-  const [premiumContent, setPremiumContent] = useState<ContentItem[]>([]);
+  const [creatorData, setCreatorData] = useState<CreatorProfileData | null>(null);
+  const [videos, setVideos] = useState<VideoSupabaseData[]>([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+
+  const [selectedVideo, setSelectedVideo] = useState<VideoSupabaseData | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
 
   useEffect(() => {
-    const loadCreatorData = async () => {
+    if (authLoading) return;
+    if (user && creatorId === user.id) { // Check against user.id
+      setIsOwnProfile(true);
+    } else {
+      setIsOwnProfile(false);
+    }
+  }, [creatorId, user, authLoading]);
+
+  useEffect(() => {
+    const fetchCreatorData = async () => {
       if (!creatorId) return;
-      
-      setLoading(true);
-      setError(null);
-      
+      setLoadingProfile(true);
       try {
-        // Fetch creator profile
-        const creator = await getCreatorById(creatorId);
-        if (!creator) {
-          setError("Créateur non trouvé");
-          setLoading(false);
-          return;
+        // Fetch creator profile data from 'creators' table or 'user_profiles'
+        // Assuming 'creators' table has a 'user_id' that matches auth.users.id
+        // And 'user_profiles' table has 'id' that matches auth.users.id
+        // The creatorId from params should be the user_id (UUID) of the creator
+        
+        // Try fetching from 'user_profiles' first for general info
+        let profileResponse = await supabase
+          .from('user_profiles')
+          .select(`
+            id, 
+            username, 
+            display_name, 
+            avatar_url, 
+            bio,
+            role
+          `)
+          .eq('id', creatorId)
+          .single();
+
+        if (profileResponse.error && profileResponse.error.code === 'PGRST116') { // Not found in user_profiles
+            toast.error("Profil créateur non trouvé.");
+            setLoadingProfile(false);
+            return;
+        } else if (profileResponse.error) {
+            throw profileResponse.error;
         }
         
-        // Set creator data
-        setCreatorData({
-          name: creator.displayName || creator.username,
-          username: creator.username,
-          avatar: creator.avatarUrl || `https://i.pravatar.cc/300?u=${creator.uid}`,
-          bio: creator.bio || "Aucune bio disponible",
-          tier: 'silver',  // This should come from the database in a real implementation
-          isCreator: creator.role === 'creator',
-          isOnline: creator.isOnline || false
-        });
-        
-        // Fetch creator metrics
-        const metrics = creator.metrics || {};
-        
-        // Get additional metrics from Supabase
-        const { count: videoCount, error: videoCountError } = await supabase
-          .from('videos')
+        let fetchedCreatorData: Partial<CreatorProfileData> = {
+            id: profileResponse.data.id, // Changed from uid
+            username: profileResponse.data.username,
+            displayName: profileResponse.data.display_name,
+            avatarUrl: profileResponse.data.avatar_url,
+            bio: profileResponse.data.bio,
+            // role: profileResponse.data.role, // If needed
+        };
+
+        // Optionally, fetch additional creator-specific details from 'creators' table if it exists and is structured differently
+        // For example, if 'creators' table has specific fields not in 'user_profiles'
+        // const { data: specificCreatorData, error: specificCreatorError } = await supabase
+        //   .from('creators')
+        //   .select('*') // select specific fields
+        //   .eq('user_id', creatorId) // Assuming 'creators' table links via 'user_id'
+        //   .single();
+        // if (specificCreatorData) {
+        //   fetchedCreatorData = { ...fetchedCreatorData, ...specificCreatorData };
+        // }
+
+
+        setCreatorData(fetchedCreatorData as CreatorProfileData);
+
+        // Fetch follower count
+        const { count, error: countError } = await supabase
+          .from('user_follows')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', creatorId);
-          
-        const { data: revenueData, error: revenueError } = await supabase
-          .from('transactions')
-          .select('amount_usdt')
-          .eq('user_id', creatorId);
-        
-        let totalRevenue = 0;
-        if (!revenueError && revenueData) {
-          totalRevenue = revenueData.reduce((sum, item) => sum + (Number(item.amount_usdt) || 0), 0);
+          .eq('creator_id', creatorId);
+
+        if (countError) console.error("Error fetching follower count:", countError);
+        else setFollowerCount(count || 0);
+
+        // Check if current user is following this creator
+        if (user && user.id) {
+          const { data: followData, error: followError } = await supabase
+            .from('user_follows')
+            .select('*')
+            .eq('follower_id', user.id)
+            .eq('creator_id', creatorId)
+            .maybeSingle();
+          if (followError) console.error("Error checking follow status:", followError);
+          else setIsFollowing(!!followData);
         }
-        
-        setCreatorMetrics({
-          ...metrics,
-          revenue: totalRevenue,
-          growthRate: 12, // These should be calculated in a real implementation
-          nextTierProgress: 92,
-          retentionRate: 87,
-          superfans: Math.floor(metrics.followers * 0.02) || 0,
-          watchMinutes: videoCount ? videoCount * 1000 : 0
-        });
-        
-        // Fetch creator content/videos
-        const videos = await getCreatorVideos(creatorId);
-        
-        if (videos && videos.length > 0) {
-          const processedVideos = videos.map(video => ({
-            id: video.id,
-            imageUrl: video.thumbnail_url || "https://via.placeholder.com/800",
-            title: video.title || "Sans titre",
-            type: video.type || "standard",
-            format: video.format || "image",
-            duration: video.duration || 0,
-            metrics: {
-              likes: Math.floor(Math.random() * 1000) + 100,
-              comments: Math.floor(Math.random() * 100),
-              views: Math.floor(Math.random() * 10000),
-              revenue: video.type === 'premium' || video.type === 'vip' ? Math.floor(Math.random() * 500) : 0,
-              growth: Math.floor(Math.random() * 20)
-            }
-          }));
-          
-          setCreatorContent(processedVideos);
-          
-          // Set premium content
-          const premiumVids = processedVideos
-            .filter(v => v.type === 'premium' || v.type === 'vip')
-            .map(v => ({
-              id: v.id.toString(),
-              title: v.title,
-              type: v.type as RestrictedContentType,
-              category: "vidéo",
-              views: v.metrics?.views || 0,
-              thumbnail: v.imageUrl
-            }));
-            
-          setPremiumContent(premiumVids);
-        }
-        
-        // Fetch feedback messages (comments)
-        // In a real implementation, these would come from the database
-        setFeedbackMessages([
-          {
-            id: "f1",
-            username: "marie_p",
-            avatar: "https://i.pravatar.cc/150?img=1",
-            message: "Tes photos me donnent toujours envie de redécorer mon appartement !",
-            timestamp: "Il y a 2 heures",
-            type: "comment" as FeedbackType
-          },
-          {
-            id: "f2",
-            username: "thomas453",
-            avatar: "https://i.pravatar.cc/150?img=2",
-            message: "Est-ce que tu pourrais faire un tuto sur la composition des photos lifestyle ?",
-            timestamp: "Il y a 5 heures",
-            type: "request" as FeedbackType
-          }
-        ]);
-        
-      } catch (err) {
-        console.error("Error loading creator data:", err);
-        setError("Une erreur s'est produite lors du chargement des données du créateur");
+
+      } catch (error: any) {
+        console.error('Error fetching creator data:', error);
+        toast.error("Erreur de chargement du profil: " + error.message);
       } finally {
-        setLoading(false);
+        setLoadingProfile(false);
       }
     };
-    
-    loadCreatorData();
-  }, [creatorId]);
 
-  // Check if the current user is the owner of this profile
-  const isProfileOwner = isCreator && user && creatorId === user.id;
+    const fetchVideosForCreator = async () => {
+      if (!creatorId) return;
+      setLoadingVideos(true);
+      try {
+        const creatorVideos = await getCreatorVideos(creatorId);
+        setVideos(creatorVideos || []);
+      } catch (error: any) {
+        console.error('Error fetching videos:', error);
+        toast.error("Erreur de chargement des vidéos: " + error.message);
+        setVideos([]);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
+    fetchCreatorData();
+    fetchVideosForCreator();
+  }, [creatorId, user]);
+
+  const handleFollow = async () => {
+    if (!user || !user.id || !creatorData || !creatorData.id) { // Ensure creatorData.id
+      toast.error("Vous devez être connecté pour suivre un créateur.");
+      return;
+    }
+    if (isOwnProfile) {
+      toast.info("Vous ne pouvez pas vous suivre vous-même.");
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('creator_id', creatorData.id); // Ensure creatorData.id
+        if (error) throw error;
+        setIsFollowing(false);
+        setFollowerCount(prev => prev - 1);
+        toast.success(`Vous ne suivez plus ${creatorData.displayName || creatorData.username}.`);
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('user_follows')
+          .insert({ follower_id: user.id, creator_id: creatorData.id }); // Ensure creatorData.id
+        if (error) throw error;
+        setIsFollowing(true);
+        setFollowerCount(prev => prev + 1);
+        toast.success(`Vous suivez maintenant ${creatorData.displayName || creatorData.username}!`);
+      }
+    } catch (error: any) {
+      console.error("Error following/unfollowing:", error);
+      toast.error("Une erreur s'est produite: " + error.message);
+    }
   };
-
-  const handleSubscribe = (tier: string) => {
-    toast({
-      title: `Abonnement ${tier} sélectionné`,
-      description: "Vous allez être redirigé vers la page de paiement",
-    });
-  };
-
-  // Different layouts based on selected tab
-  const getContentLayout = () => {
-    switch (activeTab) {
-      case 'grid':
-        return 'grid';
-      case 'videos':
-        return 'vertical';
-      case 'premium':
-      case 'vip':
-        return 'collections';
-      case 'stats':
-        return 'featured';
-      default:
-        return 'grid';
+  
+  const handleContentClick = (content: VideoSupabaseData) => {
+    // Mux Playback ID check
+    if (content.mux_playback_id && content.status === 'ready') {
+      setSelectedVideo(content);
+      setIsPlayerOpen(true);
+    } else {
+      toast.info("Cette vidéo n'est pas encore prête pour la lecture ou est en cours de traitement.");
     }
   };
 
-  // Filter content based on active tab
-  const getFilteredContent = () => {
-    if (activeTab === 'videos') {
-      return creatorContent.filter(content => content.format === 'video');
-    } else if (activeTab === 'premium') {
-      return creatorContent.filter(content => content.type === 'premium');
-    } else if (activeTab === 'vip') {
-      return creatorContent.filter(content => content.type === 'vip');
-    }
-    return creatorContent;
-  };
 
-  const handleGoBack = () => {
-    window.history.back();
-  };
-
-  if (loading) {
+  if (loadingProfile || authLoading) {
     return (
-      <div className="container mx-auto px-4 py-6 space-y-8">
-        <ProfileNav username="Chargement..." onBack={handleGoBack} />
-        <Skeleton className="w-full h-64 rounded-xl" />
-        <Skeleton className="w-full h-12 rounded-lg" />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="aspect-video rounded-lg" />
-          ))}
+      <div className="container mx-auto p-4">
+        <Skeleton className="h-32 w-full mb-4" />
+        <Skeleton className="h-8 w-1/2 mb-2" />
+        <Skeleton className="h-6 w-1/3 mb-4" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
         </div>
       </div>
     );
   }
 
-  if (error || !creatorData) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <ProfileNav username="Erreur" onBack={handleGoBack} />
-        <div className="py-12 text-center">
-          <h2 className="text-2xl font-bold text-red-500">
-            {error || "Créateur non trouvé"}
-          </h2>
-          <button
-            onClick={handleGoBack}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
-          >
-            Retour
-          </button>
-        </div>
-      </div>
-    );
+  if (!creatorData) {
+    return <div className="container mx-auto p-4 text-center">Profil créateur non trouvé.</div>;
   }
+  
+  const profileActions = isOwnProfile ? (
+    <>
+      <Button variant="outline" onClick={() => navigate('/settings')}><Settings className="mr-2 h-4 w-4" />Gérer le Profil</Button>
+      <Button onClick={() => navigate('/creator/dashboard')}><BarChart2 className="mr-2 h-4 w-4" />Tableau de Bord</Button>
+    </>
+  ) : (
+    <>
+      <Button onClick={handleFollow} variant={isFollowing ? "secondary" : "default"}>
+        <UserPlus className="mr-2 h-4 w-4" /> {isFollowing ? 'Suivi' : 'Suivre'}
+      </Button>
+      <Button variant="outline" onClick={() => navigate(`/secure-messaging`, { state: { recipientId: creatorData.id, recipientName: creatorData.displayName || creatorData.username, recipientAvatar: creatorData.avatarUrl } })}>
+        <MessageCircle className="mr-2 h-4 w-4" /> Message
+      </Button>
+      <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
+    </>
+  );
+
+
+  // Adapt ContentGrid items to match expected structure if necessary
+  const contentGridItems = videos.map(video => ({
+    id: video.id?.toString() || Math.random().toString(), // Ensure ID is string for ContentGrid
+    title: video.title || "Vidéo sans titre",
+    type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard", // Example mapping
+    format: video.format as '16:9' | '9:16' | '1:1' || '16:9',
+    thumbnailUrl: video.thumbnail_url || undefined,
+    // videoUrl: video.mux_playback_id ? `https://stream.mux.com/${video.mux_playback_id}.m3u8` : undefined, // This will be handled by handleContentClick
+    data: video, // Pass the original video data for the click handler
+    // Removed duration as it's not on VideoSupabaseData
+  }));
+
 
   return (
-    <div className="pb-10">
-      <ProfileNav 
-        username={creatorData.username} 
-        onBack={handleGoBack} 
+    <div className="min-h-screen bg-background text-foreground">
+      <CreatorHeader
+        avatarUrl={creatorData.avatarUrl || `https://avatar.vercel.sh/${creatorData.username}.png`}
+        displayName={creatorData.displayName || creatorData.username || "Créateur"}
+        username={creatorData.username || ""}
+        bio={creatorData.bio || "Bienvenue sur mon profil !"}
+        followerCount={followerCount}
+        isFollowing={isFollowing}
+        onFollowToggle={handleFollow}
+        isOwnProfile={isOwnProfile}
+        profileActions={profileActions}
+        coverImageUrl={creatorData.coverImageUrl} // Assuming this field exists or is added
       />
-      
-      <div className="container mx-auto px-4 space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mt-4"
-        >
-          <CreatorHeader 
-            name={creatorData.name}
-            username={creatorData.username}
-            avatar={creatorData.avatar}
-            bio={creatorData.bio}
-            tier={creatorData.tier}
-            metrics={creatorMetrics}
-            isCreator={creatorData.isCreator}
-            isOwner={isProfileOwner}
-            isOnline={creatorData.isOnline}
-          />
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <TabNav 
-            activeTab={activeTab} 
-            onTabChange={handleTabChange} 
-            isCreator={creatorData.isCreator}
-          />
-        </motion.div>
-        
-        {activeTab === 'stats' && creatorData.isCreator ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <CreatorDNA
-                creatorName={creatorData.name}
-                creatorSkills={creatorDNA.skills}
-                creatorStyle={creatorDNA.style}
-                creatorAchievements={creatorDNA.achievements}
-              />
-              
-              <ValueVault
-                premiumContent={premiumContent}
-              />
-            </div>
-            
-            <div className="space-y-6">
-              <CreatorJourney
-                milestones={[
-                  {
-                    id: "j1",
-                    date: "Avril 2022",
-                    title: "Premiers pas",
-                    description: "Ouverture du compte et début du partage quotidien",
-                    metricBefore: 0,
-                    metricAfter: 1200,
-                    metricLabel: "Abonnés"
-                  },
-                  {
-                    id: "j2",
-                    date: "Septembre 2023",
-                    title: "Exposition à Paris",
-                    description: "Première exposition dans galerie parisienne",
-                    metricBefore: 19800,
-                    metricAfter: 21500,
-                    metricLabel: "Abonnés"
-                  }
-                ]}
-              />
-              
-              <FeedbackLoop
-                feedbackMessages={feedbackMessages}
-                isCreator={true}
-              />
-            </div>
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-8"
-          >
-            {activeTab === 'premium' && (
-              <MonetizedContentSection 
-                isCreator={creatorData.isCreator} 
-              />
-            )}
-            
-            <ContentGrid 
-              contents={getFilteredContent()} 
-              layout={getContentLayout()} 
-              isCreator={creatorData.isCreator}
-            />
-            
-            {!creatorData.isCreator && (
-              <SubscriptionPanel onSubscribe={handleSubscribe} />
-            )}
-            
-            {!creatorData.isCreator && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FeedbackLoop
-                  feedbackMessages={feedbackMessages}
-                  isCreator={false}
-                />
-                
-                <CreatorDNA
-                  creatorName={creatorData.name}
-                  creatorSkills={creatorDNA.skills}
-                  creatorStyle={creatorDNA.style}
-                  creatorAchievements={creatorDNA.achievements}
-                />
+
+      <main className="container mx-auto px-2 sm:px-4 py-6">
+        <ProfileNav isOwnProfile={isOwnProfile} creatorId={creatorId!} />
+
+        <Tabs defaultValue="videos" className="mt-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+            <TabsTrigger value="videos"><VideoIcon className="mr-2 h-4 w-4"/>Vidéos ({videos.length})</TabsTrigger>
+            <TabsTrigger value="photos"><ImageIcon className="mr-2 h-4 w-4"/>Photos</TabsTrigger>
+            <TabsTrigger value="audio"><Music2 className="mr-2 h-4 w-4"/>Audio</TabsTrigger>
+            <TabsTrigger value="about">À Propos</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="videos" className="mt-6">
+            {loadingVideos ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-72 w-full rounded-lg" />)}
               </div>
+            ) : videos.length > 0 ? (
+              <ContentGrid contents={contentGridItems} layout="masonry" onItemClick={(item) => handleContentClick(item.data as VideoSupabaseData)} />
+            ) : (
+              <p className="text-center text-muted-foreground py-8">Ce créateur n'a pas encore publié de vidéos.</p>
             )}
-          </motion.div>
-        )}
-      </div>
+          </TabsContent>
+          <TabsContent value="photos" className="mt-6">
+            <p className="text-center text-muted-foreground py-8">La section photos arrive bientôt !</p>
+          </TabsContent>
+          <TabsContent value="audio" className="mt-6">
+            <p className="text-center text-muted-foreground py-8">La section audio arrive bientôt !</p>
+          </TabsContent>
+          <TabsContent value="about" className="mt-6 prose dark:prose-invert max-w-none">
+            <h2 className="text-xl font-semibold mb-3">À propos de {creatorData.displayName || creatorData.username}</h2>
+            <p>{creatorData.bio || "Aucune biographie disponible."}</p>
+            {/* Add more sections like stats, links, etc. */}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {selectedVideo && selectedVideo.mux_playback_id && (
+        <XteasePlayerModal
+          isOpen={isPlayerOpen}
+          onClose={() => setIsPlayerOpen(false)}
+          videoSrc={`https://stream.mux.com/${selectedVideo.mux_playback_id}.m3u8`}
+          thumbnailUrl={selectedVideo.thumbnail_url || undefined}
+          title={selectedVideo.title || "Vidéo"}
+        />
+      )}
     </div>
   );
 };

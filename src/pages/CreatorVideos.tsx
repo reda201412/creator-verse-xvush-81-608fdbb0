@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useToast } from '@/hooks/use-toast';
 // import { VideoMetadata } from '@/types/video'; // Replaced by VideoSupabaseData
@@ -21,12 +22,12 @@ const CreatorVideos: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null); // Use number for Supabase ID
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
-  const { toast } = useToast();
+  const { toast: showToast } = useToast(); // Renamed to avoid conflict if `toast` is used as a variable
   const { user } = useAuth();
 
   // *** Moved fetchVideos outside useEffect ***
   const fetchVideos = useCallback(async () => { // Wrapped with useCallback
-    if (!user) {
+    if (!user || !user.id) { // Check for user and user.id
       setLoading(false);
       setVideos([]); // Clear videos if no user
       return;
@@ -35,14 +36,14 @@ const CreatorVideos: React.FC = () => {
     setLoading(true);
     try {
       // Use the updated getCreatorVideos function from creatorService.ts
-      // Assuming user.uid (Firebase UID string) is compatible with Supabase user_id (uuid type stored as string)
-      const fetchedVideos = await getCreatorVideos(user.uid);
+      // Assuming user.id (Supabase UUID string) is compatible with Supabase user_id (uuid type stored as string)
+      const fetchedVideos = await getCreatorVideos(user.id); // Corrected from user.uid
       console.log("Vidéos récupérées de Supabase:", fetchedVideos);
       // Ensure fetchedVideos is an array before setting state
       setVideos(Array.isArray(fetchedVideos) ? fetchedVideos : []);
     } catch (error) {
       console.error('Error fetching videos from Supabase:', error);
-      toast({
+      showToast({
         title: "Erreur",
         description: "Impossible de charger vos vidéos. Veuillez réessayer.",
         variant: "destructive"
@@ -51,7 +52,7 @@ const CreatorVideos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]); // Added dependencies
+  }, [user, showToast]); // Added dependencies
 
   // Fetch videos from Supabase when component mounts or user changes
   useEffect(() => {
@@ -69,11 +70,11 @@ const CreatorVideos: React.FC = () => {
   // *** THIS NEEDS TO BE UPDATED TO USE A BACKEND FUNCTION TO DELETE FROM MUX AND SUPABASE ***
   const handleDeleteVideo = async (videoId: number) => {
     if (videoId === undefined || videoId === null) { // Check for number ID
-        toast({ title: "Erreur", description: "ID de vidéo invalide.", variant: "destructive" });
+        showToast({ title: "Erreur", description: "ID de vidéo invalide.", variant: "destructive" });
         return;
     }
     console.warn("Video deletion needs a backend function to delete from MUX and Supabase.");
-    toast({
+    showToast({
         title: "Fonctionnalité à implémenter",
         description: "La suppression de vidéo nécessite une fonction backend sécurisée.",
     });
@@ -84,16 +85,16 @@ const CreatorVideos: React.FC = () => {
     console.log("Edit video metadata for ID:", videoId);
     const videoToEdit = videos.find(v => v.id === videoId);
     if (videoToEdit) {
-      toast({ title: "Fonctionnalité à implémenter", description: `Éditer la vidéo : ${videoToEdit.title}`});
+      showToast({ title: "Fonctionnalité à implémenter", description: `Éditer la vidéo : ${videoToEdit.title}`});
     } else {
-      toast({ title: "Erreur", description: "Vidéo non trouvée pour l'édition.", variant: "destructive"});
+      showToast({ title: "Erreur", description: "Vidéo non trouvée pour l'édition.", variant: "destructive"});
     }
   };
 
   const handlePromoteVideo = (videoId: number) => { // Use number ID
     // Logic to promote a video
     console.log("Promote video ID:", videoId);
-    toast({ title: "Fonctionnalité à implémenter", description: `Promouvoir la vidéo ID: ${videoId}`});
+    showToast({ title: "Fonctionnalité à implémenter", description: `Promouvoir la vidéo ID: ${videoId}`});
   };
 
   const handleAnalyticsVideo = (videoId: number) => { // Use number ID
@@ -136,9 +137,9 @@ const CreatorVideos: React.FC = () => {
         onEditVideo={handleEditVideo}
         onPromoteVideo={handlePromoteVideo}
         onAnalyticsVideo={handleAnalyticsVideo}
-        isLoading={loading} onUploadComplete={function (metadata?: VideoSupabaseData | null): void {
-          throw new Error('Function not implemented.');
-        } }      />
+        isLoading={loading} 
+        onUploadComplete={handleUploadComplete} // Correctly pass the handler
+      />
 
       <VideoAnalyticsModal
         // *** Convert videoId to string here ***
