@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -149,14 +148,14 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         )}
         <div className="space-y-1">
           {thread.messages && [...thread.messages].sort(
-            (a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()
+            (a,b) => (a.createdAt as any).toMillis() - (b.createdAt as any).toMillis()
           ).map((message) => (
             <MessageBubble
               key={message.id}
-              message={message}
+              message={message as any} // Type cast to work with MessageBubble component
               isCurrentUser={message.senderId === userId}
               sessionKey={sessionKey}
-              decryptMessage={handleDecryptMessage}
+              decryptMessage={handleDecryptMessage as any}
             />
           ))}
         </div>

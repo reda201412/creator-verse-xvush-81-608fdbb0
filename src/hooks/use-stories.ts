@@ -1,10 +1,30 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Story, StoryGroup, StoryUploadParams } from '@/types/stories';
 import { StoriesService } from '@/services/stories.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useToast } from '@/hooks/use-toast';
+
+// Helper function to convert FirestoreStory to Story
+const mapFirestoreStoryToStory = (firestoreStory: FirestoreStory): Story => {
+  return {
+    id: firestoreStory.id,
+    creator_id: firestoreStory.creatorId,
+    media_url: firestoreStory.mediaUrl,
+    thumbnail_url: firestoreStory.thumbnailUrl,
+    caption: firestoreStory.caption,
+    filter_used: firestoreStory.filterUsed as any,
+    format: firestoreStory.format as '16:9' | '9:16' | '1:1',
+    duration: firestoreStory.duration,
+    created_at: firestoreStory.createdAt,
+    expires_at: firestoreStory.expiresAt,
+    view_count: firestoreStory.viewCount,
+    is_highlighted: firestoreStory.isHighlighted,
+    metadata: firestoreStory.metadata,
+    viewed: firestoreStory.viewed,
+    creator: firestoreStory.creator as any
+  };
+};
 
 export const useStories = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -23,12 +43,14 @@ export const useStories = () => {
     try {
       setLoading(true);
       const activeStories = await StoriesService.getActiveStories();
-      setStories(activeStories);
+      // Convert all Firestore stories to the expected Story format
+      const convertedStories = activeStories.map(mapFirestoreStoryToStory);
+      setStories(convertedStories);
       
       // Grouper les stories par créateur
       const groups: Record<string, StoryGroup> = {};
       
-      activeStories.forEach(story => {
+      convertedStories.forEach(story => {
         if (!story.creator) return;
         
         const creatorId = story.creator.id;
@@ -87,7 +109,7 @@ export const useStories = () => {
       const newStory = await StoriesService.createStory(params, user.id);
       
       // Mettre à jour la liste des stories
-      setStories(prev => [newStory, ...prev]);
+      setStories(prev => [mapFirestoreStoryToStory(newStory as any), ...prev]);
       
       // Déclencher une micro-récompense
       triggerMicroReward('creative', { type: 'story_created' });

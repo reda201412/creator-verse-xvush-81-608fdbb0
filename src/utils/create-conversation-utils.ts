@@ -1,4 +1,3 @@
-
 import { db } from '@/integrations/firebase/firebase';
 import {
   collection,
@@ -14,33 +13,26 @@ import {
 } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { MessageType } from '@/types/messaging'; // Assurez-vous que ce type est toujours pertinent
+import { CreateConversationParams } from '@/types/navigation';
 
 // Types pour la messagerie Firestore (vous pouvez les déplacer dans un fichier types/messaging.ts dédié)
 export interface FirestoreMessageThread {
   id?: string; // ID du document Firestore
   participantIds: string[];
-  participantInfo: {
-    [uid: string]: {
-      displayName: string;
-      avatarUrl: string | null;
-    };
-  };
-  lastMessageText?: string;
-  lastMessageSenderId?: string;
-  lastMessageCreatedAt?: Timestamp;
-  lastActivity: Timestamp;
-  createdAt: Timestamp;
+  participantInfo: Record<string, any>;
+  lastActivity: any; // Firebase Timestamp
+  createdAt: any; // Firebase Timestamp
   isGated: boolean;
-  name?: string; 
 }
 
 export interface FirestoreMessage {
   id?: string; // ID du document Firestore
   senderId: string;
-  content: string;
-  type: MessageType | 'system_notification'; // Étendre si nécessaire
-  createdAt: Timestamp;
-  isEncrypted: boolean;
+  content: string | any;
+  type: string;
+  createdAt: any; // Firebase Timestamp
+  isEncrypted?: boolean;
+  monetization?: any;
 }
 
 /**
@@ -54,18 +46,9 @@ export const createNewConversationWithCreator = async ({
   creatorId,     // UID du créateur
   creatorName,   // Nom d'affichage du créateur
   creatorAvatar, // URL de l'avatar du créateur
-  initialMessageText = "Bonjour, j'aimerais discuter avec vous!",
+  initialMessageText = "Bonjour, j'aimerais discuter avec vous !",
   isGated = false
-}: {
-  userId: string;
-  userName: string;
-  userAvatar: string | null;
-  creatorId: string;
-  creatorName: string;
-  creatorAvatar: string | null;
-  initialMessageText?: string;
-  isGated?: boolean;
-}): Promise<{ success: boolean; threadId?: string; message?: FirestoreMessage; error?: any; existingThreadId?: string }> => {
+}: CreateConversationParams): Promise<{ success: boolean; threadId?: string; message?: FirestoreMessage; error?: any; existingThreadId?: string }> => {
   if (userId === creatorId) {
     toast.error("Vous ne pouvez pas démarrer une conversation avec vous-même.");
     return { success: false, error: "Self-conversation attempt" };

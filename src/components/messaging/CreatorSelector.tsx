@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -81,7 +80,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
           <div className="space-y-2">
             {filteredCreators.map((creator) => (
               <div
-                key={creator.id} // Use id as key instead of uid
+                key={creator.id}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={() => handleSelectCreator(creator)}
               >

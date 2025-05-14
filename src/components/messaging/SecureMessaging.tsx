@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -71,7 +70,11 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(userId);
-      setThreads(threadsData.map(t => ({...t, messages: t.messages || [], readStatus: t.readStatus || {} })));
+      setThreads(threadsData.map(t => ({
+        ...t, 
+        messages: t.messages || [], 
+        readStatus: t.readStatus || {} 
+      })));
       
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
       let threadToActivate = null;
@@ -140,7 +143,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             newThreadsMap.delete(change.doc.id);
           }
         });
-        return Array.from(newThreadsMap.values()).sort((a, b) => (b.lastActivity as Timestamp).toMillis() - (a.lastActivity as Timestamp).toMillis());
+        return Array.from(newThreadsMap.values()).sort((a, b) => (b.lastActivity as any).toMillis() - (a.lastActivity as any).toMillis());
       });
       setIsLoadingThreads(false);
     }, (error) => {
@@ -170,7 +173,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             : thread
         )
       );
-      setLastVisibleMessageDoc(newLastVisibleDoc);
+      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {
