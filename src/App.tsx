@@ -27,7 +27,7 @@ import NetworkTest from '@/pages/NetworkTest';
 import TestAuth from '@/pages/TestAuth';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 // Add future flags for React Router v7 compatibility
 const router = {
