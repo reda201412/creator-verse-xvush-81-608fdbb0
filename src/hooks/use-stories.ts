@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Story, StoryGroup, StoryUploadParams } from '@/types/stories';
-import { StoriesService } from '@/services/stories.service';
+import { Story, StoryGroup, StoryUploadParams, UserProfile, StoryFilter } from '@/types/stories';
+import { getStories, createStory, deleteStory, incrementStoryViews, Story as FirestoreStory } from '@/services/stories.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useToast } from '@/hooks/use-toast';
@@ -10,19 +10,24 @@ const mapFirestoreStoryToStory = (firestoreStory: FirestoreStory): Story => {
   return {
     id: firestoreStory.id,
     creator_id: firestoreStory.creatorId,
-    media_url: firestoreStory.mediaUrl,
-    thumbnail_url: firestoreStory.thumbnailUrl,
-    caption: firestoreStory.caption,
-    filter_used: firestoreStory.filterUsed as any,
-    format: firestoreStory.format as '16:9' | '9:16' | '1:1',
-    duration: firestoreStory.duration,
-    created_at: firestoreStory.createdAt,
-    expires_at: firestoreStory.expiresAt,
-    view_count: firestoreStory.viewCount,
-    is_highlighted: firestoreStory.isHighlighted,
-    metadata: firestoreStory.metadata,
-    viewed: firestoreStory.viewed,
-    creator: firestoreStory.creator as any
+    media_url: firestoreStory.content,
+    thumbnail_url: firestoreStory.metadata?.thumbnailUrl,
+    caption: '',
+    filter_used: firestoreStory.metadata?.filterUsed || 'none',
+    format: '16:9',
+    duration: firestoreStory.metadata?.duration || 5,
+    created_at: firestoreStory.createdAt.toDate().toISOString(),
+    expires_at: firestoreStory.expiresAt.toDate().toISOString(),
+    view_count: firestoreStory.views,
+    is_highlighted: false,
+    metadata: {
+      location: firestoreStory.metadata?.location,
+      mentions: firestoreStory.metadata?.mentions,
+      hashtags: firestoreStory.metadata?.hashtags,
+      music: firestoreStory.metadata?.music,
+      interactive: firestoreStory.metadata?.interactive
+    },
+    viewed: false
   };
 };
 
@@ -38,11 +43,11 @@ export const useStories = () => {
 
   // Charger les stories
   const loadStories = useCallback(async () => {
-    if (!user) return;
+    if (!user?.uid) return;
     
     try {
       setLoading(true);
-      const activeStories = await StoriesService.getActiveStories();
+      const activeStories = await getStories(user.uid);
       // Convert all Firestore stories to the expected Story format
       const convertedStories = activeStories.map(mapFirestoreStoryToStory);
       setStories(convertedStories);
@@ -51,12 +56,19 @@ export const useStories = () => {
       const groups: Record<string, StoryGroup> = {};
       
       convertedStories.forEach(story => {
-        if (!story.creator) return;
+        if (!story.creator_id) return;
         
-        const creatorId = story.creator.id;
+        const creatorId = story.creator_id;
         if (!groups[creatorId]) {
           groups[creatorId] = {
-            creator: story.creator,
+            creator: {
+              id: creatorId,
+              username: '',
+              display_name: '',
+              avatar_url: '',
+              bio: '',
+              role: 'creator'
+            },
             stories: [],
             lastUpdated: story.created_at,
             hasUnviewed: false
@@ -96,7 +108,7 @@ export const useStories = () => {
   
   // Créer une nouvelle story
   const createStory = useCallback(async (params: StoryUploadParams) => {
-    if (!user || !profile) {
+    if (!user?.uid || !profile) {
       toast({
         title: "Erreur",
         description: "Vous devez être connecté pour publier une story",
@@ -106,18 +118,34 @@ export const useStories = () => {
     }
     
     try {
-      const newStory = await StoriesService.createStory(params, user.id);
-      
-      // Mettre à jour la liste des stories
-      setStories(prev => [mapFirestoreStoryToStory(newStory as any), ...prev]);
-      
-      // Déclencher une micro-récompense
-      triggerMicroReward('creative', { type: 'story_created' });
-      
-      toast({
-        title: "Succès",
-        description: "Votre story a été publiée",
+      const newStory = await createStory({
+        creatorId: user.uid,
+        content: URL.createObjectURL(params.mediaFile),
+        type: params.mediaFile.type.startsWith('video/') ? 'video' : 'image',
+        metadata: {
+          duration: params.duration,
+          thumbnailUrl: params.thumbnailFile ? URL.createObjectURL(params.thumbnailFile) : undefined,
+          filterUsed: params.filter,
+          location: params.metadata?.location,
+          mentions: params.metadata?.mentions,
+          hashtags: params.metadata?.hashtags,
+          music: params.metadata?.music,
+          interactive: params.metadata?.interactive
+        }
       });
+      
+      if (newStory) {
+        // Mettre à jour la liste des stories
+        setStories(prev => [mapFirestoreStoryToStory(newStory), ...prev]);
+        
+        // Déclencher une micro-récompense
+        triggerMicroReward('creative', { type: 'story_created' });
+        
+        toast({
+          title: "Succès",
+          description: "Votre story a été publiée",
+        });
+      }
       
       return newStory;
     } catch (error) {
@@ -133,10 +161,10 @@ export const useStories = () => {
   
   // Marquer une story comme vue
   const markStoryAsViewed = useCallback(async (storyId: string, viewDuration: number = 0) => {
-    if (!user) return;
+    if (!user?.uid) return;
     
     try {
-      await StoriesService.markStoryAsViewed(storyId, viewDuration);
+      await incrementStoryViews(storyId);
       
       // Mettre à jour l'état local
       setStories(prev => 
@@ -151,10 +179,10 @@ export const useStories = () => {
   
   // Supprimer une story
   const deleteStory = useCallback(async (storyId: string) => {
-    if (!user) return false;
+    if (!user?.uid) return false;
     
     try {
-      await StoriesService.deleteStory(storyId);
+      await deleteStory(storyId);
       
       // Mettre à jour l'état local
       setStories(prev => prev.filter(story => story.id !== storyId));

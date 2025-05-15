@@ -1,4 +1,3 @@
-
 // Remove the import of UserProfile from AuthContext and define it here instead
 export type StoryFilter = 'none' | 'sepia' | 'grayscale' | 'blur' | 'vintage' | 'neon' | 'vibrant' | 'minimal';
 
@@ -80,7 +79,35 @@ export interface StoryUploadParams {
   duration?: number;
   expiresIn?: number; // Hours (default: 24)
   tags?: string[];
-  metadata?: Partial<Story['metadata']>;
+  metadata?: {
+    duration?: number;
+    thumbnailUrl?: string;
+    filterUsed?: StoryFilter;
+    location?: {
+      latitude: number;
+      longitude: number;
+      name?: string;
+    };
+    mentions?: string[];
+    hashtags?: string[];
+    music?: {
+      title: string;
+      artist: string;
+      url?: string;
+    };
+    interactive?: {
+      poll?: {
+        question: string;
+        options: string[];
+        votes: Record<string, number>;
+      };
+      quiz?: {
+        question: string;
+        options: string[];
+        correct_option: number;
+      };
+    };
+  };
 }
 
 export interface StoryGroup {

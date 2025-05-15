@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,12 +7,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineCh
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EyeIcon, TrendingUp, DollarSign, ChartBar } from 'lucide-react';
-// import { getVideoById } from '@/integrations/supabase/client'; // Ancienne importation
-import { getVideoById, VideoSupabaseData } from '@/services/creatorService'; // Modifié pour utiliser le nom mis à jour et le type Supabase
+import { getVideoById, VideoData } from '@/services/creatorService'; // Modifié pour utiliser le nom mis à jour et le type Supabase
 import { formatNumber } from '@/lib/utils';
 
 interface VideoAnalyticsModalProps {
-  videoId: number | null; // Changed to number as per Supabase schema
+  videoId: string | null; // Changed to string to match Firestore ID type
   isOpen: boolean;
   onClose: () => void;
 }
@@ -34,7 +32,7 @@ interface VideoAnalytics {
 }
 
 const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOpen, onClose }) => {
-  const [videoDetails, setVideoDetails] = useState<VideoSupabaseData | null>(null); // Updated type
+  const [videoDetails, setVideoDetails] = useState<VideoData | null>(null);
   const [analytics, setAnalytics] = useState<VideoAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');

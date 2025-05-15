@@ -1,13 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as UpChunk from '@mux/upchunk';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 // Import Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService';
+import { VideoData } from '@/services/creatorService';
 import { VideoService } from '@/services/videoService';
 // Removed old VideoMetadata import:
 // import { VideoMetadata } from '@/types/video';
@@ -26,13 +25,6 @@ const videoFormSchema = z.object({
 });
 
 export type VideoFormValues = z.infer<typeof videoFormSchema>;
-
-// Define a type for the MUX direct upload response
-interface MuxUploadResponse {
-  id: string;
-  url: string;
-  // Add other relevant fields from MUX API if needed
-}
 
 type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'processing_metadata' | 'generating_thumbnail' | 'complete' | 'error';
 
@@ -174,94 +166,7 @@ const useVideoUpload = () => {
     setUploadStage('idle');
   };
 
-  const uploadThumbnail = async (file: File, videoId: number): Promise<string | null> => {
-    if (!user) throw new Error("Utilisateur non authentifié.");
-    
-    const fileName = `video_thumbnails/${user.uid}/${videoId}-${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('xtease-bucket') // Replace with your actual bucket name
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      console.error('Error uploading thumbnail:', error);
-      throw new Error(`Erreur lors du téléchargement de la miniature: ${error.message}`);
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('xtease-bucket') // Replace with your actual bucket name
-      .getPublicUrl(data.path);
-      
-    return publicUrlData.publicUrl;
-  };
-  
-  const saveVideoMetadata = async (
-    values: VideoFormValues, 
-    muxUploadId: string | undefined, 
-    initialThumbnailUrl?: string | null
-  ): Promise<VideoSupabaseData | null> => {
-    if (!user) {
-      setUploadError("Utilisateur non authentifié.");
-      throw new Error("Utilisateur non authentifié.");
-    }
-    
-    setUploadStage('processing_metadata');
-
-    try {
-      const { data: videoData, error: insertError } = await supabase
-        .from('videos')
-        .insert({
-          user_id: user.uid, // Utilisez user.uid pour être compatible avec Firebase User
-          title: values.title,
-          description: values.description,
-          type: values.type,
-          format: videoFormat.current,
-          is_premium: values.isPremium,
-          token_price: values.isPremium ? values.tokenPrice : null,
-          thumbnail_url: initialThumbnailUrl, // Use pre-uploaded thumbnail URL or null
-          upload_id: muxUploadId, // This is Mux Upload ID from createUpload response
-          status: 'processing', // Initial status, Mux webhook will update to 'ready' and add asset/playback IDs
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Error inserting video metadata:', insertError);
-        throw insertError;
-      }
-
-      // If there was no pre-uploaded thumbnail (e.g. user provided one),
-      // and a thumbnailFile exists (user selected one or generated one), upload it now.
-      let finalThumbnailUrl = initialThumbnailUrl;
-      if (!finalThumbnailUrl && thumbnailFile && videoData) {
-         finalThumbnailUrl = await uploadThumbnail(thumbnailFile, videoData.id);
-         // Update the video record with the new thumbnail URL
-         const { error: updateError } = await supabase
-           .from('videos')
-           .update({ thumbnail_url: finalThumbnailUrl })
-           .eq('id', videoData.id);
-         if (updateError) {
-           console.warn('Failed to update video with final thumbnail URL:', updateError);
-           // Non-critical, proceed but log it
-         }
-      }
-      
-      setUploadStage('complete');
-      return { ...videoData, thumbnail_url: finalThumbnailUrl } as VideoSupabaseData;
-
-    } catch (error: any) {
-      console.error('Error in saveVideoMetadata:', error);
-      setUploadError(error.message || "Erreur lors de la sauvegarde des métadonnées de la vidéo.");
-      setUploadStage('error');
-      toast.error("Erreur de sauvegarde", { description: error.message || "Impossible de sauvegarder les informations de la vidéo."});
-      return null;
-    }
-  };
-
-
-  const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoSupabaseData | null> => {
+  const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoData | null> => {
     if (!videoFile || !user) {
       setUploadError("Fichier vidéo ou utilisateur manquant.");
       return null;
@@ -272,52 +177,84 @@ const useVideoUpload = () => {
     setUploadError(null);
     setUploadStage('creating_upload');
 
+    let thumbnailUrl: string | undefined = undefined;
+    // 0. Upload du thumbnail sur Alibaba OSS si présent
+    if (thumbnailFile) {
+      try {
+        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = error => reject(error);
+        });
+        const base64Data = await toBase64(thumbnailFile);
+        const response = await fetch('/api/oss/upload-thumbnail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: thumbnailFile.name,
+            data: base64Data
+          })
+        });
+        const result = await response.json();
+        if (response.ok && result.url) {
+          thumbnailUrl = result.url;
+        } else {
+          toast.error('Erreur upload miniature OSS', { description: result.error });
+        }
+      } catch (err) {
+        toast.error('Erreur upload miniature OSS', { description: err?.message || String(err) });
+      }
+    }
+
     try {
       // 1. Create MUX Direct Upload URL via Vercel API
       const uploadData = await VideoService.createUploadUrl();
-      
       if (!uploadData || !uploadData.url || !uploadData.id) {
         throw new Error("Impossible de préparer l'upload vidéo avec Mux.");
       }
-      
       const muxUploadUrl = uploadData.url;
-      const muxUploadId = uploadData.id;
-
       // 2. Upload video file to MUX using UpChunk
       setUploadStage('uploading');
-      return new Promise<VideoSupabaseData | null>((resolve, reject) => {
+      return new Promise<VideoData | null>((resolve, reject) => {
         upchunkRef.current = UpChunk.createUpload({
           endpoint: muxUploadUrl,
           file: videoFile,
-          chunkSize: 7680, // 7.5MB chunk size (adjust as needed)
+          chunkSize: 7680,
         });
-
         upchunkRef.current.on('progress', (progressEvent: { detail: number }) => {
           setUploadProgress(Math.floor(progressEvent.detail));
         });
-
         upchunkRef.current.on('success', async () => {
           console.log('Video uploaded to Mux successfully!');
-          // 3. Save video metadata to Supabase
-          try {
-            const initialThumbUrl: string | null = null;
-            // If user provided a thumbnail, upload it first
-            if (thumbnailFile && !thumbnailPreviewUrl?.startsWith('blob:')) { // Ensure it's not a generated blob
-              // This logic might be tricky: if thumbnailFile is set but preview is a blob, it means it was generated.
-              // If thumbnailFile exists and preview is NOT a blob, it means user uploaded it.
-              // Let's simplify: if thumbnailFile exists, try to upload it.
-              // The saveVideoMetadata will handle its own thumbnail logic now.
-            }
-
-            const metadata = await saveVideoMetadata(values, muxUploadId, initialThumbUrl);
-            setIsUploading(false);
-            resolve(metadata);
-          } catch (metaError: any) {
-            setIsUploading(false);
-            reject(metaError);
-          }
+          setIsUploading(false);
+          setUploadStage('complete');
+          // À migrer : appeler le backend pour enregistrer les métadonnées côté Firestore
+          // Ici, on retourne un objet avec thumbnailUrl si upload réussi
+          resolve({
+            id: '',
+            creatorId: user.uid,
+            title: values.title,
+            description: values.description,
+            thumbnailUrl: thumbnailUrl,
+            videoUrl: '',
+            type: values.type,
+            format: (videoFormat.current === '16:9' || videoFormat.current === '9:16' || videoFormat.current === '1:1') ? videoFormat.current : '16:9',
+            isPremium: values.isPremium,
+            tokenPrice: values.tokenPrice,
+            restrictions: undefined,
+            status: 'processing',
+            errorDetails: undefined,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            muxUploadId: uploadData.id,
+            muxAssetId: undefined,
+            muxPlaybackId: undefined,
+          });
         });
-
         upchunkRef.current.on('error', (errorEvent: { detail: any }) => {
           console.error('UpChunk upload error:', errorEvent.detail);
           setIsUploading(false);
@@ -327,7 +264,6 @@ const useVideoUpload = () => {
           reject(new Error(errorEvent.detail?.message || 'Erreur UpChunk'));
         });
       });
-
     } catch (error: any) {
       console.error('General upload process error:', error);
       setIsUploading(false);

@@ -29,6 +29,14 @@ import './App.css';
 import { Spinner } from '@/components/ui/spinner';
 import { useState, useEffect, useCallback } from 'react';
 
+// Add future flags for React Router v7 compatibility
+const router = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, profile } = useAuth();
   
@@ -88,7 +96,7 @@ function App() {
   return (
     <AuthProvider>
       <TooltipProvider>
-        <Router>
+        <Router {...router}>
           <XvushDesignSystem>
             <div className="flex h-screen w-full overflow-hidden bg-background">
               <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />

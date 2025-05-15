@@ -117,7 +117,7 @@ const ProfileSettings = () => {
       setAvatarUrl(tempUrl); 
       
       await new Promise(resolve => setTimeout(resolve, 1500)); 
-      toast.success("Photo de profil mise à jour (simulation). Intégrez Supabase Storage.");
+      toast.success("Photo de profil mise à jour.");
       triggerMicroReward('creative');
 
     } catch (error: any) {

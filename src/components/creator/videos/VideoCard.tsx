@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // Use the Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService'; 
+import { VideoData } from '@/services/creatorService'; 
 import { 
   MoreVertical, 
   Play, 
@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast'; // Import useToast hook
 
 interface VideoCardProps {
   // Use the Supabase data type
-  video: VideoSupabaseData;
+  video: VideoData;
   onDelete: (videoId: number) => void; // Updated to use number ID
   onEdit: (videoId: number) => void; // Updated to use number ID
   onPromote: (videoId: number) => void; // Updated to use number ID
@@ -135,10 +135,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
           }
         }}
       >
-        {/* Thumbnail - use thumbnail_url from Supabase schema */}
-        {video.thumbnail_url ? (
+        {/* Thumbnail - use thumbnailUrl from Firestore schema */}
+        {video.thumbnailUrl ? (
           <img 
-            src={video.thumbnail_url} 
+            src={video.thumbnailUrl} 
             alt={video.title || 'Video thumbnail'} 
             className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
             loading="lazy"
@@ -215,10 +215,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </p>
         )}
         
-        {/* Use is_premium and token_price from Supabase schema */}
-        {video.is_premium && video.token_price !== undefined && video.token_price !== null && (
+        {/* Use isPremium and tokenPrice from Firestore schema */}
+        {video.isPremium && video.tokenPrice !== undefined && video.tokenPrice !== null && (
           <div className="text-sm font-medium text-primary">
-            {video.token_price} tokens
+            {video.tokenPrice} tokens
           </div>
         )}
       </div>
@@ -255,7 +255,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           {isVideoReady && playbackUrl ? ( // Ensure playbackUrl is also checked
             <EnhancedVideoPlayer
               src={playbackUrl} // playbackUrl is guaranteed to be a string here
-              thumbnailUrl={video.thumbnail_url || undefined} // Use thumbnail_url
+              thumbnailUrl={video.thumbnailUrl || undefined} // Use thumbnailUrl
               title={video.title || undefined}
               autoPlay={true}
               onPlay={() => {
@@ -269,8 +269,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
                  {video.status === 'processing' && <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />}
                  {video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
                  <p className="text-lg font-medium">{getStatusMessage()}</p>
-                 {video.status === 'error' && video.error_details && (
-                    <p className="text-sm text-muted-foreground mt-2">Détails: {typeof video.error_details === 'string' ? video.error_details : JSON.stringify(video.error_details)}</p>
+                 {video.status === 'error' && video.errorDetails && (
+                    <p className="text-sm text-muted-foreground mt-2">Détails: {typeof video.errorDetails === 'string' ? video.errorDetails : JSON.stringify(video.errorDetails)}</p>
                  )}
               </div>
             </div>

@@ -1,5 +1,8 @@
 import { auth } from '@/lib/firebase';
 
+// URL de base de l'API
+const API_BASE_URL = 'https://creator-verse-xvush-81-608fdbb0-pa7h10xx1-reda201412s-projects.vercel.app';
+
 // Types pour les réponses d'API
 export interface MuxUploadResponse {
   id: string;
@@ -30,7 +33,7 @@ export const VideoService = {
       throw new Error("Non authentifié");
     }
 
-    const response = await fetch('/api/mux/create-upload', {
+    const response = await fetch(`${API_BASE_URL}/api/mux/create-upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +58,7 @@ export const VideoService = {
       throw new Error("Non authentifié");
     }
 
-    const response = await fetch(`/api/mux/assets?id=${assetId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/mux/assets?id=${assetId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -78,7 +81,7 @@ export const VideoService = {
       throw new Error("Non authentifié");
     }
 
-    const response = await fetch(`/api/mux/assets?page=${page}&limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}/api/mux/assets?page=${page}&limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -101,7 +104,7 @@ export const VideoService = {
       throw new Error("Non authentifié");
     }
 
-    const response = await fetch(`/api/mux/assets?id=${assetId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/mux/assets?id=${assetId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

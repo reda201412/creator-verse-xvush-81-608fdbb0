@@ -1,9 +1,7 @@
-
 import { useState } from 'react';
 import { useTronWallet } from './use-tron-wallet';
 import { useTronWeb } from './use-tronweb';
 import { toast } from 'sonner';
-// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useAuth } from '@/contexts/AuthContext';
 import { getFunctions, httpsCallable } from 'firebase/functions'; // Ajout pour Firebase Functions
 
