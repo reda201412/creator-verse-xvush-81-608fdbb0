@@ -45,6 +45,12 @@ const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> =
     return;
   }
 
+  // Correction parsing body JSON (pour robustesse future)
+  let body = req.body;
+  if (req.headers['content-type'] === 'application/json' && typeof req.body === 'string') {
+    body = JSON.parse(req.body);
+  }
+
   try {
     // Extraire des données du corps de la requête si nécessaire
     // const { /* paramètres personnalisés si nécessaire */ } = req.body;

@@ -44,7 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { filename, data } = req.body; // data = base64
+  // Correction parsing body JSON
+  let body = req.body;
+  if (req.headers['content-type'] === 'application/json' && typeof req.body === 'string') {
+    body = JSON.parse(req.body);
+  }
+  const { filename, data } = body || {};
   if (!filename || !data) {
     res.status(400).json({ error: 'Missing filename or data' });
     return;
