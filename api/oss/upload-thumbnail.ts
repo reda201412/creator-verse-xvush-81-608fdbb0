@@ -8,14 +8,29 @@ const client = new OSS({
   bucket: process.env.ALIBABA_OSS_BUCKET!
 });
 
+// List of allowed origins
+const allowedOrigins = [
+  'https://creator-verse-xvush-81-608fdbb0.vercel.app',
+  'https://creator-verse-xvush-81-608fdbb0-2st4obiig-reda201412s-projects.vercel.app',
+  'https://creator-verse-xvush-81-608fdbb0-9kb32mmm3-reda201412s-projects.vercel.app',
+  'http://localhost:3000'
+];
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Add CORS headers
+  const origin = req.headers.origin;
+  
+  // Check if the origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
   // Handle preflight request
