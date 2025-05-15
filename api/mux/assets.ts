@@ -3,12 +3,12 @@ import Mux from '@mux/mux-node';
 import { withCreatorAuth } from './auth-middleware';
 
 // Initialiser le client Mux
-const { Video } = new Mux({
+const muxClient = new Mux({
   tokenId: process.env.MUX_TOKEN_ID || '',
   tokenSecret: process.env.MUX_TOKEN_SECRET || ''
 });
 
-const handler = async (req: VercelRequest, res: VercelResponse) => {
+const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   // Obtenir l'ID de l'asset depuis les paramètres de l'URL
   const { id } = req.query;
 
@@ -17,11 +17,11 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       // Si un ID est fourni, récupérer cet asset spécifique
       if (id) {
         try {
-          const asset = await Video.Assets.get(id as string);
-          return res.status(200).json(asset);
+          const asset = await muxClient.video.assets.get(id as string);
+          res.status(200).json(asset);
         } catch (error: any) {
           console.error(`Error fetching asset ${id}:`, error);
-          return res.status(404).json({ error: `Asset not found: ${error.message}` });
+          res.status(404).json({ error: `Asset not found: ${error.message}` });
         }
       } 
       // Sinon, liste paginée des assets
@@ -30,34 +30,38 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
           const page = parseInt(req.query.page as string) || 1;
           const limit = parseInt(req.query.limit as string) || 10;
           
-          const assets = await Video.Assets.list({
+          const assets = await muxClient.video.assets.list({
             limit,
             page
           });
           
-          return res.status(200).json(assets);
+          res.status(200).json(assets);
         } catch (error: any) {
           console.error('Error listing assets:', error);
-          return res.status(500).json({ error: `Failed to list assets: ${error.message}` });
+          res.status(500).json({ error: `Failed to list assets: ${error.message}` });
         }
       }
+      break;
 
     case 'DELETE':
       // Supprimer un asset
       if (!id) {
-        return res.status(400).json({ error: 'Asset ID is required' });
+        res.status(400).json({ error: 'Asset ID is required' });
+        return;
       }
       
       try {
-        await Video.Assets.del(id as string);
-        return res.status(200).json({ deleted: true, id });
+        await muxClient.video.assets.del(id as string);
+        res.status(200).json({ deleted: true, id });
       } catch (error: any) {
         console.error(`Error deleting asset ${id}:`, error);
-        return res.status(500).json({ error: `Failed to delete asset: ${error.message}` });
+        res.status(500).json({ error: `Failed to delete asset: ${error.message}` });
       }
+      break;
 
     default:
-      return res.status(405).json({ error: 'Method not allowed' });
+      res.status(405).json({ error: 'Method not allowed' });
+      break;
   }
 };
 
