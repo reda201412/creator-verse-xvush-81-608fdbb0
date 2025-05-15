@@ -7,7 +7,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
   addDoc,
   deleteDoc,
   serverTimestamp,

@@ -27,7 +27,7 @@ import NetworkTest from '@/pages/NetworkTest';
 import TestAuth from '@/pages/TestAuth';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 // Add future flags for React Router v7 compatibility
 const router = {
@@ -38,7 +38,7 @@ const router = {
 };
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, profile } = useAuth();
+  const { user, isLoading } = useAuth();
   
   if (isLoading) {
     return (
@@ -57,7 +57,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, isLoading, isCreator } = useAuth();
+  const { user, isLoading, isCreator, profile } = useAuth();
   
   if (isLoading) {
     return (
@@ -86,13 +86,6 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
-  // Close sidebar on small screens when route changes
-  const handleRouteChange = useCallback(() => {
-    if (window.innerWidth < 768) {
-      setSidebarExpanded(false);
-    }
-  }, []);
-
   return (
     <AuthProvider>
       <TooltipProvider>
