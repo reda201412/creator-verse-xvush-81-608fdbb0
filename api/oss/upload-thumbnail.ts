@@ -46,7 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Correction parsing body JSON
   let body = req.body;
-  if (req.headers['content-type'] === 'application/json' && typeof req.body === 'string') {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.startsWith('application/json') && typeof req.body === 'string') {
     body = JSON.parse(req.body);
   }
   const { filename, data } = body || {};

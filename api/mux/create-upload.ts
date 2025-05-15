@@ -47,7 +47,8 @@ const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> =
 
   // Correction parsing body JSON (pour robustesse future)
   let body = req.body;
-  if (req.headers['content-type'] === 'application/json' && typeof req.body === 'string') {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.startsWith('application/json') && typeof req.body === 'string') {
     body = JSON.parse(req.body);
   }
 
