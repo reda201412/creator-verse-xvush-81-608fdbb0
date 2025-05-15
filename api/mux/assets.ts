@@ -17,7 +17,7 @@ const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> =
       // Si un ID est fourni, récupérer cet asset spécifique
       if (id) {
         try {
-          const asset = await muxClient.video.assets.get(id as string);
+          const asset = await muxClient.video.assets.retrieve(id as string);
           res.status(200).json(asset);
         } catch (error: any) {
           console.error(`Error fetching asset ${id}:`, error);
@@ -51,7 +51,7 @@ const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> =
       }
       
       try {
-        await muxClient.video.assets.del(id as string);
+        await muxClient.video.assets.delete(id as string);
         res.status(200).json({ deleted: true, id });
       } catch (error: any) {
         console.error(`Error deleting asset ${id}:`, error);
