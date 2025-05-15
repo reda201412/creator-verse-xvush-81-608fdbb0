@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 // Import Supabase data type
 import { VideoData } from '@/services/creatorService';
 import { VideoService } from '@/services/videoService';
+import API_ENDPOINTS from '@/config/api';
 // Removed old VideoMetadata import:
 // import { VideoMetadata } from '@/types/video';
 
@@ -191,7 +192,7 @@ const useVideoUpload = () => {
           reader.onerror = error => reject(error);
         });
         const base64Data = await toBase64(thumbnailFile);
-        const response = await fetch('/api/oss/upload-thumbnail', {
+        const response = await fetch(API_ENDPOINTS.OSS.UPLOAD_THUMBNAIL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -199,14 +200,17 @@ const useVideoUpload = () => {
             data: base64Data
           })
         });
-        const result = await response.json();
-        if (response.ok && result.url) {
-          thumbnailUrl = result.url;
-        } else {
-          toast.error('Erreur upload miniature OSS', { description: result.error });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'upload de la miniature');
         }
-      } catch (err) {
-        toast.error('Erreur upload miniature OSS', { description: err?.message || String(err) });
+
+        const data = await response.json();
+        thumbnailUrl = data.url;
+      } catch (error) {
+        console.error('Erreur lors de l\'upload de la miniature:', error);
+        toast.error("Erreur de miniature", { description: "Impossible d'uploader la miniature sur OSS." });
+        // Continue without thumbnail
       }
     }
 
