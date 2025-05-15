@@ -14,7 +14,8 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
-    sourcemap: true
+    sourcemap: true,
+    chunkSizeWarningLimit: 1000
   },
   plugins: [
     react(),
