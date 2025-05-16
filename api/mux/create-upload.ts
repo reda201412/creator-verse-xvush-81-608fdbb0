@@ -13,6 +13,7 @@ const allowedOrigins = [
   'https://creator-verse-xvush-81-608fdbb0.vercel.app',
   'https://creator-verse-xvush-81-608fdbb0-2st4obiig-reda201412s-projects.vercel.app',
   'https://creator-verse-xvush-81-608fdbb0-9kb32mmm3-reda201412s-projects.vercel.app',
+  'https://xdose-reda201412s-projects.vercel.app',
   'http://localhost:3000'
 ];
 

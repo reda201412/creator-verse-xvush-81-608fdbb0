@@ -13,10 +13,13 @@ const allowedOrigins = [
   'https://creator-verse-xvush-81-608fdbb0.vercel.app',
   'https://creator-verse-xvush-81-608fdbb0-2st4obiig-reda201412s-projects.vercel.app',
   'https://creator-verse-xvush-81-608fdbb0-9kb32mmm3-reda201412s-projects.vercel.app',
+  'https://xdose-reda201412s-projects.vercel.app',
   'http://localhost:3000'
 ];
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+import { withCreatorAuth } from '../mux/auth-middleware';
+
+async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin;
   
   // Check if the origin is allowed
@@ -44,15 +47,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // Correction parsing body JSON
-  let body = req.body;
-  const contentType = req.headers['content-type'] || '';
-  if (contentType.startsWith('application/json') && typeof req.body === 'string') {
-    body = JSON.parse(req.body);
-  }
-  const { filename, data } = body || {};
-  if (!filename || !data) {
-    res.status(400).json({ error: 'Missing filename or data' });
+  let filename: string;
+  let data: string;
+
+  try {
+    const body = req.body;
+    filename = body.filename;
+    data = body.data;
+    
+    if (!filename || !data) {
+      res.status(400).json({ error: 'Missing required fields: filename and data' });
+      return;
+    }
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    res.status(400).json({ error: 'Invalid JSON' });
     return;
   }
 
@@ -66,3 +75,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: error.message });
   }
 } 
+
+export default withCreatorAuth(handler);
