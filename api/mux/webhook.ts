@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import crypto from 'crypto';
+import { prisma } from '../../lib/prisma';
 
 // Initialiser Firebase Admin
 if (!getApps().length) {
@@ -31,11 +32,11 @@ function isValidMuxSignature(signature: string, body: string, secret: string) {
 
 export const config = {
   api: {
-    bodyParser: false, // On veut le body brut pour la vérification de signature
+    bodyParser: true, // Mux envoie du JSON
   },
 };
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -68,24 +69,23 @@ export default async function handler(req: any, res: any) {
     const event = JSON.parse(rawBody);
     const { type, data } = event;
 
-    if (type === 'video.asset.ready') {
-      const { id: assetId } = data;
-      
-      // Mettre à jour le statut de la vidéo dans Firestore
-      const videosRef = db.collection('videos');
-      const querySnapshot = await videosRef.where('muxAssetId', '==', assetId).get();
-      
-      if (!querySnapshot.empty) {
-        const batch = db.batch();
-        querySnapshot.forEach(doc => {
-          batch.update(doc.ref, {
-            status: 'ready',
-            updatedAt: new Date()
-          });
-        });
-        await batch.commit();
-        console.log(`Video status updated to 'ready' for mux_asset_id: ${assetId}`);
-      }
+    // Pour debug : log l'événement reçu
+    console.log('Received Mux webhook:', event);
+
+    if (type === 'video.upload.asset_created') {
+      const { upload_id, asset_id } = data;
+
+      // Mettre à jour la vidéo dans Neon
+      const video = await prisma.video.updateMany({
+        where: { muxUploadId: upload_id },
+        data: {
+          muxAssetId: asset_id,
+          // muxPlaybackId: playbackId, // à décommenter si tu récupères le playbackId
+          status: 'ready',
+        },
+      });
+
+      return res.status(200).json({ success: true, updated: video.count });
     } else if (type === 'video.asset.errored') {
       const { id: assetId } = data;
       

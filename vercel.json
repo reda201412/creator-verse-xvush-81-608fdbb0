@@ -20,6 +20,11 @@
       "handle": "filesystem"
     },
     {
+      "src": "/api/(.*)",
+      "status": 404,
+      "continue": true
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
