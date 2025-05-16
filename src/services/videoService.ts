@@ -28,14 +28,18 @@ export const VideoService = {
    * Utilise le service d'upload direct pour contourner les problèmes d'API
    */
   createUploadUrl: async (): Promise<MuxUploadResponse> => {
-    // Vérifier l'authentification (pour la compatibilité avec le reste du code)
-    if (!auth.currentUser) {
+    // Vérifier l'authentification
+    const user = auth.currentUser;
+    if (!user) {
       throw new Error("Non authentifié");
     }
 
     try {
+      // Obtenir le token d'authentification
+      const token = await user.getIdToken();
+      
       // Utiliser le service d'upload direct vers Mux
-      return await DirectMuxService.createDirectUpload();
+      return await DirectMuxService.createDirectUpload(token);
     } catch (error) {
       console.error('Error creating upload URL:', error);
       throw new Error(`Erreur lors de la création de l'URL d'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
