@@ -5,7 +5,6 @@ import * as z from 'zod';
 import * as UpChunk from '@mux/upchunk';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { auth } from '@/lib/firebase';
 import { VideoService } from '@/services/videoService';
 import { ThumbnailService } from '@/services/thumbnailService';
 
