@@ -13,6 +13,16 @@
   ],
   "routes": [
     {
+      "src": "/api/mux/direct-upload",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/api/mux/direct-upload.ts"
+    },
+    {
+      "src": "/api/oss/upload-thumbnail",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/api/oss/upload-thumbnail.ts"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },
@@ -30,6 +40,8 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "MUX_TOKEN_ID": "614f11e3-39f6-46ef-8104-680fda482a19",
+    "MUX_TOKEN_SECRET": "TLmLKbeRUVf/zP4JYuU/uSKEle/xzowLpzR6vwFRvoSaMjud1UaQ4XCvezEA6bBSOglm8BUDsHr"
   }
-} 
+}
