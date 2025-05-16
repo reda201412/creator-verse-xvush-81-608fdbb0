@@ -6,26 +6,23 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   MessageSquare, 
-  Send, 
-  Mic, 
-  Image, 
-  Video, 
-  Zap, 
   Lock, 
   Shield,
-  UserPlus,
-  Settings,
   ChevronDown,
   ChevronRight,
   Users,
   ArrowLeft,
-  Key
+  Key,
+  Zap
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import MessageThread from './MessageThread';
 import MessageInput from './MessageInput';
 import WalletPanel from './WalletPanel';
@@ -33,11 +30,7 @@ import MessageAnalytics from './MessageAnalytics';
 import EmotionalInsights from './EmotionalInsights';
 import { Message, MessageThread as MessageThreadType, MonetizationTier } from '@/types/messaging';
 import { mockMessageThreads } from '@/data/mockMessages';
-import { encryptMessage, generateSessionKey } from '@/utils/encryption';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { encryptMessage } from '@/utils/encryption';
 
 interface MessageCenterProps {
   userId: string;
@@ -59,7 +52,7 @@ const MessageCenter = ({
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(mockMessageThreads[0]?.id);
   const [showWallet, setShowWallet] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(125.40);
+  const [walletBalance] = useState(125.40);
   const [isComposing, setIsComposing] = useState(false);
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
   const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
@@ -77,13 +70,20 @@ const MessageCenter = ({
   // Générer ou récupérer la clé de session pour le thread actif
   useEffect(() => {
     if (activeThreadId && !sessionKeys[activeThreadId]) {
-      const newSessionKey = generateSessionKey();
+      // Create a synchronous function to generate a session key
+      const createSessionKey = (): string => {
+        const randomBytes = new Uint8Array(32);
+        crypto.getRandomValues(randomBytes);
+        return btoa(String.fromCharCode(...Array.from(randomBytes)));
+      };
+      
+      const newSessionKey = createSessionKey();
       setSessionKeys(prev => ({
         ...prev,
         [activeThreadId]: newSessionKey
       }));
     }
-  }, [activeThreadId]);
+  }, [activeThreadId, sessionKeys]);
   
   useEffect(() => {
     // Handle mobile view - hide thread list when thread is selected
@@ -106,7 +106,7 @@ const MessageCenter = ({
     }
   }, [activeThread?.messages]);
   
-  const handleSendMessage = async (content: string, to: string) => {
+  const handleSendMessage = async (content: string) => {
     if (!activeThreadId || !content.trim()) return;
     
     let finalContent = content;
@@ -133,33 +133,15 @@ const MessageCenter = ({
       senderId: userId,
       senderName: userName,
       senderAvatar: userAvatar,
-      recipientId: activeThread?.participants.filter(p => p !== userId) || [],
       content: finalContent,
-      type: 'text',
       timestamp: new Date().toISOString(),
       status: 'sent',
       isEncrypted,
       monetization: monetizationEnabled ? {
         tier: monetizationTier,
         price: monetizationAmount,
-        currency: 'USD',
-        instantPayoutEnabled: true,
-        accessControl: {
-          isGated: monetizationTier !== 'free',
-          requiredTier: monetizationTier
-        },
-        analytics: {
-          views: 0,
-          revenue: 0,
-          conversionRate: 0,
-          engagementTime: 0
-        }
-      } : undefined,
-      emotional: {
-        primaryEmotion: 'neutral',
-        intensity: 50,
-        threadMapping: []
-      }
+        currency: 'USD'
+      } : undefined
     };
     
     // Update threads with new message
@@ -217,7 +199,14 @@ const MessageCenter = ({
   
   const handleResetSessionKey = () => {
     if (activeThreadId) {
-      const newSessionKey = generateSessionKey();
+      // Create a synchronous function to generate a session key
+      const createSessionKey = (): string => {
+        const randomBytes = new Uint8Array(32);
+        crypto.getRandomValues(randomBytes);
+        return btoa(String.fromCharCode(...Array.from(randomBytes)));
+      };
+      
+      const newSessionKey = createSessionKey();
       setSessionKeys(prev => ({
         ...prev,
         [activeThreadId]: newSessionKey
@@ -461,7 +450,7 @@ const MessageCenter = ({
                 
                 <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
                   <MessageInput 
-                    onSendMessage={(content) => handleSendMessage(content, 'text')}
+                    onSendMessage={handleSendMessage}
                     isComposing={isComposing}
                     setIsComposing={setIsComposing}
                     monetizationEnabled={monetizationEnabled}

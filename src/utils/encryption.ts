@@ -1,3 +1,4 @@
+
 // Simple encryption utilities for the message system
 // This is a simplified implementation for demonstration purposes
 
@@ -117,5 +118,5 @@ export const generateSessionKey = async (): Promise<string> => {
   crypto.getRandomValues(randomBytes);
   
   // Convert to base64 string for storage and transmission
-  return btoa(String.fromCharCode(...randomBytes));
+  return btoa(String.fromCharCode(...Array.from(randomBytes)));
 };

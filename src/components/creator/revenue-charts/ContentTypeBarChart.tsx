@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart,
@@ -38,15 +39,6 @@ const ContentTypeBarChart: React.FC<ContentTypeBarChartProps> = ({ className }) 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    // Calculate dimensions based on container element
-    if (elementRef.current) {
-      const { width, height } = elementRef.current.getBoundingClientRect();
-      setChartWidth(width);
-      setChartHeight(height);
-    }
-  }, [isVisible, elementRef]);
 
   const activeBarColor = '#0ea5e9';
   const hoverColor = '#0284c7';
@@ -106,7 +98,7 @@ const ContentTypeBarChart: React.FC<ContentTypeBarChartProps> = ({ className }) 
               radius={[4, 4, 0, 0]} 
               animationDuration={1000}
             >
-              {contentTypeData.map((entry, index) => (
+              {contentTypeData.map((_, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={index === activeIndex ? hoverColor : activeBarColor}

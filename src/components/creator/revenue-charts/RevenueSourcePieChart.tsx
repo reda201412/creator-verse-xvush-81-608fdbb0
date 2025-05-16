@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   PieChart,
@@ -33,7 +34,7 @@ const RevenueSourcePieChart: React.FC = () => {
           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
         >
           {
-            revenueSourceData.map((entry, index) => (
+            revenueSourceData.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))
           }
