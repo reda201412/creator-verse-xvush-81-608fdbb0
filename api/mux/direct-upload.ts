@@ -51,17 +51,16 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Configurer les en-têtes CORS
-  const origin = req.headers.origin || '';
+  // Activer CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  // Gérer les requêtes OPTIONS (pre-flight)
+  // Répondre aux requêtes OPTIONS pour CORS
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -69,38 +68,59 @@ export default async function handler(
 
   // Vérifier la méthode HTTP
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    return;
   }
 
   try {
-    // Authentifier l'utilisateur
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
-    const user = await verifyFirebaseToken(token);
-
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // Vérifier les clés d'API Mux
+    if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
+      console.error('Missing Mux API credentials');
+      res.status(500).json({ error: 'Server configuration error' });
+      return;
     }
+
+    // Vérifier le token d'authentification
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Missing or invalid authorization header' });
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+      await verifyFirebaseToken(token);
+    } catch (error) {
+      console.error('Firebase token verification error:', error);
+      res.status(401).json({ error: 'Invalid authentication token' });
+      return;
+    }
+
+    // Obtenir l'origine pour CORS
+    const origin = req.headers.origin || '*';
 
     try {
-      const uploadData = await createMuxDirectUpload(origin);
-      return res.status(200).json({
-        uploadUrl: uploadData.data.url,
-        uploadId: uploadData.data.id,
+      // Créer l'upload direct via l'API Mux
+      const muxResponse = await createMuxDirectUpload(origin);
+      
+      // Vérifier et formater la réponse
+      if (!muxResponse || !muxResponse.data) {
+        throw new Error('Invalid response from Mux');
+      }
+
+      const responseData = {
+        uploadUrl: muxResponse.data.url,
+        uploadId: muxResponse.data.id,
         assetId: null
-      });
-    } catch (error) {
-      console.error('Error in direct-upload handler:', error);
-      return res.status(500).json({
-        error: 'Failed to create upload URL',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      };
+
+      res.status(200).json(responseData);
+    } catch (muxError) {
+      console.error('Mux API error:', muxError);
+      res.status(502).json({ error: 'Error communicating with video service' });
     }
   } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(500).json({
-      error: 'Unauthorized',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Error in direct-upload handler:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

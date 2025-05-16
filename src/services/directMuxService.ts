@@ -24,16 +24,29 @@ export const DirectMuxService = {
         }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create upload URL');
+      const responseText = await response.text();
+      let responseData;
+
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Server response:', responseText);
+        throw new Error('Invalid JSON response from server');
       }
-      
-      const data = await response.json();
-      return data;
+
+      if (!response.ok) {
+        throw new Error(responseData.error || `Server error: ${response.status}`);
+      }
+
+      if (!responseData.uploadUrl || !responseData.uploadId) {
+        console.error('Invalid response format:', responseData);
+        throw new Error('Invalid response format from server');
+      }
+
+      return responseData;
     } catch (error) {
       console.error('Error creating direct upload:', error);
-      throw new Error(`Failed to create upload URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 };
