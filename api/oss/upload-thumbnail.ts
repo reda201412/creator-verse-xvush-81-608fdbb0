@@ -24,12 +24,6 @@ const allowedOrigins = [
 ];
 
 async function handler(req: AuthenticatedRequest, res: VercelResponse): Promise<void> {
-  // Ensure user is authenticated
-  if (!req.user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-
   // Set CORS headers for all responses
   const origin = req.headers.origin as string | undefined;
   const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
@@ -51,6 +45,12 @@ async function handler(req: AuthenticatedRequest, res: VercelResponse): Promise<
   if (req.method !== 'POST') {
     console.error(`Method ${req.method} not allowed`);
     res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
+    return;
+  }
+
+  // Ensure user is authenticated
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
     return;
   }
 

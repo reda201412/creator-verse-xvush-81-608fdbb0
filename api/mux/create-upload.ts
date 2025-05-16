@@ -18,19 +18,14 @@ const allowedOrigins = [
 ];
 
 const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> => {
-  const origin = req.headers.origin;
+  const origin = req.headers.origin as string | undefined;
+  const allowedOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   
-  // Check if the origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
-  }
-
+  // Set CORS headers for all responses
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
+  res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, POST');
+  res.setHeader('Access-Control-Allow-Headers', 
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
@@ -40,9 +35,10 @@ const handler = async (req: VercelRequest, res: VercelResponse): Promise<void> =
     return;
   }
 
-  // Vérifier si la méthode est POST
+  // Only allow POST method
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed, use POST' });
+    console.error(`Method ${req.method} not allowed`);
+    res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
     return;
   }
 

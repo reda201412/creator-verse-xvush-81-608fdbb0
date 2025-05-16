@@ -59,7 +59,7 @@ export default async function handler(
       userId: user.uid,
       muxUploadId: body.muxUploadId,
       tokenPrice: body.tokenPrice ?? 0,
-      restrictions: body.restrictions ?? null,
+      restrictions: body.restrictions ? body.restrictions : undefined,
       status: 'processing' as const
     };
 
