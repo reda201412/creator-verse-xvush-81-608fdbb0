@@ -45,14 +45,19 @@ export const MAX_UPLOAD_RETRIES = 3;
 export const RETRY_DELAY = 2000; // 2 seconds
 export const CHUNK_SIZE = 5120; // 5MB chunks
 
-// Schema for form validation
+// Schema for form validation including premium fields
 export const videoFormSchema = z.object({
   title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères.'),
-  description: z.string().max(5000, 'La description ne peut pas dépasser 5000 caractères'),
-  format: z.string(),
-  visibility: z.string(),
-  category: z.string(),
-  tags: z.array(z.string())
+  description: z.string().max(5000, 'La description ne peut pas dépasser 5000 caractères').optional(),
+  videoType: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
+  tokenPrice: z.number().optional(),
+  subscriptionLevel: z.string().optional(),
+  allowSharing: z.boolean().default(false),
+  allowDownload: z.boolean().default(false),
+  format: z.string().optional(),
+  visibility: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional()
 });
 
 // Alias pour compatibilité avec les composants existants
@@ -237,6 +242,11 @@ export const useVideoUpload = (): VideoUploadHook => {
     defaultValues: {
       title: '',
       description: '',
+      videoType: 'standard',
+      tokenPrice: 0,
+      subscriptionLevel: 'free',
+      allowSharing: false,
+      allowDownload: false,
       format: 'standard',
       visibility: 'public',
       category: '',
@@ -516,6 +526,11 @@ export const useVideoUpload = (): VideoUploadHook => {
             body: JSON.stringify({
               title: formData.title,
               description: formData.description,
+              videoType: formData.videoType,
+              tokenPrice: formData.tokenPrice,
+              subscriptionLevel: formData.subscriptionLevel,
+              allowSharing: formData.allowSharing,
+              allowDownload: formData.allowDownload,
               format: formData.format,
               visibility: formData.visibility,
               category: formData.category,

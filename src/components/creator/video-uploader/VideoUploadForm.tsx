@@ -10,19 +10,7 @@ import VideoFormatInfo from './VideoFormatInfo';
 import FormFooterActions from './FormFooterActions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { VideoFormValues } from './useVideoUpload';
-import * as z from 'zod';
-
-// Define the schema here directly since it's not exported from useVideoUpload
-const videoSchema = z.object({
-  title: z.string().min(3, "Le titre doit contenir au moins 3 caractères"),
-  description: z.string().optional(),
-  videoType: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
-  allowSharing: z.boolean().default(false),
-  allowDownload: z.boolean().default(false),
-  subscriptionLevel: z.string().optional(),
-  tokenPrice: z.number().min(0).optional()
-});
+import { VideoFormValues, videoFormSchema } from './useVideoUpload';
 
 interface VideoUploadFormProps {
   videoFile: File | null;
@@ -59,7 +47,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   onSubmit
 }) => {
   const form = useForm<VideoFormValues>({
-    resolver: zodResolver(videoSchema),
+    resolver: zodResolver(videoFormSchema),
     defaultValues: {
       title: '',
       description: '',

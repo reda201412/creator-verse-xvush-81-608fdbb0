@@ -1,58 +1,50 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { WalletData, WalletResponse } from '@/types/messaging';
-import { toast } from '@/components/ui/sonner';
+import { useState, useCallback } from 'react';
+
+export interface WalletResponse {
+  address: string;
+  balance: number;
+  tokens: {
+    type: string;
+    balance: number;
+  }[];
+}
 
 export const useTronWallet = () => {
-  const { user } = useAuth();
   const [walletInfo, setWalletInfo] = useState<WalletResponse>({
-    wallet: null,
-    transactions: [],
-    subscription: null,
+    address: '',
+    balance: 0,
+    tokens: []
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchWalletInfo = useCallback(async () => {
-    if (!user?.id) return;
+  const getWalletInfo = useCallback(() => {
     setIsLoading(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tron/wallet?user_id=${user.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
+    // Simulate API call
+    setTimeout(() => {
       setWalletInfo({
-        wallet: {
-          balance_usdt: data.wallet?.balance_usdt || 0,
-          is_verified: data.wallet?.is_verified || false,
-          tron_address: data.wallet?.tron_address || null
-        },
-        transactions: data.transactions || [],
-        subscription: data.subscription || null,
+        address: 'TXz6mLhhRqRw9bKp1BuxD9GBvA3ffMCQEs',
+        balance: 1250.75,
+        tokens: [
+          { type: 'XVT', balance: 5000 },
+          { type: 'XP', balance: 2500 }
+        ]
       });
-    } catch (error: any) {
-      console.error("Could not fetch wallet info:", error);
-      toast.error(`Erreur de chargement du wallet: ${error.message}`);
-    } finally {
       setIsLoading(false);
-    }
-  }, [user?.id, toast]);
+    }, 1000);
+  }, []);
 
-  useEffect(() => {
-    fetchWalletInfo();
-  }, [fetchWalletInfo]);
+  // Method to check if user has access to specific content
+  const checkContentAccess = useCallback((contentId: string) => {
+    // Simulate checking content access rights (e.g., token ownership, subscription)
+    return Math.random() > 0.3; // Random true/false for demonstration
+  }, []);
 
-  const getWalletInfo = () => {
-    fetchWalletInfo();
-  };
+  // Method to request withdrawal
+  const requestWithdrawal = useCallback((amount: number, currency: string) => {
+    // Simulate withdrawal request
+    console.log(`Requesting withdrawal of ${amount} ${currency}`);
+    return Promise.resolve({ success: true, txId: 'mock-tx-' + Date.now() });
+  }, []);
 
-  return { walletInfo, isLoading, getWalletInfo };
+  return { walletInfo, isLoading, getWalletInfo, checkContentAccess, requestWithdrawal };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ const ContentPricing: React.FC<ContentPricingProps> = ({
   onSubscribe,
   className
 }) => {
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const { triggerMicroReward } = useNeuroAesthetic();
   const { checkContentAccess } = useTronWallet();
@@ -228,10 +226,10 @@ const ContentPricing: React.FC<ContentPricingProps> = ({
                       variant="default"
                       size="sm"
                       className="w-full"
-                      disabled={isPurchasing}
+                      disabled={false}
                       onClick={handleOpenPurchaseModal}
                     >
-                      {isPurchasing ? (
+                      {false ? (
                         <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
                       ) : (
                         <Coins size={14} className="mr-2" />
