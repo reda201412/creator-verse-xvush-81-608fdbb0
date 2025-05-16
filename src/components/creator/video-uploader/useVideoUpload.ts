@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { auth } from '@/lib/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as UpChunk from '@mux/upchunk';
