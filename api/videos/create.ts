@@ -1,11 +1,11 @@
 import { prisma } from '../../lib/prisma';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { Video, User } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
-type VideoWithUser = Video & {
-  user: User;
-};
+type VideoWithUser = Prisma.VideoGetPayload<{
+  include: { user: true }
+}>;
 
 export default async function handler(
   req: NextApiRequest,
