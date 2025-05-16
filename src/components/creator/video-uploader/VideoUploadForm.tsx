@@ -17,8 +17,10 @@ import * as z from 'zod';
 const videoSchema = z.object({
   title: z.string().min(3, "Le titre doit contenir au moins 3 caractères"),
   description: z.string().optional(),
-  type: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
-  isPremium: z.boolean().default(false),
+  videoType: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
+  allowSharing: z.boolean().default(false),
+  allowDownload: z.boolean().default(false),
+  subscriptionLevel: z.string().optional(),
   tokenPrice: z.number().min(0).optional()
 });
 
@@ -42,7 +44,6 @@ interface VideoUploadFormProps {
 
 export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   videoFile,
-  thumbnailFile,
   videoPreviewUrl,
   thumbnailPreviewUrl,
   videoFormat,
@@ -62,8 +63,10 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
     defaultValues: {
       title: '',
       description: '',
-      type: 'standard',
-      isPremium: false,
+      videoType: 'standard',
+      allowSharing: false,
+      allowDownload: false,
+      subscriptionLevel: 'free',
       tokenPrice: 0
     },
   });

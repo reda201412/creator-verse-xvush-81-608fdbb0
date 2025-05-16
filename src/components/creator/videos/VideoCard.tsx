@@ -1,286 +1,255 @@
 
 import React, { useState } from 'react';
-// Use the Supabase data type
-import { VideoData } from '@/services/creatorService'; 
 import { 
-  MoreVertical, 
+  MoreHorizontal, 
   Play, 
-  Trash2, 
-  Edit, 
-  BarChart3, 
-  Share,
-  Loader2, // Added Loader icon
-  AlertCircle // Added Alert icon
+  Shield, 
+  Users,
+  TrendingUp,
+  Trash2,
+  Edit,
+  Clock
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
+import { VideoData } from '@/services/creatorService';
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'; // Corrected import if installed
-
-import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
-import { MediaCacheService } from '@/services/media-cache.service';
-import { useMicroRewards } from '@/hooks/use-microrewards';
-import { useToast } from '@/hooks/use-toast'; // Import useToast hook
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface VideoCardProps {
-  // Use the Supabase data type
   video: VideoData;
-  onDelete: (videoId: string) => void; // Updated to use string ID
-  onEdit: (videoId: string) => void; // Updated to use string ID
-  onPromote: (videoId: string) => void; // Updated to use string ID
-  onAnalytics: (videoId: string) => void; // Updated to use string ID
+  onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
+  onPromote: (id: string) => void;
+  onAnalytics: (id: string) => void;
+  className?: string;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({
-  video,
-  onDelete,
-  onEdit,
-  onPromote,
-  onAnalytics
+const VideoCard: React.FC<VideoCardProps> = ({ 
+  video, 
+  onDelete, 
+  onEdit, 
+  onPromote, 
+  onAnalytics,
+  className
 }) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const { triggerMediaReward } = useMicroRewards();
-  const { toast } = useToast(); // Call the useToast hook
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  const getTypeLabel = (type?: string | null) => {
-     if (!type) return 'Standard'; // Default label if type is null/undefined
+  const isProcessing = video.status === 'processing';
+  const hasError = video.status === 'errored';
+  const isReady = video.status === 'ready';
+  
+  const handleCopyLink = () => {
+    if (!video.muxPlaybackId) {
+      toast.error("Lien de la vidéo non disponible");
+      return;
+    }
+    
+    navigator.clipboard.writeText(
+      `${window.location.origin}/watch/${video.muxPlaybackId}`
+    ).then(() => {
+      toast.success("Lien copié dans le presse-papier");
+    }).catch(() => {
+      toast.error("Échec de la copie du lien");
+    });
+  };
+
+  const handleDeleteClick = () => {
+    if (showConfirmDelete) {
+      setIsDeleting(true);
+      
+      // Call the delete function
+      onDelete(video.id);
+      
+      setIsDeleting(false);
+      setShowConfirmDelete(false);
+    } else {
+      setShowConfirmDelete(true);
+      
+      // Auto-hide the confirmation after 3 seconds
+      setTimeout(() => {
+        setShowConfirmDelete(false);
+      }, 3000);
+    }
+  };
+
+  const getVideoTypeLabel = (type?: string) => {
     switch (type) {
-      case 'standard': return 'Gratuit';
-      case 'teaser': return 'Xtease';
       case 'premium': return 'Premium';
+      case 'teaser': return 'Teaser';
       case 'vip': return 'VIP';
-      default: return type;
+      default: return 'Standard';
     }
   };
 
-  // Determine the video URL based on MUX playback ID and status
-  const getPlaybackUrl = () => {
-    if (video.status === 'ready' && video.muxPlaybackId) {
-      return `https://stream.mux.com/${video.muxPlaybackId}.m3u8`; // Mux HLS streaming URL
-    }
-    return null; // Return null if not ready or no playback ID
-  };
-
-   // Get the current video status message
-   const getStatusMessage = () => {
-       switch (video.status) {
-           case 'created': // Fallthrough
-           case 'processing':
-               return 'Vidéo en cours de traitement...';
-           case 'error':
-               return 'Erreur lors du traitement de la vidéo.';
-           default:
-               // If status is 'ready' or null/undefined but no playback ID (which getPlaybackUrl handles)
-               // or if status is an unexpected value.
-               if (video.muxPlaybackId) return 'Vidéo prête.'; // Should be caught by getPlaybackUrl logic ideally
-               return 'Vidéo non disponible.'; // General fallback
-       }
-   };
-
-  // Preload video when hover (only if status is ready)
-  const handleHover = async () => {
-    const playbackUrl = getPlaybackUrl();
-    if (playbackUrl && MediaCacheService.isCacheAvailable()) {
-      try {
-        await fetch(playbackUrl, { method: 'HEAD' });
-      } catch (error) {
-        console.error('Error preloading video:', error);
-      }
+  const getVideoTypeColor = (type?: string) => {
+    switch (type) {
+      case 'premium': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'teaser': return 'bg-sky-500/10 text-sky-500 border-sky-500/20';
+      case 'vip': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      default: return 'bg-green-500/10 text-green-500 border-green-500/20';
     }
   };
 
-  // Log metadata for debugging
-  // console.log("Video metadata dans VideoCard:", video);
-  // console.log("Playback URL used:", getPlaybackUrl());
-  // console.log("Video status:", video.status);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ready': return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'processing': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'errored': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
 
-   const playbackUrl = getPlaybackUrl();
-   const isVideoReady = !!playbackUrl; // Check if we have a valid playback URL
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'ready': return 'Prêt';
+      case 'processing': return 'En cours...';
+      case 'errored': return 'Erreur';
+      default: return status;
+    }
+  };
 
   return (
-    <div 
-      className="bg-card rounded-lg overflow-hidden shadow transition-all hover:shadow-md"
-      onMouseEnter={handleHover}
-    >
-      {/* Video Thumbnail */}
-      <div 
-        className="relative aspect-video bg-muted cursor-pointer"
-        onClick={() => {
-          // Only open the dialog if the video is ready for playback
-          if (isVideoReady) {
-             setVideoDialogOpen(true);
-             triggerMediaReward(); // Trigger reward on play
-          } else {
-             // Show a toast with the status message
-              toast({
-                  title: "Statut de la vidéo",
-                  description: getStatusMessage(),
-                  variant: video.status === 'error' ? 'destructive' : 'default',
-              });
-          }
-        }}
-      >
-        {/* Thumbnail - use thumbnailUrl from Firestore schema */}
-        {video.thumbnailUrl ? (
+    <div className={cn(
+      "rounded-lg border overflow-hidden bg-card transition-all duration-200 hover:shadow-md", 
+      className
+    )}>
+      <div className="relative aspect-video bg-muted">
+        {/* Thumbnail */}
+        {video.thumbnailUrl && (
           <img 
             src={video.thumbnailUrl} 
-            alt={video.title || 'Video thumbnail'} 
-            className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
-            loading="lazy"
+            alt={video.title} 
+            className={cn(
+              "w-full h-full object-cover transition-opacity",
+              isProcessing && "opacity-60"
+            )}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-primary/10">
-            {/* Show loading/error icon based on status if no thumbnail */}
-             {!isVideoReady && video.status === 'processing' && <Loader2 className="h-12 w-12 text-primary opacity-50 animate-spin" />} 
-             {!isVideoReady && video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive opacity-50" />} 
-             {/* Default icon if status is not processing/error and video not ready */}
-             {!isVideoReady && video.status !== 'processing' && video.status !== 'error' && <Play className="h-12 w-12 text-primary opacity-50" />}
-             {isVideoReady && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Show play icon if ready and no thumbnail */}
+        )}
+        
+        {/* Processing overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+            <p className="text-white text-sm font-medium">Traitement en cours...</p>
           </div>
         )}
 
-        {/* Overlay with Play button / Status Indicator */}
-        <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-           {isVideoReady ? (
-              <Play className="h-12 w-12 text-white" />
-           ) : (
-              <div className="text-white text-center p-2">
-                 {video.status === 'processing' && <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />}
-                 {video.status === 'error' && <AlertCircle className="h-8 w-8 mx-auto mb-2" />}
-                 <p className="text-sm font-medium">{getStatusMessage()}</p>
-              </div>
-           )}
-        </div>
+        {/* Error overlay */}
+        {hasError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
+            <div className="bg-red-500 rounded-full p-2 mb-2">
+              <span className="text-white text-xl">!</span>
+            </div>
+            <p className="text-white text-sm font-medium">Erreur de traitement</p>
+          </div>
+        )}
         
-        {/* Video Type Badge */}
-        <div className="absolute top-2 left-2 px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded">
-          {getTypeLabel(video.type)}
-        </div>
+        {/* Play button overlay */}
+        {isReady && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/30">
+            <Button variant="ghost" size="icon" className="rounded-full bg-white/30 hover:bg-white/50">
+              <Play className="h-8 w-8 text-white" />
+            </Button>
+          </div>
+        )}
+        
+        {/* Type badge */}
+        <Badge
+          className={cn(
+            "absolute top-2 left-2 border",
+            getVideoTypeColor(video.type)
+          )}
+        >
+          {getVideoTypeLabel(video.type)}
+        </Badge>
+        
+        {/* Status badge */}
+        <Badge
+          className={cn(
+            "absolute top-2 right-2 border",
+            getStatusColor(video.status)
+          )}
+        >
+          {getStatusLabel(video.status)}
+        </Badge>
       </div>
       
-      {/* Video Details */}
-      <div className="p-4 space-y-2"> {/* Corrected class from space-space-y-2 */}
+      <div className="p-3">
         <div className="flex items-start justify-between">
-          <h3 className="font-medium line-clamp-1">{video.title}</h3>
+          <h3 className="font-semibold line-clamp-1">{video.title}</h3>
           
-          <DropdownMenu>
+          <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="-mr-2">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Options</span>
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(video.id)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Modifier
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAnalytics(video.id)}>
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Analytics
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCopyLink}>
+                <Shield className="mr-2 h-4 w-4" />
+                Copier le lien
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onPromote(video.id)}>
-                <Share className="mr-2 h-4 w-4" />
+                <Users className="mr-2 h-4 w-4" />
                 Promouvoir
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAnalytics(video.id)}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Statistiques
-              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => setDeleteDialogOpen(true)}
-                className="text-destructive focus:text-destructive"
+                className="text-red-600 focus:text-red-600"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Supprimer
+                {showConfirmDelete ? (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Confirmer la suppression
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         
-        {video.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {video.description}
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+          {video.description || "Aucune description"}
+        </p>
         
-        {/* Use isPremium and tokenPrice from Firestore schema */}
-        {video.isPremium && video.tokenPrice !== undefined && video.tokenPrice !== null && (
-          <div className="text-sm font-medium text-primary">
-            {video.tokenPrice} tokens
+        {video.isPremium && video.tokenPrice && (
+          <div className="flex items-center mt-2">
+            <span className="text-amber-500 text-sm font-medium">
+              {video.tokenPrice} Tokens
+            </span>
           </div>
         )}
       </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette vidéo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La vidéo sera définitivement supprimée. (Le fichier Mux devra également être supprimé via une action backend).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDelete(video.id)} // Pass the ID
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Video Playback Dialog */}
-      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        {/* Added accessible title for DialogContent as per console warning */}
-         <DialogTitle className="sr-only"><VisuallyHidden>Video Playback</VisuallyHidden></DialogTitle>
-         <DialogDescription className="sr-only"><VisuallyHidden>Dialog for video playback</VisuallyHidden></DialogDescription>
-
-        <DialogContent className="sm:max-w-3xl p-0">
-          {/* Render player only if video is ready and playbackUrl exists */}
-          {isVideoReady && playbackUrl ? ( // Ensure playbackUrl is also checked
-            <EnhancedVideoPlayer
-              src={playbackUrl} // playbackUrl is guaranteed to be a string here
-              thumbnailUrl={video.thumbnailUrl || undefined} // Use thumbnailUrl
-              title={video.title || undefined}
-              autoPlay={true}
-              onPlay={() => {
-                triggerMediaReward();
-              }}
-            />
-          ) : (
-             // Display status message if video is not ready
-            <div className="aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
-              <div className="text-white text-center p-4">
-                 {video.status === 'processing' && <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />}
-                 {video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
-                 <p className="text-lg font-medium">{getStatusMessage()}</p>
-                 {video.status === 'error' && video.errorDetails && (
-                    <p className="text-sm text-muted-foreground mt-2">Détails: {typeof video.errorDetails === 'string' ? video.errorDetails : JSON.stringify(video.errorDetails)}</p>
-                 )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
 export default VideoCard;
-

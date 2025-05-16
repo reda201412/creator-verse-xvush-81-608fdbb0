@@ -24,7 +24,7 @@ interface VideoFormDetailsProps {
 }
 
 const VideoFormDetails: React.FC<VideoFormDetailsProps> = ({ form }) => {
-  const videoType = form.watch('type');
+  const videoType = form.watch('videoType');
   const isPremiumVideo = videoType === 'premium' || videoType === 'vip';
 
   return (
@@ -57,7 +57,7 @@ const VideoFormDetails: React.FC<VideoFormDetailsProps> = ({ form }) => {
       
       <FormField
         control={form.control}
-        name="type"
+        name="videoType"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Type de vidéo</FormLabel>

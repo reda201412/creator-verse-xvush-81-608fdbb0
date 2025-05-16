@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
@@ -13,11 +14,11 @@ interface VideoGridProps {
   videos: VideoData[];
   activeTab: string;
   searchQuery: string;
-  // Update videoId type to number to match Supabase ID
-  onDeleteVideo: (videoId: number) => void;
-  onEditVideo: (videoId: number) => void;
-  onPromoteVideo: (videoId: number) => void;
-  onAnalyticsVideo: (videoId: number) => void;
+  // Update videoId type to string to match our VideoData model
+  onDeleteVideo: (videoId: string) => void;
+  onEditVideo: (videoId: string) => void;
+  onPromoteVideo: (videoId: string) => void;
+  onAnalyticsVideo: (videoId: string) => void;
   // Update onUploadComplete type to match CreatorVideos.tsx
   onUploadComplete: (metadata?: VideoData | null) => void;
   isLoading?: boolean;
@@ -90,12 +91,12 @@ const VideoGrid: React.FC<VideoGridProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVideos.map((video) => (
             <VideoCard
-              key={video.id} // Use video.id (number)
-              video={video} // Pass the VideoSupabaseData object
-              onDelete={onDeleteVideo} // Pass the handler (expects number)
-              onEdit={onEditVideo} // Pass the handler (expects number)
-              onPromote={onPromoteVideo} // Pass the handler (expects number)
-              onAnalytics={onAnalyticsVideo} // Pass the handler (expects number)
+              key={video.id} // Use video.id (string)
+              video={video} // Pass the VideoData object
+              onDelete={onDeleteVideo} // Pass the handler (expects string)
+              onEdit={onEditVideo} // Pass the handler (expects string)
+              onPromote={onPromoteVideo} // Pass the handler (expects string)
+              onAnalytics={onAnalyticsVideo} // Pass the handler (expects string)
             />
           ))}
         </div>

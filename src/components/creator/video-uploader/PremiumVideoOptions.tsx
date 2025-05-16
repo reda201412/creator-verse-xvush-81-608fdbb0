@@ -45,7 +45,7 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="type"
+        name="subscriptionLevel"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Niveau d'abonnement minimum</FormLabel>
@@ -72,7 +72,7 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="isPremium"
+        name="allowSharing"
         render={({ field }) => (
           <FormItem className="flex items-center space-x-2">
             <FormControl>
@@ -90,7 +90,7 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
       
       <FormField
         control={form.control}
-        name="isPremium"
+        name="allowDownload"
         render={({ field }) => (
           <FormItem className="flex items-center space-x-2">
             <FormControl>
