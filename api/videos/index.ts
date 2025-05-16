@@ -1,3 +1,4 @@
+
 import { prisma } from '../../lib/prisma';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 import type { NextApiRequest, NextApiResponse } from 'next';
