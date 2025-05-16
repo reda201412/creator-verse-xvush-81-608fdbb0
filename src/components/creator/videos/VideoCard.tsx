@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 // Use the Supabase data type
 import { VideoData } from '@/services/creatorService'; 
@@ -39,10 +40,10 @@ import { useToast } from '@/hooks/use-toast'; // Import useToast hook
 interface VideoCardProps {
   // Use the Supabase data type
   video: VideoData;
-  onDelete: (videoId: number) => void; // Updated to use number ID
-  onEdit: (videoId: number) => void; // Updated to use number ID
-  onPromote: (videoId: number) => void; // Updated to use number ID
-  onAnalytics: (videoId: number) => void; // Updated to use number ID
+  onDelete: (videoId: string) => void; // Updated to use string ID
+  onEdit: (videoId: string) => void; // Updated to use string ID
+  onPromote: (videoId: string) => void; // Updated to use string ID
+  onAnalytics: (videoId: string) => void; // Updated to use string ID
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({
@@ -70,8 +71,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   // Determine the video URL based on MUX playback ID and status
   const getPlaybackUrl = () => {
-    if (video.status === 'ready' && video.mux_playback_id) {
-      return `https://stream.mux.com/${video.mux_playback_id}.m3u8`; // Mux HLS streaming URL
+    if (video.status === 'ready' && video.muxPlaybackId) {
+      return `https://stream.mux.com/${video.muxPlaybackId}.m3u8`; // Mux HLS streaming URL
     }
     return null; // Return null if not ready or no playback ID
   };
@@ -87,7 +88,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
            default:
                // If status is 'ready' or null/undefined but no playback ID (which getPlaybackUrl handles)
                // or if status is an unexpected value.
-               if (video.mux_playback_id) return 'Vidéo prête.'; // Should be caught by getPlaybackUrl logic ideally
+               if (video.muxPlaybackId) return 'Vidéo prête.'; // Should be caught by getPlaybackUrl logic ideally
                return 'Vidéo non disponible.'; // General fallback
        }
    };
@@ -236,7 +237,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDelete(video.id)} // Pass the number ID
+              onClick={() => onDelete(video.id)} // Pass the ID
             >
               Supprimer
             </AlertDialogAction>
@@ -282,3 +283,4 @@ const VideoCard: React.FC<VideoCardProps> = ({
 };
 
 export default VideoCard;
+

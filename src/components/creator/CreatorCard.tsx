@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localFollowersCount, setLocalFollowersCount] = useState(followersCount);
+  const navigate = useNavigate();
 
   // Vérifier le statut d'abonnement lors du chargement
   React.useEffect(() => {
@@ -40,7 +41,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
       if (!user) return;
       
       try {
-        const status = await checkUserFollowsCreator(user.id, id);
+        const status = await checkUserFollowsCreator(user.uid, id);
         setIsFollowing(status);
       } catch (error) {
         console.error("Error checking follow status:", error);
@@ -64,7 +65,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
     
     try {
       if (isFollowing) {
-        const success = await unfollowCreator(user.id, id);
+        const success = await unfollowCreator(user.uid, id);
         if (success) {
           setIsFollowing(false);
           setLocalFollowersCount(prev => prev - 1);
@@ -74,7 +75,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
           });
         }
       } else {
-        const success = await followCreator(user.id, id);
+        const success = await followCreator(user.uid, id);
         if (success) {
           setIsFollowing(true);
           setLocalFollowersCount(prev => prev + 1);

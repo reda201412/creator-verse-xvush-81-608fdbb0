@@ -45,7 +45,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
       navigate('/auth');
       return;
     }
-    if (user.id === creator.userId) {
+    if (user.uid === creator.userId) {
       toast.info("Vous ne pouvez pas vous suivre vous-même.");
       return;
     }
@@ -55,7 +55,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     try {
       if (isFollowing) {
         // Unfollow
-        const success = await unfollowCreator(user.id, creator.userId);
+        const success = await unfollowCreator(user.uid, creator.userId);
         if (success) {
           setIsFollowing(false);
           toast.success(`Vous ne suivez plus ${creator.name}`);
@@ -64,7 +64,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
         }
       } else {
         // Follow
-        const success = await followCreator(user.id, creator.userId);
+        const success = await followCreator(user.uid, creator.userId);
         if (success) {
           setIsFollowing(true);
           toast.success(`Vous suivez maintenant ${creator.name}`, {
@@ -91,11 +91,11 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     const checkFollow = async () => {
       if (!user || !creator.userId) return;
       // Ne pas vérifier si l'utilisateur essaie de se suivre lui-même
-      if (user.id === creator.userId) return;
+      if (user.uid === creator.userId) return;
 
       setIsLoading(true);
       try {
-        const currentlyFollowing = await checkUserFollowsCreator(user.id, creator.userId);
+        const currentlyFollowing = await checkUserFollowsCreator(user.uid, creator.userId);
         setIsFollowing(currentlyFollowing);
       } catch (error) {
         console.error('Error checking follow status:', error);
@@ -173,7 +173,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
                 e.preventDefault(); 
                 e.stopPropagation(); 
                 if(!user) {toast.error("Connectez-vous pour contacter un créateur."); navigate("/auth"); return;}
-                if(user.id === creator.userId) {toast.info("Vous ne pouvez pas vous contacter vous-même."); return;}
+                if(user.uid === creator.userId) {toast.info("Vous ne pouvez pas vous contacter vous-même."); return;}
                 navigate('/secure-messaging', { state: { creatorId: creator.userId, creatorName: creator.name, creatorAvatar: creator.avatar } });
             }}
           >
@@ -191,7 +191,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
             Profil
           </Link>
           
-          {user && user.id !== creator.userId && (
+          {user && user.uid !== creator.userId && (
             <button 
               className={cn(
                 "flex-1 text-center text-xs font-medium rounded-full py-2",
