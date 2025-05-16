@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
-  Lock, Image, Video, Phone, Loader2, ArrowUpCircle
+  Lock, Loader2, ArrowUpCircle
 } from 'lucide-react';
 import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; 
 import { MonetizationTier } from '@/types/messaging';
@@ -38,7 +37,6 @@ interface ConversationViewProps {
 const ConversationView: React.FC<ConversationViewProps> = ({
   thread,
   userId,
-  userName,
   onSendMessage,
   sessionKey,
   isSecurityEnabled,
@@ -57,7 +55,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousScrollHeightRef = useRef<number | null>(null);
-  const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
   
   useEffect(() => {
@@ -154,7 +151,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
               key={message.id}
               message={message as any} // Type cast to work with MessageBubble component
               isCurrentUser={message.senderId === userId}
-              sessionKey={sessionKey}
               decryptMessage={handleDecryptMessage as any}
             />
           ))}

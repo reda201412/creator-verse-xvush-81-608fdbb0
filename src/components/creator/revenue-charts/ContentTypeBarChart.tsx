@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart,
@@ -25,8 +24,6 @@ interface ContentTypeBarChartProps {
 }
 
 const ContentTypeBarChart: React.FC<ContentTypeBarChartProps> = ({ className }) => {
-  const [chartWidth, setChartWidth] = useState<number>(0);
-  const [chartHeight, setChartHeight] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const { elementRef, isVisible, hasLoaded } = useLazyLoad({ threshold: 0.2 });
   

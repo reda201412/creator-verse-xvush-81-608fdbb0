@@ -68,6 +68,7 @@ export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   unreadCount?: number;
   sessionKey?: string;
   name: string; // Made required to fix the type error
+  readStatus?: Record<string, any>; // Added for ConversationView
 }
 
 export interface EncryptedContent {

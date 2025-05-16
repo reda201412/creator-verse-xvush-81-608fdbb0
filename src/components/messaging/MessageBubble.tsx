@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -11,20 +10,12 @@ import { Spinner } from '@/components/ui/spinner';
 interface MessageBubbleProps {
   message: Message;
   isCurrentUser: boolean;
-  isEphemeral?: boolean;
-  isRevealed?: boolean;
-  onReveal?: () => void;
-  sessionKey: string;
-  decryptMessage?: (message: Message) => Promise<string>;
+  decryptMessage: (message: any) => Promise<string>;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isCurrentUser,
-  isEphemeral = false,
-  isRevealed = false,
-  onReveal,
-  sessionKey,
   decryptMessage
 }) => {
   const [isDecrypting, setIsDecrypting] = useState(false);
