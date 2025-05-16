@@ -3,8 +3,6 @@ import { useForm } from 'react-hook-form';
 import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { VideoService } from '@/services/videoService';
 
 // Define the form schema with Zod for validation
 export const videoFormSchema = z.object({

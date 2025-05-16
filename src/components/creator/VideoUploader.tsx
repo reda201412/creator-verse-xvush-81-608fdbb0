@@ -8,7 +8,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoData } from '@/services/creatorService';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
+import { useVideoUpload } from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata?: VideoData | null) => void;
@@ -26,7 +26,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   const { user } = useAuth();
   
   const {
-    form,
     videoFile,
     thumbnailFile,
     videoPreviewUrl,

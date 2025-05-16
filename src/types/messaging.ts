@@ -62,12 +62,12 @@ export interface FirestoreMessageThread {
   name?: string;
 }
 
-// Add ExtendedFirestoreMessageThread interface to fix the type error
+// Updated ExtendedFirestoreMessageThread interface to include name property
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: Message[];
   unreadCount?: number;
   sessionKey?: string;
-  name?: string;
+  name: string; // Made required to fix the type error
 }
 
 export interface EncryptedContent {

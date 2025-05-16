@@ -1,3 +1,4 @@
+
 import { User } from '@/types/auth';
 
 // Enhanced VideoData interface with all required properties
@@ -78,6 +79,14 @@ export async function checkUserFollowsCreator(userId: string, creatorId: string)
   });
 }
 
+export async function checkContentAccess(userId: string, contentId: string): Promise<boolean> {
+  console.log(`Checking if user ${userId} has access to content ${contentId}`);
+  // Simulate API call
+  return new Promise(resolve => {
+    setTimeout(() => resolve(Math.random() > 0.3), 300);
+  });
+}
+
 export async function getAllCreators(): Promise<CreatorProfileData[]> {
   // Simulate API call
   return new Promise(resolve => {
@@ -129,7 +138,11 @@ export async function getVideoById(videoId: string): Promise<VideoData> {
         views: 1500,
         likes: 250,
         comments: 45,
-        createdAt: "2023-05-15T10:30:00Z"
+        createdAt: "2023-05-15T10:30:00Z",
+        status: "ready",
+        muxPlaybackId: "play_123456",
+        muxAssetId: "asset_123456",
+        isPremium: false
       });
     }, 500);
   });
