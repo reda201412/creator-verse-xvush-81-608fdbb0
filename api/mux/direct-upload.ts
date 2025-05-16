@@ -2,38 +2,45 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 
 // Clés d'API Mux
-const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID || '614f11e3-39f6-46ef-8104-680fda482a19';
-const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET || 'TLmLKbeRUVf/zP4JYuU/uSKEle/xzowLpzR6vwFRvoSaMjud1UaQ4XCvezEA6bBSOglm8BUDsHr';
+const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID;
+const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET;
+
+if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
+  throw new Error('MUX_TOKEN_ID and MUX_TOKEN_SECRET must be set in environment variables');
+}
 
 // Fonction pour créer un upload direct via l'API Mux
 async function createMuxDirectUpload(origin: string) {
+  const response = await fetch('https://api.mux.com/video/v1/uploads', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64')
+    },
+    body: JSON.stringify({
+      cors_origin: origin,
+      new_asset_settings: {
+        playback_policy: 'public',
+        mp4_support: 'standard'
+      }
+    })
+  });
+
+  const responseText = await response.text();
+  let responseData;
+  
   try {
-    const response = await fetch('https://api.mux.com/video/v1/uploads', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64')
-      },
-      body: JSON.stringify({
-        cors_origin: origin,
-        new_asset_settings: {
-          playback_policy: 'public',
-          mp4_support: 'standard'
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Mux API error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error creating Mux upload:', error);
-    throw error;
+    responseData = JSON.parse(responseText);
+  } catch (e) {
+    console.error('Invalid JSON response from Mux:', responseText);
+    throw new Error(`Invalid response from Mux: ${responseText.substring(0, 100)}...`);
   }
+
+  if (!response.ok) {
+    throw new Error(`Mux API error: ${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
+  }
+
+  return responseData;
 }
 
 export default async function handler(
@@ -71,10 +78,6 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Obtenir l'origine de la requête
-    const origin = req.headers.origin || '*';
-
-    // Créer l'upload Mux
     try {
       const uploadData = await createMuxDirectUpload(origin);
       return res.status(200).json({
@@ -92,7 +95,7 @@ export default async function handler(
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(500).json({
-      error: 'Internal server error',
+      error: 'Unauthorized',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
