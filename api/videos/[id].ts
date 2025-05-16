@@ -1,15 +1,11 @@
 import { prisma } from '../../lib/prisma';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { Prisma } from '@prisma/client';
-
-type VideoWithUser = Prisma.VideoGetPayload<{
-  include: { user: true }
-}>;
+import type { Video } from '../../types/video';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<VideoWithUser | { error: string }>
+  res: NextApiResponse<Video | { error: string }>
 ) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
@@ -23,8 +19,7 @@ export default async function handler(
 
   if (req.method === 'GET') {
     const video = await prisma.video.findUnique({ 
-      where: { id: id as string },
-      include: { user: true }
+      where: { id: id as string }
     });
     
     if (!video || video.userId !== user.uid) {
