@@ -1,46 +1,50 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
+import fetch from 'node-fetch';
 
 // Clés d'API Mux
 const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID;
 const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET;
 
 if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
-  throw new Error('MUX_TOKEN_ID and MUX_TOKEN_SECRET must be set in environment variables');
+  console.error('Missing Mux API credentials');
 }
 
 // Fonction pour créer un upload direct via l'API Mux
 async function createMuxDirectUpload(origin: string) {
-  const response = await fetch('https://api.mux.com/video/v1/uploads', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Basic ' + Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64')
-    },
-    body: JSON.stringify({
-      cors_origin: origin,
-      new_asset_settings: {
-        playback_policy: 'public',
-        mp4_support: 'standard'
-      }
-    })
-  });
+  if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
+    throw new Error('MUX_TOKEN_ID and MUX_TOKEN_SECRET must be set in environment variables');
+  }
 
-  const responseText = await response.text();
-  let responseData;
-  
   try {
-    responseData = JSON.parse(responseText);
-  } catch (e) {
-    console.error('Invalid JSON response from Mux:', responseText);
-    throw new Error(`Invalid response from Mux: ${responseText.substring(0, 100)}...`);
-  }
+    const response = await fetch('https://api.mux.com/video/v1/uploads', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64')
+      },
+      body: JSON.stringify({
+        cors_origin: origin,
+        new_asset_settings: {
+          playback_policy: 'public',
+          mp4_support: 'standard'
+        }
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error(`Mux API error: ${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
-  }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mux API error response:', errorText);
+      throw new Error(`Mux API error: ${response.status} ${response.statusText}`);
+    }
 
-  return responseData;
+    const data = await response.json();
+    console.log('Mux API success response:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in createMuxDirectUpload:', error);
+    throw error;
+  }
 }
 
 export default async function handler(
