@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -148,7 +148,11 @@ const MessageCenter = ({
     setThreads(prev => 
       prev.map(thread => 
         thread.id === activeThreadId 
-          ? { ...thread, messages: [...thread.messages, newMessage], lastActivity: newMessage.timestamp }
+          ? { 
+              ...thread, 
+              messages: [...thread.messages, newMessage], 
+              lastActivity: newMessage.timestamp as string 
+            }
           : thread
       )
     );
@@ -362,8 +366,7 @@ const MessageCenter = ({
                   key={thread.id}
                   className={cn(
                     "p-3 border-b border-border/10 hover:bg-primary/5 cursor-pointer",
-                    thread.id === activeThreadId && "bg-primary/10",
-                    thread.isGated && "relative"
+                    thread.id === activeThreadId && "bg-primary/10"
                   )}
                   onClick={() => setActiveThreadId(thread.id)}
                 >

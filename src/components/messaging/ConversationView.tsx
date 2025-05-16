@@ -94,12 +94,14 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const handleSendMessageWrapper = (content: string) => {
     if (!content.trim()) return;
     triggerHaptic('light');
-    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount /* ... */ } : undefined;
+    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount } : undefined;
     onSendMessage(content, supportData);
     if (monetizationEnabled) setMonetizationEnabled(false);
   };
   
-  const toggleMonetization = () => {}; // Empty function placeholder
+  const toggleMonetization = () => {
+    setMonetizationEnabled(!monetizationEnabled);
+  };
   
   const otherParticipant = getOtherParticipantInfo();
 
@@ -149,9 +151,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           ).map((message) => (
             <MessageBubble
               key={message.id}
-              message={message as any} // Type cast to work with MessageBubble component
+              message={message as any}
               isCurrentUser={message.senderId === userId}
-              decryptMessage={handleDecryptMessage as any}
+              decryptMessage={handleDecryptMessage}
             />
           ))}
         </div>
