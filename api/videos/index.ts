@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { Video } from '../../types/video';
+import type { Video } from '@prisma/client';
 
 export default async function handler(
   req: NextApiRequest,

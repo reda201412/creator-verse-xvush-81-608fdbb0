@@ -7,15 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id
-  email     String   @unique
-  name      String?
-  videos    Video[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Video {
   id            String   @id @default(uuid())
   muxUploadId   String   @unique
@@ -23,7 +14,6 @@ model Video {
   muxPlaybackId String?
   status        String
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
