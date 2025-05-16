@@ -1,7 +1,6 @@
-
 import { User } from '@/types/auth';
 
-// Add VideoData interface
+// Enhanced VideoData interface with all required properties
 export interface VideoData {
   id: string;
   title: string;
@@ -18,7 +17,12 @@ export interface VideoData {
   format?: string;
   visibility?: string;
   privacy?: string;
-  videoType?: string; // Add videoType field
+  videoType?: string;
+  status?: 'processing' | 'ready' | 'errored';
+  muxPlaybackId?: string;
+  muxAssetId?: string;
+  isPremium?: boolean;
+  tokenPrice?: number;
 }
 
 export interface CreatorProfileData {
@@ -45,8 +49,8 @@ export interface CreatorProfileData {
     currency: string;
     benefits: string[];
   }>;
-  user_id?: string; // Add user_id field
-  name?: string; // Add name field
+  user_id?: string;
+  name?: string;
 }
 
 // Mock data and functions for creator services
@@ -128,5 +132,57 @@ export async function getVideoById(videoId: string): Promise<VideoData> {
         createdAt: "2023-05-15T10:30:00Z"
       });
     }, 500);
+  });
+}
+
+// Add missing getCreatorVideos function
+export async function getCreatorVideos(creatorId: string): Promise<VideoData[]> {
+  console.log(`Fetching videos for creator with ID: ${creatorId}`);
+  // Simulate API call
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve([
+        {
+          id: "video1",
+          title: "Introduction to Content Creation",
+          description: "Learn the basics of content creation in this tutorial",
+          thumbnailUrl: "https://i.pravatar.cc/300?img=1",
+          createdAt: "2025-05-01T10:30:00Z",
+          views: 1250,
+          likes: 230,
+          comments: 45,
+          status: "ready",
+          type: "standard",
+          muxPlaybackId: "play_id_1",
+          isPremium: false
+        },
+        {
+          id: "video2",
+          title: "Premium Content Strategy",
+          description: "Advanced techniques for creating premium content",
+          thumbnailUrl: "https://i.pravatar.cc/300?img=2",
+          createdAt: "2025-05-05T14:20:00Z",
+          views: 750,
+          likes: 180,
+          comments: 32,
+          status: "ready",
+          type: "premium",
+          muxPlaybackId: "play_id_2",
+          isPremium: true,
+          tokenPrice: 25
+        },
+        {
+          id: "video3",
+          title: "New Upload Processing",
+          description: "This video is still being processed",
+          thumbnailUrl: "https://i.pravatar.cc/300?img=3",
+          createdAt: "2025-05-15T08:45:00Z",
+          status: "processing",
+          type: "vip",
+          isPremium: true,
+          tokenPrice: 50
+        }
+      ]);
+    }, 1000);
   });
 }

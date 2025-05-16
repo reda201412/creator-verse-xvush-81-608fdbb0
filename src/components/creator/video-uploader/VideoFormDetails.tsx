@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { VideoFormValues } from './useVideoUpload';
-import { PremiumVideoOptions } from './PremiumVideoOptions';
+import PremiumVideoOptions from './PremiumVideoOptions';
 
 interface VideoFormDetailsProps {
   form: UseFormReturn<VideoFormValues>;

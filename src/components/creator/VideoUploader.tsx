@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,7 +8,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoData } from '@/services/creatorService';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import { useVideoUpload, VideoFormData } from './video-uploader/useVideoUpload';
+import { useVideoUpload, VideoFormValues } from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata?: VideoData | null) => void;
@@ -25,6 +26,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   const { user } = useAuth();
   
   const {
+    form,
     videoFile,
     thumbnailFile,
     videoPreviewUrl,
@@ -105,9 +107,9 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               thumbnailFile={thumbnailFile}
               videoPreviewUrl={videoPreviewUrl}
               thumbnailPreviewUrl={thumbnailPreviewUrl}
-              videoFormat={videoFormat as '16:9' | '9:16' | '1:1' | 'other'}
+              videoFormat={videoFormat}
               isUploading={isUploading}
-              uploadProgress={uploadProgress.progress}
+              uploadProgress={uploadProgress}
               uploadError={uploadError}
               uploadStage={uploadStage}
               handleVideoChange={handleVideoChange}
@@ -127,8 +129,14 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  // S'assurer que values est bien du type VideoFormData attendu
-                  await uploadVideoAndSaveMetadata(values as VideoFormData);
+                  // Add the files to the form values
+                  const formData = {
+                    ...values,
+                    videoFile,
+                    thumbnailFile
+                  };
+                  
+                  await uploadVideoAndSaveMetadata(formData);
                   // Comme uploadVideoAndSaveMetadata ne retourne pas de metadata, on utilise null
                   handleUploadCompleteInternal(null);
                 } catch (error: any) {

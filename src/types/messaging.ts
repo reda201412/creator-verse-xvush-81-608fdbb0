@@ -62,6 +62,14 @@ export interface FirestoreMessageThread {
   name?: string;
 }
 
+// Add ExtendedFirestoreMessageThread interface to fix the type error
+export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: Message[];
+  unreadCount?: number;
+  sessionKey?: string;
+  name?: string;
+}
+
 export interface EncryptedContent {
   data: string;
   iv: string;
