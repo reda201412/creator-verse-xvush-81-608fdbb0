@@ -457,8 +457,8 @@ export const useVideoUpload = (): VideoUploadHook => {
       }
       
       const uploadUrlResponse = await VideoService.createUploadUrl();
-      muxUploadUrl = uploadUrlResponse.url;
-      muxAssetId = uploadUrlResponse.id;
+      muxUploadUrl = uploadUrlResponse.uploadUrl;
+      muxAssetId = uploadUrlResponse.uploadId;
       
       if (!muxUploadUrl) {
         throw new Error('Failed to get upload URL');

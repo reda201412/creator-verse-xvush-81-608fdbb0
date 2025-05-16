@@ -3,8 +3,9 @@ import API_ENDPOINTS from '@/config/api';
 
 // Types pour les réponses d'API
 export interface MuxUploadResponse {
-  id: string;
-  url: string;
+  uploadId: string;
+  uploadUrl: string;
+  assetId: string | null;
 }
 
 export interface MuxAsset {
@@ -31,7 +32,8 @@ export const VideoService = {
       throw new Error("Non authentifié");
     }
 
-    const response = await fetch(API_ENDPOINTS.MUX.CREATE_UPLOAD, {
+    // Utiliser la nouvelle API d'upload direct
+    const response = await fetch(API_ENDPOINTS.MUX.DIRECT_UPLOAD, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
