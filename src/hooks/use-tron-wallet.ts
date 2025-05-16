@@ -8,6 +8,11 @@ export interface WalletResponse {
     type: string;
     balance: number;
   }[];
+  wallet?: {
+    tron_address: string;
+    balance_usdt: number;
+    is_verified: boolean;
+  };
 }
 
 export const useTronWallet = () => {
@@ -47,5 +52,33 @@ export const useTronWallet = () => {
     return Promise.resolve({ success: true, txId: 'mock-tx-' + Date.now() });
   }, []);
 
-  return { walletInfo, isLoading, getWalletInfo, checkContentAccess, requestWithdrawal };
+  // Method to create a new wallet
+  const createWallet = useCallback(() => {
+    setIsLoading(true);
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        setWalletInfo({
+          address: 'TXz6mLhhRqRw9bKp1BuxD9GBvA3ffMCQEs',
+          balance: 0,
+          tokens: [],
+          wallet: {
+            tron_address: 'TXz6mLhhRqRw9bKp1BuxD9GBvA3ffMCQEs',
+            balance_usdt: 0,
+            is_verified: false
+          }
+        });
+        setIsLoading(false);
+        resolve();
+      }, 1500);
+    });
+  }, []);
+
+  return { 
+    walletInfo, 
+    isLoading, 
+    getWalletInfo, 
+    checkContentAccess, 
+    requestWithdrawal,
+    createWallet
+  };
 };

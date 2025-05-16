@@ -1,6 +1,25 @@
 
 import { User } from '@/types/auth';
 
+// Add VideoData interface
+export interface VideoData {
+  id: string;
+  title: string;
+  description?: string;
+  url?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  createdAt?: string;
+  userId?: string;
+  type?: string;
+  format?: string;
+  visibility?: string;
+  privacy?: string;
+}
+
 export interface CreatorProfileData {
   id: string;
   username: string;
@@ -86,7 +105,7 @@ export async function getAllCreators(): Promise<CreatorProfileData[]> {
   });
 }
 
-export async function getVideoById(videoId: string) {
+export async function getVideoById(videoId: string): Promise<VideoData> {
   console.log(`Fetching video with ID: ${videoId}`);
   // Simulate API call
   return new Promise(resolve => {

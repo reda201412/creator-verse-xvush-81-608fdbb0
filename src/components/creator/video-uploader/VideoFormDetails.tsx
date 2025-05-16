@@ -24,6 +24,7 @@ interface VideoFormDetailsProps {
 }
 
 const VideoFormDetails: React.FC<VideoFormDetailsProps> = ({ form }) => {
+  // Use videoType property from our schema
   const videoType = form.watch('videoType');
   const isPremiumVideo = videoType === 'premium' || videoType === 'vip';
 
