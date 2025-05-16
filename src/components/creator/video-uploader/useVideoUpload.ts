@@ -5,7 +5,9 @@ import * as z from 'zod';
 import * as UpChunk from '@mux/upchunk';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { auth } from '@/lib/firebase';
 import { VideoService } from '@/services/videoService';
+import { ThumbnailService } from '@/services/thumbnailService';
 
 // Types
 export type VideoType = 'video/mp4' | 'video/quicktime';
@@ -353,7 +355,7 @@ export const useVideoUpload = (): VideoUploadHook => {
     }
   };
 
-  // Upload thumbnail to server
+  // Upload thumbnail
   const uploadThumbnail = async (thumbnailFile: File): Promise<string | null> => {
     if (!thumbnailFile) return null;
     
@@ -368,25 +370,15 @@ export const useVideoUpload = (): VideoUploadHook => {
         throw new Error('Authentication required');
       }
       
-      // Upload thumbnail to server
-      // Obtenir le token d'authentification
-      const token = await user.getIdToken();
+      // Utiliser le service direct pour l'upload des miniatures
+      // au lieu de passer par l'API qui génère des erreurs
+      const result = await ThumbnailService.uploadThumbnail(base64Data);
       
-      const response = await fetch('/api/oss/upload-thumbnail', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ image: base64Data })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to upload thumbnail: ${response.statusText}`);
+      if (!result.success) {
+        throw new Error('Failed to upload thumbnail');
       }
       
-      const data = await response.json();
-      return data.url;
+      return result.url;
     } catch (error) {
       console.error('Error uploading thumbnail:', error);
       setUploadError('Failed to upload thumbnail');
