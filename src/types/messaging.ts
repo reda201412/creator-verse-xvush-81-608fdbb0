@@ -1,78 +1,69 @@
 
-// Add or update this file if it doesn't exist already
-export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'file' | 'system' | 'payment';
-
-export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip' | 'exclusive';
-
-export interface MessageMonetization {
-  tier: MonetizationTier;
-  price: number;
-  currency: string;
-  instantPayoutEnabled?: boolean;
-  accessControl?: {
-    isGated: boolean;
-    requiredTier: MonetizationTier;
-  };
-  analytics?: {
-    views: number;
-    revenue: number;
-    conversionRate: number;
-    engagementTime: number;
-  };
-}
-
 export interface Message {
   id: string;
+  content: string | any;
   senderId: string;
-  senderName?: string;
+  senderName: string;
   senderAvatar?: string;
-  recipientId: string | string[];
-  content: string;
-  type: MessageType;
-  timestamp: string;
+  timestamp: string | number;
+  status?: 'sent' | 'delivered' | 'read';
   isEncrypted?: boolean;
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-  monetization?: MessageMonetization;
-  emotional?: {
-    primaryEmotion: string;
-    intensity: number;
-    threadMapping: any[];
+  monetization?: {
+    tier: string;
+    price: number;
+    currency?: string;
   };
 }
+
+export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip' | 'exclusive';
 
 export interface MessageThread {
   id: string;
   participants: string[];
-  name?: string;
-  isGated?: boolean;
+  participantInfo?: Record<string, {
+    displayName: string;
+    avatarUrl?: string;
+  }>;
   messages: Message[];
-  lastActivity: string;
-  readStatus?: Record<string, any>;
-  lastMessageText?: string;
-  lastMessageSenderId?: string;
-  metadata?: {
-    category?: string;
-    tags?: string[];
-    isPinned?: boolean;
+  isSecure?: boolean;
+  isArchived?: boolean;
+  isPinned?: boolean;
+  lastActivity: string | Date;
+  unreadCount?: number;
+  sessionKey?: string;
+  name?: string;
+}
+
+export interface FirestoreMessage {
+  id: string;
+  content: any;
+  senderId: string;
+  createdAt: any; // Timestamp
+  status?: string;
+  isEncrypted?: boolean;
+  monetization?: {
+    tier: string;
+    price: number;
+    currency?: string;
   };
 }
 
-// Extend the FirestoreMessageThread with the fields used in the app
-export interface ExtendedFirestoreMessageThread {
-  id?: string;
+export interface FirestoreMessageThread {
+  id: string;
   participantIds: string[];
-  participantNames?: Record<string, string>;
-  participantAvatars?: Record<string, string | null>;
+  participantInfo?: Record<string, {
+    displayName: string;
+    avatarUrl?: string;
+  }>;
+  isSecure?: boolean;
+  isArchived?: boolean;
+  isPinned?: boolean;
+  lastActivity?: any; // Timestamp
   name?: string;
-  isGated?: boolean;
-  messages: any[];
-  lastActivity?: any;
-  readStatus?: Record<string, any>;
-  lastMessageText?: string;
-  lastMessageSenderId?: string;
-  metadata?: {
-    category?: string;
-    tags?: string[];
-    isPinned?: boolean;
-  };
+}
+
+export interface EncryptedContent {
+  data: string;
+  iv: string;
+  salt: string;
 }

@@ -18,6 +18,7 @@ export interface VideoData {
   format?: string;
   visibility?: string;
   privacy?: string;
+  videoType?: string; // Add videoType field
 }
 
 export interface CreatorProfileData {
@@ -44,6 +45,8 @@ export interface CreatorProfileData {
     currency: string;
     benefits: string[];
   }>;
+  user_id?: string; // Add user_id field
+  name?: string; // Add name field
 }
 
 // Mock data and functions for creator services
@@ -86,7 +89,8 @@ export async function getAllCreators(): Promise<CreatorProfileData[]> {
           isVerified: true,
           isOnline: true,
           category: "Lifestyle",
-          joinedDate: "2023-01-15"
+          joinedDate: "2023-01-15",
+          user_id: "creator1"
         },
         {
           id: "creator2",
@@ -98,7 +102,8 @@ export async function getAllCreators(): Promise<CreatorProfileData[]> {
           isVerified: true,
           isOnline: false,
           category: "Fashion",
-          joinedDate: "2022-10-03"
+          joinedDate: "2022-10-03",
+          user_id: "creator2"
         }
       ]);
     }, 1000);

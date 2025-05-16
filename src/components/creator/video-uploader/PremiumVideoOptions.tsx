@@ -1,6 +1,14 @@
 
 import React from 'react';
+import { 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormControl, 
+  FormDescription 
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { 
   Select, 
   SelectContent, 
@@ -8,12 +16,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormControl 
-} from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { VideoFormValues } from './useVideoUpload';
 
@@ -21,9 +23,11 @@ interface PremiumVideoOptionsProps {
   form: UseFormReturn<VideoFormValues>;
 }
 
-export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }) => {
+const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }) => {
   return (
-    <div className="space-y-4 pt-2 border-t border-border">
+    <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+      <h3 className="text-sm font-semibold">Options Premium</h3>
+      
       <FormField
         control={form.control}
         name="tokenPrice"
@@ -31,14 +35,16 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
           <FormItem>
             <FormLabel>Prix en tokens</FormLabel>
             <FormControl>
-              <Input
-                type="number"
-                min={1}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                value={field.value || ''}
-                className="mt-1"
+              <Input 
+                type="number" 
+                min={1} 
+                step={1}
+                {...field}
+                value={field.value || 5}
+                onChange={e => field.onChange(Number(e.target.value))}
               />
             </FormControl>
+            <FormDescription>Coût pour débloquer cette vidéo</FormDescription>
           </FormItem>
         )}
       />
@@ -48,24 +54,24 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
         name="subscriptionLevel"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Niveau d'abonnement minimum</FormLabel>
-            <Select
+            <FormLabel>Niveau d'abonnement requis</FormLabel>
+            <Select 
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
             >
               <FormControl>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un niveau" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="free">Aucun (libre)</SelectItem>
-                <SelectItem value="fan">Fan</SelectItem>
-                <SelectItem value="superfan">Super Fan</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
                 <SelectItem value="vip">VIP</SelectItem>
-                <SelectItem value="exclusive">Exclusif</SelectItem>
+                <SelectItem value="exclusive">Exclusive</SelectItem>
               </SelectContent>
             </Select>
+            <FormDescription>Niveau d'abonnement minimum pour voir cette vidéo</FormDescription>
           </FormItem>
         )}
       />
@@ -74,16 +80,17 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
         control={form.control}
         name="allowSharing"
         render={({ field }) => (
-          <FormItem className="flex items-center space-x-2">
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <FormLabel>Autoriser le partage</FormLabel>
+              <FormDescription>Les utilisateurs peuvent partager cette vidéo</FormDescription>
+            </div>
             <FormControl>
-              <input
-                type="checkbox"
-                checked={field.value ? true : false}
-                onChange={(e) => field.onChange(e.target.checked)}
-                className="h-4 w-4"
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
               />
             </FormControl>
-            <FormLabel className="text-sm">Autoriser le partage</FormLabel>
           </FormItem>
         )}
       />
@@ -92,19 +99,22 @@ export const PremiumVideoOptions: React.FC<PremiumVideoOptionsProps> = ({ form }
         control={form.control}
         name="allowDownload"
         render={({ field }) => (
-          <FormItem className="flex items-center space-x-2">
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <FormLabel>Autoriser le téléchargement</FormLabel>
+              <FormDescription>Les utilisateurs peuvent télécharger cette vidéo</FormDescription>
+            </div>
             <FormControl>
-              <input
-                type="checkbox"
-                checked={field.value ? true : false}
-                onChange={(e) => field.onChange(e.target.checked)}
-                className="h-4 w-4"
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
               />
             </FormControl>
-            <FormLabel className="text-sm">Autoriser le téléchargement</FormLabel>
           </FormItem>
         )}
       />
     </div>
   );
 };
+
+export default PremiumVideoOptions;
