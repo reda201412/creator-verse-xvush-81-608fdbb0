@@ -192,9 +192,17 @@ const useVideoUpload = () => {
           reader.onerror = error => reject(error);
         });
         const base64Data = await toBase64(thumbnailFile);
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) {
+          throw new Error('Non authentifié');
+        }
+
         const response = await fetch(API_ENDPOINTS.OSS.UPLOAD_THUMBNAIL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             filename: thumbnailFile.name,
             data: base64Data
