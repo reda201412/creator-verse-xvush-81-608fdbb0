@@ -7,7 +7,7 @@ import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoData } from '@/services/creatorService';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
-import useVideoUpload from './video-uploader/useVideoUpload';
+import { useVideoUpload, VideoFormData } from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
   onUploadComplete: (metadata?: VideoData | null) => void;
@@ -105,9 +105,9 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               thumbnailFile={thumbnailFile}
               videoPreviewUrl={videoPreviewUrl}
               thumbnailPreviewUrl={thumbnailPreviewUrl}
-              videoFormat={videoFormat}
+              videoFormat={videoFormat as '16:9' | '9:16' | '1:1' | 'other'}
               isUploading={isUploading}
-              uploadProgress={uploadProgress}
+              uploadProgress={uploadProgress.progress}
               uploadError={uploadError}
               uploadStage={uploadStage}
               handleVideoChange={handleVideoChange}
@@ -127,8 +127,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  const metadata: VideoData | null = await uploadVideoAndSaveMetadata(values);
-                   handleUploadCompleteInternal(metadata);
+                  // S'assurer que values est bien du type VideoFormData attendu
+                  await uploadVideoAndSaveMetadata(values as VideoFormData);
+                  // Comme uploadVideoAndSaveMetadata ne retourne pas de metadata, on utilise null
+                  handleUploadCompleteInternal(null);
                 } catch (error: any) {
                   console.error('Upload process error (caught in onSubmit):', error);
                   setUploadError(error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.");

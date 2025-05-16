@@ -32,14 +32,8 @@ export interface UploadProgress {
   timeRemaining: number; // seconds
 }
 
-export interface VideoFormData {
-  title: string;
-  description: string;
-  format: string;
-  visibility: string;
-  category: string;
-  tags: string[];
-}
+// Types pour les formulaires
+export type VideoFormData = z.infer<typeof videoFormSchema>;
 
 // Constants
 export const ACCEPTED_VIDEO_TYPES: VideoType[] = ['video/mp4', 'video/quicktime'];
@@ -60,6 +54,9 @@ export const videoFormSchema = z.object({
   tags: z.array(z.string())
 });
 
+// Alias pour compatibilité avec les composants existants
+export type VideoFormValues = VideoFormData;
+
 // Interface for the hook return value
 export interface VideoUploadHook {
   form: ReturnType<typeof useForm<VideoFormData>>;
@@ -67,18 +64,24 @@ export interface VideoUploadHook {
   thumbnailFile: File | null;
   videoPreviewUrl: string | null;
   thumbnailPreviewUrl: string | null;
-  videoFormat: string;
+  videoFormat: '16:9' | '9:16' | '1:1';
   isUploading: boolean;
   uploadProgress: UploadProgress;
   uploadSpeed: number;
   timeRemaining: number;
   currentChunk: number;
   totalChunks: number;
-  handleVideoChange: (file: File) => Promise<void>;
-  handleThumbnailChange: (file: File) => Promise<void>;
+  uploadError: string | null;
+  uploadStage: string;
+  // Adapter les signatures des fonctions pour qu'elles correspondent aux attentes des composants
+  handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (data: VideoFormData) => Promise<void>;
   cancelUpload: () => void;
   setUploadError: (error: string | null) => void;
+  generateThumbnail: () => void;
+  resetForm: () => void;
+  uploadVideoAndSaveMetadata: (formData: VideoFormData) => Promise<void>;
 }
 
 // Helper function to convert file to base64
@@ -263,87 +266,92 @@ export const useVideoUpload = (): VideoUploadHook => {
   });
 
   // Handle video file selection
-  const handleVideoChange = useCallback(async (file: File): Promise<void> => {
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
     try {
-      if (!file) {
-        toast.error('No file selected');
-        return;
-      }
-
+      // Validate file type
       if (!ACCEPTED_VIDEO_TYPES.includes(file.type as VideoType)) {
-        toast.error(`Invalid file type. Accepted types: ${ACCEPTED_VIDEO_TYPES.join(', ')}`);
+        setUploadError(`Type de fichier non pris en charge. Formats acceptés: ${ACCEPTED_VIDEO_TYPES.join(', ')}`);
+        toast.error(`Type de fichier non pris en charge. Formats acceptés: ${ACCEPTED_VIDEO_TYPES.join(', ')}`);
         return;
       }
-
+      
+      // Validate file size
       if (file.size > MAX_VIDEO_SIZE) {
-        toast.error(`File size exceeds the maximum limit of ${MAX_VIDEO_SIZE / (1024 * 1024)}MB`);
+        setUploadError(`Fichier trop volumineux. Taille maximale: ${MAX_VIDEO_SIZE / (1024 * 1024)}MB`);
+        toast.error(`Fichier trop volumineux. Taille maximale: ${MAX_VIDEO_SIZE / (1024 * 1024)}MB`);
         return;
       }
-
+      
       // Set video file and create preview URL
       setVideoFile(file);
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      
+      // Try to generate thumbnail automatically
       const videoUrl = URL.createObjectURL(file);
-      setVideoPreviewUrl(videoUrl);
-
-      // Auto-generate thumbnail
-      setUploadProgress(prev => ({ ...prev, stage: 'generating_thumbnail' }));
-      const thumbnail = await generateThumbnail(file, videoUrl);
-      if (thumbnail) {
-        setThumbnailFile(thumbnail);
-        setThumbnailPreviewUrl(URL.createObjectURL(thumbnail));
-      }
-
-      setUploadProgress(prev => ({ ...prev, stage: 'idle' }));
+      generateThumbnail(file, videoUrl).then(thumbnail => {
+        if (thumbnail) {
+          setThumbnailFile(thumbnail);
+          if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+          setThumbnailPreviewUrl(URL.createObjectURL(thumbnail));
+        }
+      }).catch(error => {
+        console.error('Error generating thumbnail:', error);
+      });
+      
       setUploadError(null);
     } catch (error) {
-      console.error('Error handling video change:', error);
-      setUploadError('Failed to process video file');
-      setUploadProgress(prev => ({ ...prev, stage: 'error' }));
-      toast.error('Failed to process video file');
+      console.error('Error handling video file:', error);
+      setUploadError('Erreur lors du traitement du fichier vidéo');
+      toast.error('Erreur lors du traitement du fichier vidéo');
     }
-  }, []);
+  };
 
   // Handle thumbnail file selection
-  const handleThumbnailChange = useCallback(async (file: File): Promise<void> => {
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
     try {
-      if (!file) {
-        toast.error('No thumbnail selected');
-        return;
-      }
-
+      // Validate file type
       if (!ACCEPTED_THUMBNAIL_TYPES.includes(file.type as ThumbnailType)) {
-        toast.error(`Invalid thumbnail type. Accepted types: ${ACCEPTED_THUMBNAIL_TYPES.join(', ')}`);
+        setUploadError(`Type de miniature non pris en charge. Formats acceptés: ${ACCEPTED_THUMBNAIL_TYPES.join(', ')}`);
+        toast.error(`Type de miniature non pris en charge. Formats acceptés: ${ACCEPTED_THUMBNAIL_TYPES.join(', ')}`);
         return;
       }
-
+      
+      // Validate file size
       if (file.size > MAX_THUMBNAIL_SIZE) {
-        toast.error(`Thumbnail size exceeds the maximum limit of ${MAX_THUMBNAIL_SIZE / (1024 * 1024)}MB`);
+        setUploadError(`Miniature trop volumineuse. Taille maximale: ${MAX_THUMBNAIL_SIZE / (1024 * 1024)}MB`);
+        toast.error(`Miniature trop volumineuse. Taille maximale: ${MAX_THUMBNAIL_SIZE / (1024 * 1024)}MB`);
         return;
       }
-
-      setIsUploading(true);
-      setUploadError(null);
-
-      try {
-        // Compress the image before setting it
-        const compressedFile = await compressImage(file);
+      
+      // Compress image if needed
+      compressImage(file).then(compressedFile => {
+        // Set thumbnail file and create preview URL
         setThumbnailFile(compressedFile);
+        if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
         setThumbnailPreviewUrl(URL.createObjectURL(compressedFile));
-      } catch (error) {
+        
+        setUploadError(null);
+      }).catch(error => {
         console.error('Error compressing thumbnail:', error);
-        // If compression fails, use the original file
-        setThumbnailFile(file);
-        setThumbnailPreviewUrl(URL.createObjectURL(file));
-      }
-
-      setIsUploading(false);
+        setUploadError('Erreur lors de la compression de la miniature');
+        toast.error('Erreur lors de la compression de la miniature');
+      });
     } catch (error) {
-      console.error('Error handling thumbnail change:', error);
+      console.error('Error handling thumbnail file:', error);
+      setUploadError('Erreur lors du traitement de la miniature');
+      toast.error('Erreur lors du traitement de la miniature');
       setUploadError('Failed to process thumbnail');
       setIsUploading(false);
       toast.error('Failed to process thumbnail');
     }
-  }, []);
+  };
 
   // Upload thumbnail to server
   const uploadThumbnail = async (thumbnailFile: File): Promise<string | null> => {
@@ -583,23 +591,50 @@ export const useVideoUpload = (): VideoUploadHook => {
     }
   }, [videoFile, thumbnailFile, user]);
 
+  // Fonction generateThumbnail adaptée pour l'interface
+  const generateThumbnailWrapper = () => {
+    if (!videoFile || !videoPreviewUrl) {
+      toast.error('Aucune vidéo sélectionnée');
+      return;
+    }
+    
+    generateThumbnail(videoFile, videoPreviewUrl).then(thumbnail => {
+      if (thumbnail) {
+        setThumbnailFile(thumbnail);
+        if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+        setThumbnailPreviewUrl(URL.createObjectURL(thumbnail));
+        toast.success('Miniature générée avec succès');
+      } else {
+        toast.error('Impossible de générer une miniature');
+      }
+    }).catch(error => {
+      console.error('Error generating thumbnail:', error);
+      toast.error('Erreur lors de la génération de la miniature');
+    });
+  };
+
   return {
     form,
     videoFile,
     thumbnailFile,
     videoPreviewUrl,
     thumbnailPreviewUrl,
-    videoFormat,
+    videoFormat: videoFormat as '16:9' | '9:16' | '1:1',
     isUploading,
     uploadProgress,
     uploadSpeed: uploadProgress.uploadSpeed,
     timeRemaining: uploadProgress.timeRemaining,
     currentChunk: uploadProgress.currentChunk,
     totalChunks: uploadProgress.totalChunks,
+    uploadError: null,
+    uploadStage: uploadProgress.stage,
     handleVideoChange,
     handleThumbnailChange,
     handleSubmit,
     cancelUpload,
-    setUploadError
+    setUploadError,
+    generateThumbnail: generateThumbnailWrapper,
+    resetForm,
+    uploadVideoAndSaveMetadata
   };
 };
