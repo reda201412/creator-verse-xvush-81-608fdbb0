@@ -1,5 +1,4 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 import { prisma } from '../../lib/prisma';
 
@@ -13,8 +12,6 @@ if (!getApps().length) {
     }),
   });
 }
-
-const db = getFirestore();
 
 function isValidMuxSignature(signature: string, body: string, secret: string) {
   // Mux envoie plusieurs signatures séparées par ','

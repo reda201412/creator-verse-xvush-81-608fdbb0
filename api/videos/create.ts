@@ -1,7 +1,12 @@
 import { prisma } from '../../lib/prisma';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Video } from '@prisma/client';
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<Video | { error: string }>
+) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
   const user = await verifyFirebaseToken(token);
