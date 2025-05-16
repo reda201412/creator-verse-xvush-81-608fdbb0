@@ -13,8 +13,12 @@ import API_ENDPOINTS from '@/config/api';
 // Removed old VideoMetadata import:
 // import { VideoMetadata } from '@/types/video';
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska', 'video/x-msvideo', 'video/mpeg']; // MKV, AVI, MPEG
+const ACCEPTED_THUMBNAIL_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_UPLOAD_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
 
 // Define Zod schema for form validation
 const videoFormSchema = z.object({
@@ -28,7 +32,16 @@ const videoFormSchema = z.object({
 
 export type VideoFormValues = z.infer<typeof videoFormSchema>;
 
-type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'processing_metadata' | 'generating_thumbnail' | 'complete' | 'error';
+type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'retrying' | 'processing_metadata' | 'generating_thumbnail' | 'complete' | 'error';
+
+interface UploadProgress {
+  stage: UploadStage;
+  progress: number;
+  currentChunk: number;
+  totalChunks: number;
+  uploadSpeed: number;
+  timeRemaining: number;
+}
 
 
 const useVideoUpload = () => {
@@ -40,9 +53,16 @@ const useVideoUpload = () => {
   const videoFormat = useRef<'16:9' | '9:16' | '1:1' | 'other'>('other');
   
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
+    stage: 'idle',
+    progress: 0,
+    currentChunk: 0,
+    totalChunks: 0,
+    uploadSpeed: 0,
+    timeRemaining: 0
+  });
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
+
 
   const upchunkRef = useRef<UpChunk.UpChunk | null>(null);
 
@@ -73,9 +93,9 @@ const useVideoUpload = () => {
   const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > MAX_FILE_SIZE) {
-        setUploadError(`La taille du fichier dépasse la limite de ${MAX_FILE_SIZE / (1024*1024)}MB.`);
-        toast.error("Fichier trop volumineux", { description: `La taille du fichier dépasse la limite de ${MAX_FILE_SIZE / (1024*1024)}MB.`});
+      if (file.size > MAX_VIDEO_SIZE) {
+        setUploadError(`La taille du fichier dépasse la limite de ${MAX_VIDEO_SIZE / (1024*1024)}MB.`);
+        toast.error("Fichier trop volumineux", { description: `La taille du fichier dépasse la limite de ${MAX_VIDEO_SIZE / (1024*1024)}MB.`});
         setVideoFile(null);
         setVideoPreviewUrl(null);
         return;
@@ -109,14 +129,88 @@ const useVideoUpload = () => {
   const handleThumbnailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setThumbnailFile(file);
-      setThumbnailPreviewUrl(URL.createObjectURL(file));
+      if (file.size > MAX_THUMBNAIL_SIZE) {
+        toast.error("Miniature trop volumineuse", { 
+          description: `La taille de l'image dépasse la limite de ${MAX_THUMBNAIL_SIZE / (1024*1024)}MB.`
+        });
+        return;
+      }
+      if (!ACCEPTED_THUMBNAIL_TYPES.includes(file.type)) {
+        toast.error("Format non supporté", { 
+          description: "La miniature doit être au format JPEG, PNG ou WebP."
+        });
+        return;
+      }
+
+      // Compress the thumbnail if it's too large
+      if (file.size > 1024 * 1024) { // If larger than 1MB
+        compressImage(file).then(compressedFile => {
+          setThumbnailFile(compressedFile);
+          setThumbnailPreviewUrl(URL.createObjectURL(compressedFile));
+        }).catch(error => {
+          console.error('Error compressing thumbnail:', error);
+          setThumbnailFile(file);
+          setThumbnailPreviewUrl(URL.createObjectURL(file));
+        });
+      } else {
+        setThumbnailFile(file);
+        setThumbnailPreviewUrl(URL.createObjectURL(file));
+      }
     }
+  };
+
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1920; // Max dimension
+
+        if (width > height && width > maxDim) {
+          height = (height * maxDim) / width;
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = (width * maxDim) / height;
+          height = maxDim;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Could not compress image'));
+              return;
+            }
+            resolve(new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            }));
+          },
+          'image/jpeg',
+          0.8 // Quality
+        );
+      };
+      img.onerror = () => reject(new Error('Could not load image'));
+    });
   };
 
   const generateThumbnail = async () => {
     if (!videoFile || !videoPreviewUrl) return;
-    setUploadStage('generating_thumbnail');
+    setUploadProgress(prev => ({ ...prev, stage: 'generating_thumbnail' }));
     const video = document.createElement('video');
     video.src = videoPreviewUrl;
     video.currentTime = 1; // Capture frame at 1 second
@@ -135,15 +229,15 @@ const useVideoUpload = () => {
             setThumbnailPreviewUrl(URL.createObjectURL(thumbFile));
             toast.success("Miniature générée avec succès!");
           }
-          setUploadStage('idle'); 
+          setUploadProgress(prev => ({ ...prev, stage: 'idle' }));
         }, 'image/jpeg');
       } else {
-        setUploadStage('error');
+        setUploadProgress(prev => ({ ...prev, stage: 'error' }));
         setUploadError("Impossible de générer la miniature (erreur canvas).");
       }
     };
     video.onerror = () => {
-      setUploadStage('error');
+      setUploadProgress(prev => ({ ...prev, stage: 'error' }));
       setUploadError("Erreur lors du chargement de la vidéo pour la miniature.");
       toast.error("Erreur de miniature", { description: "Impossible de charger la vidéo pour générer la miniature."});
     }
@@ -158,14 +252,67 @@ const useVideoUpload = () => {
     setThumbnailPreviewUrl(null);
     form.reset();
     setIsUploading(false);
-    setUploadProgress(0);
+    setUploadProgress({
+      stage: 'idle',
+      progress: 0,
+      currentChunk: 0,
+      totalChunks: 0,
+      uploadSpeed: 0,
+      timeRemaining: 0
+    });
     setUploadError(null);
     videoFormat.current = 'other';
     if (upchunkRef.current) {
       upchunkRef.current.abort(); // Abort ongoing upload if any
       upchunkRef.current = null;
     }
-    setUploadStage('idle');
+    setUploadProgress(prev => ({ ...prev, stage: 'idle' }));
+  };
+
+  const uploadThumbnailWithRetry = async (file: File, retryCount = 0): Promise<string> => {
+    try {
+      const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+      });
+
+      const base64Data = await toBase64(file);
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error('Non authentifié');
+      }
+
+      const response = await fetch(API_ENDPOINTS.OSS.UPLOAD_THUMBNAIL, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          data: base64Data
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'upload de la miniature');
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      if (retryCount < MAX_UPLOAD_RETRIES) {
+        console.log(`Retry thumbnail upload attempt ${retryCount + 1}/${MAX_UPLOAD_RETRIES}`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return uploadThumbnailWithRetry(file, retryCount + 1);
+      }
+      throw error;
+    }
   };
 
   const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoData | null> => {
@@ -175,50 +322,27 @@ const useVideoUpload = () => {
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress({
+      stage: 'creating_upload',
+      progress: 0,
+      currentChunk: 0,
+      totalChunks: 0,
+      uploadSpeed: 0,
+      timeRemaining: 0
+    });
     setUploadError(null);
-    setUploadStage('creating_upload');
 
     let thumbnailUrl: string | undefined = undefined;
     // 0. Upload du thumbnail sur Alibaba OSS si présent
     if (thumbnailFile) {
       try {
-        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => {
-            const base64 = (reader.result as string).split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = error => reject(error);
-        });
-        const base64Data = await toBase64(thumbnailFile);
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) {
-          throw new Error('Non authentifié');
-        }
-
-        const response = await fetch(API_ENDPOINTS.OSS.UPLOAD_THUMBNAIL, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            filename: thumbnailFile.name,
-            data: base64Data
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Erreur lors de l\'upload de la miniature');
-        }
-
-        const data = await response.json();
-        thumbnailUrl = data.url;
+        thumbnailUrl = await uploadThumbnailWithRetry(thumbnailFile);
+        toast.success("Miniature uploadée avec succès");
       } catch (error) {
         console.error('Erreur lors de l\'upload de la miniature:', error);
-        toast.error("Erreur de miniature", { description: "Impossible d'uploader la miniature sur OSS." });
+        toast.error("Erreur de miniature", { 
+          description: "Impossible d'uploader la miniature sur OSS. Réessayez plus tard." 
+        });
         // Continue without thumbnail
       }
     }
@@ -230,58 +354,119 @@ const useVideoUpload = () => {
         throw new Error("Impossible de préparer l'upload vidéo avec Mux.");
       }
       const muxUploadUrl = uploadData.url;
-      // 2. Upload video file to MUX using UpChunk
-      setUploadStage('uploading');
-      return new Promise<VideoData | null>((resolve, reject) => {
-        upchunkRef.current = UpChunk.createUpload({
-          endpoint: muxUploadUrl,
-          file: videoFile,
-          chunkSize: 7680,
+      // 2. Upload video file to MUX using UpChunk with retry logic
+      setUploadProgress(prev => ({ ...prev, stage: 'uploading' }));
+      let retryCount = 0;
+      let lastProgress = 0;
+      let startTime = Date.now();
+      let uploadedBytes = 0;
+
+      const calculateProgress = (progress: number) => {
+        const currentTime = Date.now();
+        const timeElapsed = (currentTime - startTime) / 1000; // in seconds
+        const progressDiff = progress - lastProgress;
+        const bytesUploaded = (progressDiff / 100) * videoFile.size;
+        uploadedBytes += bytesUploaded;
+
+        const uploadSpeed = uploadedBytes / timeElapsed; // bytes per second
+        const remainingBytes = videoFile.size - uploadedBytes;
+        const timeRemaining = remainingBytes / uploadSpeed;
+
+        const totalChunks = Math.ceil(videoFile.size / 7680);
+        const currentChunk = Math.ceil((progress / 100) * totalChunks);
+
+        setUploadProgress({
+          stage: 'uploading',
+          progress,
+          currentChunk,
+          totalChunks,
+          uploadSpeed,
+          timeRemaining
         });
-        upchunkRef.current.on('progress', (progressEvent: { detail: number }) => {
-          setUploadProgress(Math.floor(progressEvent.detail));
-        });
-        upchunkRef.current.on('success', async () => {
-          console.log('Video uploaded to Mux successfully!');
-          setIsUploading(false);
-          setUploadStage('complete');
-          // À migrer : appeler le backend pour enregistrer les métadonnées côté Firestore
-          // Ici, on retourne un objet avec thumbnailUrl si upload réussi
-          resolve({
-            id: '',
-            creatorId: user.uid,
-            title: values.title,
-            description: values.description,
-            thumbnailUrl: thumbnailUrl,
-            videoUrl: '',
-            type: values.type,
-            format: (videoFormat.current === '16:9' || videoFormat.current === '9:16' || videoFormat.current === '1:1') ? videoFormat.current : '16:9',
-            isPremium: values.isPremium,
-            tokenPrice: values.tokenPrice,
-            restrictions: undefined,
-            status: 'processing',
-            errorDetails: undefined,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            muxUploadId: uploadData.id,
-            muxAssetId: undefined,
-            muxPlaybackId: undefined,
+
+        lastProgress = progress;
+      };
+
+      const createUploadWithRetry = async (): Promise<VideoData | null> => {
+        try {
+          return await new Promise<VideoData | null>((resolve, reject) => {
+            upchunkRef.current = UpChunk.createUpload({
+              endpoint: muxUploadUrl,
+              file: videoFile,
+              chunkSize: 7680,
+            });
+
+            upchunkRef.current.on('progress', (progressEvent: { detail: number }) => {
+              calculateProgress(Math.floor(progressEvent.detail));
+            });
+
+            upchunkRef.current.on('success', async () => {
+              console.log('Video uploaded to Mux successfully!');
+              setIsUploading(false);
+              setUploadProgress(prev => ({ ...prev, stage: 'complete' }));
+              resolve({
+                id: '',
+                creatorId: user.uid,
+                title: values.title,
+                description: values.description,
+                thumbnailUrl: thumbnailUrl,
+                videoUrl: '',
+                type: values.type,
+                format: (videoFormat.current === '16:9' || videoFormat.current === '9:16' || videoFormat.current === '1:1') ? videoFormat.current : '16:9',
+                isPremium: values.isPremium,
+                tokenPrice: values.tokenPrice,
+                restrictions: undefined,
+                status: 'processing',
+                errorDetails: undefined,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                muxUploadId: uploadData.id,
+                muxAssetId: undefined,
+                muxPlaybackId: undefined,
+              });
+            });
+
+            upchunkRef.current.on('error', async (errorEvent: { detail: any }) => {
+              if (retryCount < MAX_UPLOAD_RETRIES) {
+                retryCount++;
+                setUploadProgress(prev => ({ ...prev, stage: 'retrying' }));
+                console.log(`Retry upload attempt ${retryCount}/${MAX_UPLOAD_RETRIES}`);
+                toast.info(`Tentative de reprise ${retryCount}/${MAX_UPLOAD_RETRIES}`, {
+                  description: "L'upload va reprendre automatiquement..."
+                });
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                const result = await createUploadWithRetry();
+                resolve(result);
+                return;
+              }
+              console.error('UpChunk upload error:', errorEvent.detail);
+              setIsUploading(false);
+              setUploadError(`Erreur lors du téléversement: ${errorEvent.detail?.message || 'Erreur UpChunk'}`);
+              setUploadProgress(prev => ({ ...prev, stage: 'error' }));
+              toast.error("Erreur de téléversement", { 
+                description: errorEvent.detail?.message || 'Une erreur est survenue lors du téléversement.'
+              });
+              reject(new Error(errorEvent.detail?.message || 'Erreur UpChunk'));
+            });
           });
-        });
-        upchunkRef.current.on('error', (errorEvent: { detail: any }) => {
-          console.error('UpChunk upload error:', errorEvent.detail);
-          setIsUploading(false);
-          setUploadError(`Erreur lors du téléversement: ${errorEvent.detail?.message || 'Erreur UpChunk'}`);
-          setUploadStage('error');
-          toast.error("Erreur de téléversement", { description: errorEvent.detail?.message || 'Une erreur est survenue lors du téléversement.'});
-          reject(new Error(errorEvent.detail?.message || 'Erreur UpChunk'));
-        });
-      });
+        } catch (error) {
+          if (retryCount < MAX_UPLOAD_RETRIES) {
+            retryCount++;
+            setUploadProgress(prev => ({ ...prev, stage: 'retrying' }));
+            console.log(`Retry upload attempt ${retryCount}/${MAX_UPLOAD_RETRIES}`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return createUploadWithRetry();
+          }
+          throw error;
+        }
+      };
+
+      return createUploadWithRetry();
     } catch (error: any) {
       console.error('General upload process error:', error);
       setIsUploading(false);
       setUploadError(error.message || "Une erreur générale est survenue lors de l'upload.");
-      setUploadStage('error');
+      setUploadProgress(prev => ({ ...prev, stage: 'error' }));
       toast.error("Erreur d'upload", { description: error.message || "Une erreur générale est survenue."});
       return null;
     }
@@ -296,9 +481,13 @@ const useVideoUpload = () => {
     thumbnailPreviewUrl,
     videoFormat: videoFormat.current,
     isUploading,
-    uploadProgress,
+    uploadProgress: uploadProgress.progress,
+    uploadSpeed: uploadProgress.uploadSpeed,
+    timeRemaining: uploadProgress.timeRemaining,
+    currentChunk: uploadProgress.currentChunk,
+    totalChunks: uploadProgress.totalChunks,
     uploadError,
-    uploadStage,
+    uploadStage: uploadProgress.stage,
     handleVideoChange,
     handleThumbnailChange,
     generateThumbnail,
