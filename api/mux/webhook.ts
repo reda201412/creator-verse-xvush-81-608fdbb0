@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   // Lire le body brut
   let rawBody = '';
   await new Promise((resolve, reject) => {
-    req.on('data', (chunk: Buffer) => {
+    req.on('data', (chunk) => {
       rawBody += chunk.toString('utf8');
     });
     req.on('end', resolve);
@@ -80,7 +80,6 @@ export default async function handler(req, res) {
         where: { muxUploadId: upload_id },
         data: {
           muxAssetId: asset_id,
-          // muxPlaybackId: playbackId, // à décommenter si tu récupères le playbackId
           status: 'ready',
         },
       });
@@ -88,21 +87,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, updated: video.count });
     } else if (type === 'video.asset.errored') {
       const { id: assetId } = data;
-      
-      // Mettre à jour le statut d'erreur dans Firestore
-      const videosRef = db.collection('videos');
-      const querySnapshot = await videosRef.where('muxAssetId', '==', assetId).get();
-      
-      if (!querySnapshot.empty) {
-        const batch = db.batch();
-        querySnapshot.forEach(doc => {
-          batch.update(doc.ref, {
-            status: 'error',
-            errorDetails: data,
-            updatedAt: new Date()
-          });
-        });
-        await batch.commit();
+      // Mettre à jour le statut d'erreur dans Neon
+      const video = await prisma.video.updateMany({
+        where: { muxAssetId: assetId },
+        data: {
+          status: 'error',
+          updatedAt: new Date()
+        },
+      });
+      if (video.count > 0) {
         console.error(`Video status updated to 'error' for mux_asset_id: ${assetId}`);
       }
     }

@@ -11,9 +11,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    // Si tu veux filtrer par utilisateur, décommente la ligne suivante :
-    // const videos = await prisma.video.findMany({ where: { userId: user.uid } });
+    // Filtrer par utilisateur connecté
     const videos = await prisma.video.findMany({
+      where: { userId: user.uid },
       orderBy: { createdAt: 'desc' }
     });
     return res.status(200).json(videos);

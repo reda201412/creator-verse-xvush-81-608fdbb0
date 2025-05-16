@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       data: {
         muxUploadId,
         status: 'processing',
-        // userId: user.uid, // si tu veux lier à l'utilisateur
+        userId: user.uid,
       },
     });
     return res.status(201).json(video);
