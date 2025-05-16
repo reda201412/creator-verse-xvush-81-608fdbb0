@@ -1,5 +1,6 @@
 import { auth } from '@/lib/firebase';
 import API_ENDPOINTS from '@/config/api';
+import { DirectMuxService } from './directMuxService';
 
 // Types pour les réponses d'API
 export interface MuxUploadResponse {
@@ -24,29 +25,21 @@ export interface MuxAsset {
 export const VideoService = {
   /**
    * Créer une URL d'upload Mux pour téléverser une vidéo directement
+   * Utilise le service d'upload direct pour contourner les problèmes d'API
    */
   createUploadUrl: async (): Promise<MuxUploadResponse> => {
-    // Obtenir le token ID pour l'authentification
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) {
+    // Vérifier l'authentification (pour la compatibilité avec le reste du code)
+    if (!auth.currentUser) {
       throw new Error("Non authentifié");
     }
 
-    // Utiliser la nouvelle API d'upload direct
-    const response = await fetch(API_ENDPOINTS.MUX.DIRECT_UPLOAD, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erreur lors de la création de l\'URL d\'upload');
+    try {
+      // Utiliser le service d'upload direct vers Mux
+      return await DirectMuxService.createDirectUpload();
+    } catch (error) {
+      console.error('Error creating upload URL:', error);
+      throw new Error(`Erreur lors de la création de l'URL d'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
-
-    return response.json();
   },
 
   /**
