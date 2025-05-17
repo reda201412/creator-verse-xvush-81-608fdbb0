@@ -1,4 +1,5 @@
 
+import React from 'react';
 import SecureMessaging from '@/components/messaging/SecureMessaging';
 import { useAuth } from '@/contexts/AuthContext';
 

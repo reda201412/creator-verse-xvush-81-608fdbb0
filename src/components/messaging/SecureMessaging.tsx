@@ -10,29 +10,31 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ConversationList from './ConversationList';
 import ConversationView from './ConversationView';
-import SupportPanel from './SupportPanel';
+import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  MonetizationTier, ExtendedFirestoreMessageThread
+  MessageType, 
+  MonetizationTier, 
 } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
+import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/integrations/firebase/firebase';
-import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
 import { Spinner } from '@/components/ui/spinner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { 
-  fetchUserThreads, 
-  sendMessage, 
-  markMessagesAsRead, 
-  fetchMessagesForThread,
-} from '@/utils/messaging-utils'; 
-import { FirestoreMessage } from '@/utils/create-conversation-utils';
+import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils'; 
+import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
-import XDoseLogo from '@/components/XDoseLogo';
+
+// Extend FirestoreMessageThread to include messages
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, Timestamp>;
+}
 
 interface SecureMessagingProps {
   userId: string;
@@ -45,7 +47,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
   const location = useLocation();
   const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { getWalletInfo } = useTronWallet();
   const { openModal, closeModal, openModals } = useModals();
   
@@ -57,7 +59,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
   const [isLoadingThreads, setIsLoadingThreads] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [lastVisibleDoc, setLastVisibleDoc] = useState<any>(null);
+  const [lastVisibleMessageDoc, setLastVisibleMessageDoc] = useState<any>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
   const userType = profile?.role || 'fan';
@@ -68,15 +70,11 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(userId);
-      // Cast or transform the threads to match our ExtendedFirestoreMessageThread interface
-      const enhancedThreads: ExtendedFirestoreMessageThread[] = threadsData.map(thread => ({
-        ...thread,
-        participants: thread.participantIds || [], // Ensure participants is set properly
-        name: thread.name || '',
-        lastActivity: thread.lastActivity || new Date() // Ensure lastActivity is present
-      }));
-      
-      setThreads(enhancedThreads);
+      setThreads(threadsData.map(t => ({
+        ...t, 
+        messages: t.messages || [], 
+        readStatus: t.readStatus || {} 
+      })));
       
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
       let threadToActivate = null;
@@ -86,7 +84,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
         threadToActivate = locationState.threadId;
         shouldClearLocationState = true;
       } else if (locationState?.creatorId) {
-        const existingThread = enhancedThreads.find(t => t.participantIds.includes(locationState.creatorId!));
+        const existingThread = threadsData.find(t => t.participantIds.includes(locationState.creatorId!));
         if (existingThread) {
           threadToActivate = existingThread.id!;
         } else {
@@ -130,16 +128,13 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     const threadsQuery = query(collection(db, 'messageThreads'), where('participantIds', 'array-contains', userId), orderBy('lastActivity', 'desc'));
     const unsubscribeThreads = onSnapshot(threadsQuery, (snapshot) => {
       setThreads(prevThreads => {
-        const newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
+        let newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
         snapshot.docChanges().forEach((change) => {
-          const threadData = change.doc.data();
-          const changedThreadData: ExtendedFirestoreMessageThread = { 
+          const changedThreadData = { 
             id: change.doc.id, 
-            ...threadData, 
+            ...change.doc.data(), 
             messages: newThreadsMap.get(change.doc.id)?.messages || [],
-            readStatus: newThreadsMap.get(change.doc.id)?.readStatus || {},
-            participants: threadData.participantIds || [], // Set participants from participantIds
-            name: threadData.name || ''
+            readStatus: newThreadsMap.get(change.doc.id)?.readStatus || {}
           } as ExtendedFirestoreMessageThread;
           
           if (change.type === "added" || change.type === "modified") {
@@ -163,7 +158,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     if (!isInitialLoad && !hasMoreMessages) return;
     setIsLoadingMessages(true);
     try {
-      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleDoc);
+      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleMessageDoc);
       setThreads(prevThreads =>
         prevThreads.map(thread =>
           thread.id === activeThreadId
@@ -178,7 +173,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             : thread
         )
       );
-      setLastVisibleDoc(newLastVisibleDoc);
+      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {
@@ -187,12 +182,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     } finally {
       setIsLoadingMessages(false);
     }
-  }, [activeThreadId, userId, lastVisibleDoc, hasMoreMessages]);
+  }, [activeThreadId, userId, lastVisibleMessageDoc, hasMoreMessages]);
 
   useEffect(() => {
     if (activeThreadId) {
       setHasMoreMessages(true); 
-      setLastVisibleDoc(null); 
+      setLastVisibleMessageDoc(null); 
       loadMoreMessages(true);
     }
   }, [activeThreadId, loadMoreMessages]);
@@ -250,10 +245,8 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
 
   useEffect(() => {
     threads.forEach(thread => { 
-      if (thread.id && !sessionKeys[thread.id]) {
-        const newKey = generateSessionKey();
-        setSessionKeys(prev => ({ ...prev, [thread.id!]: newKey })); 
-      }
+      if (thread.id && !sessionKeys[thread.id]) 
+        setSessionKeys(prev => ({ ...prev, [thread.id!]: generateSessionKey() })); 
     });
   }, [threads, sessionKeys]);
 
@@ -283,6 +276,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
       id: `optimistic_${Date.now()}`, 
       senderId: userId, 
       content, 
+      type: 'text', 
       createdAt: Timestamp.now(), 
       isEncrypted: isSecurityEnabled, 
       ...(supportData && { monetization: supportData }), 
@@ -360,7 +354,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
         setActiveThreadId(result.threadId); 
         setShowConversationList(false); 
       }
-      else sonnerToast.error("Impossible de créer la conversation.");
+      else sonnerToast.error(result.error?.message || "Impossible de créer la conversation.");
     } catch (error) { 
       console.error("Error creating new conversation:", error); 
       sonnerToast.error("Erreur."); 
@@ -371,12 +365,24 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
         <div className="text-center">
-          <Spinner size="md" className="mx-auto mb-4" />
+          <Spinner size="lg" />
           <p className="mt-4 text-lg">Chargement des discussions...</p>
         </div>
       </div>
     );
   }
+
+  const filteredThreads = threads.filter(thread => {
+    if (filterMode === 'all') return true;
+    if (filterMode === 'unread') {
+      const lastReadByCurrentUser = (thread.readStatus && userId && thread.readStatus[userId] as Timestamp | undefined)?.toMillis() || 0;
+      return thread.lastMessageCreatedAt && (thread.lastMessageCreatedAt as Timestamp).toMillis() > lastReadByCurrentUser && thread.lastMessageSenderId !== userId;
+    }
+    if (filterMode === 'supported') { 
+      return thread.messages.some(m => m.senderId === userId && (m as any).monetization); 
+    }
+    return true;
+  });
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
@@ -428,13 +434,14 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
               className="h-full"
             >
               <ConversationList 
-                threads={threads} 
+                threads={filteredThreads as any} 
                 userId={userId!} 
                 userName={userName} 
                 userAvatar={userAvatar} 
                 onSelectThread={handleThreadSelect} 
                 activeThreadId={activeThreadId} 
-                onConversationCreated={handleNewConversationCreated} 
+                userType={userType} 
+                onConversationCreated={handleNewConversationCreated as any} 
               />
             </motion.div>
           ) : (

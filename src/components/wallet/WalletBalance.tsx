@@ -13,7 +13,7 @@ interface WalletBalanceProps {
 
 const WalletBalance: React.FC<WalletBalanceProps> = ({ walletInfo }) => {
   const { user } = useAuth();
-  const { createWallet, getWalletInfo, isLoading } = useTronWallet();
+  const { createWallet, getWalletInfo, loading } = useTronWallet();
   
   const handleRefresh = async () => {
     if (user) {
@@ -64,9 +64,9 @@ const WalletBalance: React.FC<WalletBalanceProps> = ({ walletInfo }) => {
           </p>
           <Button 
             onClick={handleCreateWallet}
-            disabled={isLoading}
+            disabled={loading}
           >
-            {isLoading ? (
+            {loading ? (
               <>
                 <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full" />
                 Création en cours...
@@ -98,7 +98,7 @@ const WalletBalance: React.FC<WalletBalanceProps> = ({ walletInfo }) => {
             variant="outline" 
             size="sm" 
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={loading}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualiser

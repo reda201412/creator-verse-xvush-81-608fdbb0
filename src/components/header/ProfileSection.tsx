@@ -1,26 +1,25 @@
 
+import React from 'react';
 import { cn } from '@/lib/utils';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import CreatorPulse from '@/components/CreatorPulse';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
-export type PulseStatus = 'online' | 'creating' | 'scheduled' | 'offline';
-
 interface ProfileSectionProps {
   avatar: string;
   isOnline?: boolean;
-  pulseStatus?: PulseStatus;
+  pulseStatus?: 'online' | 'creating' | 'scheduled' | 'offline';
   scheduledTime?: string;
   className?: string;
 }
 
-const ProfileSection = ({
+const ProfileSection: React.FC<ProfileSectionProps> = ({
   avatar,
   isOnline = false,
   pulseStatus = 'offline',
   scheduledTime,
   className
-}: ProfileSectionProps) => {
+}) => {
   const { triggerMicroReward } = useNeuroAesthetic();
 
   return (

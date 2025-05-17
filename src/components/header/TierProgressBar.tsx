@@ -34,7 +34,16 @@ const TierProgressBar: React.FC<TierProgressBarProps> = ({
     }
   };
   
-  // Removing unused function getNextTierColor
+  const getNextTierColor = () => {
+    const nextTier = getNextTier();
+    switch (nextTier) {
+      case 'silver': return 'bg-gradient-to-r from-gray-400 to-gray-300';
+      case 'gold': return 'bg-gradient-to-r from-yellow-500 to-amber-300';
+      case 'platinum': return 'bg-gradient-to-r from-gray-300 to-white';
+      case 'diamond': return 'bg-gradient-to-r from-blue-400 to-purple-500';
+      default: return 'bg-gradient-to-r from-blue-400 to-purple-500';
+    }
+  };
 
   return (
     <div className={cn("space-y-1", className)}>

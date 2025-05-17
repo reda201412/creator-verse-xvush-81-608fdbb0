@@ -1,461 +1,250 @@
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
-import { useModals } from '@/hooks/use-modals';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Home, 
-  Search, 
-  PlusSquare, 
-  Heart, 
-  User, 
-  MessageSquare, 
-  Bell, 
-  Menu, 
-  X, 
-  LogOut, 
-  Settings, 
-  HelpCircle, 
-  Wallet, 
-  Sparkles
-} from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { useLocalNeuroAesthetic } from '@/components/effects/MicroRewardsEnhanced';
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import {
+  Home,
+  User,
+  Calendar,
+  BarChart2,
+  MessageCircle,
+  X,
+  Menu,
+  Users,
+  Settings,
+  LogOut,
+  Coins,
+  Video,
+  Upload,
+  DollarSign
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
-const MobileMenu = () => {
-  // All hooks at the top level, not inside conditionals or nested functions
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
-  const [messageCount] = useState(2);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { openModal } = useModals();
-  const isMobile = useIsMobile();
-  const { profile } = useAuth();
-  const { walletInfo } = useTronWallet();
-  const { triggerMicroReward } = useLocalNeuroAesthetic();
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick?: () => void;
+}
+
+const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
+  const { triggerMicroReward } = useNeuroAesthetic();
   
-  useEffect(() => {
-    // Set active tab based on current route
-    const path = location.pathname;
-    if (path === '/' || path === '/home') setActiveTab('home');
-    else if (path === '/search' || path.includes('/discover')) setActiveTab('search');
-    else if (path === '/create' || path.includes('/studio')) setActiveTab('create');
-    else if (path === '/activity' || path.includes('/notifications')) setActiveTab('activity');
-    else if (path === '/profile' || path.includes('/user/')) setActiveTab('profile');
-    else if (path === '/messages') setActiveTab('messages');
-  }, [location]);
-  
-  const handleTabClick = (tab: string) => {
-    setActiveTab(tab);
-    triggerMicroReward('navigate');
-    
-    switch (tab) {
-      case 'home':
-        navigate('/');
-        break;
-      case 'search':
-        navigate('/discover');
-        break;
-      case 'create':
-        navigate('/studio');
-        break;
-      case 'activity':
-        navigate('/notifications');
-        break;
-      case 'profile':
-        navigate('/profile');
-        break;
-      case 'messages':
-        navigate('/messages');
-        break;
-      default:
-        navigate('/');
-    }
-  };
-  
-  const handleLogout = () => {
-    // Implement logout functionality
-    console.log('Logging out...');
+  const handleClick = () => {
+    triggerMicroReward("tab");
+    if (onClick) onClick();
   };
   
   return (
-    <>
-      {/* Mobile Bottom Navigation */}
-      {isMobile && (
-        <motion.div 
-          className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border z-50"
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center justify-around py-2">
-            <TabButton 
-              icon={<Home size={24} />} 
-              isActive={activeTab === 'home'} 
-              onClick={() => handleTabClick('home')} 
-              label="Home"
-            />
-            <TabButton 
-              icon={<Search size={24} />} 
-              isActive={activeTab === 'search'} 
-              onClick={() => handleTabClick('search')} 
-              label="Discover"
-            />
-            <TabButton 
-              icon={<PlusSquare size={24} />} 
-              isActive={activeTab === 'create'} 
-              onClick={() => handleTabClick('create')} 
-              label="Create"
-              className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white rounded-lg"
-            />
-            <TabButton 
-              icon={<Bell size={24} />} 
-              isActive={activeTab === 'activity'} 
-              onClick={() => handleTabClick('activity')} 
-              label="Activity"
-              badgeCount={3}
-            />
-            <TabButton 
-              icon={<MessageSquare size={24} />} 
-              isActive={activeTab === 'messages'} 
-              onClick={() => handleTabClick('messages')} 
-              label="Messages"
-              badgeCount={messageCount}
-            />
-          </div>
-        </motion.div>
-      )}
-      
-      {/* Desktop Top Navigation */}
-      {!isMobile ? (
-        <div className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-b border-border z-50">
-          <div className="container mx-auto flex items-center justify-between py-2">
-            <div className="flex items-center gap-6">
-              <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500">
-                XDose
-              </div>
-              
-              <nav className="hidden md:flex items-center gap-1">
-                <NavButton 
-                  icon={<Home size={18} />} 
-                  isActive={activeTab === 'home'} 
-                  onClick={() => handleTabClick('home')} 
-                  label="Home"
-                />
-                <NavButton 
-                  icon={<Search size={18} />} 
-                  isActive={activeTab === 'search'} 
-                  onClick={() => handleTabClick('search')} 
-                  label="Discover"
-                />
-                <NavButton 
-                  icon={<Heart size={18} />} 
-                  isActive={activeTab === 'activity'} 
-                  onClick={() => handleTabClick('activity')} 
-                  label="Activity"
-                  badgeCount={3}
-                />
-              </nav>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="relative"
-                    onClick={() => handleTabClick('messages')}
-                  >
-                    <MessageSquare size={20} />
-                    {messageCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0">
-                        {messageCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Messages</TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => openModal('wallet')}
-                  >
-                    <Wallet size={20} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Wallet ({walletInfo?.wallet?.balance_usdt || 0} USDT)</TooltipContent>
-              </Tooltip>
-              
-              <Button 
-                variant="default" 
-                size="sm" 
-                className="hidden md:flex bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                onClick={() => handleTabClick('create')}
-              >
-                <PlusSquare size={16} className="mr-2" />
-                Create
-              </Button>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatarUrl} />
-                      <AvatarFallback>{profile?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleTabClick('profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openModal('wallet')}>
-                    <Wallet className="mr-2 h-4 w-4" />
-                    <span>Wallet</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/help')}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    <span>Help & Support</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+    <Link to={to} onClick={handleClick}>
+      <div
+        className={cn(
+          "relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200",
+          isActive
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+        )}
+      >
+        <div className="flex items-center">
+          <span className="text-xl">{icon}</span>
+          <span className="ml-3 font-medium text-sm">{label}</span>
         </div>
-      ) : null}
+        {isActive && (
+          <motion.div
+            className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-primary"
+            layoutId="activeMobileIndicator"
+          />
+        )}
+      </div>
+    </Link>
+  );
+};
+
+export const HamburgerMenu = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { triggerMicroReward } = useNeuroAesthetic();
+  const { user, profile, isCreator } = useAuth();
+  const { toast } = useToast();
+
+  // Common navigation items for all users
+  let navItems = [
+    { to: "/", icon: <Home size={22} />, label: "Accueil", role: "all" },
+    { to: "/creators", icon: <Users size={22} />, label: "Créateurs", role: "all" },
+    { to: "/creator", icon: <User size={22} />, label: "Profil créateur", role: "all" },
+    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens", role: "all" },
+    { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages", role: "all" },
+  ];
+
+  // Creator-only navigation items
+  const creatorNavItems = [
+    { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord", role: "creator" },
+    { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier", role: "creator" },
+    { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés", role: "creator" },
+    { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos", role: "creator" },
+    { to: "/revenue", icon: <DollarSign size={22} />, label: "Revenus", role: "creator" },
+  ];
+
+  // Combine navigation items based on user role
+  if (isCreator) {
+    navItems = [...navItems, ...creatorNavItems];
+  }
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+    triggerMicroReward("action");
+  };
+  
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Close the menu first
+      closeMenu();
       
-      {/* Mobile Menu Sheet */}
-      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <SheetTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="fixed top-4 right-4 z-50 md:hidden"
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-[80vw] sm:w-[350px]">
-          <SheetHeader>
-            <SheetTitle>Menu</SheetTitle>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-80px)] py-4">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={profile?.avatarUrl} />
-                  <AvatarFallback>{profile?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{profile?.displayName || 'User'}</p>
-                  <p className="text-sm text-muted-foreground">@{profile?.username || 'username'}</p>
+      // Then navigate
+      navigate('/');
+      
+      // Trigger micro reward
+      triggerMicroReward('action');
+      
+      toast({
+        title: "Action de déconnexion",
+        description: "Fonctionnalité de déconnexion simulée."
+      });
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur s'est produite lors de la déconnexion.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleQuickUpload = () => {
+    navigate('/videos');
+    closeMenu();
+    triggerMicroReward('navigate');
+  };
+
+  const displayName = profile?.displayName || profile?.username || "Utilisateur";
+  const userRole = isCreator ? "Créateur" : "Fan";
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleMenu}
+        className="relative z-50"
+        aria-label="Menu"
+      >
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
+      </Button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Overlay to close menu when clicking outside */}
+            <motion.div
+              className="fixed inset-0 bg-black/50 z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeMenu}
+            />
+            
+            {/* Menu panel */}
+            <motion.div
+              className="fixed top-0 right-0 h-screen w-[80%] max-w-[300px] bg-background z-40 overflow-y-auto shadow-xl flex flex-col"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <div className="flex flex-col overflow-y-auto flex-1 p-4">
+                <div className="flex items-center justify-between py-4 px-2">
+                  <Link to="/" onClick={closeMenu}>
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
+                        alt="XDose Logo" 
+                        className="w-8 h-8" 
+                      />
+                      <span className="text-lg font-semibold text-primary">XDose</span>
+                    </div>
+                  </Link>
+                  <Button variant="ghost" size="icon" onClick={closeMenu}>
+                    <X size={18} />
+                  </Button>
+                </div>
+                
+                {isCreator && (
+                  <Button 
+                    onClick={handleQuickUpload}
+                    className="mb-4 bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
+                  >
+                    <Upload size={16} />
+                    Créer du contenu
+                  </Button>
+                )}
+                
+                <div className="mt-4 space-y-1">
+                  {navItems.map((item) => (
+                    <NavItem
+                      key={item.to}
+                      to={item.to}
+                      icon={item.icon}
+                      label={item.label}
+                      isActive={location.pathname === item.to}
+                      onClick={closeMenu}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-auto pt-4 space-y-1">
+                  <NavItem
+                    to="/settings"
+                    icon={<Settings size={22} />}
+                    label="Paramètres"
+                    isActive={location.pathname === "/settings"}
+                    onClick={closeMenu}
+                  />
+                  <div
+                    className="relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200 text-muted-foreground hover:bg-primary/5 hover:text-foreground cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    <div className="flex items-center">
+                      <span className="text-xl"><LogOut size={22} /></span>
+                      <span className="ml-3 font-medium text-sm">Déconnexion</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex items-center p-3">
+                    <ProfileAvatar src={profile?.avatarUrl || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="border-t my-2"></div>
-              
-              <MenuItem 
-                icon={<User size={20} />} 
-                label="Profile" 
-                onClick={() => {
-                  handleTabClick('profile');
-                  setIsMenuOpen(false);
-                }} 
-              />
-              
-              <MenuItem 
-                icon={<Wallet size={20} />} 
-                label="Wallet" 
-                onClick={() => {
-                  openModal('wallet');
-                  setIsMenuOpen(false);
-                }} 
-                rightElement={
-                  <span className="text-sm font-medium">{walletInfo?.wallet?.balance_usdt || 0} USDT</span>
-                }
-              />
-              
-              <MenuItem 
-                icon={<Sparkles size={20} />} 
-                label="Premium" 
-                onClick={() => {
-                  navigate('/premium');
-                  setIsMenuOpen(false);
-                }} 
-                rightElement={
-                  <Badge variant="outline" className="bg-gradient-to-r from-amber-200 to-yellow-400 text-amber-900">PRO</Badge>
-                }
-              />
-              
-              <div className="border-t my-2"></div>
-              
-              <MenuItem 
-                icon={<Settings size={20} />} 
-                label="Settings" 
-                onClick={() => {
-                  navigate('/settings');
-                  setIsMenuOpen(false);
-                }} 
-              />
-              
-              <MenuItem 
-                icon={<HelpCircle size={20} />} 
-                label="Help & Support" 
-                onClick={() => {
-                  navigate('/help');
-                  setIsMenuOpen(false);
-                }} 
-              />
-              
-              <div className="border-t my-2"></div>
-              
-              <MenuItem 
-                icon={<LogOut size={20} />} 
-                label="Log out" 
-                onClick={handleLogout} 
-              />
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };
-
-// Tab button for mobile bottom navigation
-const TabButton = ({ 
-  icon, 
-  isActive, 
-  onClick, 
-  label, 
-  badgeCount, 
-  className 
-}: { 
-  icon: React.ReactNode; 
-  isActive: boolean; 
-  onClick: () => void; 
-  label: string; 
-  badgeCount?: number;
-  className?: string;
-}) => {
-  return (
-    <button 
-      className={cn(
-        "flex flex-col items-center justify-center p-1 relative",
-        isActive && "text-primary",
-        className
-      )}
-      onClick={onClick}
-    >
-      <div className="relative">
-        {icon}
-        {badgeCount !== undefined && badgeCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0">
-            {badgeCount}
-          </Badge>
-        )}
-      </div>
-      <span className="text-[10px] mt-1">{label}</span>
-    </button>
-  );
-};
-
-// Navigation button for desktop
-const NavButton = ({ 
-  icon, 
-  isActive, 
-  onClick, 
-  label, 
-  badgeCount 
-}: { 
-  icon: React.ReactNode; 
-  isActive: boolean; 
-  onClick: () => void; 
-  label: string; 
-  badgeCount?: number;
-}) => {
-  return (
-    <Button 
-      variant={isActive ? "secondary" : "ghost"} 
-      className={cn(
-        "flex items-center gap-2 relative",
-        isActive && "bg-secondary/50"
-      )}
-      onClick={onClick}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-      {badgeCount !== undefined && badgeCount > 0 && (
-        <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0">
-          {badgeCount}
-        </Badge>
-      )}
-    </Button>
-  );
-};
-
-// Menu item for mobile sheet
-const MenuItem = ({ 
-  icon, 
-  label, 
-  onClick, 
-  rightElement 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  onClick: () => void; 
-  rightElement?: React.ReactNode;
-}) => {
-  return (
-    <button 
-      className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/20 rounded-lg transition-colors"
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-3">
-        <span className="text-muted-foreground">{icon}</span>
-        <span>{label}</span>
-      </div>
-      {rightElement && (
-        <div>{rightElement}</div>
-      )}
-    </button>
-  );
-};
-
-export default MobileMenu;

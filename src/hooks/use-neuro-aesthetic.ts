@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './use-local-storage';
 
@@ -28,9 +29,7 @@ export type MicroRewardType =
   | 'click'
   | 'creative'
   | 'analyze'
-  | 'interaction'
-  | 'completion'
-  | 'button_click';
+  | 'interaction';
 
 export interface NeuroAestheticConfig {
   cognitiveProfile: CognitiveProfile;

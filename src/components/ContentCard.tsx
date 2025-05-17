@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Heart, MessageSquare, Eye, Flame, Clock, TrendingUp } from 'lucide-react';
 

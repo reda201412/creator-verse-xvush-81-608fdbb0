@@ -1,67 +1,94 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Home, Compass, PlusCircle, User } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
+import { Home, Users, Video, MessageCircle, User, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
+import { useMobile } from '@/hooks/useMobile';
 
-interface BottomNavigationProps {
-  className?: string;
+export interface BottomNavItem {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  requiresAuth?: boolean;
+  creatorOnly?: boolean;
 }
 
-const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
-  const isMobile = useIsMobile();
-  const location = useLocation();
-
+export const BottomNavigation = () => {
+  const { isMobile } = useMobile();
+  const { user, isCreator } = useAuth();
+  
+  // Only show the bottom navigation on mobile
   if (!isMobile) return null;
-
-  const navItems = [
-    {
-      icon: Home,
-      label: 'Accueil',
-      route: '/',
+  
+  // Define navigation items
+  const navItems: BottomNavItem[] = [
+    { icon: <Home size={20} />, label: 'Accueil', href: '/' },
+    { icon: <TrendingUp size={20} />, label: 'Tendances', href: '/trending' },
+    { icon: <Users size={20} />, label: 'Créateurs', href: '/creators' },
+    { 
+      icon: <MessageCircle size={20} />, 
+      label: 'Messages', 
+      href: '/messages',
+      requiresAuth: true
     },
-    {
-      icon: Compass,
-      label: 'Explorer',
-      route: '/explore',
-    },
-    {
-      icon: PlusCircle,
-      label: 'Créer',
-      route: '/create',
-    },
-    {
-      icon: User,
-      label: 'Profil',
-      route: '/profile',
+    { 
+      icon: isCreator ? <Video size={20} /> : <User size={20} />,
+      label: isCreator ? 'Vidéos' : 'Profil',
+      href: isCreator ? '/videos' : '/settings',
+      requiresAuth: true 
     },
   ];
+  
+  // Filter items based on auth state
+  const filteredItems = navItems.filter(item => 
+    !item.requiresAuth || (item.requiresAuth && user) && 
+    (!item.creatorOnly || (item.creatorOnly && isCreator))
+  );
 
   return (
-    <motion.nav
-      className={cn(
-        'fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-md border-t border-border/30 z-40',
-        'flex items-center justify-around p-3',
-        className
-      )}
+    <motion.nav 
+      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-50 touch-manipulation"
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      {navItems.map((item) => (
-        <Link key={item.label} to={item.route}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'h-10 w-10 rounded-full',
-              location.pathname === item.route ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground'
-            )}
+      <div className="flex justify-around items-center">
+        {filteredItems.map((item, index) => (
+          <NavLink
+            key={index}
+            to={item.href}
+            className={({ isActive }) =>
+              cn(
+                "flex flex-col items-center justify-center py-3 px-1 flex-1 transition-colors",
+                isActive 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+              )
+            }
           >
-            <item.icon size={20} />
-          </Button>
-        </Link>
-      ))}
+            {({ isActive }) => (
+              <>
+                <div className="relative">
+                  {item.icon}
+                  {isActive && (
+                    <motion.div
+                      layoutId="bottomNavIndicator"
+                      className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-5 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </div>
+                <span className="text-xs mt-1">{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
+      
+      {/* Safe area for iOS devices */}
+      <div className="h-safe-bottom bg-background" />
     </motion.nav>
   );
 };

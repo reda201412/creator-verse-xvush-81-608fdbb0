@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Image, Send, X, Video } from 'lucide-react';
+import { Camera, Image, Clock, Tag, Send, X, Video } from 'lucide-react';
 import { useStories } from '@/hooks/use-stories';
 import { StoryFilter, StoryUploadParams } from '@/types/stories';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
@@ -34,7 +35,7 @@ const StoryPublisher: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   
-  const { uploadStory } = useStories(); // Changed from createStory to uploadStory
+  const { createStory } = useStories();
   const { triggerMicroReward } = useNeuroAesthetic();
   const { isCreator } = useAuth();
   const { toast } = useToast();
@@ -196,7 +197,7 @@ const StoryPublisher: React.FC = () => {
         };
       }
       
-      const result = await uploadStory(params); // Changed from createStory to uploadStory
+      const result = await createStory(params);
       
       if (result) {
         // Réinitialiser le formulaire

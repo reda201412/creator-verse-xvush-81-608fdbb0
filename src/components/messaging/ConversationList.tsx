@@ -9,32 +9,19 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import CreatorSelector from './CreatorSelector';
-import { createNewConversationWithCreator, FirestoreMessageThread } from '@/utils/create-conversation-utils';
+import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
-// Define the extended type with all properties needed from MessageThread
-interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
-  messages: any[];
-  readStatus?: Record<string, any>;
-  participants: string[]; // Add this property to match MessageThread
-  name?: string; 
-  lastActivity: string | Date; // Ensure compatible type
-  isPinned?: boolean;
-  isArchived?: boolean;
-  isGated?: boolean;
-  isSecure?: boolean;
-  unreadCount?: number;
-  sessionKey?: string;
-}
-
 interface ConversationListProps {
-  threads: ExtendedFirestoreMessageThread[];
+  threads: MessageThread[];
   userId: string;
   userName: string;
   userAvatar: string;
   onSelectThread: (threadId: string) => void;
   activeThreadId: string | null;
-  onConversationCreated: (data: {creatorId: string, creatorName: string, creatorAvatar: string | null}) => void;
+  userType: 'creator' | 'fan';
+  onNewConversation?: () => void;
+  onConversationCreated?: (threadId: string) => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
@@ -44,6 +31,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
   userAvatar,
   onSelectThread,
   activeThreadId,
+  userType,
+  onNewConversation,
   onConversationCreated
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,11 +123,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
         // Fermer le sélecteur et informer le parent de la nouvelle conversation
         setIsCreatorSelectorOpen(false);
         if (onConversationCreated) {
-          onConversationCreated({
-            creatorId: creator.user_id,
-            creatorName: creator.name || creator.username,
-            creatorAvatar: creator.avatarUrl || null
-          });
+          onConversationCreated(result.threadId);
         }
         
         triggerHaptic('medium');

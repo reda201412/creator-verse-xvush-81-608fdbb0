@@ -2,38 +2,29 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Message } from '@/types/messaging';
 import { Lock, Zap, Eye, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isEncrypted } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
 
-interface FirestoreMessage {
-  id: string;
-  content: string | any;
-  senderId: string;
-  createdAt: any;
-  status?: string;
-  isEncrypted?: boolean;
-  monetization?: {
-    tier: string;
-    price: number;
-    currency?: string;
-  };
-  // We'll add these custom fields for the component
-  senderName?: string;
-  senderAvatar?: string;
-  timestamp?: string;
-}
-
 interface MessageBubbleProps {
-  message: FirestoreMessage;
+  message: Message;
   isCurrentUser: boolean;
-  decryptMessage: (message: FirestoreMessage) => Promise<string>;
+  isEphemeral?: boolean;
+  isRevealed?: boolean;
+  onReveal?: () => void;
+  sessionKey: string;
+  decryptMessage?: (message: Message) => Promise<string>;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isCurrentUser,
+  isEphemeral = false,
+  isRevealed = false,
+  onReveal,
+  sessionKey,
   decryptMessage
 }) => {
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -78,9 +69,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className="w-full"
           >
             {isDecrypting ? (
-              <div className="mr-2">
-                <Spinner className="h-4 w-4" />
-              </div>
+              <Spinner size="sm" className="mr-2" />
             ) : (
               <Eye size={14} className="mr-2" />
             )}
@@ -109,11 +98,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               {message.senderAvatar ? (
                 <img 
                   src={message.senderAvatar} 
-                  alt={message.senderName || 'User'} 
+                  alt={message.senderName} 
                   className="w-full h-full object-cover"
                 />
               ) : (
-                (message.senderName || 'U').charAt(0).toUpperCase()
+                message.senderName.charAt(0).toUpperCase()
               )}
             </div>
           </div>
@@ -123,7 +112,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           "flex flex-col",
           isCurrentUser ? "items-end" : "items-start"
         )}>
-          {!isCurrentUser && message.senderName && (
+          {!isCurrentUser && (
             <span className="text-xs text-muted-foreground mb-1">{message.senderName}</span>
           )}
           
@@ -168,8 +157,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
           
           <span className="text-[10px] text-muted-foreground mt-1">
-            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
-             message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+            {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             {message.isEncrypted && <span className="ml-1">• {showDecrypted ? "Déchiffré" : "Chiffré"}</span>}
           </span>
           

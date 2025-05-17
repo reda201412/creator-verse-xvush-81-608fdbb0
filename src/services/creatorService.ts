@@ -1,214 +1,285 @@
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+// Removed Firebase imports:
+import { db } from '@/integrations/firebase/firebase';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+  writeBatch,
+  getCountFromServer
+} from 'firebase/firestore';
+import { UserProfile } from '@/contexts/AuthContext'; // Keep UserProfile type
 
-import { User } from '@/types/auth';
-
-// Enhanced VideoData interface with all required properties
-export interface VideoData {
-  id: string;
-  title: string;
-  description?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  duration?: number;
-  views?: number;
-  likes?: number;
-  comments?: number;
-  createdAt?: string;
-  userId?: string;
-  type?: string;
-  format?: string;
-  visibility?: string;
-  privacy?: string;
-  videoType?: string;
-  status?: 'processing' | 'ready' | 'errored';
-  muxPlaybackId?: string;
-  muxAssetId?: string;
-  isPremium?: boolean;
-  tokenPrice?: number;
-}
-
-export interface CreatorProfileData {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl?: string;
-  bio?: string;
-  stats: {
-    followers: number;
-    following: number;
-    posts: number;
-    videos: number;
+// Extend UserProfile to include creator specific metrics if needed
+export interface CreatorProfileData extends UserProfile {
+  metrics?: {
+    followers?: number;
+    following?: number; // Number of people the creator follows
+    videos?: number;
+    // revenue?: number; // Revenue might be more complex to calculate client-side
   };
-  isVerified: boolean;
-  isOnline: boolean;
-  category: string;
-  joinedDate: string;
-  socialLinks?: Record<string, string>;
-  subscriptionTiers?: Array<{
-    id: string;
-    name: string;
-    price: number;
-    currency: string;
-    benefits: string[];
-  }>;
-  user_id?: string;
-  name?: string;
+  isOnline?: boolean; // Online status is usually managed by a presence system (ex: Realtime Database)
 }
 
-// Mock data and functions for creator services
-export async function followCreator(userId: string, creatorId: string): Promise<boolean> {
-  console.log(`User ${userId} is following creator ${creatorId}`);
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => resolve(true), 500);
-  });
+// Interface for video metadata stored in Supabase (MATCHING YOUR SCHEMA + MUX FIELDS)
+export interface VideoSupabaseData {
+  id: number; // Matches your 'id' serial primary key
+  creatorId?: number | null; // Matches your 'creatorId' integer
+  videoUrl?: string | null; // Matches your 'videoUrl' varchar (camelCase)
+  isFree?: boolean | null; // Matches your 'isFree' boolean (camelCase)
+  uploadedat?: string | null; // Matches your 'uploadedat' timestamp (camelCase)
+  title?: string | null;
+  description?: string | null;
+  thumbnail_url?: string | null; // Matches your 'thumbnail_url' text
+  video_url?: string | null; // Matches your 'video_url' text (snake_case, likely for Mux playback)
+  user_id?: string | null; // Matches your 'user_id' uuid (stored as text in JS)
+  type?: string | null;
+  format?: string | null;
+  is_premium?: boolean | null; // Matches your 'is_premium' boolean
+  token_price?: number | null; // Matches your 'token_price' integer
+  restrictions?: any | null; // Matches your 'restrictions' jsonb
+
+  // *** Columns needed for Mux Integration (ADD THESE TO YOUR SUPABASE DB) ***
+  upload_id?: string | null; // Mux upload ID
+  mux_asset_id?: string | null; // Mux asset ID
+  mux_playback_id?: string | null; // Mux playback ID
+  status?: 'created' | 'processing' | 'ready' | 'error' | null; // Processing status
+  error_details?: any | null; // Mux error details
 }
 
-export async function unfollowCreator(userId: string, creatorId: string): Promise<boolean> {
-  console.log(`User ${userId} is unfollowing creator ${creatorId}`);
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => resolve(true), 500);
-  });
-}
+// Keep Firebase fetching for user profiles and follows for now, as the request didn't specify changing these.
+// You might want to migrate these to Supabase later for full consistency.
 
-export async function checkUserFollowsCreator(userId: string, creatorId: string): Promise<boolean> {
-  console.log(`Checking if user ${userId} follows creator ${creatorId}`);
-  // Simulate API call with random result
-  return new Promise(resolve => {
-    setTimeout(() => resolve(Math.random() > 0.5), 500);
-  });
-}
+// NOTE: getCreatorById still fetches creator profile and follow counts from Firebase
+export const getCreatorById = async (id: string): Promise<CreatorProfileData | null> => {
+  try {
+    // NOTE: This still fetches from Firebase 'users' collection.
+    // You might need to adjust this if you migrate users to Supabase auth/db.
+    // Assuming Firebase user id is compatible with Supabase user_id uuid string representation
+    const userRef = doc(db, 'users', id);
+    const userSnap = await getDoc(userRef);
 
-export async function checkContentAccess(userId: string, contentId: string): Promise<boolean> {
-  console.log(`Checking if user ${userId} has access to content ${contentId}`);
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => resolve(Math.random() > 0.3), 300);
-  });
-}
+    if (!userSnap.exists() || userSnap.data()?.role !== 'creator') {
+      console.warn(`Creator profile not found for id: ${id} or user is not a creator.`);
+      return null;
+    }
 
-// Add missing getUserFollowedCreatorIds function
-export async function getUserFollowedCreatorIds(userId: string): Promise<string[]> {
-  console.log(`Getting list of creators followed by user ${userId}`);
-  // Simulate API call returning mock data
-  return new Promise(resolve => {
-    setTimeout(() => {
-      // Return mock creator IDs (matching the ones in Index.tsx recommendedCreators)
-      resolve(Math.random() > 0.5 ? ["creator1_uid"] : []);
-    }, 800);
-  });
-}
+    const creatorData = userSnap.data() as UserProfile;
 
-export async function getAllCreators(): Promise<CreatorProfileData[]> {
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "creator1",
-          username: "creator1",
-          displayName: "Creator One",
-          avatarUrl: "https://i.pravatar.cc/150?u=creator1",
-          bio: "Digital creator and lifestyle influencer",
-          stats: { followers: 15000, following: 500, posts: 320, videos: 45 },
-          isVerified: true,
-          isOnline: true,
-          category: "Lifestyle",
-          joinedDate: "2023-01-15",
-          user_id: "creator1"
-        },
-        {
-          id: "creator2",
-          username: "creator2",
-          displayName: "Creator Two",
-          avatarUrl: "https://i.pravatar.cc/150?u=creator2",
-          bio: "Fashion model and photographer",
-          stats: { followers: 25000, following: 300, posts: 520, videos: 120 },
-          isVerified: true,
-          isOnline: false,
-          category: "Fashion",
-          joinedDate: "2022-10-03",
-          user_id: "creator2"
-        }
-      ]);
-    }, 1000);
-  });
-}
+    // Count followers (still Firebase)
+    // You might need to adjust this if you migrate follow relationships to Supabase.
+    const followersQuery = query(collection(db, 'follows'), where('creatorId', '==', id));
+    const followersSnap = await getCountFromServer(followersQuery);
+    const followersCount = followersSnap.data().count;
 
-export async function getVideoById(videoId: string): Promise<VideoData> {
-  console.log(`Fetching video with ID: ${videoId}`);
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        id: videoId,
-        title: "Sample Video",
-        description: "This is a sample video for testing purposes",
-        url: "https://example.com/video.mp4",
-        thumbnailUrl: "https://example.com/thumbnail.jpg",
-        duration: 120, // seconds
-        views: 1500,
-        likes: 250,
-        comments: 45,
-        createdAt: "2023-05-15T10:30:00Z",
-        status: "ready",
-        muxPlaybackId: "play_123456",
-        muxAssetId: "asset_123456",
-        isPremium: false
-      });
-    }, 500);
-  });
-}
+    // Count who this creator follows (still Firebase)
+    // You might need to adjust this if you migrate follow relationships to Supabase.
+    const followingQuery = query(collection(db, 'follows'), where('followerId', '==', id));
+    const followingSnap = await getCountFromServer(followingQuery);
+    const followingCount = followingSnap.data().count;
+    
+    // Count videos from Supabase 'videos' table
+    const { count: videosCount, error: countError } = await supabase
+      .from('videos') // Query the Supabase 'videos' table
+      .select('id', { count: 'exact' })
+      .eq('user_id', id); // Filter by user_id (Supabase column name)
 
-// Add missing getCreatorVideos function
-export async function getCreatorVideos(creatorId: string): Promise<VideoData[]> {
-  console.log(`Fetching videos for creator with ID: ${creatorId}`);
-  // Simulate API call
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "video1",
-          title: "Introduction to Content Creation",
-          description: "Learn the basics of content creation in this tutorial",
-          thumbnailUrl: "https://i.pravatar.cc/300?img=1",
-          createdAt: "2025-05-01T10:30:00Z",
-          views: 1250,
-          likes: 230,
-          comments: 45,
-          status: "ready",
-          type: "standard",
-          muxPlaybackId: "play_id_1",
-          isPremium: false
-        },
-        {
-          id: "video2",
-          title: "Premium Content Strategy",
-          description: "Advanced techniques for creating premium content",
-          thumbnailUrl: "https://i.pravatar.cc/300?img=2",
-          createdAt: "2025-05-05T14:20:00Z",
-          views: 750,
-          likes: 180,
-          comments: 32,
-          status: "ready",
-          type: "premium",
-          muxPlaybackId: "play_id_2",
-          isPremium: true,
-          tokenPrice: 25
-        },
-        {
-          id: "video3",
-          title: "New Upload Processing",
-          description: "This video is still being processed",
-          thumbnailUrl: "https://i.pravatar.cc/300?img=3",
-          createdAt: "2025-05-15T08:45:00Z",
-          status: "processing",
-          type: "vip",
-          isPremium: true,
-          tokenPrice: 50
-        }
-      ]);
-    }, 1000);
-  });
-}
+    if (countError) {
+       console.error('Error counting videos from Supabase:', countError);
+       // Decide how to handle this error, maybe return 0 or null for count
+    }
 
+    return {
+      ...creatorData,
+      metrics: {
+        followers: followersCount,
+        following: followingCount,
+        videos: videosCount || 0, // Use the count from Supabase, default to 0
+      },
+      isOnline: Math.random() > 0.5, // Simulate online status for now
+    };
+  } catch (error) {
+    console.error('Error in getCreatorById:', error);
+    return null;
+  }
+};
+
+// NOTE: getAllCreators still fetches from Firebase 'users' collection
+export const getAllCreators = async (): Promise<CreatorProfileData[]> => {
+  try {
+    const q = query(collection(db, 'users'), where('role', '==', 'creator'));
+    const querySnapshot = await getDocs(q);
+    
+    const creators: CreatorProfileData[] = [];
+    querySnapshot.forEach((doc) => {
+      creators.push({ 
+        ...(doc.data() as UserProfile),
+        isOnline: Math.random() > 0.5, // Simulate
+      } as CreatorProfileData);
+    });
+    return creators;
+  } catch (error) {
+    console.error('Error in getAllCreators:', error);
+    return [];
+  }
+};
+
+// *** MODIFIED TO USE SUPABASE (MATCHING YOUR SCHEMA) ***
+export const getCreatorVideos = async (creatorId: string): Promise<VideoSupabaseData[]> => {
+  try {
+    // Query the Supabase 'videos' table
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*') // Select all columns
+      .eq('user_id', creatorId) // Filter by user_id (Supabase column name)
+      .order('uploadedat', { ascending: false }); // Order by 'uploadedat' (camelCase in your schema)
+
+    if (error) {
+      console.error('Error fetching creator videos from Supabase:', error);
+      return [];
+    }
+
+    // Cast the data to the Supabase video data interface
+    // Supabase typically returns objects with column names as keys
+    return data as VideoSupabaseData[];
+
+  } catch (error) {
+    console.error('Error in getCreatorVideos (Supabase):', error);
+    return [];
+  }
+};
+
+// *** MODIFIED TO USE SUPABASE (MATCHING YOUR SCHEMA) ***
+// Renamed from getVideoByIdFromFirestore for clarity
+export const getVideoById = async (videoId: number): Promise<VideoSupabaseData | null> => {
+  if (videoId === undefined || videoId === null) { // Check for undefined/null as videoId is now number
+    console.warn("getVideoById: videoId is undefined or null");
+    return null;
+  }
+  try {
+    // Query the Supabase 'videos' table by its integer primary key 'id'
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('id', videoId)
+      .single(); // Use single() to get a single row or null
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is 'No rows found'
+      console.error('Error fetching video by ID from Supabase:', error);
+      return null;
+    }
+
+    // data will be the object if found, or null if not found (due to single() and error check)
+    return data as VideoSupabaseData | null;
+
+  } catch (error) {
+    console.error('Error in getVideoById (Supabase):', error);
+    return null;
+  }
+};
+
+// The follow/unfollow/getUserFollowedCreatorIds functions still use Firebase
+// You might need to adjust these if you migrate follow relationships to Supabase.
+
+export const checkUserFollowsCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, 'follows'),
+      where('followerId', '==', userId),
+      where('creatorId', '==', creatorId),
+      limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      console.log("Follow relationship not found.");
+      return false;
+    }
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.error('Error in checkUserFollowsCreator:', error);
+    return false;
+  }
+};
+
+export const followCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+  if (userId === creatorId) {
+    console.warn("User cannot follow themselves.");
+    return false;
+  }
+  try {
+    const alreadyFollowing = await checkUserFollowsCreator(userId, creatorId);
+    if (alreadyFollowing) {
+      console.log("User already follows this creator.");
+      return true; 
+    }
+
+    await addDoc(collection(db, 'follows'), {
+      followerId: userId,
+      creatorId: creatorId,
+      followedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error in followCreator:', error);
+    return false;
+  }
+};
+
+export const unfollowCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, 'follows'),
+      where('followerId', '==', userId),
+      where('creatorId', '==', creatorId)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      console.log("Follow relationship not found.");
+      return false;
+    }
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.error('Error in unfollowCreator:', error);
+    return false;
+  }
+};
+
+export const getUserFollowedCreatorIds = async (userId: string): Promise<string[]> => {
+  try {
+    const q = query(collection(db, 'follows'), where('followerId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const creatorIds: string[] = [];
+    querySnapshot.forEach((doc) => {
+      const followData = doc.data();
+      if (followData.creatorId) {
+        creatorIds.push(followData.creatorId);
+      }
+    });
+    return creatorIds;
+  } catch (error) {
+    console.error('Error in getUserFollowedCreatorIds:', error);
+    return []; 
+  }
+};

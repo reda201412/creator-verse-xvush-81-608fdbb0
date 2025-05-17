@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ContentGrid from "@/components/ContentGrid";
@@ -12,6 +13,9 @@ import { ArrowLeft, Filter, Users, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import XteasePlayerModal from "@/components/video/XteasePlayerModal";
+// import { fetchAvailableCreators } from "@/utils/create-conversation-utils"; // Supprimé (Supabase util)
+// import { supabase } from '@/integrations/supabase/client'; // Supprimé
+import { useToast } from '@/hooks/use-toast';
 import { getAllCreators, CreatorProfileData, getCreatorVideos, VideoFirestoreData } from "@/services/creatorService"; // Services Firebase
 
 // Utiliser VideoFirestoreData pour le contenu aussi, en l'adaptant si besoin

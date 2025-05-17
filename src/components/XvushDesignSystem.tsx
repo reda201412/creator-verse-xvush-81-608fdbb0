@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { prefersReducedMotion } from '@/lib/utils';
@@ -30,7 +31,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   className,
   enableAutoML = true
 }) => {
-  const { circadian } = useNeuroAesthetic({
+  const { config, triggerMicroReward, circadian } = useNeuroAesthetic({
     enableCircadian: true
   });
   const { trackInteraction } = useUserBehavior();
@@ -44,8 +45,8 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     document.documentElement.classList.add('xvush-design-system');
     
     // Add cognitive profile class if available
-    if (useNeuroAesthetic().config.cognitiveProfile) {
-      document.documentElement.classList.add(`cognitive-${useNeuroAesthetic().config.cognitiveProfile}`);
+    if (config.cognitiveProfile) {
+      document.documentElement.classList.add(`cognitive-${config.cognitiveProfile}`);
     }
     
     // Add time of day data attribute for circadian adjustments
@@ -62,7 +63,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     }
     
     // Add focus mode if enabled
-    if (useNeuroAesthetic().config.focusModeEnabled) {
+    if (config.focusModeEnabled) {
       document.documentElement.classList.add('focus-mode');
     } else {
       document.documentElement.classList.remove('focus-mode');
@@ -106,6 +107,8 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
       document.documentElement.removeAttribute('data-time-of-day');
     };
   }, [
+    config.cognitiveProfile, 
+    config.focusModeEnabled, 
     circadian.timeOfDay,
     circadian.circadianPhase,
     trackInteraction
@@ -128,12 +131,12 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
   
   // Update focus mode class when it changes
   useEffect(() => {
-    if (useNeuroAesthetic().config.focusModeEnabled) {
+    if (config.focusModeEnabled) {
       document.documentElement.classList.add('focus-mode');
     } else {
       document.documentElement.classList.remove('focus-mode');
     }
-  }, [useNeuroAesthetic().config.focusModeEnabled]);
+  }, [config.focusModeEnabled]);
   
   // Update cognitive profile class when it changes
   useEffect(() => {
@@ -144,10 +147,10 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
       'cognitive-immersive'
     );
     
-    if (useNeuroAesthetic().config.cognitiveProfile) {
-      document.documentElement.classList.add(`cognitive-${useNeuroAesthetic().config.cognitiveProfile}`);
+    if (config.cognitiveProfile) {
+      document.documentElement.classList.add(`cognitive-${config.cognitiveProfile}`);
     }
-  }, [useNeuroAesthetic().config.cognitiveProfile]);
+  }, [config.cognitiveProfile]);
   
   // Update time of day attribute when it changes
   useEffect(() => {
@@ -161,7 +164,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
         modelState.autoApply && 
         modelState.predictions.length > 0) {
       
-      const currentProfile = useNeuroAesthetic().config.cognitiveProfile;
+      const currentProfile = config.cognitiveProfile;
       const recommendedProfile = modelState.predictions[0]?.cognitiveProfile;
       
       // Only apply if recommendation is different and confidence is high enough
@@ -182,6 +185,7 @@ const XvushDesignSystem: React.FC<XvushDesignSystemProps> = ({
     modelState.initialized, 
     modelState.autoApply, 
     modelState.predictions, 
+    config.cognitiveProfile, 
     applyLatestPrediction,
     toast
   ]);

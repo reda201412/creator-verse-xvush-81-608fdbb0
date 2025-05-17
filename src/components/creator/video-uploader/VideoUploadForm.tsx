@@ -10,7 +10,17 @@ import VideoFormatInfo from './VideoFormatInfo';
 import FormFooterActions from './FormFooterActions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { VideoFormValues, videoFormSchema } from './useVideoUpload';
+import { VideoFormValues } from './useVideoUpload';
+import * as z from 'zod';
+
+// Define the schema here directly since it's not exported from useVideoUpload
+const videoSchema = z.object({
+  title: z.string().min(3, "Le titre doit contenir au moins 3 caractères"),
+  description: z.string().optional(),
+  type: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
+  isPremium: z.boolean().default(false),
+  tokenPrice: z.number().min(0).optional()
+});
 
 interface VideoUploadFormProps {
   videoFile: File | null;
@@ -32,6 +42,7 @@ interface VideoUploadFormProps {
 
 export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   videoFile,
+  thumbnailFile,
   videoPreviewUrl,
   thumbnailPreviewUrl,
   videoFormat,
@@ -47,14 +58,12 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   onSubmit
 }) => {
   const form = useForm<VideoFormValues>({
-    resolver: zodResolver(videoFormSchema),
+    resolver: zodResolver(videoSchema),
     defaultValues: {
       title: '',
       description: '',
-      videoType: 'standard',
-      allowSharing: false,
-      allowDownload: false,
-      subscriptionLevel: 'free',
+      type: 'standard',
+      isPremium: false,
       tokenPrice: 0
     },
   });
@@ -102,7 +111,6 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
           <ThumbnailUpload
             ref={thumbnailInputRef}
             thumbnailPreviewUrl={thumbnailPreviewUrl}
-            videoPreviewUrl={videoPreviewUrl}
             onThumbnailChange={handleThumbnailChange}
             onRemoveThumbnail={handleRemoveThumbnail}
             onGenerateThumbnail={generateThumbnail}

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useVideoGestures } from './hooks/useVideoGestures';
 import { useControlsVisibility } from './hooks/useControlsVisibility';
 import VideoControls from './components/VideoControls';
@@ -17,6 +19,7 @@ export interface XteaseVideoPlayerProps {
   loop?: boolean;
   muted?: boolean;
   className?: string;
+  onClose?: () => void;
   onPlay?: () => void;
   onPause?: () => void;
   onEnded?: () => void;
@@ -32,6 +35,7 @@ const XteaseVideoPlayer: React.FC<XteaseVideoPlayerProps> = ({
   loop = false,
   muted = false,
   className,
+  onClose,
   onPlay,
   onPause,
   onEnded,

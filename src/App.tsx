@@ -2,7 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
-import Sidebar from '@/components/navigation/Sidebar';
+import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
 import BottomNavigation from '@/components/navigation/BottomNavigation';
 import Index from '@/pages/Index';
@@ -24,28 +24,18 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
-import NetworkTest from '@/pages/NetworkTest';
-import TestAuth from '@/pages/TestAuth';
 import './App.css';
 import { Spinner } from '@/components/ui/spinner';
-import { useState } from 'react';
-
-// Add future flags for React Router v7 compatibility
-const router = {
-  future: {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true
-  }
-};
+import { useState, useEffect, useCallback } from 'react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, profile } = useAuth();
   
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <Spinner className="h-8 w-8 mr-4" size="md" />
-        <p className="text-lg">Chargement de votre session...</p>
+        <Spinner size="lg" />
+        <p className="ml-4 text-lg">Chargement de votre session...</p>
       </div>
     );
   }
@@ -58,13 +48,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isCreator, profile } = useAuth();
+  const { user, profile, isLoading, isCreator } = useAuth();
   
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <Spinner className="h-8 w-8 mr-4" size="md" />
-        <p className="text-lg">Chargement de votre session créateur...</p>
+        <Spinner size="lg" />
+        <p className="ml-4 text-lg">Chargement de votre session créateur...</p>
       </div>
     );
   }
@@ -87,10 +77,17 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
+  // Close sidebar on small screens when route changes
+  const handleRouteChange = useCallback(() => {
+    if (window.innerWidth < 768) {
+      setSidebarExpanded(false);
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <TooltipProvider>
-        <Router {...router}>
+        <Router>
           <XvushDesignSystem>
             <div className="flex h-screen w-full overflow-hidden bg-background">
               <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
@@ -115,11 +112,6 @@ function App() {
                     <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
                     <Route path="/tokens" element={<ProtectedRoute><TokensPage /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
-                    
-                    {/* Pages de diagnostic réseau et test */}
-                    <Route path="/network-test" element={<NetworkTest />} />
-                    <Route path="/test-auth" element={<TestAuth />} />
-                    
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
 import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,10 +26,22 @@ const CreatorsFeed: React.FC = () => {
         setError(null);
         const fetchedCreators = await getAllCreators();
         setCreators(fetchedCreators);
-        // Pour chaque créateur, followersCount = 0 (à migrer sur Firestore plus tard)
+        
+        // Fetch followers count for each creator
         const creatorFollowers: Record<string, number> = {};
         for (const creator of fetchedCreators) {
-          creatorFollowers[creator.uid] = 0;
+          // Get count of followers from user_follows table in Supabase
+          const { count, error } = await supabase
+            .from('user_follows')
+            .select('*', { count: 'exact', head: true })
+            .eq('creator_id', creator.uid);
+            
+          if (error) {
+            console.error('Error fetching followers count:', error);
+            creatorFollowers[creator.uid] = 0;
+          } else {
+            creatorFollowers[creator.uid] = count || 0;
+          }
         }
         setFollowersCount(creatorFollowers);
       } catch (err: any) {

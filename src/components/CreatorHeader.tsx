@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import ProfileSection from './header/ProfileSection';
@@ -67,13 +68,7 @@ const CreatorHeader = ({
     <div className={cn("glass-card rounded-2xl p-6", className)}>
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         <div className="flex flex-col items-center gap-3">
-          <ProfileSection 
-            avatar={avatar} 
-            isOnline={isOnline} 
-            pulseStatus="online"
-            scheduledTime=""
-            className=""
-          />
+          <ProfileSection avatar={avatar} isOnline={isOnline} />
           
           {/* Message button that links to the messages page with creator username in state */}
           <Button 

@@ -19,7 +19,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
   onOpenChange 
 }) => {
   const { user } = useAuth();
-  const { walletInfo, getWalletInfo, isLoading } = useTronWallet();
+  const { walletInfo, getWalletInfo, loading } = useTronWallet();
   const [activeTab, setActiveTab] = useState('balance');
   
   // Fetch wallet info when modal opens
@@ -27,10 +27,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
     if (open && user) {
       getWalletInfo();
     }
-  }, [open, user, getWalletInfo]);
-  
-  // Create an empty array for transactions if they don't exist
-  const emptyTransactions: any[] = [];
+  }, [open, user]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -39,7 +36,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
           <DialogTitle>Portefeuille</DialogTitle>
         </DialogHeader>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center items-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -60,10 +57,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4 py-4">
-              {/* Using empty transactions array since wallet.transactions doesn't exist */}
-              <TransactionList 
-                transactions={emptyTransactions} 
-              />
+              <TransactionList transactions={walletInfo?.transactions || []} />
             </TabsContent>
           </Tabs>
         )}

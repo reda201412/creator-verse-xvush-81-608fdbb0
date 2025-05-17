@@ -1,15 +1,16 @@
-
+import React from 'react';
 import VideoUploader from '@/components/creator/VideoUploader';
+// Import the Supabase data type
+import { VideoSupabaseData } from '@/services/creatorService';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoData } from '@/services/creatorService';
 
 interface VideoHeaderProps {
-  onUploadComplete: (metadata?: VideoData | null) => void;
+  // Use the Supabase data type for onUploadComplete metadata
+  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
 }
 
-const VideoHeader = ({ onUploadComplete }: VideoHeaderProps) => {
+const VideoHeader: React.FC<VideoHeaderProps> = ({ onUploadComplete }) => {
   const { isCreator } = useAuth();
-  console.log('VideoHeader rendu, isCreator =', isCreator);
   
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -21,6 +22,7 @@ const VideoHeader = ({ onUploadComplete }: VideoHeaderProps) => {
       </div>
 
       {isCreator && (
+        // Pass the onUploadComplete handler to VideoUploader
         <VideoUploader 
           onUploadComplete={onUploadComplete} 
           isCreator={true} 

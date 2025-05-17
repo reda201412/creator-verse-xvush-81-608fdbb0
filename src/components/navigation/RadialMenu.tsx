@@ -1,115 +1,119 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Compass, Camera, User, Heart, Settings, Mail, Video } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 
-interface RadialMenuProps {
-  onClose?: () => void;
-  onNavigate?: (page: string) => void;
+interface RadialMenuItem {
+  id: string;
+  icon: React.ReactNode;
+  label: string;
+  color?: string;
+  action: () => void;
 }
 
-const RadialMenu: React.FC<RadialMenuProps> = ({ onClose, onNavigate }) => {
-  const [isOpen, setIsOpen] = useState(false);
+interface RadialMenuProps {
+  items: RadialMenuItem[];
+  isOpen: boolean;
+  onClose: () => void;
+  originX: number;
+  originY: number;
+}
 
+const RadialMenu = ({ items, isOpen, onClose, originX, originY }: RadialMenuProps) => {
+  const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
+  
+  // Calculate positions in a circle around the center point
+  const getItemPosition = (index: number, total: number, radius: number) => {
+    const angle = (index / total) * 2 * Math.PI;
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+    return { x, y };
+  };
+
+  // Handle click outside
   useEffect(() => {
-    setIsOpen(true);
-
-    // Fix type issues with event handler
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
+    if (!isOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isOpen) {
+        onClose();
       }
     };
-
-    document.addEventListener('keydown', handleEscape);
+    
+    // Add a small delay to avoid immediate closing
+    setTimeout(() => {
+      setMounted(true);
+      document.addEventListener('click', handleClickOutside);
+    }, 10);
     
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('click', handleClickOutside);
+      setMounted(false);
     };
-  }, []);
+  }, [isOpen, onClose]);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setTimeout(() => {
-      onClose && onClose();
-    }, 300); // Match animation duration
+  const handleItemClick = (item: RadialMenuItem) => {
+    item.action();
+    onClose();
   };
 
-  const handleNavigate = (page: string) => {
-    if (onNavigate) {
-      setIsOpen(false);
-      setTimeout(() => {
-        onNavigate(page);
-      }, 300);
-    }
-  };
-
-  const menuItems = [
-    { icon: <Compass size={24} />, label: 'Explorer', page: '/' },
-    { icon: <Camera size={24} />, label: 'Stories', page: '/stories' },
-    { icon: <Video size={24} />, label: 'Vidéos', page: '/videos' },
-    { icon: <Mail size={24} />, label: 'Messages', page: '/messages' },
-    { icon: <Heart size={24} />, label: 'Favoris', page: '/favorites' },
-    { icon: <User size={24} />, label: 'Profil', page: '/profile' },
-    { icon: <Settings size={24} />, label: 'Paramètres', page: '/settings' },
-  ];
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40" onClick={handleClose}>
-      <motion.div
-        className="relative"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <motion.div className="absolute top-1/2 left-1/2 -mt-12 -ml-12 h-24 w-24 rounded-full bg-primary/80 backdrop-blur-md shadow-xl shadow-primary/20 flex items-center justify-center">
-          <button onClick={handleClose} className="text-white p-4">
-            <X size={32} />
-          </button>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <motion.div 
+            className="absolute rounded-full bg-background/80 backdrop-blur-md shadow-lg border border-border"
+            style={{ 
+              width: '300px', 
+              height: '300px',
+              left: originX - 150,
+              top: originY - 150,
+            }}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.5, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            {items.map((item, index) => {
+              const { x, y } = getItemPosition(index, items.length, 100);
+              
+              return (
+                <motion.button
+                  key={item.id}
+                  className={cn(
+                    "absolute rounded-full flex flex-col items-center justify-center",
+                    "w-16 h-16 bg-background shadow-md border border-border",
+                    "hover:scale-110 transition-transform"
+                  )}
+                  style={{ 
+                    left: 'calc(50% + ' + x + 'px - 32px)',
+                    top: 'calc(50% + ' + y + 'px - 32px)',
+                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="text-xl">{item.icon}</div>
+                  <div className="text-[10px] mt-1 font-medium">{item.label}</div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
         </motion.div>
-
-        <div className="w-[300px] h-[300px] relative">
-          <AnimatePresence>
-            {isOpen &&
-              menuItems.map((item, index) => {
-                const angle = (index * (360 / menuItems.length) * Math.PI) / 180;
-                const radius = 120;
-                const x = radius * Math.cos(angle);
-                const y = radius * Math.sin(angle);
-
-                return (
-                  <motion.div
-                    key={item.page}
-                    className="absolute w-16 h-16 top-[142px] left-[142px] -mt-8 -ml-8 flex flex-col items-center justify-center gap-1"
-                    initial={{ scale: 0, x: 0, y: 0 }}
-                    animate={{ scale: 1, x, y }}
-                    exit={{ scale: 0, x: 0, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.04 }}
-                    onClick={() => handleNavigate(item.page)}
-                  >
-                    <motion.div
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-white bg-gray-800/80 shadow-lg backdrop-blur-md cursor-pointer"
-                      whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.2)" }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {item.icon}
-                    </motion.div>
-                    <motion.span
-                      className="text-xs text-white font-medium bg-black/40 px-2 py-0.5 rounded-full"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.04 + 0.2 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  </motion.div>
-                );
-              })}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 

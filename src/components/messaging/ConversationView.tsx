@@ -1,10 +1,11 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
-  Lock, Loader2, ArrowUpCircle
+  Lock, Image, Video, Phone, Loader2, ArrowUpCircle
 } from 'lucide-react';
 import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; 
 import { MonetizationTier } from '@/types/messaging';
@@ -37,6 +38,7 @@ interface ConversationViewProps {
 const ConversationView: React.FC<ConversationViewProps> = ({
   thread,
   userId,
+  userName,
   onSendMessage,
   sessionKey,
   isSecurityEnabled,
@@ -47,13 +49,15 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   onLoadMoreMessages,
   hasMoreMessages
 }) => {
+  const [isComposing, setIsComposing] = useState(false);
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
-  const [monetizationTier] = useState<MonetizationTier>('basic');
-  const [monetizationAmount] = useState(1.99);
+  const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
+  const [monetizationAmount, setMonetizationAmount] = useState(1.99);
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousScrollHeightRef = useRef<number | null>(null);
+  const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
   
   useEffect(() => {
@@ -71,7 +75,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     }
   }, [thread.messages, isLoadingMessages, userId]);
  
-  const handleDecryptMessage = async (message: FirestoreMessage): Promise<string> => {
+  const handleDecryptMessage = async (message: FirestoreMessage) => {
     if (typeof message.content !== 'string' && !message.content) return "Contenu indisponible";
     try {
       let content;
@@ -93,14 +97,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   const handleSendMessageWrapper = (content: string) => {
     if (!content.trim()) return;
     triggerHaptic('light');
-    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount } : undefined;
+    const supportData = monetizationEnabled ? { tier: monetizationTier, price: monetizationAmount /* ... */ } : undefined;
     onSendMessage(content, supportData);
     if (monetizationEnabled) setMonetizationEnabled(false);
   };
   
-  const toggleMonetization = () => {
-    setMonetizationEnabled(!monetizationEnabled);
-  };
+  const toggleMonetization = () => {}; // Empty function placeholder
   
   const otherParticipant = getOtherParticipantInfo();
 
@@ -150,14 +152,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           ).map((message) => (
             <MessageBubble
               key={message.id}
-              message={{
-                ...message,
-                senderName: message.senderId === userId ? 'Vous' : 
-                            thread.participantInfo?.[message.senderId]?.displayName || 'User',
-                senderAvatar: thread.participantInfo?.[message.senderId]?.avatarUrl
-              }}
+              message={message as any} // Type cast to work with MessageBubble component
               isCurrentUser={message.senderId === userId}
-              decryptMessage={handleDecryptMessage}
+              sessionKey={sessionKey}
+              decryptMessage={handleDecryptMessage as any}
             />
           ))}
         </div>
@@ -175,10 +173,14 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <MessageInput 
           onSendMessage={handleSendMessageWrapper} 
+          isComposing={isComposing} 
+          setIsComposing={setIsComposing} 
           monetizationEnabled={monetizationEnabled} 
           onToggleMonetization={userType === 'fan' ? toggleMonetization : undefined} 
-          monetizationTier={monetizationTier}
-          monetizationAmount={monetizationAmount}
+          monetizationTier={monetizationTier} 
+          setMonetizationTier={setMonetizationTier} 
+          monetizationAmount={monetizationAmount} 
+          setMonetizationAmount={setMonetizationAmount} 
           isEncrypted={isSecurityEnabled} 
         />
       </div>

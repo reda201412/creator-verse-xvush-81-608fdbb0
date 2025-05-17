@@ -1,15 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoData } from '@/services/creatorService';
-import EnhancedVideoUploadModal from './EnhancedVideoUploadModal';
+// Import the Supabase data type
+import { VideoSupabaseData } from '@/services/creatorService';
+// Removed old VideoMetadata import:
+// import { VideoMetadata } from '@/types/video';
+import { VideoUploadForm } from './video-uploader/VideoUploadForm';
+import useVideoUpload from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
-  onUploadComplete: (metadata?: VideoData | null) => void;
+  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
   isCreator: boolean;
   className?: string;
 }
@@ -22,6 +26,24 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const { triggerMicroReward } = useNeuroAesthetic();
   const { user } = useAuth();
+  
+  const {
+    videoFile,
+    thumbnailFile,
+    videoPreviewUrl,
+    thumbnailPreviewUrl,
+    videoFormat,
+    isUploading,
+    uploadProgress,
+    uploadError,
+    uploadStage,
+    handleVideoChange,
+    handleThumbnailChange,
+    generateThumbnail,
+    resetForm,
+    uploadVideoAndSaveMetadata,
+    setUploadError
+  } = useVideoUpload();
 
   // Check for authentication
   useEffect(() => {
@@ -33,30 +55,33 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   }, [isOpen, user]);
 
-  const handleUploadCompleteInternal = (metadata?: VideoData | null) => {
+  const handleUploadCompleteInternal = (metadata?: VideoSupabaseData | null) => {
     onUploadComplete(metadata);
     
+    // *** Modified condition to explicitly check for metadata and metadata.id ***
     if(metadata && typeof metadata.id === 'number') { 
-      triggerMicroReward('interaction');
-      toast("Vidéo initiée", {
-        description: "Votre vidéo est en cours de téléchargement et de traitement."
-      });
+       triggerMicroReward('interaction');
+        toast("Vidéo initiée", {
+          description: "Votre vidéo est en cours de téléchargement et de traitement."
+        });
     } else { 
-      toast("Téléchargement initié", {
-        description: "Votre vidéo est en cours de traitement."
-      });
+         // This else block covers cases where metadata is null, undefined, or doesn't have a valid id
+         toast("Échec de l'initiation de l'upload", {
+            description: "Une erreur s'est produite et l'upload n'a pas pu être démarré."
+         });
     }
+
+    setTimeout(() => {
+      setIsOpen(false);
+      resetForm();
+    }, metadata ? 1000 : 3000); 
   };
 
   return (
     <>
       {isCreator && (
         <Button 
-          onClick={() => {
-            console.log('Uploader une vidéo cliqué');
-            setIsOpen(true);
-            triggerMicroReward('click'); // Changed from button_click to click
-          }} 
+          onClick={() => setIsOpen(true)} 
           className={className}
           size="sm"
         >
@@ -65,11 +90,68 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         </Button>
       )}
       
-      <EnhancedVideoUploadModal 
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        onUploadComplete={handleUploadCompleteInternal}
-      />
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Uploader une vidéo</DialogTitle>
+          </DialogHeader>
+          
+          {user ? (
+            <VideoUploadForm
+              videoFile={videoFile}
+              thumbnailFile={thumbnailFile}
+              videoPreviewUrl={videoPreviewUrl}
+              thumbnailPreviewUrl={thumbnailPreviewUrl}
+              videoFormat={videoFormat}
+              isUploading={isUploading}
+              uploadProgress={uploadProgress}
+              uploadError={uploadError}
+              uploadStage={uploadStage}
+              handleVideoChange={handleVideoChange}
+              handleThumbnailChange={handleThumbnailChange}
+              generateThumbnail={generateThumbnail}
+              resetForm={resetForm}
+              onClose={() => {
+                setIsOpen(false);
+                resetForm();
+              }}
+              onSubmit={async (values) => {
+                if (!videoFile) {
+                  toast("Information manquante", {
+                    description: "Veuillez fournir une vidéo et un titre."
+                  });
+                  return;
+                }
+                
+                try {
+                  const metadata: VideoSupabaseData | null = await uploadVideoAndSaveMetadata(values);
+                   handleUploadCompleteInternal(metadata);
+                } catch (error: any) {
+                  console.error('Upload process error (caught in onSubmit):', error);
+                  setUploadError(error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.");
+                  toast("Erreur de téléchargement", {
+                    description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
+                  });
+                   handleUploadCompleteInternal(null);
+                }
+              }}
+            />
+          ) : (
+            <div className="p-4 text-center">
+              <p>Vous devez être connecté pour téléverser des vidéos.</p>
+              <Button 
+                onClick={() => setIsOpen(false)} 
+                className="mt-4"
+              >
+                Fermer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

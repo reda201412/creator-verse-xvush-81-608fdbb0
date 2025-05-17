@@ -1,14 +1,16 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lock, Coins } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Lock, Unlock, Coins, CreditCard } from 'lucide-react';
 import { ContentPrice } from '@/types/monetization';
+import ContentPricing from '@/components/creator/ContentPricing';
+import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
-import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 
 // Mock monetized content data
 const mockMonetizedContent = [
@@ -66,17 +68,10 @@ interface MonetizedContentSectionProps {
   className?: string;
 }
 
-// Define ContentItem interface to match what we're using in the component
-interface ContentItem {
-  id: string;
-  title: string;
-  pricing: ContentPrice;
-  thumbnailUrl: string;
-}
-
 const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
   isCreator = false,
   userTokenBalance = 350,
+  userSubscriptionTier = 'fan',
   className
 }) => {
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -92,6 +87,11 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
     triggerMicroReward('action');
   };
   
+  const handleSubscribe = () => {
+    toast("Redirection vers la page d'abonnements");
+    triggerMicroReward('navigate');
+  };
+  
   const handleContentPurchase = () => {
     // In a real app, this would handle the token transaction
     toast.success("Contenu déverrouillé avec succès!");
@@ -105,44 +105,6 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
       setPurchasePanelOpen(false);
     }, 1500);
     return true;
-  };
-
-  // Define the content item component inline
-  const ContentPricingItem = ({ title, thumbnailUrl, pricing }: ContentItem) => {
-    return (
-      <div className="border rounded-md overflow-hidden flex flex-col">
-        <div style={{ 
-          backgroundImage: `url(${thumbnailUrl})`, 
-          height: 140, 
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }} className="relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
-            <div className="p-3 text-white">
-              <h3 className="font-medium">{title}</h3>
-            </div>
-          </div>
-        </div>
-        <div className="p-3 flex-1">
-          <div className="flex justify-between items-center mb-3">
-            <div className="text-sm font-medium">
-              {pricing.type === 'free' && 'Gratuit'}
-              {pricing.type === 'subscription' && `Abonnement ${pricing.requiredTier}`}
-              {pricing.type === 'token' && `${pricing.tokenPrice} tokens`}
-              {pricing.type === 'hybrid' && `${pricing.tokenPrice} tokens (${pricing.discountForSubscribers}% off)`}
-            </div>
-          </div>
-          <Button 
-            variant={pricing.type === 'free' ? 'outline' : 'default'} 
-            size="sm" 
-            className="w-full"
-            onClick={handleContentPurchase}
-          >
-            {pricing.type === 'free' ? 'Voir' : 'Acheter'}
-          </Button>
-        </div>
-      </div>
-    );
   };
   
   return (
@@ -190,12 +152,16 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredContent.map((content) => (
-              <ContentPricingItem 
+              <ContentPricing 
                 key={content.id}
-                id={content.id}
+                contentId={content.id}
                 title={content.title}
                 pricing={content.pricing}
                 thumbnailUrl={content.thumbnailUrl}
+                userSubscriptionTier={userSubscriptionTier}
+                userTokenBalance={userTokenBalance}
+                onPurchase={handleContentPurchase}
+                onSubscribe={handleSubscribe}
               />
             ))}
           </div>

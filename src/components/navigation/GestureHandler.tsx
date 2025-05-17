@@ -1,61 +1,261 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+
+interface Position {
+  x: number;
+  y: number;
+}
 
 interface GestureHandlerProps {
   children: React.ReactNode;
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
+  onLongPress?: (position: Position) => void;
+  onDoubleTap?: (position: Position) => void;
   onSwipeUp?: () => void;
   onSwipeDown?: () => void;
-  sensitivity?: number;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onPinch?: (scale: number) => void;
 }
 
 const GestureHandler: React.FC<GestureHandlerProps> = ({
   children,
-  onSwipeLeft,
-  onSwipeRight,
+  onLongPress,
+  onDoubleTap,
   onSwipeUp,
   onSwipeDown,
-  sensitivity = 50
+  onSwipeLeft,
+  onSwipeRight,
+  onPinch,
 }) => {
-  const touchRef = useRef<{ x: number; y: number } | null>(null);
+  const elementRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartRef = useRef<Position | null>(null);
+  const touchEndRef = useRef<Position | null>(null);
+  const lastTapRef = useRef<number>(0);
+  const initialTouchDistanceRef = useRef<number>(0);
+  const touchStartTimeRef = useRef<number>(0);
+  const { toast } = useToast();
 
+  // Long press detection
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY
-    };
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    touchStartTimeRef.current = Date.now();
+    
+    // Start long press timer
+    if (onLongPress) {
+      timerRef.current = setTimeout(() => {
+        if (touchStartRef.current) {
+          onLongPress(touchStartRef.current);
+        }
+      }, 700); // 700ms for long press
+    }
+    
+    // Store initial distance for pinch detection
+    if (e.touches.length === 2 && onPinch) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      initialTouchDistanceRef.current = getDistance(
+        touch1.clientX, touch1.clientY,
+        touch2.clientX, touch2.clientY
+      );
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Cancel long press if moving too much
+    if (timerRef.current && touchStartRef.current) {
+      const touch = e.touches[0];
+      const moveX = Math.abs(touch.clientX - touchStartRef.current.x);
+      const moveY = Math.abs(touch.clientY - touchStartRef.current.y);
+      
+      if (moveX > 10 || moveY > 10) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    
+    // Handle pinch gesture
+    if (e.touches.length === 2 && onPinch && initialTouchDistanceRef.current > 0) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      
+      const currentDist = getDistance(
+        touch1.clientX, touch1.clientY,
+        touch2.clientX, touch2.clientY
+      );
+      
+      // Calculate scale factor
+      const scale = currentDist / initialTouchDistanceRef.current;
+      
+      if (scale !== 1) {
+        onPinch(scale);
+      }
+    }
+  };
+
+  const getDistance = (x1: number, y1: number, x2: number, y2: number): number => {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchRef.current) return;
+    // Clear long press timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     
-    const dx = e.changedTouches[0].clientX - touchRef.current.x;
-    const dy = e.changedTouches[0].clientY - touchRef.current.y;
+    // If touchstart position exists
+    if (touchStartRef.current) {
+      // Get last touch position
+      touchEndRef.current = touchStartRef.current;
+      
+      if (e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        touchEndRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+      
+      // Handle swipes
+      handleSwipe();
+      
+      // Handle double tap
+      const now = Date.now();
+      const DOUBLE_TAP_DELAY = 300;
+      const touchTime = now - touchStartTimeRef.current;
+      
+      // Only recognize as tap if touch duration was short
+      if (touchTime < 300) {
+        if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+          if (onDoubleTap && touchEndRef.current) {
+            onDoubleTap(touchEndRef.current);
+            // Reset to prevent triple tap being detected as double tap
+            lastTapRef.current = 0;
+          }
+        } else {
+          // Update last tap timestamp
+          lastTapRef.current = now;
+        }
+      }
+    }
     
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal swipe
-      if (dx > sensitivity && onSwipeRight) {
+    // Reset touch tracking
+    initialTouchDistanceRef.current = 0;
+  };
+  
+  const handleSwipe = () => {
+    if (!touchStartRef.current || !touchEndRef.current) return;
+    
+    const deltaX = touchEndRef.current.x - touchStartRef.current.x;
+    const deltaY = touchEndRef.current.y - touchStartRef.current.y;
+    
+    // Minimum distance for swipe detection
+    const MIN_DISTANCE = 50;
+    
+    // Check if horizontal swipe distance is greater than vertical
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MIN_DISTANCE) {
+      if (deltaX > 0 && onSwipeRight) {
         onSwipeRight();
-      } else if (dx < -sensitivity && onSwipeLeft) {
+      } else if (deltaX < 0 && onSwipeLeft) {
         onSwipeLeft();
       }
-    } else {
-      // Vertical swipe
-      if (dy > sensitivity && onSwipeDown) {
+    } 
+    // Check if vertical swipe distance is greater than horizontal
+    else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > MIN_DISTANCE) {
+      if (deltaY > 0 && onSwipeDown) {
         onSwipeDown();
-      } else if (dy < -sensitivity && onSwipeUp) {
+      } else if (deltaY < 0 && onSwipeUp) {
         onSwipeUp();
       }
     }
     
-    touchRef.current = null;
+    // Reset after handling
+    touchStartRef.current = null;
+    touchEndRef.current = null;
   };
 
+  // Mouse event handlers to mimic touch events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    touchStartRef.current = { x: e.clientX, y: e.clientY };
+    touchStartTimeRef.current = Date.now();
+    
+    // Start long press timer
+    if (onLongPress) {
+      timerRef.current = setTimeout(() => {
+        if (touchStartRef.current) {
+          onLongPress(touchStartRef.current);
+        }
+      }, 700); // 700ms for long press
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Cancel long press if moving too much
+    if (timerRef.current && touchStartRef.current) {
+      const moveX = Math.abs(e.clientX - touchStartRef.current.x);
+      const moveY = Math.abs(e.clientY - touchStartRef.current.y);
+      
+      if (moveX > 10 || moveY > 10) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    // Clear long press timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Record end position
+    if (touchStartRef.current) {
+      touchEndRef.current = { x: e.clientX, y: e.clientY };
+      
+      // Handle swipes
+      handleSwipe();
+      
+      // Handle double click
+      const now = Date.now();
+      const DOUBLE_CLICK_DELAY = 300;
+      const touchTime = now - touchStartTimeRef.current;
+      
+      // Only recognize as click if duration was short
+      if (touchTime < 300) {
+        if (now - lastTapRef.current < DOUBLE_CLICK_DELAY) {
+          if (onDoubleTap && touchEndRef.current) {
+            onDoubleTap(touchEndRef.current);
+            // Reset to prevent triple click being detected as double click
+            lastTapRef.current = 0;
+          }
+        } else {
+          // Update last tap timestamp
+          lastTapRef.current = now;
+        }
+      }
+    }
+  };
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div
+    <div 
+      ref={elementRef}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      className="touch-manipulation"
     >
       {children}
     </div>

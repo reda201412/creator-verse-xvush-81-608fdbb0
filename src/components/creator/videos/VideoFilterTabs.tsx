@@ -1,12 +1,13 @@
 
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface VideoFilterTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
 }
 
-const VideoFilterTabs = ({ activeTab, onTabChange }: VideoFilterTabsProps) => {
+const VideoFilterTabs: React.FC<VideoFilterTabsProps> = ({ activeTab, onTabChange }) => {
   return (
     <div className="mb-6">
       <Tabs defaultValue="all" value={activeTab} onValueChange={onTabChange}>

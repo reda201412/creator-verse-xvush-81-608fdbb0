@@ -1,6 +1,7 @@
 
+import React from 'react';
 import { cn } from '@/lib/utils';
-import CreatorBadge from '../CreatorBadge';
+import CreatorBadge from '@/components/CreatorBadge';
 import { Button } from '@/components/ui/button';
 import { Bell, Mail, Share2, Flag } from 'lucide-react';
 import { motion } from 'framer-motion';

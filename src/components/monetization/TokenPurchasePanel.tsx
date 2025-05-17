@@ -1,195 +1,265 @@
+
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, CreditCard, Check } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useWalletTransactions } from '@/hooks/use-wallet-transactions';
+import { Coins, CreditCard, Gift, Info, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { toast } from '@/components/ui/sonner';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { PurchaseOption } from '@/types/monetization';
 
-// Mock data for token purchase options
-const purchaseOptions: PurchaseOption[] = [
-  { id: 'basic', name: 'Starter', tokenAmount: 100, price: 9.99, currency: 'USD', isPopular: false },
-  { id: 'standard', name: 'Standard', tokenAmount: 250, price: 19.99, currency: 'USD', discount: 10, isPopular: true },
-  { id: 'premium', name: 'Premium', tokenAmount: 500, price: 34.99, currency: 'USD', discount: 15, isPopular: false },
-  { id: 'elite', name: 'Elite', tokenAmount: 1000, price: 59.99, currency: 'USD', discount: 25, bonus: 100, isPopular: false },
-];
-
-interface TokenPurchasePanelProps {
+interface TokenPurchaseProps {
   isOpen: boolean;
   onClose: () => void;
-  onPurchase: () => Promise<boolean>;
+  onPurchase: (optionId: string) => Promise<boolean>;
 }
 
-const TokenPurchasePanel: React.FC<TokenPurchasePanelProps> = ({ 
-  isOpen,
-  onClose,
-  onPurchase
-}) => {
-  const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(
-    purchaseOptions.find(option => option.isPopular) || purchaseOptions[0]
-  );
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'crypto'>('card');
+const TokenPurchasePanel = ({ isOpen, onClose, onPurchase }: TokenPurchaseProps) => {
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const { isProcessing: isWalletProcessing } = useWalletTransactions();
+  const { triggerMicroReward } = useNeuroAesthetic();
   
+  // Mock purchase options
+  const purchaseOptions: PurchaseOption[] = [
+    {
+      id: 'basic',
+      name: 'Pack Découverte',
+      tokenAmount: 100,
+      price: 4.99,
+      currency: 'EUR',
+    },
+    {
+      id: 'standard',
+      name: 'Pack Standard',
+      tokenAmount: 500,
+      price: 19.99,
+      currency: 'EUR',
+      bonus: 50,
+      isPopular: true,
+    },
+    {
+      id: 'premium',
+      name: 'Pack Premium',
+      tokenAmount: 1200,
+      price: 39.99,
+      currency: 'EUR',
+      bonus: 200,
+      discount: 15,
+    },
+    {
+      id: 'ultimate',
+      name: 'Pack Ultimate',
+      tokenAmount: 3000,
+      price: 89.99,
+      currency: 'EUR',
+      bonus: 750,
+      discount: 25,
+    },
+    {
+      id: 'limited',
+      name: 'Offre Spéciale',
+      tokenAmount: 800,
+      price: 24.99,
+      currency: 'EUR',
+      bonus: 200,
+      limitedTime: true,
+      expiresAt: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days
+    }
+  ];
+
+  const handleOptionSelect = (optionId: string) => {
+    setSelectedOption(optionId);
+    triggerMicroReward('select');
+  };
+
   const handlePurchase = async () => {
     if (!selectedOption) return;
     
     setIsProcessing(true);
-    setError(null);
-    
     try {
-      // Simulate payment process
-      const result = await onPurchase();
-      
-      if (result) {
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-          onClose();
-        }, 2000);
+      const success = await onPurchase(selectedOption);
+      if (success) {
+        toast.success("Achat réussi! Vos tokens ont été ajoutés à votre portefeuille.");
+        triggerMicroReward('like');
+        onClose();
       } else {
-        setError("Payment failed. Please try again.");
+        toast.error("L'achat n'a pas pu être complété. Veuillez réessayer.");
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again later.");
-      console.error("Token purchase error:", err);
+    } catch (error) {
+      toast.error("Une erreur est survenue. Veuillez réessayer plus tard.");
     } finally {
       setIsProcessing(false);
     }
   };
-  
-  const handleOptionSelect = (option: PurchaseOption) => {
-    setSelectedOption(option);
-  };
-  
-  return (
-    <Dialog open={isOpen} onOpenChange={() => {
-      if (!isProcessing && !isWalletProcessing) {
-        onClose();
+
+  const getBestValue = () => {
+    let bestOption = purchaseOptions[0];
+    let bestValue = bestOption.tokenAmount / bestOption.price;
+    
+    purchaseOptions.forEach(option => {
+      const totalTokens = option.tokenAmount + (option.bonus || 0);
+      const effectivePrice = option.discount ? option.price * (1 - option.discount / 100) : option.price;
+      const value = totalTokens / effectivePrice;
+      
+      if (value > bestValue) {
+        bestValue = value;
+        bestOption = option;
       }
-    }}>
-      <DialogContent className="max-w-md">
+    });
+    
+    return bestOption.id;
+  };
+
+  const bestValueOption = getBestValue();
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Achetez des Tokens</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Coins className="h-5 w-5 text-amber-500" />
+            Achetez des XDose Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Les tokens vous permettent d'accéder à du contenu exclusif et d'interagir avec vos créateurs préférés
+          </DialogDescription>
         </DialogHeader>
-        
-        <div className="mt-4">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+
+        <div className="grid gap-4 py-4">
+          <div className="flex items-center justify-center mb-2">
+            <div className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-1.5">
+              <Info size={14} />
+              <span>1€ ≈ 20 tokens</span>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {purchaseOptions.map((option) => (
-              <Card 
-                key={option.id}
-                className={`p-4 cursor-pointer border hover:border-primary transition-colors ${
-                  selectedOption?.id === option.id ? 'border-primary bg-primary/5' : ''
-                } ${option.isPopular ? 'relative' : ''}`}
-                onClick={() => handleOptionSelect(option)}
-              >
-                {option.isPopular && (
-                  <div className="absolute -top-2 -right-2 bg-primary text-white text-xs px-2 py-1 rounded">
-                    Popular
-                  </div>
-                )}
-                
-                <h3 className="font-medium">{option.name}</h3>
-                <div className="text-2xl font-bold mt-2">{option.tokenAmount} <span className="text-sm font-normal">tokens</span></div>
-                
-                <div className="mt-2">
-                  {option.discount ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="line-through text-muted-foreground text-sm">${(option.price / (1 - option.discount/100)).toFixed(2)}</span>
-                      <span className="text-green-600 font-medium">${option.price}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {purchaseOptions.map((option) => {
+              const totalTokens = option.tokenAmount + (option.bonus || 0);
+              return (
+                <motion.div
+                  key={option.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`cursor-pointer p-4 rounded-lg relative ${
+                    selectedOption === option.id 
+                      ? 'ring-2 ring-amber-500 bg-amber-50/10' 
+                      : 'bg-muted/30 hover:bg-muted/50'
+                  }`}
+                  onClick={() => handleOptionSelect(option.id)}
+                >
+                  {option.isPopular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-xvush-pink text-white text-xs font-bold px-3 py-1 rounded-full">
+                      POPULAIRE
                     </div>
-                  ) : (
-                    <span>${option.price}</span>
                   )}
-                </div>
-                
-                {option.bonus && (
-                  <div className="mt-1 text-xs text-green-600">+{option.bonus} tokens bonus</div>
-                )}
-              </Card>
-            ))}
+                  
+                  {option.limitedTime && option.expiresAt && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      LIMITÉ
+                    </div>
+                  )}
+                  
+                  {option.id === bestValueOption && !option.isPopular && !option.limitedTime && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                      MEILLEUR PRIX
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium">{option.name}</div>
+                      <div className="flex items-center mt-1">
+                        <Coins size={16} className="text-amber-500 mr-1" />
+                        <span className="text-2xl font-bold">{option.tokenAmount}</span>
+                        {option.bonus && (
+                          <span className="ml-1 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">
+                            +{option.bonus}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {option.discount && (
+                        <div className="text-xs line-through text-muted-foreground">
+                          {(option.price / (1 - option.discount / 100)).toFixed(2)}{option.currency}
+                        </div>
+                      )}
+                      <div className="text-lg font-bold">
+                        {option.price}{option.currency}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {(option.bonus || option.discount) && (
+                    <div className="mt-2 text-xs">
+                      {option.discount && (
+                        <span className="text-green-600 dark:text-green-400">
+                          -{option.discount}% 
+                        </span>
+                      )}
+                      {option.discount && option.bonus && " • "}
+                      {option.bonus && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          Bonus: +{option.bonus} tokens
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {option.limitedTime && option.expiresAt && (
+                    <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      Expire dans {Math.ceil((new Date(option.expiresAt).getTime() - Date.now()) / 86400000)} jours
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
           
-          <div className="flex flex-col gap-4 mt-6">
-            <div className="flex justify-between items-center">
-              <div className="flex flex-col">
-                <h3 className="font-medium">Payment Method</h3>
-                <p className="text-muted-foreground text-sm">Choose how to pay</p>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPaymentMethod('card')}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Card
-                </Button>
-                <Button 
-                  variant={paymentMethod === 'crypto' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setPaymentMethod('crypto')}
-                >
-                  <span className="mr-2">₿</span>
-                  Crypto
-                </Button>
-              </div>
+          <div className="bg-muted/20 p-3 rounded-lg mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Gift size={16} className="text-purple-500" />
+              <span className="text-sm font-medium">Offrez des tokens à vos créateurs préférés</span>
             </div>
-            
-            <div className="bg-muted/50 p-4 rounded-md">
-              <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Price</span>
-                <span>${selectedOption?.price.toFixed(2)}</span>
-              </div>
-              
-              {selectedOption?.discount && (
-                <div className="flex justify-between mb-2 text-green-600">
-                  <span>Discount</span>
-                  <span>-{selectedOption.discount}%</span>
-                </div>
-              )}
-              
-              <div className="flex justify-between font-medium text-lg pt-2 border-t">
-                <span>Total</span>
-                <span>${selectedOption?.price.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <Button 
-              className="mt-2" 
-              size="lg"
-              onClick={handlePurchase} 
-              disabled={isProcessing || success || !selectedOption}
-            >
-              {isProcessing ? (
-                "Processing..."
-              ) : success ? (
-                <span className="flex items-center gap-2">
-                  <Check className="h-5 w-5" />
-                  Purchase Complete!
-                </span>
-              ) : (
-                `Buy ${selectedOption?.tokenAmount} Tokens`
-              )}
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Vous pouvez maintenant offrir des tokens directement aux créateurs pour les soutenir ou 
+              débloquer des expériences exclusives.
+            </p>
           </div>
-          
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            By purchasing tokens, you agree to our Terms of Service.
-          </p>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button 
+            onClick={handlePurchase} 
+            disabled={!selectedOption || isProcessing}
+            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+          >
+            {isProcessing ? (
+              <>
+                <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                Traitement...
+              </>
+            ) : (
+              <>
+                <CreditCard size={16} />
+                Acheter
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
