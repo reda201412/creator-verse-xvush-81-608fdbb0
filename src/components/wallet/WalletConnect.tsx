@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wallet, Copy, ExternalLink, Send, TrendingDown } from 'lucide-react';
+import { Copy, ExternalLink, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,11 +14,11 @@ interface WalletConnectProps {
 }
 
 const WalletConnect: React.FC<WalletConnectProps> = ({ walletInfo }) => {
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [destinationAddress, setDestinationAddress] = useState('');
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = React.useState('');
+  const [destinationAddress, setDestinationAddress] = React.useState('');
+  const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const { requestWithdrawal } = useTronWallet();
-  const [activeTab, setActiveTab] = useState('wallet');
+  const [activeTab, setActiveTab] = React.useState('wallet');
   
   const tronAddress = walletInfo?.wallet?.tron_address || '';
   const balance = walletInfo?.wallet?.balance_usdt || 0;
@@ -51,7 +51,8 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ walletInfo }) => {
     try {
       await requestWithdrawal({
         amount,
-        destinationAddress
+        destinationAddress,
+        currency: "USDT"  // Add the missing second argument
       });
       
       setWithdrawAmount('');

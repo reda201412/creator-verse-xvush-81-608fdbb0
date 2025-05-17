@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -34,7 +33,7 @@ const TokenPurchasePanel: React.FC<TokenPurchasePanelProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { isProcessing: isWalletProcessing, processWalletPayment } = useWalletTransactions();
+  const { processTronLinkPayment, isProcessing: isWalletProcessing } = useWalletTransactions();
   
   const handlePurchase = async () => {
     if (!selectedOption) return;

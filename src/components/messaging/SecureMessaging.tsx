@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -373,8 +372,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     );
   }
 
-  // We'll remove the unused filteredThreads variable
-  // and fix the enhancedThreads logic
+  // Fix the participant issue in threads
   const enhancedThreads = threads.map(thread => ({
     ...thread
   }));

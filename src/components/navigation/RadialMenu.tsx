@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Menu, Compass, Camera, User, Heart, Settings, Mail, Video } from 'lucide-react';
+import { X, Compass, Camera, User, Heart, Settings, Mail, Video } from 'lucide-react';
 
 interface RadialMenuProps {
   onClose?: () => void;
@@ -14,17 +14,17 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onClose, onNavigate }) => {
   useEffect(() => {
     setIsOpen(true);
 
-    const handleEscape = (e: React.KeyboardEvent | KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    // Use the correct type for the event handler
+    const handleEscape = (e: Event) => {
+      if ((e as KeyboardEvent).key === 'Escape') {
         handleClose();
       }
     };
 
-    // Modified to use React's KeyboardEvent type
-    document.addEventListener('keydown', handleEscape as unknown as EventListener);
+    document.addEventListener('keydown', handleEscape);
     
     return () => {
-      document.removeEventListener('keydown', handleEscape as unknown as EventListener);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, []);
 

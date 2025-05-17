@@ -1,5 +1,4 @@
 
-// Assuming this exists in the codebase
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,8 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
     }
   };
 
-  const tokenBalance = walletInfo?.wallet?.balance || 0;
+  // Get balance directly from wallet.balance_usdt instead of wallet.balance
+  const tokenBalance = walletInfo?.wallet?.balance_usdt || 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

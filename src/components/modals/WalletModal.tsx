@@ -60,8 +60,9 @@ const WalletModal: React.FC<WalletModalProps> = ({
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4 py-4">
+              {/* Using empty transactions array since wallet.transactions doesn't exist */}
               <TransactionList 
-                transactions={walletInfo?.wallet?.transactions || emptyTransactions} 
+                transactions={emptyTransactions} 
               />
             </TabsContent>
           </Tabs>
