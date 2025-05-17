@@ -48,8 +48,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   hasMoreMessages
 }) => {
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
-  const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
-  const [monetizationAmount, setMonetizationAmount] = useState(1.99);
+  const [monetizationTier] = useState<MonetizationTier>('basic');
+  const [monetizationAmount] = useState(1.99);
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

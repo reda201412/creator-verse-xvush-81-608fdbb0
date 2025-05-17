@@ -1,7 +1,7 @@
+
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface MicroRewardProps {
   type: 'like' | 'navigate' | 'unlock' | 'achievement' | 'purchase';
@@ -131,7 +131,8 @@ export const MicroRewardsConfig = () => {
   );
 };
 
-export const useNeuroAesthetic = () => {
+// Renamed to avoid conflicts with imported hook
+export const useLocalNeuroAesthetic = () => {
   const [rewards, setRewards] = useState<{
     id: string;
     type: MicroRewardProps['type'];

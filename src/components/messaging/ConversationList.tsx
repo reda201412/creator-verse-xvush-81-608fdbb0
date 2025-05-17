@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,8 +10,14 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import CreatorSelector from './CreatorSelector';
-import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
+import { createNewConversationWithCreator, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
+
+// Define the extended type that we need
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: any[];
+  readStatus?: Record<string, any>;
+}
 
 interface ConversationListProps {
   threads: ExtendedFirestoreMessageThread[];
@@ -119,7 +126,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
         // Fermer le sélecteur et informer le parent de la nouvelle conversation
         setIsCreatorSelectorOpen(false);
         if (onConversationCreated) {
-          onConversationCreated(result.threadId);
+          onConversationCreated({
+            creatorId: creator.user_id,
+            creatorName: creator.name || creator.username,
+            creatorAvatar: creator.avatarUrl || null
+          });
         }
         
         triggerHaptic('medium');

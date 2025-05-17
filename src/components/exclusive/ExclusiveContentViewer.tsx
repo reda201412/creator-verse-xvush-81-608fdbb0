@@ -1,12 +1,13 @@
+
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ExclusiveContentViewerProps {
   content: string;
 }
 
 const ExclusiveContentViewer: React.FC<ExclusiveContentViewerProps> = ({ content }) => {
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess] = useState(false);
 
   return (
     <Card>
