@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,7 +56,7 @@ const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ userWithStories, onSt
     <div className="w-full">
       <ScrollArea className="w-full whitespace-nowrap py-4">
         <div className="inline-flex items-center pl-2">
-          {creatorStories?.map((creator, index) => (
+          {creatorStories?.map((creator) => (
             <div
               key={creator.id}
               className={cn(

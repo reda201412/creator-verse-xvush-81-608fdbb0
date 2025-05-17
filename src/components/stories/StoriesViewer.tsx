@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { X, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { X, Pause, Play } from 'lucide-react';
 
 // Types for story content
 interface Story {
@@ -25,7 +24,7 @@ const StoriesViewer = ({
   onClose,
   autoPlayInterval = 5000,
   allowSkip = true
-}) => {
+}: StoriesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -136,6 +135,7 @@ const StoriesViewer = ({
                 src={currentStory.url} 
                 className="w-full h-full object-contain"
                 onLoad={() => setLoaded(true)} 
+                alt="Story content"
               />
             ) : (
               <video 

@@ -47,6 +47,12 @@ export interface MessageThread {
   unreadCount?: number;
   sessionKey?: string;
   name?: string;
+  emotionalMap?: { // Add missing properties used in mockMessages
+    dominantEmotion: string;
+    volatility: number;
+    affinity: number;
+  };
+  requiredTier?: string; // Add missing property used in mockMessages
 }
 
 export interface FirestoreMessage {

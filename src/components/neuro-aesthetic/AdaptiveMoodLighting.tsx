@@ -9,7 +9,7 @@ interface AdaptiveMoodLightingProps {
   className?: string;
 }
 
-const AdaptiveMoodLighting = ({
+export const AdaptiveMoodLighting = ({
   intensity = 'medium',
   userTheme = 'auto',
   className

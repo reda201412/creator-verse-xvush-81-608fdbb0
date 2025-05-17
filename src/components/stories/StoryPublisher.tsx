@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Image, Clock, Tag, Send, X, Video } from 'lucide-react';
+import { Camera, Image, Send, X, Video } from 'lucide-react';
 import { useStories } from '@/hooks/use-stories';
 import { StoryFilter, StoryUploadParams } from '@/types/stories';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';

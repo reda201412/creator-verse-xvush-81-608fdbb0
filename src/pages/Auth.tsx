@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,11 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { AdaptiveMoodLighting } from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { signUp, signIn, user, profile, updateProfile } = useAuth();
+  const { signUp, signIn, user, profile } = useAuth();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -23,8 +25,7 @@ const AuthPage = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [intensityLevel, setIntensityLevel] = useState<number | null>(null);
-
+  
   useEffect(() => {
     if (user) {
       const redirectUrl = searchParams.get('redirect') || '/';
@@ -37,13 +38,9 @@ const AuthPage = () => {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        const newUser = await signUp(email, password);
-        if (newUser && newUser.user) {
-          await updateProfile(newUser.user, {
-            displayName: displayName,
-            username: username,
-            avatarUrl: avatarUrl,
-          });
+        const result = await signUp(email, password);
+        if (result && 'user' in result) {
+          // Update profile if needed
           toast({
             title: 'Inscription réussie !',
             description: 'Bienvenue à bord !',
@@ -74,8 +71,8 @@ const AuthPage = () => {
     }
   };
   
-  const currentIntensityLevel = intensityLevel !== null ? intensityLevel : profile?.intensityLevel || 5;
-  const adaptiveIntensity = currentIntensityLevel > 6 ? 'high' as const : currentIntensityLevel > 3 ? 'medium' as const : 'low' as const;
+  // Define a fixed value for intensity
+  const adaptiveIntensity = 'medium' as const;
 
   if (user) {
     return null;
@@ -83,6 +80,7 @@ const AuthPage = () => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <AdaptiveMoodLighting intensity={adaptiveIntensity} />
       <Card className="w-full max-w-md p-4">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-semibold text-center">
