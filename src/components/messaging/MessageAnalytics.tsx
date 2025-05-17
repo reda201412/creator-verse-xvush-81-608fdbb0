@@ -1,12 +1,11 @@
 
-import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MessageAnalyticsProps {
   threadId: string;
 }
 
-const MessageAnalytics: React.FC<MessageAnalyticsProps> = ({ threadId }) => {
+const MessageAnalytics: React.FC<MessageAnalyticsProps> = () => {
   // Mocked data for message revenue
   const messageRevenueData = [
     { day: 'Lun', revenue: 42.5 },

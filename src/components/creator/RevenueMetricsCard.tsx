@@ -1,11 +1,10 @@
 
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Wallet, TrendingUp, BarChart2, CreditCard, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTronWallet } from '@/hooks/use-tron-wallet';
 
 // Import the chart components lazily
 const RevenueAreaChart = lazy(() => import('./revenue-charts/RevenueAreaChart'));
@@ -23,8 +22,6 @@ interface RevenueMetrics {
 }
 
 const RevenueMetricsCard: React.FC = () => {
-  const { walletInfo } = useTronWallet();
-  
   // Données mockées de revenus
   const metrics: RevenueMetrics = {
     totalRevenue: 7850,

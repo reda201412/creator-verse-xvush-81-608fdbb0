@@ -1,5 +1,4 @@
 
-import React from 'react';
 import ContentCard from './ContentCard';
 import { cn } from '@/lib/utils';
 import { useMobile } from '@/hooks/useMobile';
@@ -21,7 +20,6 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   isCreator = false
 }) => {
   const { isMobile } = useMobile();
-  const { withHapticFeedback } = useHapticFeedback();
   
   if (!contents || contents.length === 0) {
     return <div className="text-center p-8 text-muted-foreground">Aucun contenu à afficher</div>;

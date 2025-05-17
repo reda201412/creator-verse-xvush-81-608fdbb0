@@ -1,11 +1,12 @@
-import React from 'react';
+
+import { Zap, Lock, Sparkles, Crown, Diamond } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { MonetizationTier } from '@/types/messaging';
-import { Zap, Lock, Sparkles, Crown, Diamond } from 'lucide-react';
 
 interface MonetizationPanelProps {
   isOpen: boolean;
@@ -25,8 +26,8 @@ const MonetizationPanel: React.FC<MonetizationPanelProps> = ({
   defaultTier = 'basic',
   defaultAmount = 1.99
 }) => {
-  const [selectedTier, setSelectedTier] = React.useState<MonetizationTier>(defaultTier);
-  const [customAmount, setCustomAmount] = React.useState<string>(defaultAmount.toString());
+  const [selectedTier, setSelectedTier] = useState<MonetizationTier>(defaultTier);
+  const [customAmount, setCustomAmount] = useState<string>(defaultAmount.toString());
   
   const tiers = [
     { 

@@ -1,7 +1,5 @@
 
-import React from 'react';
 import { Message } from '@/types/messaging';
-import { decryptMessage } from '@/utils/encryption';
 
 interface MessageThreadProps {
   messages: Message[];

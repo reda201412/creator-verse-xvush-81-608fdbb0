@@ -1,3 +1,4 @@
+
 // Simple encryption utilities for the message system
 // This is a simplified implementation for demonstration purposes
 
@@ -109,7 +110,7 @@ export const createNewConversationWithCreator = async ({
 
 /**
  * Generates a new secure session key for encrypted messaging
- * @returns A Promise that resolves to a secure random string for use as session key
+ * @returns A secure random string for use as session key
  */
 export const generateSessionKey = (): string => {
   const randomBytes = new Uint8Array(32);

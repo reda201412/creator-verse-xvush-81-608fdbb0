@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Lock, Zap, Smile, Send } from 'lucide-react';
@@ -10,14 +9,10 @@ import { MonetizationTier } from '@/types/messaging';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
-  isComposing?: boolean;
-  setIsComposing?: (isComposing: boolean) => void;
   monetizationEnabled?: boolean;
   onToggleMonetization?: () => void;
   monetizationTier?: MonetizationTier;
-  setMonetizationTier?: (tier: MonetizationTier) => void;
   monetizationAmount?: number;
-  setMonetizationAmount?: (amount: number) => void;
   isEncrypted?: boolean;
 }
 
