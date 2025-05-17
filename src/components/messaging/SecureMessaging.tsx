@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ConversationList from './ConversationList';
 import ConversationView from './ConversationView';
-import { SupportPanel } from './SupportPanel';
+import SupportPanel from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -435,13 +435,13 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
               className="h-full"
             >
               <ConversationList 
-                threads={filteredThreads as any} 
+                threads={filteredThreads} 
                 userId={userId!} 
                 userName={userName} 
                 userAvatar={userAvatar} 
                 onSelectThread={handleThreadSelect} 
                 activeThreadId={activeThreadId} 
-                onConversationCreated={handleNewConversationCreated as any} 
+                onConversationCreated={handleNewConversationCreated} 
               />
             </motion.div>
           ) : (

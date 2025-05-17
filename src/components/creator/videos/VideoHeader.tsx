@@ -1,4 +1,4 @@
-import React from 'react';
+
 import VideoUploader from '@/components/creator/VideoUploader';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoData } from '@/services/creatorService';
@@ -8,7 +8,7 @@ interface VideoHeaderProps {
   onUploadComplete: (metadata?: VideoData | null) => void;
 }
 
-const VideoHeader: React.FC<VideoHeaderProps> = ({ onUploadComplete }) => {
+const VideoHeader = ({ onUploadComplete }) => {
   const { isCreator } = useAuth();
   console.log('VideoHeader rendu, isCreator =', isCreator);
   

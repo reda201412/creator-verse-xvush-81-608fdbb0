@@ -6,7 +6,7 @@ interface VideoFilterTabsProps {
   onTabChange: (value: string) => void;
 }
 
-const VideoFilterTabs: React.FC<VideoFilterTabsProps> = ({ activeTab, onTabChange }) => {
+const VideoFilterTabs = ({ activeTab, onTabChange }) => {
   return (
     <div className="mb-6">
       <Tabs defaultValue="all" value={activeTab} onValueChange={onTabChange}>

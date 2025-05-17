@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { cn } from '@/lib/utils';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import CreatorPulse from '@/components/CreatorPulse';
@@ -13,7 +12,7 @@ interface ProfileSectionProps {
   className?: string;
 }
 
-const ProfileSection: React.FC<ProfileSectionProps> = ({
+const ProfileSection = ({
   avatar,
   isOnline = false,
   pulseStatus = 'offline',

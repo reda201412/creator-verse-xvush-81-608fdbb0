@@ -47,7 +47,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   onLoadMoreMessages,
   hasMoreMessages
 }) => {
-  const [isComposing, setIsComposing] = useState(false);
   const [monetizationEnabled, setMonetizationEnabled] = useState(false);
   const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
   const [monetizationAmount, setMonetizationAmount] = useState(1.99);
@@ -151,7 +150,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           ).map((message) => (
             <MessageBubble
               key={message.id}
-              message={message as any}
+              message={{
+                ...message,
+                senderName: message.senderId === userId ? 'Vous' : 
+                            thread.participantInfo?.[message.senderId]?.displayName || 'User',
+                senderAvatar: thread.participantInfo?.[message.senderId]?.avatarUrl
+              }}
               isCurrentUser={message.senderId === userId}
               decryptMessage={handleDecryptMessage}
             />
@@ -171,14 +175,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <MessageInput 
           onSendMessage={handleSendMessageWrapper} 
-          isComposing={isComposing} 
-          setIsComposing={setIsComposing} 
           monetizationEnabled={monetizationEnabled} 
           onToggleMonetization={userType === 'fan' ? toggleMonetization : undefined} 
-          monetizationTier={monetizationTier} 
-          setMonetizationTier={setMonetizationTier} 
-          monetizationAmount={monetizationAmount} 
-          setMonetizationAmount={setMonetizationAmount} 
+          monetizationTier={monetizationTier}
+          monetizationAmount={monetizationAmount}
           isEncrypted={isSecurityEnabled} 
         />
       </div>

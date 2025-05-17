@@ -1,8 +1,7 @@
-import React from 'react';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface CreativeEconomyProps {
   className?: string;
