@@ -34,7 +34,7 @@ const StoryPublisher: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   
-  const { createStory } = useStories();
+  const { uploadStory } = useStories(); // Changed from createStory to uploadStory
   const { triggerMicroReward } = useNeuroAesthetic();
   const { isCreator } = useAuth();
   const { toast } = useToast();
@@ -196,7 +196,7 @@ const StoryPublisher: React.FC = () => {
         };
       }
       
-      const result = await createStory(params);
+      const result = await uploadStory(params); // Changed from createStory to uploadStory
       
       if (result) {
         // Réinitialiser le formulaire

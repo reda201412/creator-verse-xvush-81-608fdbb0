@@ -18,7 +18,6 @@ const Auth = () => {
   const [name, setName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [intensityLevel, setIntensityLevel] = useState<'low' | 'medium' | 'high'>('medium');
 
   if (user) {
     navigate('/');
@@ -31,11 +30,11 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // Pass all required parameters for signUp
-        await signUp(email, password, name, { intensityLevel });
+        // Pass just the required parameters for signUp
+        await signUp(email, password, name, "creator");
         toast.success('Account created successfully!');
       } else {
-        // Pass all required parameters for signIn
+        // Pass just the required parameters for signIn
         const result = await signIn(email, password);
         if (result && "error" in result) {
           toast.error(result.error.message);

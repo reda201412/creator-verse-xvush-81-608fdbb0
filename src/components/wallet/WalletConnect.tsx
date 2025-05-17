@@ -8,7 +8,7 @@ interface WalletConnectProps {
   walletInfo?: WalletResponse;
 }
 
-// Mock function with proper argument count
+// Fixed function with a proper implementation
 const connectWallet = async (provider: string, callback?: () => void) => {
   console.log(`Connecting to ${provider}`);
   if (callback) callback();

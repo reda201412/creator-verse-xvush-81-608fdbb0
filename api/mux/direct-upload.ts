@@ -1,3 +1,4 @@
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { verifyFirebaseToken } from '../../lib/firebaseAdmin';
 import fetch from 'node-fetch';
@@ -133,4 +134,3 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<ApiResponse>) =
 };
 
 export default handler;
-}

@@ -48,8 +48,8 @@ const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ userWithStories, onSt
     stories: generateRandomStories(3, 7)
   }));
 
-  const handleStoryClick = (stories: Story[], creatorName: string, creatorAvatar: string, startIndex: number) => {
-    onStorySelect(stories, creatorName, creatorAvatar, startIndex);
+  const handleStoryClick = (stories: Story[], creatorName: string, creatorAvatar: string) => {
+    onStorySelect(stories, creatorName, creatorAvatar, 0); // Passing startIndex as 0
   };
 
   return (
@@ -65,7 +65,7 @@ const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ userWithStories, onSt
               )}
               onClick={() => {
                 setActiveStory(creator.id || null);
-                handleStoryClick(creator.stories, creator.name || 'Unknown', creator.avatar || '', 0);
+                handleStoryClick(creator.stories, creator.name || 'Unknown', creator.avatar || '');
               }}
             >
               <Avatar className="h-14 w-14">

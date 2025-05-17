@@ -12,15 +12,14 @@ interface StoriesViewerProps {
   onReaction?: (storyId: string, reaction: string) => void;
 }
 
-const StoriesViewer: React.FC<StoriesViewerProps> = ({ 
+const StoriesViewer = ({ 
   stories, 
   onClose,
   onReaction
-}) => {
+}: StoriesViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
   
   const currentStory = stories[currentIndex];
@@ -29,7 +28,6 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   useEffect(() => {
     // Reset progress when story changes
     setProgress(0);
-    setIsLoaded(false);
     
     // Clear any existing interval
     if (intervalRef.current) {
@@ -88,7 +86,7 @@ const StoriesViewer: React.FC<StoriesViewerProps> = ({
   };
   
   const handleMediaLoad = () => {
-    setIsLoaded(true);
+    // Media has loaded, ready to show
   };
   
   return (
