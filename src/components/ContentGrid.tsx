@@ -2,7 +2,6 @@
 import ContentCard from './ContentCard';
 import { cn } from '@/lib/utils';
 import { useMobile } from '@/hooks/useMobile';
-import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
 export interface ContentGridProps {
   contents: Array<any>;
@@ -62,7 +61,7 @@ const ContentGrid: React.FC<ContentGridProps> = ({
 
   const handleItemClick = (id: string) => {
     if (onItemClick) {
-      // Utiliser le hook de retour haptique pour ajouter une vibration
+      // Utiliser le retour haptique pour ajouter une vibration
       if ('vibrate' in navigator) {
         navigator.vibrate(15); // Vibration moyenne pour clic sur contenu
       }
