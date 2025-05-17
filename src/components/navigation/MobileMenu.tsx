@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ import { useLocalNeuroAesthetic } from '@/components/effects/MicroRewardsEnhance
 const MobileMenu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [messageCount, setMessageCount] = useState(2); // Added message count state with default of 2
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal } = useModals();
@@ -134,7 +136,7 @@ const MobileMenu = () => {
               isActive={activeTab === 'messages'} 
               onClick={() => handleTabClick('messages')} 
               label="Messages"
-              badgeCount={2}
+              badgeCount={messageCount}
             />
           </div>
         </motion.div>
