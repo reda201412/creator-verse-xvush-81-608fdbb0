@@ -19,9 +19,6 @@ import { ThumbnailUpload } from './ThumbnailUpload';
 import VideoFormDetails from './VideoFormDetails';
 import { useVideoUpload, VideoFormValues } from './useVideoUpload';
 
-// Golden ratio constant for design calculations
-const GOLDEN_RATIO = 1.618;
-
 interface EnhancedVideoUploadProps {
   onClose: () => void;
   onUploadComplete: (metadata?: any) => void;
@@ -378,6 +375,7 @@ const EnhancedVideoUpload: React.FC<EnhancedVideoUploadProps> = ({
                     <ThumbnailUpload
                       ref={thumbnailInputRef}
                       thumbnailPreviewUrl={thumbnailPreviewUrl}
+                      videoPreviewUrl={videoPreviewUrl}
                       onThumbnailChange={handleThumbnailChange}
                       onRemoveThumbnail={handleRemoveThumbnail}
                       onGenerateThumbnail={generateThumbnail}

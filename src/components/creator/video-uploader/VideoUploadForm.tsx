@@ -102,6 +102,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
           <ThumbnailUpload
             ref={thumbnailInputRef}
             thumbnailPreviewUrl={thumbnailPreviewUrl}
+            videoPreviewUrl={videoPreviewUrl}
             onThumbnailChange={handleThumbnailChange}
             onRemoveThumbnail={handleRemoveThumbnail}
             onGenerateThumbnail={generateThumbnail}

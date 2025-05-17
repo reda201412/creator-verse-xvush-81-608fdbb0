@@ -1,9 +1,8 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { ImagePlus, RefreshCw, Wand2, Clock } from 'lucide-react';
+import { RefreshCw, Wand2, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMicroRewards } from '@/hooks/use-microrewards';
 

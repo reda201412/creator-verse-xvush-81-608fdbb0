@@ -8,11 +8,11 @@ import DynamicThumbnailGenerator from './DynamicThumbnailGenerator';
 
 interface ThumbnailUploadProps {
   thumbnailPreviewUrl: string | null;
-  videoPreviewUrl: string | null; // Added video URL for thumbnail generation
+  videoPreviewUrl?: string | null; // Made optional with ? instead of required
   onThumbnailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveThumbnail: () => void;
   onGenerateThumbnail: () => void;
-  onThumbnailGenerated?: (file: File) => void; // Added callback for generated thumbnails
+  onThumbnailGenerated?: (file: File) => void;
   showGenerateButton: boolean;
 }
 

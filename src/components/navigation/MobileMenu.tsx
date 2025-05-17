@@ -95,11 +95,6 @@ const MobileMenu = () => {
     // Implement logout functionality
     console.log('Logging out...');
   };
-
-  // Utility function to update message count, so we use the setMessageCount hook
-  const updateMessageCount = (count: number) => {
-    setMessageCount(count);
-  };
   
   return (
     <>
