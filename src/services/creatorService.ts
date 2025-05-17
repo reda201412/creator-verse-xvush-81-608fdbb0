@@ -87,6 +87,18 @@ export async function checkContentAccess(userId: string, contentId: string): Pro
   });
 }
 
+// Add missing getUserFollowedCreatorIds function
+export async function getUserFollowedCreatorIds(userId: string): Promise<string[]> {
+  console.log(`Getting list of creators followed by user ${userId}`);
+  // Simulate API call returning mock data
+  return new Promise(resolve => {
+    setTimeout(() => {
+      // Return mock creator IDs (matching the ones in Index.tsx recommendedCreators)
+      resolve(Math.random() > 0.5 ? ["creator1_uid"] : []);
+    }, 800);
+  });
+}
+
 export async function getAllCreators(): Promise<CreatorProfileData[]> {
   // Simulate API call
   return new Promise(resolve => {
@@ -199,3 +211,4 @@ export async function getCreatorVideos(creatorId: string): Promise<VideoData[]> 
     }, 1000);
   });
 }
+
