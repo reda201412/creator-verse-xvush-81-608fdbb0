@@ -1,4 +1,3 @@
-
 // Simple encryption utilities for the message system
 // This is a simplified implementation for demonstration purposes
 
@@ -112,11 +111,8 @@ export const createNewConversationWithCreator = async ({
  * Generates a new secure session key for encrypted messaging
  * @returns A Promise that resolves to a secure random string for use as session key
  */
-export const generateSessionKey = async (): Promise<string> => {
-  // Generate a random array of 32 bytes (256 bits)
+export const generateSessionKey = (): string => {
   const randomBytes = new Uint8Array(32);
   crypto.getRandomValues(randomBytes);
-  
-  // Convert to base64 string for storage and transmission
   return btoa(String.fromCharCode(...Array.from(randomBytes)));
 };

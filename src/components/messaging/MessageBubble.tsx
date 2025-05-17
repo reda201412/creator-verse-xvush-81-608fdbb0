@@ -8,15 +8,23 @@ import { isEncrypted } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
 
 interface MessageBubbleProps {
-  message: Message;
+  message: FirestoreMessage;
   isCurrentUser: boolean;
-  decryptMessage: (message: any) => Promise<string>;
+  decryptMessage: (message: FirestoreMessage) => Promise<string>;
+  isEphemeral?: boolean;
+  isRevealed?: boolean;
+  onReveal?: () => void;
+  sessionKey?: string;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isCurrentUser,
-  decryptMessage
+  decryptMessage,
+  isEphemeral,
+  isRevealed,
+  onReveal,
+  sessionKey
 }) => {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);

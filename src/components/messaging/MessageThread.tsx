@@ -14,26 +14,6 @@ const MessageThread: React.FC<MessageThreadProps> = ({
   currentUserId,
   sessionKey 
 }) => {
-  const tryDecrypt = async (message: Message): Promise<string> => {
-    if (!message.isEncrypted || !sessionKey) {
-      return message.content as string;
-    }
-    
-    try {
-      let encryptedContent;
-      if (typeof message.content === 'string') {
-        encryptedContent = JSON.parse(message.content);
-      } else {
-        encryptedContent = message.content;
-      }
-      
-      return await decryptMessage(encryptedContent, sessionKey);
-    } catch (error) {
-      console.error('Decryption error in MessageThread', error);
-      return "Message chiffré (impossible à déchiffrer)";
-    }
-  };
-
   return (
     <div className="space-y-4">
       {messages.map(message => {

@@ -28,8 +28,8 @@ export interface MessageThread {
   isSecure?: boolean;
   isArchived?: boolean;
   isPinned?: boolean;
-  isGated?: boolean; // Added isGated property
-  lastActivity: string | Date; // Changed from string | number to string | Date
+  isGated?: boolean;
+  lastActivity: string | Date;
   unreadCount?: number;
   sessionKey?: string;
   name?: string;
@@ -59,18 +59,18 @@ export interface FirestoreMessageThread {
   isSecure?: boolean;
   isArchived?: boolean;
   isPinned?: boolean;
-  isGated?: boolean; // Added isGated property
+  isGated?: boolean;
   lastActivity?: any; // Timestamp
   name?: string;
 }
 
 // Updated ExtendedFirestoreMessageThread interface to include name property
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
-  messages: Message[];
+  messages: FirestoreMessage[];
   unreadCount?: number;
   sessionKey?: string;
-  name: string; // Made required to fix the type error
-  readStatus?: Record<string, any>; // Added for ConversationView
+  name: string;
+  readStatus?: Record<string, any>;
 }
 
 export interface EncryptedContent {

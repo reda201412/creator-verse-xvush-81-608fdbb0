@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -14,7 +15,6 @@ import { SupportPanel } from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  MessageType, 
   MonetizationTier, 
 } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
@@ -22,7 +22,7 @@ import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/integrations/firebase/firebase';
-import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { Spinner } from '@/components/ui/spinner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { 
@@ -32,15 +32,9 @@ import {
   fetchMessagesForThread,
   ExtendedFirestoreMessageThread 
 } from '@/utils/messaging-utils'; 
-import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
+import { FirestoreMessage } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
-
-// Interface déjà définie dans messaging-utils.ts
-// interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
-//   messages: FirestoreMessage[];
-//   readStatus?: Record<string, Timestamp>;
-// }
 
 interface SecureMessagingProps {
   userId: string;
@@ -53,7 +47,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
   const location = useLocation();
   const { toast } = useToast();
   const { triggerHaptic } = useHapticFeedback();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const { getWalletInfo } = useTronWallet();
   const { openModal, closeModal, openModals } = useModals();
   
@@ -251,8 +245,10 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
 
   useEffect(() => {
     threads.forEach(thread => { 
-      if (thread.id && !sessionKeys[thread.id]) 
-        setSessionKeys(prev => ({ ...prev, [thread.id!]: generateSessionKey() })); 
+      if (thread.id && !sessionKeys[thread.id]) {
+        const newKey = generateSessionKey();
+        setSessionKeys(prev => ({ ...prev, [thread.id!]: newKey })); 
+      }
     });
   }, [threads, sessionKeys]);
 
@@ -282,7 +278,6 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
       id: `optimistic_${Date.now()}`, 
       senderId: userId, 
       content, 
-      type: 'text', 
       createdAt: Timestamp.now(), 
       isEncrypted: isSecurityEnabled, 
       ...(supportData && { monetization: supportData }), 
@@ -360,7 +355,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
         setActiveThreadId(result.threadId); 
         setShowConversationList(false); 
       }
-      else sonnerToast.error(result.error?.message || "Impossible de créer la conversation.");
+      else sonnerToast.error("Impossible de créer la conversation.");
     } catch (error) { 
       console.error("Error creating new conversation:", error); 
       sonnerToast.error("Erreur."); 
@@ -446,7 +441,6 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
                 userAvatar={userAvatar} 
                 onSelectThread={handleThreadSelect} 
                 activeThreadId={activeThreadId} 
-                userType={userType} 
                 onConversationCreated={handleNewConversationCreated as any} 
               />
             </motion.div>

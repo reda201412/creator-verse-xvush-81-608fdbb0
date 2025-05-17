@@ -72,7 +72,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     }
   }, [thread.messages, isLoadingMessages, userId]);
  
-  const handleDecryptMessage = async (message: FirestoreMessage) => {
+  const handleDecryptMessage = async (message: FirestoreMessage): Promise<string> => {
     if (typeof message.content !== 'string' && !message.content) return "Contenu indisponible";
     try {
       let content;

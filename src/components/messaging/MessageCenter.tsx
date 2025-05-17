@@ -30,7 +30,7 @@ import MessageAnalytics from './MessageAnalytics';
 import EmotionalInsights from './EmotionalInsights';
 import { Message, MessageThread as MessageThreadType, MonetizationTier } from '@/types/messaging';
 import { mockMessageThreads } from '@/data/mockMessages';
-import { encryptMessage } from '@/utils/encryption';
+import { encryptMessage, generateSessionKey } from '@/utils/encryption';
 
 interface MessageCenterProps {
   userId: string;
@@ -70,14 +70,7 @@ const MessageCenter = ({
   // Générer ou récupérer la clé de session pour le thread actif
   useEffect(() => {
     if (activeThreadId && !sessionKeys[activeThreadId]) {
-      // Create a synchronous function to generate a session key
-      const createSessionKey = (): string => {
-        const randomBytes = new Uint8Array(32);
-        crypto.getRandomValues(randomBytes);
-        return btoa(String.fromCharCode(...Array.from(randomBytes)));
-      };
-      
-      const newSessionKey = createSessionKey();
+      const newSessionKey = generateSessionKey();
       setSessionKeys(prev => ({
         ...prev,
         [activeThreadId]: newSessionKey
@@ -151,7 +144,7 @@ const MessageCenter = ({
           ? { 
               ...thread, 
               messages: [...thread.messages, newMessage], 
-              lastActivity: newMessage.timestamp as string 
+              lastActivity: newMessage.timestamp 
             }
           : thread
       )
@@ -203,14 +196,7 @@ const MessageCenter = ({
   
   const handleResetSessionKey = () => {
     if (activeThreadId) {
-      // Create a synchronous function to generate a session key
-      const createSessionKey = (): string => {
-        const randomBytes = new Uint8Array(32);
-        crypto.getRandomValues(randomBytes);
-        return btoa(String.fromCharCode(...Array.from(randomBytes)));
-      };
-      
-      const newSessionKey = createSessionKey();
+      const newSessionKey = generateSessionKey();
       setSessionKeys(prev => ({
         ...prev,
         [activeThreadId]: newSessionKey
@@ -370,6 +356,7 @@ const MessageCenter = ({
                   )}
                   onClick={() => setActiveThreadId(thread.id)}
                 >
+                  {/* Show gated icon if applicable */}
                   {thread.isGated && (
                     <div className="absolute top-2 right-2">
                       <Lock size={12} className="text-muted-foreground" />

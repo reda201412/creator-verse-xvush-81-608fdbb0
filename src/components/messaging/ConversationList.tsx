@@ -13,15 +13,13 @@ import { createNewConversationWithCreator } from '@/utils/create-conversation-ut
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
 interface ConversationListProps {
-  threads: MessageThread[];
+  threads: ExtendedFirestoreMessageThread[];
   userId: string;
   userName: string;
   userAvatar: string;
   onSelectThread: (threadId: string) => void;
   activeThreadId: string | null;
-  userType: 'creator' | 'fan';
-  onNewConversation?: () => void;
-  onConversationCreated?: (threadId: string) => void;
+  onConversationCreated: (data: {creatorId: string, creatorName: string, creatorAvatar: string | null}) => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
@@ -31,8 +29,6 @@ const ConversationList: React.FC<ConversationListProps> = ({
   userAvatar,
   onSelectThread,
   activeThreadId,
-  userType,
-  onNewConversation,
   onConversationCreated
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
