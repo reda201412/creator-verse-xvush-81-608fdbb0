@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -33,6 +32,7 @@ import {
 import { FirestoreMessage } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
+import XDoseLogo from '@/components/XDoseLogo';
 
 interface SecureMessagingProps {
   userId: string;
