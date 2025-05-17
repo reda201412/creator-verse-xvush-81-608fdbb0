@@ -31,4 +31,4 @@ export const createNewConversationWithCreator = async ({
   });
 };
 
-export { FirestoreMessageThread, FirestoreMessage };
+export type { FirestoreMessageThread, FirestoreMessage };
