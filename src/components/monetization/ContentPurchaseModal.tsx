@@ -1,110 +1,84 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+// Assuming this exists in the codebase
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { ContentPrice } from '@/types/monetization';
 
 interface ContentPurchaseModalProps {
-  contentId: string;
-  contentTitle: string;
-  contentPrice: ContentPrice;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  title: string;
+  tokenPrice: number;
+  onPurchase: () => void;
+  contentId?: string; // Make it optional since it's not used
 }
 
 const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
-  contentId,
-  contentTitle,
-  contentPrice,
   isOpen,
   onClose,
-  onSuccess
+  title,
+  tokenPrice,
+  onPurchase,
 }) => {
-  const { isLoading } = useTronWallet();
-  const [purchaseState, setPurchaseState] = useState<'initial' | 'processing' | 'success' | 'error'>('initial');
-  
+  const { walletInfo, getWalletInfo } = useTronWallet();
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
   const handlePurchase = async () => {
-    setPurchaseState('processing');
+    setIsPurchasing(true);
     
     try {
-      // Simulate transaction processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setPurchaseState('success');
-      onSuccess?.();
-    } catch (error) {
-      console.error('Purchase error:', error);
-      setPurchaseState('error');
+      // Here you would integrate with your token transaction system
+      // For demonstration, we'll use a timeout to simulate transaction
+      setTimeout(() => {
+        onPurchase();
+        setIsPurchasing(false);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      setIsPurchasing(false);
+      console.error("Purchase error:", err);
     }
   };
-  
-  const handleClose = () => {
-    if (purchaseState !== 'processing') {
-      setPurchaseState('initial');
-      onClose();
-    }
-  };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Acheter du contenu</DialogTitle>
-          <DialogDescription>
-            Vous êtes sur le point d'acheter "{contentTitle}"
-          </DialogDescription>
+          <DialogTitle>Achat de contenu</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          <div className="flex justify-between">
-            <span>Prix</span>
+        <div className="space-y-4">
+          <div className="text-center p-4">
+            <h3 className="text-lg font-semibold mb-2">{title}</h3>
+            <div className="text-2xl font-bold text-primary">
+              {tokenPrice} tokens
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-sm">Solde actuel</span>
+            <span className="font-medium">{walletInfo?.tokenBalance || 0} tokens</span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-sm">Après achat</span>
             <span className="font-medium">
-              {contentPrice.type === 'token' && `${contentPrice.tokenPrice} tokens`}
-              {contentPrice.type === 'hybrid' && `${contentPrice.tokenPrice} tokens`}
-              {contentPrice.type === 'subscription' && 'Inclus dans votre abonnement'}
-              {contentPrice.type === 'free' && 'Gratuit'}
+              {(walletInfo?.tokenBalance || 0) - tokenPrice} tokens
             </span>
           </div>
           
-          {contentPrice.type === 'hybrid' && contentPrice.discountForSubscribers && (
-            <div className="flex justify-between text-sm">
-              <span>Réduction abonnés</span>
-              <span className="text-green-600">-{contentPrice.discountForSubscribers}%</span>
-            </div>
-          )}
-          
-          {purchaseState === 'success' ? (
-            <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center">
-              <p className="text-green-800 font-medium">Achat réussi!</p>
-              <p className="text-sm text-green-700">Vous avez maintenant accès à ce contenu.</p>
-            </div>
-          ) : purchaseState === 'error' ? (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 text-center">
-              <p className="text-red-800 font-medium">Échec de l'achat</p>
-              <p className="text-sm text-red-700">Veuillez réessayer ou contacter le support.</p>
-            </div>
-          ) : null}
-        </div>
-        
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleClose} disabled={purchaseState === 'processing'}>
-            Annuler
-          </Button>
-          
-          <Button 
-            onClick={handlePurchase} 
-            disabled={purchaseState === 'processing' || purchaseState === 'success' || isLoading}
-          >
-            {purchaseState === 'processing' && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {purchaseState === 'initial' && 'Confirmer l\'achat'}
-            {purchaseState === 'processing' && 'Traitement...'}
-            {purchaseState === 'success' && 'Acheté'}
-            {purchaseState === 'error' && 'Réessayer'}
-          </Button>
+          <div className="pt-4 flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handlePurchase} 
+              disabled={isPurchasing || (walletInfo?.tokenBalance || 0) < tokenPrice}
+            >
+              {isPurchasing ? "Traitement..." : "Confirmer l'achat"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

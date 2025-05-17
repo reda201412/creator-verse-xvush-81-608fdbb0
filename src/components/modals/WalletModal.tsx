@@ -29,7 +29,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
     }
   }, [open, user, getWalletInfo]);
   
-  // Create a safer empty array for transactions if they don't exist
+  // Create an empty array for transactions if they don't exist
   const emptyTransactions: any[] = [];
   
   return (
@@ -61,7 +61,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
 
             <TabsContent value="history" className="space-y-4 py-4">
               <TransactionList 
-                transactions={emptyTransactions} 
+                transactions={walletInfo?.transactions || emptyTransactions} 
               />
             </TabsContent>
           </Tabs>

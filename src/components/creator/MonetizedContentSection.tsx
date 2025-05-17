@@ -77,7 +77,6 @@ interface ContentItem {
 const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
   isCreator = false,
   userTokenBalance = 350,
-  userSubscriptionTier = 'fan',
   className
 }) => {
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -91,11 +90,6 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
   const handlePurchaseTokens = () => {
     setPurchasePanelOpen(true);
     triggerMicroReward('action');
-  };
-  
-  const handleSubscribe = () => {
-    toast("Redirection vers la page d'abonnements");
-    triggerMicroReward('navigate');
   };
   
   const handleContentPurchase = () => {
