@@ -40,9 +40,10 @@ import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { useLocalNeuroAesthetic } from '@/components/effects/MicroRewardsEnhanced';
 
 const MobileMenu = () => {
+  // All hooks at the top level, not inside conditionals or nested functions
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [messageCount, setMessageCount] = useState(2); // Added message count state with default of 2
+  const [messageCount, setMessageCount] = useState(2);
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal } = useModals();
@@ -59,6 +60,7 @@ const MobileMenu = () => {
     else if (path === '/create' || path.includes('/studio')) setActiveTab('create');
     else if (path === '/activity' || path.includes('/notifications')) setActiveTab('activity');
     else if (path === '/profile' || path.includes('/user/')) setActiveTab('profile');
+    else if (path === '/messages') setActiveTab('messages');
   }, [location]);
   
   const handleTabClick = (tab: string) => {
@@ -92,6 +94,11 @@ const MobileMenu = () => {
   const handleLogout = () => {
     // Implement logout functionality
     console.log('Logging out...');
+  };
+
+  // Utility function to update message count, so we use the setMessageCount hook
+  const updateMessageCount = (count: number) => {
+    setMessageCount(count);
   };
   
   return (
@@ -143,7 +150,7 @@ const MobileMenu = () => {
       )}
       
       {/* Desktop Top Navigation */}
-      {!isMobile && (
+      {!isMobile ? (
         <div className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-b border-border z-50">
           <div className="container mx-auto flex items-center justify-between py-2">
             <div className="flex items-center gap-6">
@@ -256,7 +263,7 @@ const MobileMenu = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
       
       {/* Mobile Menu Sheet */}
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
