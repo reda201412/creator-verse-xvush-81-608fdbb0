@@ -4,11 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { VideoData } from '@/services/creatorService';
 
 interface VideoHeaderProps {
-  // Use the Supabase data type for onUploadComplete metadata
   onUploadComplete: (metadata?: VideoData | null) => void;
 }
 
-const VideoHeader = ({ onUploadComplete }) => {
+const VideoHeader = ({ onUploadComplete }: VideoHeaderProps) => {
   const { isCreator } = useAuth();
   console.log('VideoHeader rendu, isCreator =', isCreator);
   
@@ -22,7 +21,6 @@ const VideoHeader = ({ onUploadComplete }) => {
       </div>
 
       {isCreator && (
-        // Pass the onUploadComplete handler to VideoUploader
         <VideoUploader 
           onUploadComplete={onUploadComplete} 
           isCreator={true} 

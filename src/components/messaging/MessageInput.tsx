@@ -14,6 +14,10 @@ interface MessageInputProps {
   monetizationTier?: MonetizationTier;
   monetizationAmount?: number;
   isEncrypted?: boolean;
+  isComposing?: boolean;
+  setIsComposing?: React.Dispatch<React.SetStateAction<boolean>>;
+  setMonetizationTier?: React.Dispatch<React.SetStateAction<MonetizationTier>>;
+  setMonetizationAmount?: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -22,7 +26,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onToggleMonetization,
   monetizationTier = 'basic',
   monetizationAmount = 1.99,
-  isEncrypted = false
+  isEncrypted = false,
+  isComposing,
+  setIsComposing,
+  setMonetizationTier,
+  setMonetizationAmount
 }) => {
   const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);

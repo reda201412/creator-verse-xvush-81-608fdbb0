@@ -7,7 +7,7 @@ interface VideoSearchProps {
   onSearchChange: (value: string) => void;
 }
 
-const VideoSearch = ({ searchQuery, onSearchChange }) => {
+const VideoSearch = ({ searchQuery, onSearchChange }: VideoSearchProps) => {
   return (
     <div className="relative w-full md:w-96">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
