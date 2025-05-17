@@ -15,10 +15,9 @@ import SupportPanel from './SupportPanel';
 import { GiftPanel } from './GiftPanel';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  MonetizationTier, 
+  MonetizationTier, ExtendedFirestoreMessageThread
 } from '@/types/messaging';
 import { generateSessionKey } from '@/utils/encryption';
-import XDoseLogo from '@/components/XDoseLogo';
 import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/integrations/firebase/firebase';
@@ -30,16 +29,10 @@ import {
   sendMessage, 
   markMessagesAsRead, 
   fetchMessagesForThread,
-  ExtendedFirestoreMessageThread 
 } from '@/utils/messaging-utils'; 
 import { FirestoreMessage } from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
-
-// Extended interface to match what we need in this component
-interface EnhancedMessageThread extends Omit<ExtendedFirestoreMessageThread, 'participants'> {
-  participants: string[]; // Add the participants field as non-optional
-}
 
 interface SecureMessagingProps {
   userId: string;
@@ -57,7 +50,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
   const { openModal, closeModal, openModals } = useModals();
   
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<EnhancedMessageThread[]>([]);
+  const [threads, setThreads] = useState<ExtendedFirestoreMessageThread[]>([]);
   const [showConversationList, setShowConversationList] = useState(true);
   const [isSecurityEnabled, setIsSecurityEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
@@ -75,10 +68,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(userId);
-      // Convert fetched threads to our enhanced type that includes participants
-      const enhancedThreads: EnhancedMessageThread[] = threadsData.map(thread => ({
+      // Cast or transform the threads to match our ExtendedFirestoreMessageThread interface
+      const enhancedThreads: ExtendedFirestoreMessageThread[] = threadsData.map(thread => ({
         ...thread,
-        participants: thread.participantIds // Map participantIds to participants for compatibility
+        participants: thread.participantIds || [], // Ensure participants is set properly
+        name: thread.name || '',
+        lastActivity: thread.lastActivity || new Date() // Ensure lastActivity is present
       }));
       
       setThreads(enhancedThreads);
@@ -138,13 +133,14 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
         const newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
         snapshot.docChanges().forEach((change) => {
           const threadData = change.doc.data();
-          const changedThreadData: EnhancedMessageThread = { 
+          const changedThreadData: ExtendedFirestoreMessageThread = { 
             id: change.doc.id, 
             ...threadData, 
             messages: newThreadsMap.get(change.doc.id)?.messages || [],
             readStatus: newThreadsMap.get(change.doc.id)?.readStatus || {},
-            participants: threadData.participantIds // Map participantIds to participants for compatibility
-          } as EnhancedMessageThread;
+            participants: threadData.participantIds || [], // Set participants from participantIds
+            name: threadData.name || ''
+          } as ExtendedFirestoreMessageThread;
           
           if (change.type === "added" || change.type === "modified") {
             newThreadsMap.set(change.doc.id, changedThreadData);
@@ -375,7 +371,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
         <div className="text-center">
-          <Spinner className="mx-auto mb-4" size="md" />
+          <Spinner size="md" className="mx-auto mb-4" />
           <p className="mt-4 text-lg">Chargement des discussions...</p>
         </div>
       </div>

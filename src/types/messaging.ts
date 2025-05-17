@@ -29,7 +29,7 @@ export interface MessageThread {
   isArchived?: boolean;
   isPinned?: boolean;
   isGated?: boolean;
-  lastActivity: string | Date;
+  lastActivity: string | Date | any; // Updated to accept Timestamp
   unreadCount?: number;
   sessionKey?: string;
   name?: string;
@@ -60,7 +60,7 @@ export interface FirestoreMessageThread {
   isArchived?: boolean;
   isPinned?: boolean;
   isGated?: boolean;
-  lastActivity?: any; // Timestamp
+  lastActivity: any; // Updated to accept Timestamp
   name?: string;
 }
 
