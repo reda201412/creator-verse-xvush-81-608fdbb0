@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Message } from '@/types/messaging';
 
 interface MessageThreadProps {

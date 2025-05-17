@@ -43,7 +43,7 @@ const MobileMenu = () => {
   // All hooks at the top level, not inside conditionals or nested functions
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [messageCount, setMessageCount] = useState(2);
+  const [messageCount] = useState(2);
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal } = useModals();

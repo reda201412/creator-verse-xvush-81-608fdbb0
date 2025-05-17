@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -69,11 +70,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     setIsLoadingThreads(true);
     try {
       const threadsData = await fetchUserThreads(userId);
-      setThreads(threadsData.map(t => ({
-        ...t, 
-        messages: t.messages || [], 
-        readStatus: t.readStatus || {} 
-      })));
+      setThreads(threadsData);
       
       const locationState = location.state as { creatorId?: string; threadId?: string; creatorName?: string; creatorAvatar?: string | null };
       let threadToActivate = null;
@@ -133,7 +130,9 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             id: change.doc.id, 
             ...change.doc.data(), 
             messages: newThreadsMap.get(change.doc.id)?.messages || [],
-            readStatus: newThreadsMap.get(change.doc.id)?.readStatus || {}
+            readStatus: newThreadsMap.get(change.doc.id)?.readStatus || {},
+            // Ensure participants property exists - required by the type
+            participants: newThreadsMap.get(change.doc.id)?.participants || []
           } as ExtendedFirestoreMessageThread;
           
           if (change.type === "added" || change.type === "modified") {
@@ -372,10 +371,8 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     );
   }
 
-  // Fix the participant issue in threads
-  const enhancedThreads = threads.map(thread => ({
-    ...thread
-  }));
+  // The threads now have participants property
+  const enhancedThreads = threads;
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
