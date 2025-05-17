@@ -41,8 +41,6 @@ import { useLocalNeuroAesthetic } from '@/components/effects/MicroRewardsEnhance
 const MobileMenu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [notificationCount, setNotificationCount] = useState(3);
-  const [messageCount, setMessageCount] = useState(2);
   const location = useLocation();
   const navigate = useNavigate();
   const { openModal } = useModals();
@@ -129,14 +127,14 @@ const MobileMenu = () => {
               isActive={activeTab === 'activity'} 
               onClick={() => handleTabClick('activity')} 
               label="Activity"
-              badgeCount={notificationCount}
+              badgeCount={3}
             />
             <TabButton 
               icon={<MessageSquare size={24} />} 
               isActive={activeTab === 'messages'} 
               onClick={() => handleTabClick('messages')} 
               label="Messages"
-              badgeCount={messageCount}
+              badgeCount={2}
             />
           </div>
         </motion.div>
@@ -169,7 +167,7 @@ const MobileMenu = () => {
                   isActive={activeTab === 'activity'} 
                   onClick={() => handleTabClick('activity')} 
                   label="Activity"
-                  badgeCount={notificationCount}
+                  badgeCount={3}
                 />
               </nav>
             </div>

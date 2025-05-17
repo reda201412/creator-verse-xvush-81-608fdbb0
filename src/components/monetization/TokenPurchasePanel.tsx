@@ -33,7 +33,7 @@ const TokenPurchasePanel: React.FC<TokenPurchasePanelProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { processTronLinkPayment, isProcessing: isWalletProcessing } = useWalletTransactions();
+  const { isProcessing: isWalletProcessing } = useWalletTransactions();
   
   const handlePurchase = async () => {
     if (!selectedOption) return;

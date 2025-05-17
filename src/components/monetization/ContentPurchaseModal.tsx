@@ -39,7 +39,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
     }
   };
 
-  // Get balance directly from wallet.balance_usdt instead of wallet.balance
+  // Get balance from the wallet.balance_usdt property
   const tokenBalance = walletInfo?.wallet?.balance_usdt || 0;
 
   return (

@@ -14,9 +14,9 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ onClose, onNavigate }) => {
   useEffect(() => {
     setIsOpen(true);
 
-    // Use the correct type for the event handler
-    const handleEscape = (e: Event) => {
-      if ((e as KeyboardEvent).key === 'Escape') {
+    // Fix type issues with event handler
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         handleClose();
       }
     };
