@@ -13,12 +13,11 @@ import {
   fetchMessagesForThread,
   sendMessage,
   markMessagesAsRead,
-  ExtendedFirestoreMessageThread,
-  FirestoreMessage
+  ExtendedFirestoreMessageThread
 } from '@/utils/messaging-utils';
 import MessageThread from '@/components/messaging/MessageThread';
 import EmotionalInsights from '@/components/messaging/EmotionalInsights';
-import { Message } from '@/types/messaging';
+import { Message, FirestoreMessage } from '@/types/messaging';
 
 const MessageCenter = () => {
   const { user } = useAuth();
@@ -29,10 +28,10 @@ const MessageCenter = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showEmotionalInsights, setShowEmotionalInsights] = useState(false);
   const [isEncrypted, setIsEncrypted] = useState(false);
-  const [sessionKey, setSessionKey] = useState<string | null>(null);
+  const [sessionKey] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

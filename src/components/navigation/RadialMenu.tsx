@@ -1,132 +1,114 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 
-interface RadialMenuItem {
-  icon: React.ReactNode;
-  label: string;
-  action: () => void;
-}
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Menu, Compass, Camera, User, Heart, Settings, Mail, Video } from 'lucide-react';
 
 interface RadialMenuProps {
-  items: RadialMenuItem[];
-  onSelect: (item: RadialMenuItem) => void;
-  onClose: () => void;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  onClose?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-const RadialMenu = ({ items, onSelect, onClose, position = 'center' }: RadialMenuProps) => {
-  const [visible, setVisible] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  
+const RadialMenu: React.FC<RadialMenuProps> = ({ onClose, onNavigate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setVisible(false);
-        onClose();
-      }
-    };
+    setIsOpen(true);
 
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleEscape = (e: React.KeyboardEvent | KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setVisible(false);
-        onClose();
+        handleClose();
       }
     };
 
-    if (visible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-    }
-
+    // Modified to use React's KeyboardEvent type
+    document.addEventListener('keydown', handleEscape as unknown as EventListener);
+    
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleEscape as unknown as EventListener);
     };
-  }, [visible, onClose]);
+  }, []);
 
-  const calculateItemPosition = (index: number, totalItems: number) => {
-    const angle = (index / totalItems) * 2 * Math.PI - Math.PI / 2;
-    const radius = 80;
-    const x = radius * Math.cos(angle);
-    const y = radius * Math.sin(angle);
-    return { x, y };
+  const handleClose = () => {
+    setIsOpen(false);
+    setTimeout(() => {
+      onClose && onClose();
+    }, 300); // Match animation duration
   };
 
-  const handleItemClick = (item: RadialMenuItem) => {
-    onSelect(item);
-    item.action();
-    setVisible(false);
-    onClose();
-  };
-
-  const menuVariants = {
-    open: { scale: 1, opacity: 1, transition: { duration: 0.2, ease: "easeInOut" } },
-    closed: { scale: 0.5, opacity: 0, transition: { duration: 0.2, ease: "easeInOut" } },
-  };
-
-  const itemVariants = {
-    open: { opacity: 1, y: 0, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
-    closed: { opacity: 0, y: 0, x: 0, transition: { duration: 0.2, ease: "easeIn" } },
-  };
-
-  const getMenuPositionClasses = () => {
-    switch (position) {
-      case 'top-left':
-        return 'top-0 left-0 origin-top-left';
-      case 'top-right':
-        return 'top-0 right-0 origin-top-right';
-      case 'bottom-left':
-        return 'bottom-0 left-0 origin-bottom-left';
-      case 'bottom-right':
-        return 'bottom-0 right-0 origin-bottom-right';
-      case 'center':
-      default:
-        return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center';
+  const handleNavigate = (page: string) => {
+    if (onNavigate) {
+      setIsOpen(false);
+      setTimeout(() => {
+        onNavigate(page);
+      }, 300);
     }
   };
+
+  const menuItems = [
+    { icon: <Compass size={24} />, label: 'Explorer', page: '/' },
+    { icon: <Camera size={24} />, label: 'Stories', page: '/stories' },
+    { icon: <Video size={24} />, label: 'Vidéos', page: '/videos' },
+    { icon: <Mail size={24} />, label: 'Messages', page: '/messages' },
+    { icon: <Heart size={24} />, label: 'Favoris', page: '/favorites' },
+    { icon: <User size={24} />, label: 'Profil', page: '/profile' },
+    { icon: <Settings size={24} />, label: 'Paramètres', page: '/settings' },
+  ];
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setVisible(!visible)}
-        className="p-2 rounded-full bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors duration-200"
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40" onClick={handleClose}>
+      <motion.div
+        className="relative"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        onClick={(e) => e.stopPropagation()}
       >
-        Menu
-      </button>
+        <motion.div className="absolute top-1/2 left-1/2 -mt-12 -ml-12 h-24 w-24 rounded-full bg-primary/80 backdrop-blur-md shadow-xl shadow-primary/20 flex items-center justify-center">
+          <button onClick={handleClose} className="text-white p-4">
+            <X size={32} />
+          </button>
+        </motion.div>
 
-      <AnimatePresence>
-        {visible && (
-          <motion.div
-            ref={menuRef}
-            className={cn(
-              "absolute z-50 w-48 h-48",
-              getMenuPositionClasses(),
-              "bg-background shadow-lg rounded-full flex items-center justify-center"
-            )}
-            variants={menuVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-          >
-            {items.map((item, index) => {
-              const { x, y } = calculateItemPosition(index, items.length);
-              return (
-                <motion.button
-                  key={index}
-                  className="absolute w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200"
-                  style={{ x, y }}
-                  onClick={() => handleItemClick(item)}
-                  variants={itemVariants}
-                >
-                  {item.icon}
-                </motion.button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <div className="w-[300px] h-[300px] relative">
+          <AnimatePresence>
+            {isOpen &&
+              menuItems.map((item, index) => {
+                const angle = (index * (360 / menuItems.length) * Math.PI) / 180;
+                const radius = 120;
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
+
+                return (
+                  <motion.div
+                    key={item.page}
+                    className="absolute w-16 h-16 top-[142px] left-[142px] -mt-8 -ml-8 flex flex-col items-center justify-center gap-1"
+                    initial={{ scale: 0, x: 0, y: 0 }}
+                    animate={{ scale: 1, x, y }}
+                    exit={{ scale: 0, x: 0, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.04 }}
+                    onClick={() => handleNavigate(item.page)}
+                  >
+                    <motion.div
+                      className="w-14 h-14 rounded-full flex items-center justify-center text-white bg-gray-800/80 shadow-lg backdrop-blur-md cursor-pointer"
+                      whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.2)" }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {item.icon}
+                    </motion.div>
+                    <motion.span
+                      className="text-xs text-white font-medium bg-black/40 px-2 py-0.5 rounded-full"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.04 + 0.2 }}
+                    >
+                      {item.label}
+                    </motion.span>
+                  </motion.div>
+                );
+              })}
+          </AnimatePresence>
+        </div>
+      </motion.div>
     </div>
   );
 };

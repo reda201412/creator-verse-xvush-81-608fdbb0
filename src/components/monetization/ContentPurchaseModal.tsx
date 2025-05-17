@@ -11,7 +11,6 @@ interface ContentPurchaseModalProps {
   title: string;
   tokenPrice: number;
   onPurchase: () => void;
-  contentId?: string; // Make it optional since it's not used
 }
 
 const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
@@ -21,7 +20,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   tokenPrice,
   onPurchase,
 }) => {
-  const { walletInfo, getWalletInfo } = useTronWallet();
+  const { walletInfo } = useTronWallet();
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   const handlePurchase = async () => {
@@ -41,6 +40,8 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
     }
   };
 
+  const tokenBalance = walletInfo?.wallet?.balance || 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -58,13 +59,13 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
           
           <div className="flex justify-between items-center">
             <span className="text-sm">Solde actuel</span>
-            <span className="font-medium">{walletInfo?.tokenBalance || 0} tokens</span>
+            <span className="font-medium">{tokenBalance} tokens</span>
           </div>
           
           <div className="flex justify-between items-center">
             <span className="text-sm">Après achat</span>
             <span className="font-medium">
-              {(walletInfo?.tokenBalance || 0) - tokenPrice} tokens
+              {tokenBalance - tokenPrice} tokens
             </span>
           </div>
           
@@ -74,7 +75,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
             </Button>
             <Button 
               onClick={handlePurchase} 
-              disabled={isPurchasing || (walletInfo?.tokenBalance || 0) < tokenPrice}
+              disabled={isPurchasing || tokenBalance < tokenPrice}
             >
               {isPurchasing ? "Traitement..." : "Confirmer l'achat"}
             </Button>

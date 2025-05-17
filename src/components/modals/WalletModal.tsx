@@ -61,7 +61,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
 
             <TabsContent value="history" className="space-y-4 py-4">
               <TransactionList 
-                transactions={walletInfo?.transactions || emptyTransactions} 
+                transactions={walletInfo?.wallet?.transactions || emptyTransactions} 
               />
             </TabsContent>
           </Tabs>

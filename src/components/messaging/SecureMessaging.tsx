@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -372,22 +373,10 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     );
   }
 
-  const filteredThreads = threads.filter(thread => {
-    if (filterMode === 'all') return true;
-    if (filterMode === 'unread') {
-      const lastReadByCurrentUser = (thread.readStatus && userId && thread.readStatus[userId] as Timestamp | undefined)?.toMillis() || 0;
-      return thread.lastActivity && (thread.lastActivity as Timestamp).toMillis() > lastReadByCurrentUser && thread.lastMessageSenderId !== userId;
-    }
-    if (filterMode === 'supported') { 
-      return thread.messages.some(m => m.senderId === userId && (m as any).monetization); 
-    }
-    return true;
-  });
-
-  // Add participants property to ExtendedFirestoreMessageThread if missing
+  // We'll remove the unused filteredThreads variable
+  // and fix the enhancedThreads logic
   const enhancedThreads = threads.map(thread => ({
-    ...thread,
-    participants: thread.participants || [currentUser.uid, thread.creatorId]
+    ...thread
   }));
 
   return (
