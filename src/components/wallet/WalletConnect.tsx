@@ -1,5 +1,12 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { WalletResponse } from '@/hooks/use-tron-wallet';
+
+// Interface for the component props
+interface WalletConnectProps {
+  walletInfo?: WalletResponse;
+}
 
 // Mock function with proper argument count
 const connectWallet = async (provider: string, callback?: () => void) => {
@@ -8,7 +15,7 @@ const connectWallet = async (provider: string, callback?: () => void) => {
   return true;
 };
 
-const WalletConnect = () => {
+const WalletConnect: React.FC<WalletConnectProps> = ({ walletInfo }) => {
   const [connected, setConnected] = useState(false);
   
   const handleConnect = async () => {

@@ -28,7 +28,6 @@ export interface StoryUploadParams {
   expiresIn: number;
   tags?: string[];
   metadata?: Record<string, any>;
-  creatorId?: string; // Add the missing property
 }
 
 export interface UserProfile {
