@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
@@ -137,14 +136,14 @@ const MessageCenter = ({
       } : undefined
     };
     
-    // Update threads with new message
+    // Update threads with new message - ensure correct types
     setThreads(prev => 
       prev.map(thread => 
         thread.id === activeThreadId 
           ? { 
               ...thread, 
               messages: [...thread.messages, newMessage], 
-              lastActivity: newMessage.timestamp 
+              lastActivity: newMessage.timestamp as string // Ensure correct type
             }
           : thread
       )
@@ -441,14 +440,11 @@ const MessageCenter = ({
                 <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
                   <MessageInput 
                     onSendMessage={handleSendMessage}
-                    isComposing={isComposing}
-                    setIsComposing={setIsComposing}
                     monetizationEnabled={monetizationEnabled}
                     onToggleMonetization={toggleMonetization}
                     monetizationTier={monetizationTier}
-                    setMonetizationTier={setMonetizationTier}
                     monetizationAmount={monetizationAmount}
-                    setMonetizationAmount={setMonetizationAmount}
+                    isEncrypted={encryptionEnabled}
                   />
                 </div>
               </>

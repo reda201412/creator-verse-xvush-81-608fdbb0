@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,10 +12,19 @@ import CreatorSelector from './CreatorSelector';
 import { createNewConversationWithCreator, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 
-// Define the extended type that we need
+// Define the extended type with all properties needed from MessageThread
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: any[];
   readStatus?: Record<string, any>;
+  participants: string[]; // Add this property to match MessageThread
+  name?: string; 
+  lastActivity: string | Date; // Ensure compatible type
+  isPinned?: boolean;
+  isArchived?: boolean;
+  isGated?: boolean;
+  isSecure?: boolean;
+  unreadCount?: number;
+  sessionKey?: string;
 }
 
 interface ConversationListProps {

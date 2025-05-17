@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   RadialBarChart, 
@@ -16,7 +15,7 @@ interface EmotionalInsightsProps {
   threadId: string;
 }
 
-const EmotionalInsights: React.FC<EmotionalInsightsProps> = ({ threadId }) => {
+const EmotionalInsights = (/*{ threadId }: { threadId: string }*/) => {
   const isMobile = useIsMobile();
   
   // Mocked data for emotional insights

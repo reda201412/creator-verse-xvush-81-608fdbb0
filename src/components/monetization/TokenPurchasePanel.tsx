@@ -1,13 +1,4 @@
-
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Coins, CreditCard, Gift, Info, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -142,7 +133,6 @@ const TokenPurchasePanel = ({ isOpen, onClose, onPurchase }: TokenPurchaseProps)
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {purchaseOptions.map((option) => {
-              const totalTokens = option.tokenAmount + (option.bonus || 0);
               return (
                 <motion.div
                   key={option.id}

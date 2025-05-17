@@ -1,94 +1,82 @@
-
 import React, { useState } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useStories } from '@/hooks/use-stories';
-import StoriesViewer from './StoriesViewer';
-import StoryPublisher from './StoryPublisher';
-import { PlusCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import { useUserBehavior } from '@/hooks/use-user-behavior';
+import { cn } from '@/lib/utils';
 
-const StoriesTimeline: React.FC = () => {
-  const { storyGroups, loading } = useStories();
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [selectedGroupIndex, setSelectedGroupIndex] = useState(0);
-  const { user, isCreator } = useAuth();
-  const { trackInteraction } = useUserBehavior();
-  
-  const handleStoryClick = (index: number) => {
-    setSelectedGroupIndex(index);
-    setViewerOpen(true);
-    trackInteraction('click', { feature: 'open_story', index });
+interface UserWithStories {
+  id?: string;
+  name?: string;
+  username?: string;
+  avatarUrl?: string;
+  stories?: any[];
+}
+
+interface Story {
+  id: string;
+  imageUrl: string;
+  duration: number;
+}
+
+interface StoriesTimelineProps {
+  userWithStories?: UserWithStories[];
+  onStorySelect: (stories: Story[], creatorName: string, creatorAvatar: string, startIndex: number) => void;
+}
+
+const generateRandomStories = (min: number, max: number): Story[] => {
+  const numberOfStories = Math.floor(Math.random() * (max - min + 1)) + min;
+  const stories: Story[] = [];
+  for (let i = 0; i < numberOfStories; i++) {
+    stories.push({
+      id: crypto.randomUUID(),
+      imageUrl: `https://source.unsplash.com/random/360x640?sig=${i}`,
+      duration: 5000
+    });
+  }
+  return stories;
+};
+
+const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ userWithStories, onStorySelect }) => {
+  const [activeStory, setActiveStory] = useState<string | null>(null);
+
+  // Adjust the id access by adding a '?' to safely access the id property or provide a fallback
+  const creatorStories = userWithStories?.map(user => ({
+    id: crypto.randomUUID(),
+    name: user.name || user.username || 'Unknown Creator',
+    username: user.username || 'creator',
+    avatar: user.avatarUrl || `https://i.pravatar.cc/150?u=${user?.id || 'unknown'}`,
+    stories: generateRandomStories(3, 7)
+  }));
+
+  const handleStoryClick = (stories: Story[], creatorName: string, creatorAvatar: string, startIndex: number) => {
+    onStorySelect(stories, creatorName, creatorAvatar, startIndex);
   };
-  
-  if (loading) {
-    return (
-      <div className="w-full overflow-x-auto py-4">
-        <div className="flex space-x-4 px-4">
-          {Array(5).fill(0).map((_, i) => (
-            <div key={i} className="flex flex-col items-center space-y-1 animate-pulse">
-              <div className="w-16 h-16 rounded-full bg-gray-300" />
-              <div className="w-14 h-3 rounded bg-gray-300" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  
-  if (storyGroups.length === 0 && !isCreator) {
-    return null;
-  }
-  
+
   return (
-    <>
-      <div className="w-full overflow-x-auto py-4 no-scrollbar">
-        <div className="flex space-x-4 px-4">
-          {isCreator && (
-            <div className="flex flex-col items-center space-y-1">
-              <StoryPublisher />
-              <span className="text-xs text-muted-foreground">Nouveau</span>
-            </div>
-          )}
-          
-          {storyGroups.map((group, index) => (
-            <motion.div 
-              key={group.creator.id} 
-              className="flex flex-col items-center space-y-1 cursor-pointer"
-              onClick={() => handleStoryClick(index)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+    <div className="w-full">
+      <ScrollArea className="w-full whitespace-nowrap py-4">
+        <div className="inline-flex items-center pl-2">
+          {creatorStories?.map((creator, index) => (
+            <div
+              key={creator.id}
+              className={cn(
+                "relative flex flex-col items-center justify-center px-2 last:pr-2 cursor-pointer transition-all hover:scale-105",
+                activeStory === creator.id && "ring-2 ring-primary"
+              )}
+              onClick={() => {
+                setActiveStory(creator.id || null);
+                handleStoryClick(creator.stories, creator.name || 'Unknown', creator.avatar || '', 0);
+              }}
             >
-              <div className={`rounded-full p-[2px] ${
-                group.hasUnviewed 
-                  ? 'bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500' 
-                  : 'bg-muted'
-              }`}>
-                <Avatar className="w-16 h-16 border-2 border-background">
-                  <AvatarImage src={group.creator.avatar_url || undefined} />
-                  <AvatarFallback className="text-lg">
-                    {group.creator.display_name?.charAt(0) || group.creator.username.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <span className="text-xs truncate w-16 text-center">
-                {group.creator.id === user?.id
-                  ? 'Votre story'
-                  : group.creator.display_name || group.creator.username}
-              </span>
-            </motion.div>
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={creator.avatar} alt={creator.name} />
+                <AvatarFallback>{creator.name?.slice(0, 2)}</AvatarFallback>
+              </Avatar>
+              <p className="text-sm mt-1 truncate w-20 text-center">{creator.name}</p>
+            </div>
           ))}
         </div>
-      </div>
-      
-      <StoriesViewer 
-        isOpen={viewerOpen} 
-        onClose={() => setViewerOpen(false)} 
-        initialGroupIndex={selectedGroupIndex}
-      />
-    </>
+      </ScrollArea>
+    </div>
   );
 };
 

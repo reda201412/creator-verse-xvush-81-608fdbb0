@@ -1,93 +1,117 @@
-
-import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { decryptMessage, EncryptedContent } from '@/utils/encryption';
+import { Lock, Zap, Eye, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { isEncrypted } from '@/utils/encryption';
 import { Spinner } from '@/components/ui/spinner';
 
-interface SecureMessageBubbleProps {
-  content: string | EncryptedContent;
-  isCurrentUser: boolean;
-  sender: string;
-  timestamp: string;
-  sessionKey: string;
-  isPremium?: boolean;
-  onDecrypt?: (decryptedContent: string) => void;
-  className?: string;
+interface FirestoreMessage {
+  id: string;
+  content: string | any;
+  senderId: string;
+  createdAt: any;
+  status?: string;
+  isEncrypted?: boolean;
+  monetization?: {
+    tier: string;
+    price: number;
+    currency?: string;
+  };
+  // We'll add these custom fields for the component
+  senderName?: string;
+  senderAvatar?: string;
+  timestamp?: string;
 }
 
-const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
-  content,
+interface MessageBubbleProps {
+  message: FirestoreMessage;
+  isCurrentUser: boolean;
+  decryptMessage: (message: FirestoreMessage) => Promise<string>;
+}
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
   isCurrentUser,
-  sender,
-  timestamp,
-  sessionKey,
-  isPremium = false,
-  onDecrypt,
-  className
+  decryptMessage
 }) => {
-  const [isRevealed, setIsRevealed] = useState(false);
-  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
-  const { toast } = useToast();
+  const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
+  const [showDecrypted, setShowDecrypted] = useState(false);
+  const hasMonetization = !!message.monetization;
   
-  // Déterminer si le contenu est chiffré
-  const encrypted = typeof content === 'object' && 'data' in content && 'iv' in content && 'salt' in content;
-  
-  const handleDecrypt = useCallback(async () => {
-    if (!encrypted || !sessionKey) return;
+  const handleDecrypt = async () => {
+    if (!decryptMessage || !isEncrypted(message.content)) return;
     
+    setIsDecrypting(true);
     try {
-      setIsDecrypting(true);
-      // Déchiffrement du message avec le contenu typé correctement
-      const encryptedContent = content as EncryptedContent;
-      const message = await decryptMessage(encryptedContent, sessionKey);
-      setDecryptedContent(message);
-      setIsRevealed(true);
-      if (onDecrypt) onDecrypt(message);
-      
-      toast({
-        title: "Message déchiffré",
-        description: "Le message a été déchiffré avec succès",
-        variant: "default",
-      });
+      const content = await decryptMessage(message);
+      setDecryptedContent(content);
+      setShowDecrypted(true);
     } catch (error) {
-      console.error('Erreur de déchiffrement:', error);
-      toast({
-        title: "Erreur de déchiffrement",
-        description: "Impossible de déchiffrer ce message. La clé pourrait être invalide.",
-        variant: "destructive",
-      });
+      console.error("Error decrypting:", error);
     } finally {
       setIsDecrypting(false);
     }
-  }, [content, sessionKey, onDecrypt, toast]);
-  
-  const toggleReveal = useCallback(() => {
-    if (!decryptedContent && encrypted) {
-      handleDecrypt();
-    } else {
-      setIsRevealed(!isRevealed);
+  };
+
+  const renderContent = () => {
+    // If content is encrypted and we have decrypted it
+    if (isEncrypted(message.content) && decryptedContent && showDecrypted) {
+      return <p className="text-sm whitespace-pre-wrap">{decryptedContent}</p>;
     }
-  }, [decryptedContent, encrypted, handleDecrypt, isRevealed]);
-  
+    
+    // If content is encrypted but not yet decrypted
+    if (isEncrypted(message.content)) {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 text-green-500 dark:text-green-400">
+            <Lock size={14} />
+            <span className="text-xs font-medium">Message chiffré</span>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={handleDecrypt}
+            disabled={isDecrypting}
+            className="w-full"
+          >
+            {isDecrypting ? (
+              <Spinner size="sm" className="mr-2" />
+            ) : (
+              <Eye size={14} className="mr-2" />
+            )}
+            Déchiffrer
+          </Button>
+        </div>
+      );
+    }
+    
+    // Regular content
+    return <p className="text-sm whitespace-pre-wrap">{message.content as string}</p>;
+  };
+
   return (
     <div className={cn(
-      "flex",
-      isCurrentUser ? "justify-end" : "justify-start",
-      className
+      "flex mb-2",
+      isCurrentUser ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
         "max-w-[80%] flex",
         isCurrentUser ? "flex-row-reverse" : "flex-row"
       )}>
         {!isCurrentUser && (
-          <div className="mr-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              {sender.charAt(0).toUpperCase()}
+          <div className="mr-2 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white overflow-hidden">
+              {message.senderAvatar ? (
+                <img 
+                  src={message.senderAvatar} 
+                  alt={message.senderName || 'User'} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (message.senderName || 'U').charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         )}
@@ -96,92 +120,71 @@ const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
           "flex flex-col",
           isCurrentUser ? "items-end" : "items-start"
         )}>
-          {!isCurrentUser && (
-            <span className="text-xs text-muted-foreground mb-1">{sender}</span>
+          {!isCurrentUser && message.senderName && (
+            <span className="text-xs text-muted-foreground mb-1">{message.senderName}</span>
           )}
           
           <div className={cn(
-            "rounded-2xl py-2 px-3 group relative message-bubble",
+            "rounded-2xl py-2 px-3 group relative",
             isCurrentUser 
-              ? "bg-primary text-primary-foreground rounded-tr-none" 
-              : "bg-muted/60 backdrop-blur-sm rounded-tl-none",
-            isPremium && "border-amber-400/30",
-            encrypted && "border border-green-400/20",
+              ? "bg-primary text-primary-foreground dark:bg-primary/90 rounded-tr-none" 
+              : "bg-muted/60 dark:bg-muted/30 backdrop-blur-sm rounded-tl-none",
+            hasMonetization && (isCurrentUser 
+              ? "border-l-4 border-amber-400" 
+              : "border-r-4 border-amber-400"
+            ),
+            message.isEncrypted && "border border-green-400/20",
             "transition-all duration-300"
           )}>
             {/* Indicateurs de sécurité et premium */}
-            <div className="absolute -top-2 -right-2 flex space-x-1">
-              {encrypted && (
+            <div className={cn(
+              "absolute -top-2",
+              isCurrentUser ? "-left-2" : "-right-2",
+              "flex space-x-1"
+            )}>
+              {message.isEncrypted && (
                 <div className="bg-green-500 rounded-full p-1 shadow-lg">
                   <Lock size={10} className="text-white" />
                 </div>
               )}
-              {isPremium && (
+              {hasMonetization && (
                 <div className="bg-amber-400 rounded-full p-1 shadow-lg">
-                  <Shield size={10} className="text-black" />
+                  <Heart size={10} className="text-amber-900" />
                 </div>
               )}
             </div>
             
             {/* Contenu du message */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={isRevealed ? 'revealed' : 'hidden'}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {encrypted ? (
-                  isRevealed && decryptedContent ? (
-                    <div className="relative">
-                      <p className="text-sm whitespace-pre-wrap pr-6">{decryptedContent}</p>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-0 right-0 h-6 w-6 opacity-50 hover:opacity-100"
-                        onClick={toggleReveal}
-                      >
-                        <EyeOff size={14} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-green-500">
-                        <Lock size={14} />
-                        <span className="text-xs font-medium">Message chiffré</span>
-                      </div>
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        onClick={handleDecrypt}
-                        disabled={isDecrypting}
-                        className="w-full"
-                      >
-                        {isDecrypting ? (
-                          <Spinner size="sm" className="mr-2" />
-                        ) : (
-                          <Eye size={14} className="mr-2" />
-                        )}
-                        Déchiffrer
-                      </Button>
-                    </div>
-                  )
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{content as string}</p>
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderContent()}
+            </motion.div>
           </div>
           
           <span className="text-[10px] text-muted-foreground mt-1">
-            {new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-            {encrypted && <span className="ml-1">• {isRevealed ? "Déchiffré" : "Chiffré"}</span>}
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+             message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+            {message.isEncrypted && <span className="ml-1">• {showDecrypted ? "Déchiffré" : "Chiffré"}</span>}
           </span>
+          
+          {hasMonetization && (
+            <div className={cn(
+              "flex items-center mt-1",
+              isCurrentUser ? "justify-end" : "justify-start"
+            )}>
+              <span className="text-xs text-amber-500 flex items-center">
+                <Zap size={10} className="mr-1" />
+                {message.monetization?.tier} · {message.monetization?.price} USDT
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default React.memo(SecureMessageBubble);
+export default React.memo(MessageBubble);
