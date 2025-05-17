@@ -78,7 +78,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className="w-full"
           >
             {isDecrypting ? (
-              <Spinner size="sm" className="mr-2" />
+              <div className="mr-2">
+                <Spinner className="h-4 w-4" />
+              </div>
             ) : (
               <Eye size={14} className="mr-2" />
             )}

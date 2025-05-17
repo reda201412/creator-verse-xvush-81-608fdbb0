@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -43,8 +44,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <Spinner size="lg" />
-        <p className="ml-4 text-lg">Chargement de votre session...</p>
+        <Spinner className="h-8 w-8 mr-4" />
+        <p className="text-lg">Chargement de votre session...</p>
       </div>
     );
   }
@@ -62,8 +63,8 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <Spinner size="lg" />
-        <p className="ml-4 text-lg">Chargement de votre session créateur...</p>
+        <Spinner className="h-8 w-8 mr-4" />
+        <p className="text-lg">Chargement de votre session créateur...</p>
       </div>
     );
   }
