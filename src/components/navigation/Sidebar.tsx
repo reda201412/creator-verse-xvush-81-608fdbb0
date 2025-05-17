@@ -4,25 +4,28 @@ import {
   Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
+  expanded: boolean; // Adding this property that App.tsx is using
+  onToggle: () => void; // Adding this property that App.tsx is using
+  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ expanded, onToggle, className }) => {
   const [activeRoute, setActiveRoute] = useState('home');
 
   const handleRouteChange = (route: string) => {
     setActiveRoute(route);
-    onClose();
+    onToggle();
   };
 
   return (
     <aside
       className={cn(
         "fixed top-0 left-0 h-full w-64 bg-background border-r border-border/20 transition-transform duration-300 ease-in-out z-50",
-        isOpen ? "translate-x-0" : "-translate-x-full",
+        expanded ? "translate-x-0" : "-translate-x-full",
+        className
       )}
     >
       <div className="p-4">

@@ -1,6 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-// Remove unused imports
+import React, { useRef } from 'react';
 
 interface GestureHandlerProps {
   children: React.ReactNode;

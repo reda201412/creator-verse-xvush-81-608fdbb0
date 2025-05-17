@@ -1,536 +1,351 @@
-import { useState, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  MessageSquare, 
-  Lock, 
-  Shield,
-  ChevronDown,
-  ChevronRight,
-  Users,
-  ArrowLeft,
-  Key,
-  Zap
-} from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import MessageThread from './MessageThread';
-import MessageInput from './MessageInput';
-import WalletPanel from './WalletPanel';
-import MessageAnalytics from './MessageAnalytics';
-import EmotionalInsights from './EmotionalInsights';
-import { Message, MessageThread as MessageThreadType, MonetizationTier } from '@/types/messaging';
-import { mockMessageThreads } from '@/data/mockMessages';
-import { encryptMessage, generateSessionKey } from '@/utils/encryption';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Send, Paperclip, Plus, Smile, Wallet } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from "@/components/ui/use-toast"
+import { toast } from 'sonner';
+import {
+  createMessage,
+  getMessages,
+  getMessageThread,
+  createThread,
+  getThreadsForUser,
+  ExtendedFirestoreMessageThread,
+  FirestoreMessage,
+  uploadFile,
+  deleteFile,
+  updateThread,
+} from '@/utils/messaging-utils';
+import MessageThread from '@/components/messaging/MessageThread';
+import SecureMessageBubble from '@/components/messaging/SecureMessageBubble';
+import EphemeralIndicator from '@/components/messaging/EphemeralIndicator';
+import WalletPanel from '@/components/messaging/WalletPanel';
+import EmotionalInsights from '@/components/messaging/EmotionalInsights';
 
 interface MessageCenterProps {
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  isCreator?: boolean;
   className?: string;
 }
 
-const MessageCenter = ({
-  userId,
-  userName,
-  userAvatar,
-  isCreator = false,
-  className,
-}: MessageCenterProps) => {
-  const isMobile = useIsMobile();
-  const [threads, setThreads] = useState<MessageThreadType[]>(mockMessageThreads);
-  const [activeThreadId, setActiveThreadId] = useState<string | undefined>(mockMessageThreads[0]?.id);
-  const [showWallet, setShowWallet] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [walletBalance] = useState(125.40);
-  const [isComposing, setIsComposing] = useState(false);
-  const [monetizationEnabled, setMonetizationEnabled] = useState(false);
-  const [monetizationTier, setMonetizationTier] = useState<MonetizationTier>('basic');
-  const [monetizationAmount, setMonetizationAmount] = useState(1.99);
-  const [showThreadList, setShowThreadList] = useState(!isMobile);
-  const [encryptionEnabled, setEncryptionEnabled] = useState(true);
-  const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
-  const [showEncryptionSettings, setShowEncryptionSettings] = useState(false);
-
+const MessageCenter = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const messageEndRef = useRef<HTMLDivElement>(null);
-  
-  const activeThread = threads.find(thread => thread.id === activeThreadId);
-  
-  // Générer ou récupérer la clé de session pour le thread actif
-  useEffect(() => {
-    if (activeThreadId && !sessionKeys[activeThreadId]) {
-      const newSessionKey = generateSessionKey();
-      setSessionKeys(prev => ({
-        ...prev,
-        [activeThreadId]: newSessionKey
-      }));
-    }
-  }, [activeThreadId, sessionKeys]);
-  
-  useEffect(() => {
-    // Handle mobile view - hide thread list when thread is selected
-    if (isMobile && activeThreadId) {
-      setShowThreadList(false);
-    }
-  }, [activeThreadId, isMobile]);
+  const [threads, setThreads] = useState<ExtendedFirestoreMessageThread[]>([]);
+  const [selectedThread, setSelectedThread] = useState<ExtendedFirestoreMessageThread | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isComposing, setIsComposing] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+  const [showEmotionalInsights, setShowEmotionalInsights] = useState(false);
+  const [monetizationTier, setMonetizationTier] = useState<'free' | 'premium'>('free');
+  const [monetizationAmount, setMonetizationAmount] = useState<number>(0);
+  const [isEphemeral, setIsEphemeral] = useState(false);
+  const [ephemeralDuration, setEphemeralDuration] = useState(5);
+  const [isEncrypted, setIsEncrypted] = useState(false);
+  const [sessionKey, setSessionKey] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(15.20);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Toggle thread list visibility based on mobile state
-    if (!isMobile) {
-      setShowThreadList(true);
-    }
-  }, [isMobile]);
+    if (!user) return;
 
-  useEffect(() => {
-    // Scroll to latest message
-    if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [activeThread?.messages]);
-  
-  const handleSendMessage = async (content: string) => {
-    if (!activeThreadId || !content.trim()) return;
-    
-    let finalContent = content;
-    let isEncrypted = false;
-    
-    // Chiffrer le message si l'option est activée
-    if (encryptionEnabled && activeThreadId && sessionKeys[activeThreadId]) {
+    const fetchThreads = async () => {
+      setIsLoading(true);
       try {
-        const encryptedData = await encryptMessage(content, sessionKeys[activeThreadId]);
-        finalContent = JSON.stringify(encryptedData);
-        isEncrypted = true;
-      } catch (error) {
-        console.error('Erreur de chiffrement:', error);
+        const userThreads = await getThreadsForUser(user.uid);
+        setThreads(userThreads);
+      } catch (err) {
+        setError('Failed to load messages.');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchThreads();
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedThread) {
+      const unsubscribe = getMessageThread(selectedThread.id, (updatedThread) => {
+        setSelectedThread(updatedThread);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [selectedThread]);
+
+  const handleSelectThread = async (thread: ExtendedFirestoreMessageThread) => {
+    setSelectedThread(thread);
+  };
+
+  const handleNewMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+  };
+
+  const handleSendMessage = async () => {
+    if (!user || !selectedThread) return;
+
+    setIsLoading(true);
+    try {
+      let messageContent: string | { url: string; name: string } = newMessage;
+
+      if (file) {
+        setIsUploading(true);
+        const uploadResult = await uploadFile(file, setUploadProgress);
+
+        if (uploadResult && uploadResult.url) {
+          messageContent = { url: uploadResult.url, name: file.name };
+          setFile(null);
+        } else {
+          throw new Error('File upload failed');
+        }
+      }
+
+      const messageData: FirestoreMessage = {
+        senderId: user.uid,
+        senderAvatar: user.photoURL || '',
+        content: messageContent,
+        timestamp: new Date(),
+        isEncrypted: isEncrypted,
+        isEphemeral: isEphemeral,
+        ephemeralDuration: isEphemeral ? ephemeralDuration : null,
+      };
+
+      await createMessage(selectedThread.id, messageData);
+      setNewMessage('');
+      setIsEphemeral(false);
+      setEphemeralDuration(5);
+      setIsEncrypted(false);
+      setUploadProgress(0);
+      toast({
+        title: "Message sent!",
+        description: "Your message has been successfully delivered.",
+      })
+    } catch (err) {
+      setError('Failed to send message.');
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your message.",
+      })
+    } finally {
+      setIsLoading(false);
+      setIsUploading(false);
+    }
+  };
+
+  const handleCreateThread = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const newThread = await createThread(user.uid);
+      setThreads(prevThreads => [...prevThreads, newThread]);
+      setSelectedThread(newThread);
+      toast({
+        title: "New thread created!",
+        description: "Start messaging now.",
+      })
+    } catch (err) {
+      setError('Failed to create new thread.');
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "Could not create new thread.",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWalletToggle = () => {
+    setShowWallet(!showWallet);
+  };
+
+  const handleEmotionalInsightsToggle = () => {
+    setShowEmotionalInsights(!showEmotionalInsights);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    if (file && selectedThread) {
+      setIsLoading(true);
+      try {
+        await deleteFile(file.name);
+        setFile(null);
         toast({
-          title: "Échec du chiffrement",
-          description: "Le message sera envoyé non chiffré.",
+          title: "File removed!",
+          description: "The attached file has been removed.",
+        })
+      } catch (err) {
+        setError('Failed to remove file.');
+        console.error(err);
+        toast({
           variant: "destructive",
-        });
+          title: "Uh oh! Something went wrong.",
+          description: "Could not remove the file.",
+        })
+      } finally {
+        setIsLoading(false);
       }
     }
-    
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
-      senderId: userId,
-      senderName: userName,
-      senderAvatar: userAvatar,
-      content: finalContent,
-      timestamp: new Date().toISOString(),
-      status: 'sent',
-      isEncrypted,
-      monetization: monetizationEnabled ? {
-        tier: monetizationTier,
-        price: monetizationAmount,
-        currency: 'USD'
-      } : undefined
-    };
-    
-    // Update threads with new message - ensure correct types
-    setThreads(prev => 
-      prev.map(thread => 
-        thread.id === activeThreadId 
-          ? { 
-              ...thread, 
-              messages: [...thread.messages, newMessage], 
-              lastActivity: newMessage.timestamp as string // Ensure correct type
-            }
-          : thread
-      )
-    );
-    
-    // Show a toast if this was a monetized message
-    if (monetizationEnabled) {
-      toast({
-        title: "Message monétisé",
-        description: `Votre message est maintenant disponible au tarif ${monetizationAmount}€ (${monetizationTier}).`,
-      });
-    }
-    
-    if (isEncrypted) {
-      toast({
-        title: "Message chiffré",
-        description: "Votre message a été chiffré avant l'envoi.",
-        variant: "default",
-      });
-    }
-    
-    // Reset monetization for next message
-    setMonetizationEnabled(false);
-  };
-  
-  const toggleWallet = () => {
-    setShowWallet(!showWallet);
-    if (showAnalytics) setShowAnalytics(false);
-  };
-  
-  const toggleAnalytics = () => {
-    setShowAnalytics(!showAnalytics);
-    if (showWallet) setShowWallet(false);
-  };
-  
-  const toggleMonetization = () => {
-    setMonetizationEnabled(!monetizationEnabled);
-    if (!monetizationEnabled) {
-      toast({
-        title: "Monétisation activée",
-        description: `Ce message sera monétisé à ${monetizationAmount}€ (${monetizationTier}).`,
-      });
-    }
   };
 
-  const backToThreadList = () => {
-    setShowThreadList(true);
-  };
-  
-  const handleResetSessionKey = () => {
-    if (activeThreadId) {
-      const newSessionKey = generateSessionKey();
-      setSessionKeys(prev => ({
-        ...prev,
-        [activeThreadId]: newSessionKey
-      }));
-      
-      toast({
-        title: "Clé de session régénérée",
-        description: "Les nouveaux messages utiliseront cette clé pour le chiffrement.",
-      });
-    }
-  };
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [selectedThread]);
 
   return (
-    <div className={cn(
-      "glass-card rounded-2xl overflow-hidden shadow-lg flex flex-col",
-      "h-[600px] md:h-[700px] relative",
-      className
-    )}>
-      {/* Header with tabs for different message categories */}
-      <div className="bg-background/50 backdrop-blur-sm border-b border-border/20 p-3">
-        <Tabs defaultValue="direct" className="w-full">
-          <TabsList className="w-full justify-start">
-            {isMobile && !showThreadList && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 mr-2" 
-                onClick={backToThreadList}
-              >
-                <ArrowLeft size={16} />
-              </Button>
-            )}
-            <TabsTrigger value="direct" className="flex items-center gap-2">
-              <MessageSquare size={16} />
-              <span className="text-sm hidden sm:inline">Direct</span>
-            </TabsTrigger>
-            <TabsTrigger value="groups" className="flex items-center gap-2">
-              <Users size={16} />
-              <span className="text-sm hidden sm:inline">Groupes</span>
-            </TabsTrigger>
-            <TabsTrigger value="vip" className="flex items-center gap-2">
-              <Shield size={16} />
-              <span className="text-sm hidden sm:inline">VIP</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <div className="flex items-center gap-2 mt-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={cn(
-                "h-8 w-8 p-0 rounded-full", 
-                showWallet && "bg-primary/10 text-primary"
-              )}
-              onClick={toggleWallet}
-            >
-              <Zap size={16} />
+    <div className="flex flex-row h-full">
+      <div className="w-64 border-r overflow-y-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Messages</CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            <Button variant="outline" className="w-full mb-4" onClick={handleCreateThread} disabled={isLoading}>
+              Nouveau Message
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={cn(
-                "h-8 w-8 p-0 rounded-full", 
-                showAnalytics && "bg-primary/10 text-primary"
-              )}
-              onClick={toggleAnalytics}
-            >
-              <ChevronDown size={16} />
-            </Button>
-            
-            <Dialog open={showEncryptionSettings} onOpenChange={setShowEncryptionSettings}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-8 w-8 p-0 rounded-full",
-                    encryptionEnabled && "bg-green-500/10 text-green-500"
-                  )}
-                >
-                  <Lock size={16} />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Paramètres de chiffrement</DialogTitle>
-                  <DialogDescription>
-                    Configurez les options de sécurité pour vos messages.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="encryption">Chiffrement de bout en bout</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Vos messages sont chiffrés et ne peuvent être lus que par vous et votre destinataire.
-                      </p>
-                    </div>
-                    <Switch
-                      id="encryption"
-                      checked={encryptionEnabled}
-                      onCheckedChange={setEncryptionEnabled}
-                    />
-                  </div>
-                  
-                  {activeThreadId && encryptionEnabled && (
-                    <div className="space-y-2 pt-2">
-                      <Label>Clé de session actuelle</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={sessionKeys[activeThreadId]?.substring(0, 10) + '...'}
-                          readOnly
-                          className="font-mono text-xs"
-                        />
-                        <Button variant="outline" onClick={handleResetSessionKey}>
-                          <Key size={16} className="mr-2" />
-                          Régénérer
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Cette clé est utilisée pour chiffrer vos messages dans cette conversation.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <DialogFooter>
-                  <Button
-                    onClick={() => setShowEncryptionSettings(false)}
-                    className="w-full sm:w-auto"
-                  >
-                    Fermer
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </Tabs>
-      </div>
-      
-      <div className="flex flex-grow overflow-hidden">
-        {/* Thread list sidebar - shown conditionally based on mobile state and view */}
-        {showThreadList && (
-          <div className={cn(
-            "border-r border-border/20",
-            isMobile ? "w-full" : "w-1/3 hidden md:block"
-          )}>
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-[calc(100vh-200px)]">
               {threads.map(thread => (
-                <div 
+                <div
                   key={thread.id}
-                  className={cn(
-                    "p-3 border-b border-border/10 hover:bg-primary/5 cursor-pointer",
-                    thread.id === activeThreadId && "bg-primary/10"
-                  )}
-                  onClick={() => setActiveThreadId(thread.id)}
+                  className={`p-2 rounded-md cursor-pointer hover:bg-secondary ${selectedThread?.id === thread.id ? 'bg-secondary/50' : ''}`}
+                  onClick={() => handleSelectThread(thread)}
                 >
-                  {/* Show gated icon if applicable */}
-                  {thread.isGated && (
-                    <div className="absolute top-2 right-2">
-                      <Lock size={12} className="text-muted-foreground" />
+                  {thread.participants && thread.participants.length > 0 ? (
+                    <div className="flex items-center space-x-2">
+                      {thread.participants
+                        .filter(participantId => participantId !== user?.uid)
+                        .map(participantId => (
+                          <Avatar key={participantId} className="h-6 w-6">
+                            <AvatarImage src={`https://i.pravatar.cc/150?u=${participantId}`} />
+                            <AvatarFallback>{participantId.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        ))}
+                      <span className="text-sm">Thread ID: {thread.id}</span>
                     </div>
+                  ) : (
+                    <span className="text-sm">Nouveau message</span>
                   )}
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <img 
-                        src={thread.participants[0] !== userId ? 
-                          `https://i.pravatar.cc/40?u=${thread.participants[0]}` : 
-                          `https://i.pravatar.cc/40?u=${thread.participants[1]}`} 
-                        alt="Avatar" 
-                        className="w-8 h-8 rounded-full object-cover" 
-                      />
-                      <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex justify-between">
-                        <p className="font-medium text-sm truncate">
-                          {thread.name || `User_${thread.participants.find(p => p !== userId)}`}
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(thread.lastActivity).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                        {thread.messages[thread.messages.length - 1]?.isEncrypted && (
-                          <Lock size={10} className="text-green-500" />
-                        )}
-                        {thread.messages[thread.messages.length - 1]?.content || "New conversation"}
-                        {thread.messages[thread.messages.length - 1]?.monetization && (
-                          <Zap size={10} className="text-amber-500" />
-                        )}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               ))}
             </ScrollArea>
-          </div>
-        )}
-        
-        {/* Active conversation */}
-        {!showThreadList && (
-          <div className="flex-1 flex flex-col">
-            {activeThread ? (
-              <>
-                <div className="p-3 border-b border-border/20 bg-background/50 backdrop-blur-sm flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <img 
-                        src={`https://i.pravatar.cc/40?u=${activeThread.participants.find(p => p !== userId)}`} 
-                        alt="Avatar" 
-                        className="w-8 h-8 rounded-full object-cover" 
-                      />
-                      <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {selectedThread && (
+        <>
+          <div className="flex-1 p-4 flex flex-col">
+            <Card className="flex-1">
+              <CardHeader>
+                <CardTitle>
+                  {selectedThread.participants && selectedThread.participants.length > 0 ? (
+                    <div className="flex items-center space-x-2">
+                      {selectedThread.participants
+                        .filter(participantId => participantId !== user?.uid)
+                        .map(participantId => (
+                          <Avatar key={participantId} className="h-8 w-8">
+                            <AvatarImage src={`https://i.pravatar.cc/150?u=${participantId}`} />
+                            <AvatarFallback>{participantId.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        ))}
+                      <span className="text-lg font-semibold">
+                        {selectedThread.participants
+                          .filter(participantId => participantId !== user?.uid)
+                          .map(participantId => `User ${participantId}`).join(', ')}
+                      </span>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {activeThread.name || `User_${activeThread.participants.find(p => p !== userId)}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">En ligne maintenant</p>
-                    </div>
-                  </div>
-                  
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <ChevronRight size={18} />
+                  ) : (
+                    'Nouveau message'
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <ScrollArea className="h-[calc(100vh-300px)]">
+                  <MessageThread
+                    messages={selectedThread.messages || []}
+                    currentUserId={user?.uid || ''}
+                    sessionKey={sessionKey}
+                  />
+                  <div ref={messagesEndRef} />
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            <div className="mt-4 flex items-center">
+              <Input
+                type="text"
+                placeholder="Écrire un message..."
+                value={newMessage}
+                onChange={handleNewMessageChange}
+                className="mr-2"
+                onFocus={() => setIsComposing(true)}
+                onBlur={() => setIsComposing(false)}
+              />
+              <Button variant="secondary" size="icon" onClick={handleWalletToggle}>
+                <Wallet size={16} />
+              </Button>
+              <Button variant="secondary" size="icon" onClick={handleEmotionalInsightsToggle}>
+                <Smile size={16} />
+              </Button>
+              <label htmlFor="upload-file">
+                <Input
+                  type="file"
+                  id="upload-file"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <Button variant="secondary" size="icon" disabled={isUploading}>
+                  <Paperclip size={16} />
+                </Button>
+              </label>
+              <Button onClick={handleSendMessage} disabled={isLoading || isUploading}>
+                <Send size={16} />
+              </Button>
+            </div>
+            {file && (
+              <div className="mt-2 p-2 bg-muted rounded-md flex items-center justify-between">
+                <p className="text-sm">{file.name}</p>
+                <div className="flex items-center">
+                  {isUploading && (
+                    <progress value={uploadProgress} max="100" className="mr-2"></progress>
+                  )}
+                  <Button variant="ghost" size="icon" onClick={handleRemoveFile}>
+                    <Plus className="rotate-45" size={16} />
                   </Button>
                 </div>
-                
-                <ScrollArea className="flex-1">
-                  <div className="p-4">
-                    <MessageThread 
-                      messages={activeThread.messages} 
-                      currentUserId={userId}
-                      sessionKey={sessionKeys[activeThread.id]}
-                    />
-                    <div ref={messageEndRef} />
-                  </div>
-                </ScrollArea>
-                
-                <div className="p-3 border-t border-border/20 bg-background/50 backdrop-blur-sm">
-                  <MessageInput 
-                    onSendMessage={handleSendMessage}
-                    monetizationEnabled={monetizationEnabled}
-                    onToggleMonetization={toggleMonetization}
-                    monetizationTier={monetizationTier}
-                    monetizationAmount={monetizationAmount}
-                    isEncrypted={encryptionEnabled}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center flex-col gap-4">
-                <MessageSquare size={64} className="text-muted-foreground/40" />
-                <p className="text-muted-foreground text-center">
-                  Sélectionnez une conversation pour commencer à discuter
-                </p>
               </div>
             )}
           </div>
-        )}
-        
-        {/* Empty state shown when on mobile but no thread selected */}
-        {isMobile && showThreadList && (
-          <div className="flex-1 hidden md:flex items-center justify-center flex-col gap-4">
-            <MessageSquare size={64} className="text-muted-foreground/40" />
-            <p className="text-muted-foreground text-center">
-              Sélectionnez une conversation pour commencer à discuter
-            </p>
-          </div>
-        )}
-      </div>
-      
-      {/* Collapsible wallet panel */}
-      <AnimatePresence>
-        {showWallet && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="border-t border-border/20 bg-background/50 backdrop-blur-sm"
-          >
-            <WalletPanel 
-              balance={walletBalance}
-              currency="€"
-              onClose={() => setShowWallet(false)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Collapsible analytics panel */}
-      <AnimatePresence>
-        {showAnalytics && activeThread && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="border-t border-border/20 bg-background/50 backdrop-blur-sm"
-          >
-            <Tabs defaultValue="analytics" className="w-full p-3">
-              <TabsList>
-                <TabsTrigger value="analytics">Revenus</TabsTrigger>
-                <TabsTrigger value="emotional">Emotional AI</TabsTrigger>
-              </TabsList>
-              <TabsContent value="analytics" className="mt-3">
-                <MessageAnalytics threadId={activeThread.id} />
-              </TabsContent>
-              <TabsContent value="emotional" className="mt-3">
-                <EmotionalInsights threadId={activeThread.id} />
-              </TabsContent>
-            </Tabs>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Mobile floating action for new messages */}
-      {isMobile && isCreator && (
-        <div className="absolute bottom-20 right-4">
-          <Button 
-            className="h-12 w-12 rounded-full shadow-lg bg-primary text-primary-foreground"
-            onClick={() => {
-              // Here we would add a new conversation function
-              toast({
-                title: "Nouvelle conversation",
-                description: "Fonctionnalité à venir.",
-              });
-            }}
-          >
-            <MessageSquare />
-          </Button>
-        </div>
+          
+          {showEmotionalInsights && (
+            <div className="w-72 border-l overflow-y-auto">
+              <EmotionalInsights messages={selectedThread.messages} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

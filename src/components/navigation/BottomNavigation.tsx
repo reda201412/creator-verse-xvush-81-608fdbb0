@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Home, Compass, PlusCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,6 @@ interface BottomNavigationProps {
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
   const isMobile = useIsMobile();
   const location = useLocation();
-  // Remove unused isMenuOpen state
 
   if (!isMobile) return null;
 

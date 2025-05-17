@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -385,6 +384,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     return true;
   });
 
+  // Add participants property to ExtendedFirestoreMessageThread if missing
+  const enhancedThreads = threads.map(thread => ({
+    ...thread,
+    participants: thread.participants || [currentUser.uid, thread.creatorId]
+  }));
+
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
       <header className="flex items-center justify-between p-4 backdrop-blur-md bg-white/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
@@ -435,7 +440,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
               className="h-full"
             >
               <ConversationList 
-                threads={filteredThreads} 
+                threads={enhancedThreads} 
                 userId={userId!} 
                 userName={userName} 
                 userAvatar={userAvatar} 

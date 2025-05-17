@@ -1,11 +1,9 @@
 
-// Remove unused React import
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
-// Remove non-existent CreatorContentContext import
 
 interface ImmersiveExperienceProps {
   children: React.ReactNode;
@@ -24,18 +22,6 @@ const ImmersiveExperience: React.FC<ImmersiveExperienceProps> = ({
   showBackButton = false,
   onBack,
 }) => {
-  // Remove unused mode and contentContext variables
-  const [isFullyVisible, setIsFullyVisible] = useState(false);
-  
-  useEffect(() => {
-    // Add a slight delay to ensure smooth animation
-    const timer = setTimeout(() => {
-      setIsFullyVisible(true);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <motion.div
       initial={{ opacity: 0 }}

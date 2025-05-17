@@ -66,7 +66,8 @@ interface MonetizedContentSectionProps {
   className?: string;
 }
 
-interface ContentPricingProps {
+// Define ContentPricingComponent interface to match what we're using in the component
+interface ContentPricingComponent {
   contentId: string;
   title: string;
   pricing: ContentPrice;
@@ -115,6 +116,54 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
     }, 1500);
     return true;
   };
+
+  // Define the ContentPricing component here inline, instead of trying to use an external one
+  // that doesn't have the right props
+  const ContentPricingItem = ({
+    contentId,
+    title,
+    pricing,
+    thumbnailUrl,
+    userSubscriptionTier,
+    userTokenBalance,
+    onPurchase,
+    onSubscribe
+  }: ContentPricingComponent) => {
+    return (
+      <div className="border rounded-md overflow-hidden flex flex-col">
+        <div style={{ 
+          backgroundImage: `url(${thumbnailUrl})`, 
+          height: 140, 
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }} className="relative">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
+            <div className="p-3 text-white">
+              <h3 className="font-medium">{title}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="p-3 flex-1">
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-sm font-medium">
+              {pricing.type === 'free' && 'Gratuit'}
+              {pricing.type === 'subscription' && `Abonnement ${pricing.requiredTier}`}
+              {pricing.type === 'token' && `${pricing.tokenPrice} tokens`}
+              {pricing.type === 'hybrid' && `${pricing.tokenPrice} tokens (${pricing.discountForSubscribers}% off)`}
+            </div>
+          </div>
+          <Button 
+            variant={pricing.type === 'free' ? 'outline' : 'default'} 
+            size="sm" 
+            className="w-full"
+            onClick={onPurchase}
+          >
+            {pricing.type === 'free' ? 'Voir' : 'Acheter'}
+          </Button>
+        </div>
+      </div>
+    );
+  };
   
   return (
     <Card className={className}>
@@ -161,7 +210,7 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredContent.map((content) => (
-              <ContentPricing 
+              <ContentPricingItem 
                 key={content.id}
                 contentId={content.id}
                 title={content.title}

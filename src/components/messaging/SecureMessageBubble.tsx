@@ -1,69 +1,54 @@
+
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Lock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import EphemeralIndicator from './EphemeralIndicator';
+import { Button } from '@/components/ui/button';
+import { Shield } from 'lucide-react';
 
 interface SecureMessageBubbleProps {
   content: string | React.ReactNode;
-  senderName: string;
-  senderAvatar?: string;
+  timestamp: string;
+  isOwn: boolean;
   isEncrypted?: boolean;
-  isEphemeral?: boolean;
-  isMonetized?: boolean;
-  isOwnMessage?: boolean;
-  isDelivered?: boolean;
-  isRead?: boolean;
-  timestamp?: string;
-  duration?: number;
-  onEphemeralEnd?: () => void;
+  onDecrypt?: () => void;
+  children?: React.ReactNode;
 }
 
 const SecureMessageBubble: React.FC<SecureMessageBubbleProps> = ({
   content,
-  senderName,
-  senderAvatar,
-  isEncrypted = false,
-  isEphemeral = false,
-  isMonetized = false,
-  isOwnMessage = false,
-  isDelivered = false,
-  isRead = false,
   timestamp,
-  duration = 5,
-  onEphemeralEnd,
+  isOwn,
+  isEncrypted = false,
+  onDecrypt,
+  children
 }) => {
+  const bubbleClass = isOwn
+    ? "bg-primary text-primary-foreground self-end"
+    : "bg-muted text-foreground self-start";
+  
   return (
-    <motion.div
-      className={cn(
-        "relative flex flex-col rounded-xl px-3 py-2 my-1 transition-colors duration-200",
-        isOwnMessage ? "bg-blue-100 dark:bg-blue-800 ml-auto" : "bg-gray-100 dark:bg-gray-800 mr-auto",
-        isEncrypted && "border border-dashed border-yellow-500",
-        isMonetized && "bg-gradient-to-br from-yellow-200 to-yellow-500 dark:from-yellow-700 dark:to-yellow-400 text-black"
+    <div className={`max-w-[80%] rounded-lg p-3 ${bubbleClass}`}>
+      {isEncrypted ? (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Shield size={14} />
+            <span className="text-xs font-medium">Message sécurisé</span>
+          </div>
+          <div className="text-sm mb-2">
+            {typeof content === 'string' ? '••••••••••••••••••••' : content}
+          </div>
+          <Button size="sm" variant="secondary" onClick={onDecrypt}>
+            Déchiffrer
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="text-sm">{content}</div>
+          {children}
+        </>
       )}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-    >
-      <div className="flex items-center space-x-2">
-        {senderAvatar && (
-          <img src={senderAvatar} alt={senderName} className="w-6 h-6 rounded-full" />
-        )}
-        <div className="text-sm font-medium">{senderName}</div>
-        {isEncrypted && (
-          <Shield size={14} className="text-yellow-500" />
-        )}
-        {isEphemeral && (
-          <EphemeralIndicator duration={duration} onComplete={onEphemeralEnd || (() => {})} />
-        )}
-        {isMonetized && (
-          <Badge variant="secondary">Premium</Badge>
-        )}
+      <div className="text-xs opacity-70 mt-1 text-right">
+        {timestamp}
       </div>
-      <div className="mt-1">{content}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">{timestamp}</div>
-    </motion.div>
+    </div>
   );
 };
 
