@@ -64,12 +64,13 @@ export interface FirestoreMessageThread {
   name?: string;
 }
 
-// Updated ExtendedFirestoreMessageThread interface to include name property
+// Extended FirestoreMessageThread interface with participants field required
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
   unreadCount?: number;
   sessionKey?: string;
   name: string;
+  participants: string[]; // Make participants required
   readStatus?: Record<string, any>;
 }
 

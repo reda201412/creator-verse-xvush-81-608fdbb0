@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,8 +37,8 @@ import { useModals } from '@/hooks/use-modals';
 import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 
 // Extended interface to match what we need in this component
-interface EnhancedMessageThread extends ExtendedFirestoreMessageThread {
-  participants?: string[]; // Add the participants field for compatibility
+interface EnhancedMessageThread extends Omit<ExtendedFirestoreMessageThread, 'participants'> {
+  participants: string[]; // Add the participants field as non-optional
 }
 
 interface SecureMessagingProps {
@@ -63,7 +64,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'supported'>('all');
   const [isLoadingThreads, setIsLoadingThreads] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [lastVisibleMessageDoc, setLastVisibleMessageDoc] = useState<any>(null);
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
   const userType = profile?.role || 'fan';
@@ -137,7 +138,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
         const newThreadsMap = new Map(prevThreads.map(t => [t.id, t]));
         snapshot.docChanges().forEach((change) => {
           const threadData = change.doc.data();
-          const changedThreadData = { 
+          const changedThreadData: EnhancedMessageThread = { 
             id: change.doc.id, 
             ...threadData, 
             messages: newThreadsMap.get(change.doc.id)?.messages || [],
@@ -166,7 +167,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     if (!isInitialLoad && !hasMoreMessages) return;
     setIsLoadingMessages(true);
     try {
-      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleMessageDoc);
+      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleDoc);
       setThreads(prevThreads =>
         prevThreads.map(thread =>
           thread.id === activeThreadId
@@ -181,7 +182,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             : thread
         )
       );
-      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
+      setLastVisibleDoc(newLastVisibleDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {
@@ -190,12 +191,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     } finally {
       setIsLoadingMessages(false);
     }
-  }, [activeThreadId, userId, lastVisibleMessageDoc, hasMoreMessages]);
+  }, [activeThreadId, userId, lastVisibleDoc, hasMoreMessages]);
 
   useEffect(() => {
     if (activeThreadId) {
       setHasMoreMessages(true); 
-      setLastVisibleMessageDoc(null); 
+      setLastVisibleDoc(null); 
       loadMoreMessages(true);
     }
   }, [activeThreadId, loadMoreMessages]);
@@ -374,15 +375,12 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-50">
         <div className="text-center">
-          <Spinner className="mx-auto mb-4" />
+          <Spinner className="mx-auto mb-4" size="md" />
           <p className="mt-4 text-lg">Chargement des discussions...</p>
         </div>
       </div>
     );
   }
-
-  // The threads now have participants property
-  const enhancedThreads = threads;
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col h-full w-full z-50">
@@ -434,7 +432,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
               className="h-full"
             >
               <ConversationList 
-                threads={enhancedThreads} 
+                threads={threads} 
                 userId={userId!} 
                 userName={userName} 
                 userAvatar={userAvatar} 
