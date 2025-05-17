@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, Edit, Trash2 } from 'lucide-react';
+import { Lock, Coins, Check, ExternalLink } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { ContentPrice } from '@/types/monetization';
+import { toast } from 'sonner';
 
 type PricingModel = 'subscription' | 'one-time' | 'free';
 
@@ -134,6 +133,12 @@ const ContentPricing = () => {
           <Label htmlFor="advanced">Paramètres avancés</Label>
         </div>
       </CardContent>
+      <CardFooter>
+        <Button variant="secondary" onClick={() => toast('Feature coming soon!')}>
+          <Lock className="h-4 w-4 mr-2" />
+          <span>Monetiser le contenu</span>
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

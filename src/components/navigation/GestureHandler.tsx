@@ -1,10 +1,6 @@
-import React from 'react';
-// Remove unused import
-// import { useEffect, useState } from 'react';
-import { useEffect } from 'react';
-import { cn } from '@/lib/utils';
-// Remove unused import
-// import { toast from 'sonner';
+
+import React, { useState, useRef, useEffect } from 'react';
+// Remove unused imports
 
 interface GestureHandlerProps {
   children: React.ReactNode;
@@ -21,63 +17,49 @@ const GestureHandler: React.FC<GestureHandlerProps> = ({
   onSwipeRight,
   onSwipeUp,
   onSwipeDown,
-  sensitivity = 20,
+  sensitivity = 50
 }) => {
-  let touchStartX = 0;
-  let touchStartY = 0;
+  const touchRef = useRef<{ x: number; y: number } | null>(null);
 
-  useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
     };
+  };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!touchStartX || !touchStartY) {
-        return;
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchRef.current) return;
+    
+    const dx = e.changedTouches[0].clientX - touchRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchRef.current.y;
+    
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal swipe
+      if (dx > sensitivity && onSwipeRight) {
+        onSwipeRight();
+      } else if (dx < -sensitivity && onSwipeLeft) {
+        onSwipeLeft();
       }
-
-      const touchEndX = e.touches[0].clientX;
-      const touchEndY = e.touches[0].clientY;
-
-      const deltaX = touchEndX - touchStartX;
-      const deltaY = touchEndY - touchStartY;
-
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > sensitivity) {
-        // Horizontal swipe
-        if (deltaX > 0 && onSwipeRight) {
-          onSwipeRight();
-        } else if (deltaX < 0 && onSwipeLeft) {
-          onSwipeLeft();
-        }
-      } else if (Math.abs(deltaY) > sensitivity) {
-        // Vertical swipe
-        if (deltaY > 0 && onSwipeDown) {
-          onSwipeDown();
-        } else if (deltaY < 0 && onSwipeUp) {
-          onSwipeUp();
-        }
+    } else {
+      // Vertical swipe
+      if (dy > sensitivity && onSwipeDown) {
+        onSwipeDown();
+      } else if (dy < -sensitivity && onSwipeUp) {
+        onSwipeUp();
       }
-
-      touchStartX = 0;
-      touchStartY = 0;
-    };
-
-    const el = document.documentElement; // Use documentElement to capture global swipes
-
-    el.addEventListener('touchstart', handleTouchStart);
-    el.addEventListener('touchmove', handleTouchMove);
-
-    return () => {
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, sensitivity]);
+    }
+    
+    touchRef.current = null;
+  };
 
   return (
-    
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {children}
-    
+    </div>
   );
 };
 

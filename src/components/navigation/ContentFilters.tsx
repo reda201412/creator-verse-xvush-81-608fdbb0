@@ -1,8 +1,8 @@
+
 import React from 'react';
-import { motion } from 'framer-motion';
+// Remove unused motion import
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// Remove unused import
-// import { Button } from '@/components/ui/button';
+// Remove commented out Button import
 
 interface ContentFiltersProps {
   filters: {

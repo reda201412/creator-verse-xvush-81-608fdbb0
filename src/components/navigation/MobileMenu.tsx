@@ -208,9 +208,9 @@ const MobileMenu = () => {
               </Tooltip>
               
               <Button 
-                variant="gradient" 
+                variant="default" 
                 size="sm" 
-                className="hidden md:flex"
+                className="hidden md:flex bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                 onClick={() => handleTabClick('create')}
               >
                 <PlusSquare size={16} className="mr-2" />

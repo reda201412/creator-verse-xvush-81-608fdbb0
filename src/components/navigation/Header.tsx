@@ -4,7 +4,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { HamburgerMenu } from './MobileMenu';
+import MobileMenu from './MobileMenu'; // Import the whole component instead of a non-existent export
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -24,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, className }) => {
           </Button>
         )}
         <div className="md:hidden">
-          <HamburgerMenu />
+          <MobileMenu />
         </div>
         <div className="flex-1">
           <Input type="search" placeholder="Rechercher..." className="md:max-w-[300px]" />

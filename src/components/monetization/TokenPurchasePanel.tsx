@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Coins, CreditCard, Gift, Info, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { toast } from '@/components/ui/sonner';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { ArrowRight, CreditCard, Wallet, Plus, Minus, Bitcoin, Coins } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { PurchaseOption } from '@/types/monetization';
 

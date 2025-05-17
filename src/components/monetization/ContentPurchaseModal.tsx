@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-// Remove unused import
-// import { ArrowRight, CreditCard } from 'lucide-react';
+// Remove unused CreditCard import
 import { ArrowRight } from 'lucide-react';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 
@@ -15,7 +15,7 @@ interface ContentPurchaseModalProps {
 const ContentPurchaseModal = ({ contentTitle, price, onClose }: ContentPurchaseModalProps) => {
   const [isPurchaseComplete, setIsPurchaseComplete] = React.useState(false);
   const [isTransactionPending, setIsTransactionPending] = React.useState(false);
-  // Need to adapt the code to not use verifyTransaction since it doesn't exist
+  // Remove walletInfo as it's unused
   const { walletInfo } = useTronWallet();
   
   const handlePurchase = async () => {

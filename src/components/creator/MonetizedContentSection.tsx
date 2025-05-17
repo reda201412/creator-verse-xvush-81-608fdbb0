@@ -66,6 +66,17 @@ interface MonetizedContentSectionProps {
   className?: string;
 }
 
+interface ContentPricingProps {
+  contentId: string;
+  title: string;
+  pricing: ContentPrice;
+  thumbnailUrl: string;
+  userSubscriptionTier: string;
+  userTokenBalance: number;
+  onPurchase: () => void;
+  onSubscribe: () => void;
+}
+
 const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
   isCreator = false,
   userTokenBalance = 350,

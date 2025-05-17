@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { X } from 'lucide-react'; // Add X import
 
 interface ImmersiveViewProps {
   children: React.ReactNode;
@@ -18,8 +19,8 @@ const ImmersiveView: React.FC<ImmersiveViewProps> = ({
   immersionLevel = 'medium',
   onClose,
 }) => {
-  const isMobile = useIsMobile();
-
+  // isMobile is not used, but keeping it since it might be used in the future
+  
   return (
     <motion.div
       className={cn(
