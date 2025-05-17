@@ -1,3 +1,4 @@
+
 import { 
   collection, 
   query, 
@@ -11,17 +12,40 @@ import {
   Timestamp, 
   getDoc,
   limit,
-  startAfter, // Ajout pour la pagination
-  updateDoc   // Ajout pour markMessagesAsRead
+  startAfter,
+  updateDoc   
 } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/firebase';
-import { 
-  FirestoreMessageThread, 
-  FirestoreMessage 
-} from './create-conversation-utils'; // Réutiliser les types définis là-bas
-import { MessageType } from '@/types/messaging'; // Types existants
+import { MessageType } from '@/types/messaging';
 
-// Interface étendue qui inclut les propriétés utilisées dans SecureMessaging.tsx
+// Interface for FirestoreMessage which we export
+export interface FirestoreMessage {
+  id: string;
+  senderId: string;
+  content: any;
+  createdAt: any; // Timestamp
+  type?: MessageType;
+  isEncrypted?: boolean;
+  monetization?: any;
+}
+
+// Interface for FirestoreMessageThread which we export
+export interface FirestoreMessageThread {
+  id: string;
+  participantIds: string[];
+  participantInfo?: Record<string, {
+    displayName: string;
+    avatarUrl?: string;
+  }>;
+  isSecure?: boolean;
+  isArchived?: boolean;
+  isPinned?: boolean;
+  isGated?: boolean;
+  lastActivity: Date | Timestamp;
+  name?: string;
+}
+
+// Extended interface that includes messages array
 export interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
   readStatus?: Record<string, Timestamp>;
@@ -45,7 +69,8 @@ export const fetchUserThreads = async (userId: string): Promise<ExtendedFirestor
         id: threadDoc.id,
         ...threadData,
         messages: [], // Initialiser avec un tableau de messages vide, seront chargés à la demande
-        readStatus: {} // Initialiser avec un objet readStatus vide
+        readStatus: {},
+        lastActivity: threadData.lastActivity || new Date()
       } as ExtendedFirestoreMessageThread;
     });
     return threads;
@@ -59,7 +84,7 @@ export const fetchUserThreads = async (userId: string): Promise<ExtendedFirestor
 export const fetchMessagesForThread = async (
   threadId: string, 
   limitCount = 20, 
-  lastVisibleDoc: any = null // Le dernier document visible de la requête précédente pour la pagination
+  lastVisibleDoc: any = null
 ): Promise<{ messages: FirestoreMessage[], newLastVisibleDoc: any }> => {
   try {
     let messagesQuery;
@@ -68,7 +93,7 @@ export const fetchMessagesForThread = async (
     if (lastVisibleDoc) {
       messagesQuery = query(
         messagesCollectionRef,
-        orderBy('createdAt', 'desc'), // Récupérer les plus récents en premier pour la pagination inversée
+        orderBy('createdAt', 'desc'),
         startAfter(lastVisibleDoc),
         limit(limitCount)
       );
@@ -86,7 +111,7 @@ export const fetchMessagesForThread = async (
         id: msgDoc.id,
         ...(msgDoc.data() as Omit<FirestoreMessage, 'id'>)
       }))
-      .reverse(); // Inverser pour avoir les plus anciens en premier dans l'UI (ordre chronologique)
+      .reverse();
 
     const newLastVisibleDoc = messagesSnapshot.docs[messagesSnapshot.docs.length - 1];
     return { messages, newLastVisibleDoc };
@@ -101,8 +126,6 @@ export const fetchMessagesForThread = async (
 export const sendMessage = async ({
   threadId,
   senderId,
-  // senderName, // N'est plus passé, car on suppose qu'il est dans participantInfo du thread
-  // senderAvatar, // N'est plus passé
   content,
   isEncrypted = false,
   monetizationData = null,
@@ -132,7 +155,6 @@ export const sendMessage = async ({
     batch.set(newMessageRef, messageData);
 
     // Mettre à jour le fil de discussion parent
-    // Récupérer le displayName du sender depuis le thread pour lastMessageSenderName (optionnel)
     batch.update(threadRef, {
       lastMessageText: content.length > 100 ? content.substring(0, 97) + "..." : content,
       lastMessageSenderId: senderId,

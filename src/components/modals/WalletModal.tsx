@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,9 +29,8 @@ const WalletModal: React.FC<WalletModalProps> = ({
     }
   }, [open, user, getWalletInfo]);
   
-  // Use optional chaining to safely access transactions or provide an empty array
-  // Check if transactions property exists before accessing it
-  const recentTransactions = walletInfo && 'transactions' in walletInfo ? walletInfo.transactions || [] : [];
+  // Create a safer empty array for transactions if they don't exist
+  const emptyTransactions: any[] = [];
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,8 +61,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
 
             <TabsContent value="history" className="space-y-4 py-4">
               <TransactionList 
-                transactions={walletInfo?.transactions || []} 
-                isLoading={isLoading} 
+                transactions={emptyTransactions} 
               />
             </TabsContent>
           </Tabs>

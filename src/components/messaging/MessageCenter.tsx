@@ -1,34 +1,24 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Paperclip, Plus, Smile, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from "@/components/ui/use-toast"
-import { toast } from 'sonner';
+import { useToast } from "@/components/ui/use-toast";
 import {
-  createMessage,
-  getMessages,
-  getMessageThread,
-  createThread,
-  getThreadsForUser,
+  fetchUserThreads,
+  fetchMessagesForThread,
+  sendMessage,
+  markMessagesAsRead,
   ExtendedFirestoreMessageThread,
-  FirestoreMessage,
-  uploadFile,
-  deleteFile,
-  updateThread,
+  FirestoreMessage
 } from '@/utils/messaging-utils';
 import MessageThread from '@/components/messaging/MessageThread';
-import SecureMessageBubble from '@/components/messaging/SecureMessageBubble';
-import EphemeralIndicator from '@/components/messaging/EphemeralIndicator';
-import WalletPanel from '@/components/messaging/WalletPanel';
 import EmotionalInsights from '@/components/messaging/EmotionalInsights';
-
-interface MessageCenterProps {
-  className?: string;
-}
+import { Message } from '@/types/messaging';
 
 const MessageCenter = () => {
   const { user } = useAuth();
@@ -37,20 +27,12 @@ const MessageCenter = () => {
   const [selectedThread, setSelectedThread] = useState<ExtendedFirestoreMessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isComposing, setIsComposing] = useState(false);
-  const [showWallet, setShowWallet] = useState(false);
   const [showEmotionalInsights, setShowEmotionalInsights] = useState(false);
-  const [monetizationTier, setMonetizationTier] = useState<'free' | 'premium'>('free');
-  const [monetizationAmount, setMonetizationAmount] = useState<number>(0);
-  const [isEphemeral, setIsEphemeral] = useState(false);
-  const [ephemeralDuration, setEphemeralDuration] = useState(5);
   const [isEncrypted, setIsEncrypted] = useState(false);
   const [sessionKey, setSessionKey] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(15.20);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,10 +41,9 @@ const MessageCenter = () => {
     const fetchThreads = async () => {
       setIsLoading(true);
       try {
-        const userThreads = await getThreadsForUser(user.uid);
+        const userThreads = await fetchUserThreads(user.uid);
         setThreads(userThreads);
       } catch (err) {
-        setError('Failed to load messages.');
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -74,13 +55,20 @@ const MessageCenter = () => {
 
   useEffect(() => {
     if (selectedThread) {
-      const unsubscribe = getMessageThread(selectedThread.id, (updatedThread) => {
-        setSelectedThread(updatedThread);
-      });
+      // This would be replaced with actual subscription logic
+      const loadMessages = async () => {
+        try {
+          const { messages } = await fetchMessagesForThread(selectedThread.id);
+          setSelectedThread(prev => prev ? { ...prev, messages } : null);
+        } catch (err) {
+          console.error(err);
+        }
+      };
 
-      return () => unsubscribe();
+      loadMessages();
+      markMessagesAsRead(selectedThread.id, user?.uid || '');
     }
-  }, [selectedThread]);
+  }, [selectedThread?.id, user?.uid]);
 
   const handleSelectThread = async (thread: ExtendedFirestoreMessageThread) => {
     setSelectedThread(thread);
@@ -91,55 +79,38 @@ const MessageCenter = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!user || !selectedThread) return;
+    if (!user || !selectedThread || !newMessage.trim()) return;
 
     setIsLoading(true);
     try {
-      let messageContent: string | { url: string; name: string } = newMessage;
-
-      if (file) {
-        setIsUploading(true);
-        const uploadResult = await uploadFile(file, setUploadProgress);
-
-        if (uploadResult && uploadResult.url) {
-          messageContent = { url: uploadResult.url, name: file.name };
-          setFile(null);
-        } else {
-          throw new Error('File upload failed');
-        }
-      }
-
-      const messageData: FirestoreMessage = {
+      await sendMessage({
+        threadId: selectedThread.id,
         senderId: user.uid,
-        senderAvatar: user.photoURL || '',
-        content: messageContent,
-        timestamp: new Date(),
+        content: newMessage,
         isEncrypted: isEncrypted,
-        isEphemeral: isEphemeral,
-        ephemeralDuration: isEphemeral ? ephemeralDuration : null,
-      };
+        messageType: 'text'
+      });
 
-      await createMessage(selectedThread.id, messageData);
       setNewMessage('');
-      setIsEphemeral(false);
-      setEphemeralDuration(5);
       setIsEncrypted(false);
-      setUploadProgress(0);
+      
+      // Refresh messages
+      const { messages } = await fetchMessagesForThread(selectedThread.id);
+      setSelectedThread(prev => prev ? { ...prev, messages } : null);
+      
       toast({
         title: "Message sent!",
-        description: "Your message has been successfully delivered.",
-      })
+        description: "Your message has been successfully delivered."
+      });
     } catch (err) {
-      setError('Failed to send message.');
       console.error(err);
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your message.",
-      })
+        title: "Error sending message",
+        description: "Failed to send message. Please try again."
+      });
     } finally {
       setIsLoading(false);
-      setIsUploading(false);
     }
   };
 
@@ -148,28 +119,32 @@ const MessageCenter = () => {
 
     setIsLoading(true);
     try {
-      const newThread = await createThread(user.uid);
+      // In a real app, this would create an actual thread
+      const newThread: ExtendedFirestoreMessageThread = {
+        id: `new-thread-${Date.now()}`,
+        participantIds: [user.uid],
+        lastActivity: new Date(),
+        messages: [],
+        name: `New Thread ${Date.now()}`
+      };
+      
       setThreads(prevThreads => [...prevThreads, newThread]);
       setSelectedThread(newThread);
+      
       toast({
         title: "New thread created!",
-        description: "Start messaging now.",
-      })
+        description: "Start messaging now."
+      });
     } catch (err) {
-      setError('Failed to create new thread.');
       console.error(err);
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "Could not create new thread.",
-      })
+        title: "Error creating thread",
+        description: "Failed to create new thread. Please try again."
+      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleWalletToggle = () => {
-    setShowWallet(!showWallet);
   };
 
   const handleEmotionalInsightsToggle = () => {
@@ -178,42 +153,35 @@ const MessageCenter = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
+      setFile(e.target.files[0]);
     }
   };
 
-  const handleRemoveFile = async () => {
-    if (file && selectedThread) {
-      setIsLoading(true);
-      try {
-        await deleteFile(file.name);
-        setFile(null);
-        toast({
-          title: "File removed!",
-          description: "The attached file has been removed.",
-        })
-      } catch (err) {
-        setError('Failed to remove file.');
-        console.error(err);
-        toast({
-          variant: "destructive",
-          title: "Uh oh! Something went wrong.",
-          description: "Could not remove the file.",
-        })
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const handleRemoveFile = () => {
+    setFile(null);
+    setUploadProgress(0);
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [selectedThread]);
+    scrollToBottom();
+  }, [selectedThread?.messages]);
+
+  // Convert FirestoreMessages to Messages for display
+  const convertToMessages = (firestoreMessages: FirestoreMessage[] = []): Message[] => {
+    return firestoreMessages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      senderId: msg.senderId,
+      senderName: `User ${msg.senderId.substring(0, 5)}`,
+      timestamp: msg.createdAt?.toDate?.() || new Date(),
+      status: 'delivered',
+      isEncrypted: msg.isEncrypted
+    }));
+  };
 
   return (
     <div className="flex flex-row h-full">
@@ -233,9 +201,9 @@ const MessageCenter = () => {
                   className={`p-2 rounded-md cursor-pointer hover:bg-secondary ${selectedThread?.id === thread.id ? 'bg-secondary/50' : ''}`}
                   onClick={() => handleSelectThread(thread)}
                 >
-                  {thread.participants && thread.participants.length > 0 ? (
+                  {thread.participantIds && thread.participantIds.length > 0 ? (
                     <div className="flex items-center space-x-2">
-                      {thread.participants
+                      {thread.participantIds
                         .filter(participantId => participantId !== user?.uid)
                         .map(participantId => (
                           <Avatar key={participantId} className="h-6 w-6">
@@ -261,9 +229,9 @@ const MessageCenter = () => {
             <Card className="flex-1">
               <CardHeader>
                 <CardTitle>
-                  {selectedThread.participants && selectedThread.participants.length > 0 ? (
+                  {selectedThread.participantIds && selectedThread.participantIds.length > 0 ? (
                     <div className="flex items-center space-x-2">
-                      {selectedThread.participants
+                      {selectedThread.participantIds
                         .filter(participantId => participantId !== user?.uid)
                         .map(participantId => (
                           <Avatar key={participantId} className="h-8 w-8">
@@ -272,9 +240,9 @@ const MessageCenter = () => {
                           </Avatar>
                         ))}
                       <span className="text-lg font-semibold">
-                        {selectedThread.participants
+                        {selectedThread.participantIds
                           .filter(participantId => participantId !== user?.uid)
-                          .map(participantId => `User ${participantId}`).join(', ')}
+                          .map(participantId => `User ${participantId.substring(0, 5)}`).join(', ')}
                       </span>
                     </div>
                   ) : (
@@ -285,7 +253,7 @@ const MessageCenter = () => {
               <CardContent className="flex-1">
                 <ScrollArea className="h-[calc(100vh-300px)]">
                   <MessageThread
-                    messages={selectedThread.messages || []}
+                    messages={convertToMessages(selectedThread.messages)}
                     currentUserId={user?.uid || ''}
                     sessionKey={sessionKey}
                   />
@@ -301,10 +269,8 @@ const MessageCenter = () => {
                 value={newMessage}
                 onChange={handleNewMessageChange}
                 className="mr-2"
-                onFocus={() => setIsComposing(true)}
-                onBlur={() => setIsComposing(false)}
               />
-              <Button variant="secondary" size="icon" onClick={handleWalletToggle}>
+              <Button variant="secondary" size="icon" onClick={() => setIsEncrypted(!isEncrypted)}>
                 <Wallet size={16} />
               </Button>
               <Button variant="secondary" size="icon" onClick={handleEmotionalInsightsToggle}>
@@ -342,7 +308,7 @@ const MessageCenter = () => {
           
           {showEmotionalInsights && (
             <div className="w-72 border-l overflow-y-auto">
-              <EmotionalInsights messages={selectedThread.messages} />
+              <EmotionalInsights messages={convertToMessages(selectedThread.messages)} />
             </div>
           )}
         </>

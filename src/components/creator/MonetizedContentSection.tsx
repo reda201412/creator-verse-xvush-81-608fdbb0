@@ -1,14 +1,14 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Lock, Coins } from 'lucide-react';
 import { ContentPrice } from '@/types/monetization';
-import ContentPricing from '@/components/creator/ContentPricing';
-import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 
 // Mock monetized content data
 const mockMonetizedContent = [
@@ -66,16 +66,12 @@ interface MonetizedContentSectionProps {
   className?: string;
 }
 
-// Define ContentPricingComponent interface to match what we're using in the component
-interface ContentPricingComponent {
-  contentId: string;
+// Define ContentItem interface to match what we're using in the component
+interface ContentItem {
+  id: string;
   title: string;
   pricing: ContentPrice;
   thumbnailUrl: string;
-  userSubscriptionTier: string;
-  userTokenBalance: number;
-  onPurchase: () => void;
-  onSubscribe: () => void;
 }
 
 const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
@@ -117,18 +113,8 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
     return true;
   };
 
-  // Define the ContentPricing component here inline, instead of trying to use an external one
-  // that doesn't have the right props
-  const ContentPricingItem = ({
-    contentId,
-    title,
-    pricing,
-    thumbnailUrl,
-    userSubscriptionTier,
-    userTokenBalance,
-    onPurchase,
-    onSubscribe
-  }: ContentPricingComponent) => {
+  // Define the content item component inline
+  const ContentPricingItem = ({ title, thumbnailUrl, pricing }: ContentItem) => {
     return (
       <div className="border rounded-md overflow-hidden flex flex-col">
         <div style={{ 
@@ -156,7 +142,7 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
             variant={pricing.type === 'free' ? 'outline' : 'default'} 
             size="sm" 
             className="w-full"
-            onClick={onPurchase}
+            onClick={handleContentPurchase}
           >
             {pricing.type === 'free' ? 'Voir' : 'Acheter'}
           </Button>
@@ -212,14 +198,10 @@ const MonetizedContentSection: React.FC<MonetizedContentSectionProps> = ({
             {filteredContent.map((content) => (
               <ContentPricingItem 
                 key={content.id}
-                contentId={content.id}
+                id={content.id}
                 title={content.title}
                 pricing={content.pricing}
                 thumbnailUrl={content.thumbnailUrl}
-                userSubscriptionTier={userSubscriptionTier}
-                userTokenBalance={userTokenBalance}
-                onPurchase={handleContentPurchase}
-                onSubscribe={handleSubscribe}
               />
             ))}
           </div>
