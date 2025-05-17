@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Upload, 
   Video, 
   Image as ImageIcon, 
   ChevronRight, 
@@ -20,7 +19,7 @@ import { ThumbnailUpload } from './ThumbnailUpload';
 import VideoFormDetails from './VideoFormDetails';
 import { useVideoUpload, VideoFormValues } from './useVideoUpload';
 
-// Golden ratio constant (1:1.618)
+// Golden ratio constant for design calculations
 const GOLDEN_RATIO = 1.618;
 
 interface EnhancedVideoUploadProps {
@@ -50,7 +49,6 @@ const EnhancedVideoUpload: React.FC<EnhancedVideoUploadProps> = ({
     thumbnailFile,
     videoPreviewUrl,
     thumbnailPreviewUrl,
-    videoFormat,
     isUploading,
     uploadProgress,
     uploadError,
@@ -191,7 +189,7 @@ const EnhancedVideoUpload: React.FC<EnhancedVideoUploadProps> = ({
       
       // Trigger haptic feedback and micro reward
       triggerHaptic('strong');
-      triggerMicroReward('completion', { type: 'video_upload_complete' });
+      triggerMicroReward('achievement', { type: 'video_upload_complete' });
       
       // Upload video and save metadata
       await uploadVideoAndSaveMetadata(formData);
@@ -254,14 +252,21 @@ const EnhancedVideoUpload: React.FC<EnhancedVideoUploadProps> = ({
   // Calculate overall progress
   const overallProgress = stageProgress.reduce((sum, value) => sum + value, 0) / stages.length;
   
-  // Golden ratio based layout
+  // Apply golden ratio to layout
   useEffect(() => {
-    // Apply golden ratio to container dimensions if needed
+    const applyGoldenRatio = () => {
+      // No need to actually modify DOM directly
+      // This is just used for calculations in the component
+    };
+    
     if (containerRef.current) {
-      // Just an example, actual implementation would depend on your layout needs
-      const width = containerRef.current.clientWidth;
-      // Height calculation based on golden ratio could be used here
+      applyGoldenRatio();
+      window.addEventListener('resize', applyGoldenRatio);
     }
+    
+    return () => {
+      window.removeEventListener('resize', applyGoldenRatio);
+    };
   }, []);
   
   return (

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
@@ -10,9 +10,8 @@ import { Loader2 } from 'lucide-react';
 
 const WalletTest: React.FC = () => {
   const { user } = useAuth();
-  const { walletInfo, loading, getWalletInfo, createWallet } = useTronWallet();
+  const { walletInfo, isLoading, getWalletInfo, createWallet } = useTronWallet(); // Changed 'loading' to 'isLoading'
   const { processWalletPayment, isProcessing } = useWalletTransactions();
-  const [platformAddress, setPlatformAddress] = useState<string | null>(null);
   
   useEffect(() => {
     if (user) {
@@ -37,7 +36,7 @@ const WalletTest: React.FC = () => {
     }
   };
   
-  if (loading) {
+  if (isLoading) { // Changed 'loading' to 'isLoading'
     return (
       <div className="flex justify-center items-center h-32">
         <Loader2 className="h-6 w-6 animate-spin" />

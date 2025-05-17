@@ -55,7 +55,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
           onClick={() => {
             console.log('Uploader une vidéo cliqué');
             setIsOpen(true);
-            triggerMicroReward('button_click');
+            triggerMicroReward('click'); // Changed from button_click to click
           }} 
           className={className}
           size="sm"
