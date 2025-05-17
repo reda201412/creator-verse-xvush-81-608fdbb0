@@ -36,7 +36,7 @@ const MicroRewardsEnhanced: React.FC<MicroRewardsEnhancedProps> = ({
   const interactionMap = useRef<Map<string, number>>(new Map());
   
   const { trackInteraction } = useUserBehavior();
-  const { config } = useNeuroAesthetic();
+  const { useNeuroAesthetic } = useNeuroAesthetic();
   
   // Make interaction tracking behavior more adaptive
   const adaptiveThreshold = useCallback(() => {

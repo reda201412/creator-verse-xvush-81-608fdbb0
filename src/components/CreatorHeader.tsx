@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import ProfileSection from './header/ProfileSection';

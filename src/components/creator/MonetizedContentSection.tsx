@@ -1,10 +1,8 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lock, Unlock, Coins, CreditCard } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Lock, Coins } from 'lucide-react';
 import { ContentPrice } from '@/types/monetization';
 import ContentPricing from '@/components/creator/ContentPricing';
 import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';

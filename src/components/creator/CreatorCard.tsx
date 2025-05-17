@@ -32,7 +32,6 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localFollowersCount, setLocalFollowersCount] = useState(followersCount);
-  const navigate = useNavigate();
 
   // Vérifier le statut d'abonnement lors du chargement
   React.useEffect(() => {

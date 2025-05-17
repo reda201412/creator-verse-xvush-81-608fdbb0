@@ -1,8 +1,6 @@
-
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Users, Heart, MessageSquare, Star } from 'lucide-react';
 import { CustomTooltip } from '@/components/charts/CustomTooltip';
 import { ChartContainer } from '@/components/ui/chart';

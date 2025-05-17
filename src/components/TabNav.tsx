@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutGrid, PlayCircle, Crown, Star, BarChart3, Folder } from 'lucide-react';

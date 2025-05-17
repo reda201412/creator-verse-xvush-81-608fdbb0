@@ -1,14 +1,13 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Lock, Unlock, Shield, Eye, Download, Share, Heart } from 'lucide-react';
+import { Shield, Eye, Download, Share, Heart, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ContentType } from '@/types/content';
-import { encryptMessage, decryptMessage, EncryptedContent } from '@/utils/encryption';
+import { decryptMessage, EncryptedContent } from '@/utils/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { cn } from '@/lib/utils';
