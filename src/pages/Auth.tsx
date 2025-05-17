@@ -1,268 +1,184 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/sonner';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
-import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, EyeOff } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
-const Auth = () => {
-  const [loading, setLoading] = useState(false);
+const AuthPage = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { signUp, signIn, user, profile, updateProfile } = useAuth();
+  const { toast } = useToast();
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [userRole, setUserRole] = useState<'fan' | 'creator'>('fan');
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
-  const navigate = useNavigate();
-  const { user, signUp, signIn } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [intensityLevel, setIntensityLevel] = useState<number | null>(null);
 
   useEffect(() => {
-    // Redirection si l'utilisateur est déjà connecté
     if (user) {
-      navigate('/');
+      const redirectUrl = searchParams.get('redirect') || '/';
+      navigate(redirectUrl, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchParams]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password || !username) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
-    console.log("Starting signup with role:", userRole);
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const { error } = await signUp(email, password, username, userRole);
-      
-      if (error) {
-        // Traitement des erreurs
-        let errorMessage = "Une erreur est survenue lors de l'inscription.";
-        
-        // Personnaliser les messages d'erreur en fonction du type d'erreur
-        if (error.message?.includes('email-already-in-use')) {
-          errorMessage = "Cette adresse e-mail est déjà utilisée.";
-        } else if (error.message?.includes('weak-password')) {
-          errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
-        } else if (error.message?.includes('déjà utilisé')) {
-          errorMessage = error.message;
-        } else if (error.message) {
-          errorMessage = error.message;
+      if (isSignUp) {
+        const newUser = await signUp(email, password);
+        if (newUser && newUser.user) {
+          await updateProfile(newUser.user, {
+            displayName: displayName,
+            username: username,
+            avatarUrl: avatarUrl,
+          });
+          toast({
+            title: 'Inscription réussie !',
+            description: 'Bienvenue à bord !',
+          });
+        } else {
+          toast({
+            title: 'Erreur d\'inscription',
+            description: 'Impossible de créer le compte.',
+            variant: 'destructive',
+          });
         }
-        
-        toast.error(errorMessage);
-        setLoading(false);
-        return;
+      } else {
+        await signIn(email, password);
+        toast({
+          title: 'Connexion réussie !',
+          description: 'Heureux de vous revoir !',
+        });
       }
-
-      toast.success("Inscription réussie ! Vous pouvez maintenant vous connecter.");
-      setActiveTab('login');
     } catch (error: any) {
-      console.error("Erreur inattendue lors de l'inscription:", error);
-      toast.error(error.message || "Une erreur inattendue est survenue lors de l'inscription.");
+      console.error('Authentication error:', error);
+      toast({
+        title: isSignUp ? 'Erreur d\'inscription' : 'Erreur de connexion',
+        description: error.message || 'Une erreur est survenue.',
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
   
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const { error } = await signIn(email, password);
+  const currentIntensityLevel = intensityLevel !== null ? intensityLevel : profile?.intensityLevel || 5;
+  const adaptiveIntensity = currentIntensityLevel > 6 ? 'high' as const : currentIntensityLevel > 3 ? 'medium' as const : 'low' as const;
 
-      if (error) {
-        let errorMessage = "Identifiants incorrects ou erreur de connexion.";
-        if (error.message) {
-          errorMessage = error.message;
-        }
-        toast.error(errorMessage);
-      } else {
-        toast.success("Connexion réussie !");
-        navigate('/');
-      }
-    } catch (error: any) {
-      console.error("Erreur inattendue lors de la connexion:", error);
-      toast.error(error.message || "Une erreur inattendue est survenue lors de la connexion.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (user) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <GoldenRatioGrid visible={true} opacity={0.05} />
-      <AdaptiveMoodLighting currentMood="calm" intensity={50} />
-      
-      <div className="absolute inset-0 bg-gradient-to-br from-xvush-purple/20 to-xvush-pink/20 z-0" />
-      <div className="absolute inset-0 backdrop-blur-3xl z-0" />
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md z-10"
-      >
-        <Card className="backdrop-blur-md bg-background/80 border-muted/30">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">
-              <span className="text-gradient-primary">XDose</span>
-            </CardTitle>
-            <CardDescription>
-              Rejoignez la communauté créative ou découvrez du contenu exclusif
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <Tabs defaultValue={activeTab} value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
-              <TabsList className="w-full mb-6">
-                <TabsTrigger value="login" className="flex-1">Connexion</TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1">Inscription</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-login">Email</Label>
-                    <Input 
-                      id="email-login"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="votre@email.com"
-                      required
-                      autoComplete="email"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="password-login">Mot de passe</Label>
-                    <Input 
-                      id="password-login"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-xvush-pink hover:bg-xvush-pink-dark"
-                    disabled={loading}
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <Card className="w-full max-w-md p-4">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-semibold text-center">
+            {isSignUp ? 'Créer un compte' : 'Se connecter'}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {isSignUp ? 'Rejoignez notre communauté !' : 'Entrez vos identifiants pour accéder à votre compte.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <div className="grid gap-1">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="votre@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label htmlFor="password">Mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowPassword(!showPassword)}
                   >
-                    {loading ? "Connexion en cours..." : "Se connecter"}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-signup">Email</Label>
-                    <Input 
-                      id="email-signup"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="votre@email.com"
-                      required
-                      autoComplete="email"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
+                </div>
+              </div>
+              {isSignUp && (
+                <>
+                  <div className="grid gap-1">
                     <Label htmlFor="username">Nom d'utilisateur</Label>
-                    <Input 
+                    <Input
                       id="username"
                       type="text"
+                      placeholder="Nom d'utilisateur"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="votrepseudo"
                       required
-                      autoComplete="username"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="password-signup">Mot de passe</Label>
-                    <Input 
-                      id="password-signup"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                  <div className="grid gap-1">
+                    <Label htmlFor="displayName">Nom affiché</Label>
+                    <Input
+                      id="displayName"
+                      type="text"
+                      placeholder="Nom affiché"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
                       required
-                      autoComplete="new-password"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Choisissez votre rôle</Label>
-                    <RadioGroup 
-                      defaultValue="fan" 
-                      value={userRole}
-                      onValueChange={(value) => setUserRole(value as 'fan' | 'creator')}
-                      className="flex gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="fan" id="fan" />
-                        <Label htmlFor="fan" className="cursor-pointer">Fan / Spectateur</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="creator" id="creator" />
-                        <Label htmlFor="creator" className="cursor-pointer">Créateur</Label>
-                      </div>
-                    </RadioGroup>
+                  <div className="grid gap-1">
+                    <Label htmlFor="avatarUrl">URL de l'avatar</Label>
+                    <Input
+                      id="avatarUrl"
+                      type="url"
+                      placeholder="URL de l'avatar"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                    />
                   </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-xvush-pink hover:bg-xvush-pink-dark"
-                    disabled={loading}
-                  >
-                    {loading ? "Inscription en cours..." : "S'inscrire"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-          
-          <CardFooter className="flex justify-center text-sm text-muted-foreground">
-            <span>
-              {activeTab === 'login' 
-                ? "Pas encore de compte ? " 
-                : "Déjà inscrit ? "
-              }
-              <button 
-                type="button"
-                className="text-primary hover:underline"
-                onClick={() => setActiveTab(activeTab === 'login' ? 'signup' : 'login')}
-              >
-                {activeTab === 'login' ? "S'inscrire" : "Se connecter"}
-              </button>
-            </span>
-          </CardFooter>
-        </Card>
-      </motion.div>
+                </>
+              )}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? <Spinner size="sm" className="mr-2" /> : null}
+                {isSignUp ? 'Créer un compte' : 'Se connecter'}
+              </Button>
+            </div>
+          </form>
+          <div className="text-center">
+            <Button variant="link" onClick={() => setIsSignUp(!isSignUp)}>
+              {isSignUp ? 'Vous avez déjà un compte ? Se connecter' : 'Pas de compte ? S\'inscrire'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Auth;
+export default AuthPage;

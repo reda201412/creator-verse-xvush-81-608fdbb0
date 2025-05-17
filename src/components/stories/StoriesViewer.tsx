@@ -1,171 +1,177 @@
-import React, { useState, useEffect, useRef } from 'react';
-// Remove unused import
-// import { Story } from '@/types/stories';
-import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { AnimatePresence, motion } from 'framer-motion';
-// Remove unused import
-// import { MediaCacheService } from '@/services/media-cache';
 
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { X, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+
+// Types for story content
 interface Story {
   id: string;
-  imageUrl: string;
+  url: string;
+  type: 'image' | 'video';
   duration?: number;
 }
 
 interface StoriesViewerProps {
   stories: Story[];
   onClose: () => void;
-  startIndex?: number;
-  creatorName?: string;
-  creatorAvatar?: string;
+  autoPlayInterval?: number;
+  allowSkip?: boolean;
 }
 
-const StoriesViewer = ({ stories = [], onClose, startIndex = 0, creatorName = '', creatorAvatar = '' }) => {
-  const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [progress, setProgress] = useState(0);
+const StoriesViewer = ({
+  stories,
+  onClose,
+  autoPlayInterval = 5000,
+  allowSkip = true
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef<number | null>(null);
-  const storyDuration = 5000; // 5 seconds per story
+  const [progress, setProgress] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   
-  // Remove unused variable from destructuring
-  const [isLoaded, /*setIsPlaying*/] = useState(false);
-
-  useEffect(() => {
-    const startProgress = () => {
-      intervalRef.current = window.setInterval(() => {
-        setProgress((oldProgress) => {
-          if (oldProgress >= 100) {
-            clearInterval(intervalRef.current!);
-            return 100;
-          }
-          return oldProgress + (100 / (storyDuration / 100));
-        });
-      }, 100);
-    };
-
-    const resetProgress = () => {
-      clearInterval(intervalRef.current!);
-      setProgress(0);
-      startProgress();
-    };
-
-    startProgress();
-
-    return () => {
-      clearInterval(intervalRef.current!);
-    };
-  }, [currentIndex, storyDuration]);
-
-  useEffect(() => {
-    if (progress >= 100) {
-      if (currentIndex < stories.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-      } else {
-        onClose();
-      }
-    }
-  }, [progress, currentIndex, stories.length, onClose]);
-
-  const handlePause = () => {
-    setIsPaused(true);
-    clearInterval(intervalRef.current!);
-  };
-
-  const handleResume = () => {
-    setIsPaused(false);
-    
-    intervalRef.current = window.setInterval(() => {
-      setProgress((oldProgress) => {
-        if (oldProgress >= 100) {
-          clearInterval(intervalRef.current!);
-          return 100;
-        }
-        return oldProgress + (100 / (storyDuration / 100));
-      });
-    }, 100);
-  };
-
-  const handleNext = () => {
+  const currentStory = stories[currentIndex];
+  const storyDuration = currentStory?.duration || autoPlayInterval;
+  
+  const goToNextStory = () => {
     if (currentIndex < stories.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      setProgress(0);
     } else {
       onClose();
     }
   };
-
-  const handlePrev = () => {
+  
+  const goToPreviousStory = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+      setProgress(0);
     }
   };
-
+  
+  const togglePause = () => {
+    setIsPaused(!isPaused);
+  };
+  
+  // Progress timer effect
+  useEffect(() => {
+    if (!isPaused && loaded) {
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          const newProgress = prev + (100 / storyDuration) * 100;
+          
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            goToNextStory();
+            return 0;
+          }
+          
+          return newProgress;
+        });
+      }, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentIndex, isPaused, loaded, storyDuration]);
+  
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' && allowSkip) {
+        goToNextStory();
+      } else if (e.key === 'ArrowLeft' && allowSkip) {
+        goToPreviousStory();
+      } else if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === ' ') { // Space bar
+        togglePause();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, allowSkip]);
+  
   return (
-    <div 
-      className="fixed top-0 left-0 w-full h-full bg-black/90 z-50 flex flex-col"
-      onClick={isPaused ? handleResume : handlePause}
-    >
-      <div className="absolute top-4 left-4 w-full flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full overflow-hidden mr-2">
-            <img 
-              src={creatorAvatar} 
-              alt={creatorName} 
-              className="w-full h-full object-cover" 
-              onLoad={() => setIsLoaded(true)}
-            />
-          </div>
-          <span className="text-sm text-white font-medium">{creatorName}</span>
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      <Button 
+        variant="ghost" 
+        size="icon"
+        className="absolute top-4 right-4 z-50 text-white"
+        onClick={onClose}
+      >
+        <X size={24} />
+      </Button>
+      
+      <div className="relative w-full max-w-3xl aspect-[9/16] overflow-hidden">
+        {/* Progress bar */}
+        <div className="absolute top-0 left-0 right-0 flex gap-1 p-2 z-30">
+          {stories.map((_, idx) => (
+            <div key={idx} className="h-1 bg-gray-500/50 rounded-full flex-1">
+              {idx === currentIndex && (
+                <div 
+                  className="h-full bg-white rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              )}
+              {idx < currentIndex && (
+                <div className="h-full bg-white rounded-full w-full" />
+              )}
+            </div>
+          ))}
         </div>
-        <button onClick={onClose} className="text-white">
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="mt-16 px-4">
-        <Progress value={progress} className="h-1 bg-white/20" />
-      </div>
-
-      <div className="relative flex-1 flex items-center justify-center">
-        <AnimatePresence>
-          {stories[currentIndex] && (
-            <motion.img
-              key={stories[currentIndex].id}
-              src={stories[currentIndex].imageUrl}
-              alt={`Story ${currentIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            />
-          )}
+        
+        {/* Story content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full h-full"
+          >
+            {currentStory.type === 'image' ? (
+              <img 
+                src={currentStory.url} 
+                className="w-full h-full object-contain"
+                onLoad={() => setLoaded(true)} 
+              />
+            ) : (
+              <video 
+                src={currentStory.url}
+                className="w-full h-full object-contain"
+                autoPlay
+                muted={isPaused}
+                onLoadedData={() => setLoaded(true)}
+              />
+            )}
+          </motion.div>
         </AnimatePresence>
         
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePrev();
-          }}
-          className={cn(
-            "absolute left-0 top-0 h-full w-1/4 bg-black/0 hover:bg-black/20 transition-colors duration-200",
-            currentIndex === 0 && "hidden"
-          )}
-        >
-        </button>
+        {/* Navigation controls */}
+        {allowSkip && (
+          <>
+            <button
+              className="absolute left-0 top-0 w-1/4 h-full z-20"
+              onClick={goToPreviousStory}
+            />
+            <button
+              className="absolute right-0 top-0 w-1/4 h-full z-20"
+              onClick={goToNextStory}
+            />
+          </>
+        )}
         
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNext();
-          }}
-          className={cn(
-            "absolute right-0 top-0 h-full w-1/4 bg-black/0 hover:bg-black/20 transition-colors duration-200",
-            currentIndex === stories.length - 1 && "hidden"
-          )}
+        {/* Play/Pause button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute bottom-4 right-4 rounded-full bg-black/30 text-white z-30"
+          onClick={togglePause}
         >
-        </button>
+          {isPaused ? <Play size={20} /> : <Pause size={20} />}
+        </Button>
       </div>
     </div>
   );

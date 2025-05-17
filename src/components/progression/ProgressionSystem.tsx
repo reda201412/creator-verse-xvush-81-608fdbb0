@@ -1,9 +1,6 @@
+
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { CircleDashed, Trophy, Star, 
-  // Remove unused imports
-  // Sparkles, Zap, ArrowUpRight
-} from 'lucide-react';
+import { CircleDashed } from 'lucide-react';
 
 interface ProgressionSystemProps {
   level: number;

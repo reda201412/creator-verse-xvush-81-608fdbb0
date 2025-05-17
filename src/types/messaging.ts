@@ -8,11 +8,25 @@ export interface Message {
   timestamp: string | number;
   status?: 'sent' | 'delivered' | 'read';
   isEncrypted?: boolean;
+  recipientId?: string | string[]; // Add the missing recipientId field
   monetization?: {
     tier: string;
     price: number;
     currency?: string;
+    instantPayoutEnabled?: boolean; // Add missing field used in mockMessages
+    accessControl?: {
+      isGated: boolean;
+      requiredTier: string;
+    };
+    analytics?: {
+      views: number;
+      revenue: number;
+      conversionRate: number;
+      engagementTime: number;
+    };
   };
+  mediaUrl?: string;
+  type?: 'text' | 'media' | 'gift';
 }
 
 export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip' | 'exclusive';
