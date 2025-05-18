@@ -1,15 +1,6 @@
-﻿// Importer le client Prisma
-import { PrismaClient } from '@prisma/client';
-
-// Initialiser le client Prisma
-const prisma = new PrismaClient();
-
-// Types pour les mÃ©tadonnÃ©es de la vidÃ©o
+// Types pour les métadonnées de la vidéo
 export type VideoStatus = 'processing' | 'ready' | 'error';
 export type VideoType = 'standard' | 'teaser' | 'premium' | 'vip';
-
-// Type pour le prix en tokens
-type TokenPrice = number | string | null;
 
 export interface VideoMetadata {
   id?: number;
@@ -30,157 +21,160 @@ export interface VideoMetadata {
   updated_at?: Date;
 }
 
+const API_BASE_URL = '/api/videos';
+
+/**
+ * Enregistre ou met à jour les métadonnées d'une vidéo
+ */
 export const saveVideoMetadata = async (metadata: VideoMetadata): Promise<VideoMetadata> => {
   try {
-    // VÃ©rifier si c'est une mise Ã  jour ou une crÃ©ation
-    let video;
-    if (metadata.id) {
-      // Mise Ã  jour d'une vidÃ©o existante
-      video = await prisma.video.update({
-        where: { id: metadata.id },
-        data: {
-          title: metadata.title,
-          description: metadata.description || null,
-          mux_asset_id: metadata.mux_asset_id,
-          mux_playback_id: metadata.mux_playback_id || null,
-          mux_upload_id: metadata.mux_upload_id || null,
-          thumbnail_url: metadata.thumbnail_url || null,
-          duration: metadata.duration || null,
-          aspect_ratio: metadata.aspect_ratio || null,
-          status: metadata.status,
-          type: metadata.type,
-          is_premium: metadata.is_premium || false,
-          token_price: metadata.token_price ? Number(metadata.token_price) : null,
-        },
-      });
-    } else {
-      // CrÃ©ation d'une nouvelle vidÃ©o
-      video = await prisma.video.create({
-        data: {
-          user_id: metadata.user_id,
-          title: metadata.title,
-          description: metadata.description || null,
-          mux_asset_id: metadata.mux_asset_id,
-          mux_playback_id: metadata.mux_playback_id || null,
-          mux_upload_id: metadata.mux_upload_id || null,
-          thumbnail_url: metadata.thumbnail_url || null,
-          duration: metadata.duration || null,
-          aspect_ratio: metadata.aspect_ratio || null,
-          status: metadata.status,
-          type: metadata.type,
-          is_premium: metadata.is_premium || false,
-          token_price: metadata.token_price ? Number(metadata.token_price) : null,
-        },
-      });
+    const method = metadata.id ? 'PUT' : 'POST';
+    const url = metadata.id ? `${API_BASE_URL}/${metadata.id}` : API_BASE_URL;
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return video as unknown as VideoMetadata;
+
+    return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde des mÃ©tadonnÃ©es de la vidÃ©o:', error);
-    throw new Error(`Ã‰chec de la sauvegarde des mÃ©tadonnÃ©es: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    console.error('Erreur lors de la sauvegarde des métadonnées de la vidéo:', error);
+    throw new Error(`Échec de la sauvegarde des métadonnées: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
+/**
+ * Met à jour les métadonnées d'une vidéo existante
+ */
 export const updateVideoMetadata = async (id: number, updates: Partial<VideoMetadata>): Promise<VideoMetadata> => {
   try {
-    const data = { ...updates };
-    delete data.id; // Ne pas mettre Ã  jour l'ID
-    
-    const video = await prisma.video.update({
-      where: { id },
-      data: {
-        ...data,
-        updated_at: new Date(),
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        id,
+        ...updates,
+      }),
     });
-    
-    return video as unknown as VideoMetadata;
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la mise Ã  jour des mÃ©tadonnÃ©es de la vidÃ©o:', error);
-    throw new Error(`Ã‰chec de la mise Ã  jour des mÃ©tadonnÃ©es: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    console.error('Erreur lors de la mise à jour des métadonnées de la vidéo:', error);
+    throw new Error(`Échec de la mise à jour des métadonnées: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
+/**
+ * Récupère toutes les vidéos d'un utilisateur
+ */
 export const getVideosByUserId = async (userId: string): Promise<VideoMetadata[]> => {
   try {
-    const videos = await prisma.video.findMany({
-      where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
-    });
+    const response = await fetch(`${API_BASE_URL}?userId=${userId}`);
     
-    return videos.map(video => ({
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const videos = await response.json();
+    return videos.map((video: any) => ({
       ...video,
-      created_at: video.created_at || undefined,
-      updated_at: video.updated_at || undefined,
+      created_at: video.created_at ? new Date(video.created_at) : undefined,
+      updated_at: video.updated_at ? new Date(video.updated_at) : undefined,
     }));
   } catch (error) {
-    console.error('Erreur lors de la rÃ©cupÃ©ration des vidÃ©os:', error);
-    throw new Error('Ã‰chec de la rÃ©cupÃ©ration des vidÃ©os');
+    console.error('Erreur lors de la récupération des vidéos:', error);
+    throw new Error('Échec de la récupération des vidéos');
   }
 };
 
+/**
+ * Récupère une vidéo par son ID
+ */
 export const getVideoById = async (id: number): Promise<VideoMetadata | null> => {
   try {
-    const video = await prisma.video.findUnique({
-      where: { id },
-    });
+    const response = await fetch(`${API_BASE_URL}/${id}`);
     
-    if (!video) return null;
+    if (response.status === 404) {
+      return null;
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const video = await response.json();
     
     return {
       ...video,
-      created_at: video.created_at || undefined,
-      updated_at: video.updated_at || undefined,
-    } as VideoMetadata;
+      created_at: video.created_at ? new Date(video.created_at) : undefined,
+      updated_at: video.updated_at ? new Date(video.updated_at) : undefined,
+    };
   } catch (error) {
-    console.error('Erreur lors de la rÃ©cupÃ©ration de la vidÃ©o:', error);
-    throw new Error('Ã‰chec de la rÃ©cupÃ©ration de la vidÃ©o');
+    console.error('Erreur lors de la récupération de la vidéo:', error);
+    throw new Error('Échec de la récupération de la vidéo');
   }
 };
 
+/**
+ * Supprime une vidéo par son ID
+ */
 export const deleteVideo = async (id: number): Promise<void> => {
   try {
-    await prisma.video.delete({
-      where: { id },
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+      method: 'DELETE',
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
   } catch (error) {
-    console.error('Erreur lors de la suppression de la vidÃ©o:', error);
-    throw new Error('Ã‰chec de la suppression de la vidÃ©o');
+    console.error('Erreur lors de la suppression de la vidéo:', error);
+    throw new Error('Échec de la suppression de la vidéo');
   }
 };
 
-// Fonction utilitaire pour vÃ©rifier la connexion Ã  la base de donnÃ©es
+/**
+ * Vérifie la connexion à l'API
+ * Note: Cette fonction est simplifiée car la gestion de la base de données
+ * est maintenant gérée côté serveur uniquement
+ */
 export const checkDatabaseConnection = async (): Promise<boolean> => {
   try {
-    // Essayer d'exÃ©cuter une requÃªte simple pour vÃ©rifier la connexion
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('âœ… Connexion Ã  la base de donnÃ©es Ã©tablie avec succÃ¨s');
-    return true;
+    const response = await fetch(API_BASE_URL, { method: 'HEAD' });
+    return response.ok;
   } catch (error) {
-    console.error('âŒ Ã‰chec de la connexion Ã  la base de donnÃ©es:', error);
+    console.error('Échec de la connexion à l\'API:', error);
     return false;
   }
 };
 
-// Fonction utilitaire pour crÃ©er la table si elle n'existe pas
+/**
+ * Vérifie que l'API est fonctionnelle
+ * Note: Cette fonction remplace l'ancienne vérification de table
+ */
 export const ensureVideosTableExists = async (): Promise<void> => {
   try {
-    // Avec Prisma, la crÃ©ation des tables est gÃ©rÃ©e par les migrations
-    // Cette fonction sert maintenant principalement Ã  vÃ©rifier que la table existe
-    const tableExists = await prisma.$queryRaw`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'videos'
-      );
-    `;
-    
-    if (tableExists && tableExists[0]?.exists === false) {
-      console.warn('âš ï¸ La table videos n\'existe pas. ExÃ©cutez les migrations Prisma.');
+    const isConnected = await checkDatabaseConnection();
+    if (!isConnected) {
+      console.warn('⚠️ Impossible de se connecter à l\'API');
     } else {
-      console.log('âœ… Table videos vÃ©rifiÃ©e avec succÃ¨s');
+      console.log('✅ Connexion à l\'API établie avec succès');
     }
   } catch (error) {
-    console.error('âŒ Erreur lors de la vÃ©rification de la table videos:', error);
+    console.error('Erreur lors de la vérification de l\'API:', error);
     throw error;
   }
 };
