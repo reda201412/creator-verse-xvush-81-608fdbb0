@@ -10,9 +10,12 @@ declare global {
 }
 
 // Configuration MUX
-const MUX_UPLOAD_ENDPOINT = import.meta.env.VITE_MUX_UPLOAD_ENDPOINT;
-if (!MUX_UPLOAD_ENDPOINT) {
-  console.warn('VITE_MUX_UPLOAD_ENDPOINT is not defined in .env');
+// Utilisation du proxy d'API pour éviter les problèmes CORS
+const MUX_UPLOAD_ENDPOINT = '/api/mux/upload';
+
+// Vérification des variables d'environnement
+if (!import.meta.env.VITE_MUX_TOKEN_ID || !import.meta.env.VITE_MUX_TOKEN_SECRET) {
+  console.warn('VITE_MUX_TOKEN_ID et VITE_MUX_TOKEN_SECRET doivent être définis dans .env');
 }
 
 // Types
@@ -30,11 +33,12 @@ export const uploadVideoToMux = (file: File, signal?: AbortSignal): Promise<Vide
     }
 
     // Créer un nouvel upload avec UpChunk
+    // Configuration de l'authentification via le proxy
     const upload = UpChunk.createUpload({
       endpoint: MUX_UPLOAD_ENDPOINT,
       file,
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': 'application/json',
       },
     });
 
