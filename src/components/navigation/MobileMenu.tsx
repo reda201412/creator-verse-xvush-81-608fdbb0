@@ -71,7 +71,7 @@ export const HamburgerMenu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { triggerMicroReward } = useNeuroAesthetic();
-  const { user, profile, isCreator } = useAuth();
+  const { user, profile, isCreator, signOut } = useAuth();
   const { toast } = useToast();
 
   // Common navigation items for all users
@@ -111,21 +111,26 @@ export const HamburgerMenu = () => {
       // Close the menu first
       closeMenu();
       
-      // Then navigate
+      // Sign out the user
+      const { error } = await signOut();
+      
+      if (error) throw new Error(error);
+      
+      // Navigate to home page
       navigate('/');
       
       // Trigger micro reward
       triggerMicroReward('action');
       
       toast({
-        title: "Action de déconnexion",
-        description: "Fonctionnalité de déconnexion simulée."
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès."
       });
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
       toast({
         title: "Erreur de déconnexion",
-        description: "Une erreur s'est produite lors de la déconnexion.",
+        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la déconnexion.",
         variant: "destructive"
       });
     }

@@ -1,8 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { CreatorProfileData, VideoSupabaseData, getCreatorVideos } from '@/services/creatorService'; // Assuming VideoSupabaseData is the correct type
+import { db } from '@/integrations/firebase/firebase';
+import { doc, getDoc, collection, query, where, getDocs, getCountFromServer, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { VideoFirestoreData, getCreatorVideos } from '@/services/creatorService';
+
+interface CreatorProfileData {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+  coverImageUrl?: string;
+  bio?: string;
+  role?: string;
+}
 import CreatorHeader from '@/components/CreatorHeader';
 import ProfileNav from '@/components/ProfileNav';
 import ContentGrid from '@/components/ContentGrid';
@@ -20,135 +31,79 @@ import {
 
 const CreatorProfile: React.FC = () => {
   const { creatorId } = useParams<{ creatorId: string }>();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const authLoading = !user;
   const navigate = useNavigate();
 
   const [creatorData, setCreatorData] = useState<CreatorProfileData | null>(null);
-  const [videos, setVideos] = useState<VideoSupabaseData[]>([]);
+  const [videos, setVideos] = useState<VideoFirestoreData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [loadingVideos, setLoadingVideos] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-
-  const [selectedVideo, setSelectedVideo] = useState<VideoSupabaseData | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoFirestoreData | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
-
   useEffect(() => {
-    if (authLoading) return;
-    if (user && creatorId === user.id) { // Check against user.id
-      setIsOwnProfile(true);
-    } else {
-      setIsOwnProfile(false);
-    }
-  }, [creatorId, user, authLoading]);
-
-  useEffect(() => {
-    const fetchCreatorData = async () => {
-      if (!creatorId) return;
-      setLoadingProfile(true);
+    if (!creatorId) return;
+    
+    const fetchData = async () => {
       try {
-        // Fetch creator profile data from 'creators' table or 'user_profiles'
-        // Assuming 'creators' table has a 'user_id' that matches auth.users.id
-        // And 'user_profiles' table has 'id' that matches auth.users.id
-        // The creatorId from params should be the user_id (UUID) of the creator
+        setLoading(true);
+        setLoadingProfile(true);
         
-        // Try fetching from 'user_profiles' first for general info
-        let profileResponse = await supabase
-          .from('user_profiles')
-          .select(`
-            id, 
-            username, 
-            display_name, 
-            avatar_url, 
-            bio,
-            role
-          `)
-          .eq('id', creatorId)
-          .single();
-
-        if (profileResponse.error && profileResponse.error.code === 'PGRST116') { // Not found in user_profiles
-            toast.error("Profil créateur non trouvé.");
-            setLoadingProfile(false);
-            return;
-        } else if (profileResponse.error) {
-            throw profileResponse.error;
+        // Vérifier si l'utilisateur est connecté
+        if (user?.uid) {
+          // Vérifier si l'utilisateur visite son propre profil
+          if (user.uid === creatorId) {
+            setIsOwnProfile(true);
+          }
+          
+          // Vérifier si l'utilisateur suit déjà ce créateur
+          const followCheck = query(
+            collection(db, 'user_follows'),
+            where('follower_id', '==', user.uid),
+            where('creator_id', '==', creatorId)
+          );
+          const followSnapshot = await getDocs(followCheck);
+          setIsFollowing(!followSnapshot.empty);
         }
         
-        let fetchedCreatorData: Partial<CreatorProfileData> = {
-            id: profileResponse.data.id, // Changed from uid
-            username: profileResponse.data.username,
-            displayName: profileResponse.data.display_name,
-            avatarUrl: profileResponse.data.avatar_url,
-            bio: profileResponse.data.bio,
-            // role: profileResponse.data.role, // If needed
-        };
-
-        // Optionally, fetch additional creator-specific details from 'creators' table if it exists and is structured differently
-        // For example, if 'creators' table has specific fields not in 'user_profiles'
-        // const { data: specificCreatorData, error: specificCreatorError } = await supabase
-        //   .from('creators')
-        //   .select('*') // select specific fields
-        //   .eq('user_id', creatorId) // Assuming 'creators' table links via 'user_id'
-        //   .single();
-        // if (specificCreatorData) {
-        //   fetchedCreatorData = { ...fetchedCreatorData, ...specificCreatorData };
-        // }
-
-
-        setCreatorData(fetchedCreatorData as CreatorProfileData);
-
-        // Fetch follower count
-        const { count, error: countError } = await supabase
-          .from('user_follows')
-          .select('*', { count: 'exact', head: true })
-          .eq('creator_id', creatorId);
-
-        if (countError) console.error("Error fetching follower count:", countError);
-        else setFollowerCount(count || 0);
-
-        // Check if current user is following this creator
-        if (user && user.id) {
-          const { data: followData, error: followError } = await supabase
-            .from('user_follows')
-            .select('*')
-            .eq('follower_id', user.id)
-            .eq('creator_id', creatorId)
-            .maybeSingle();
-          if (followError) console.error("Error checking follow status:", followError);
-          else setIsFollowing(!!followData);
+        // Charger les données du créateur
+        const creatorDoc = await getDoc(doc(db, 'users', creatorId));
+        if (creatorDoc.exists()) {
+          setCreatorData({ ...creatorDoc.data(), id: creatorDoc.id } as CreatorProfileData);
+        } else {
+          throw new Error("Créateur non trouvé");
         }
-
-      } catch (error: any) {
-        console.error('Error fetching creator data:', error);
-        toast.error("Erreur de chargement du profil: " + error.message);
+        
+        // Charger le nombre d'abonnés
+        const followersQuery = query(
+          collection(db, 'user_follows'),
+          where('creator_id', '==', creatorId)
+        );
+        const snapshot = await getCountFromServer(followersQuery);
+        setFollowerCount(snapshot.data().count);
+        
+        // Charger les vidéos du créateur
+        const creatorVideos = await getCreatorVideos(creatorId);
+        setVideos(creatorVideos);
+        
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+        toast.error("Erreur lors du chargement du profil");
       } finally {
+        setLoading(false);
         setLoadingProfile(false);
       }
     };
-
-    const fetchVideosForCreator = async () => {
-      if (!creatorId) return;
-      setLoadingVideos(true);
-      try {
-        const creatorVideos = await getCreatorVideos(creatorId);
-        setVideos(creatorVideos || []);
-      } catch (error: any) {
-        console.error('Error fetching videos:', error);
-        toast.error("Erreur de chargement des vidéos: " + error.message);
-        setVideos([]);
-      } finally {
-        setLoadingVideos(false);
-      }
-    };
-
-    fetchCreatorData();
-    fetchVideosForCreator();
+    
+    fetchData();
   }, [creatorId, user]);
 
   const handleFollow = async () => {
-    if (!user || !user.id || !creatorData || !creatorData.id) { // Ensure creatorData.id
+    if (!user || !user.uid || !creatorData || !creatorData.id) {
       toast.error("Vous devez être connecté pour suivre un créateur.");
       return;
     }
@@ -160,32 +115,43 @@ const CreatorProfile: React.FC = () => {
     try {
       if (isFollowing) {
         // Unfollow
-        const { error } = await supabase
-          .from('user_follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('creator_id', creatorData.id); // Ensure creatorData.id
-        if (error) throw error;
+        const followQuery = query(
+          collection(db, 'user_follows'),
+          where('follower_id', '==', user.uid),
+          where('creator_id', '==', creatorData.id)
+        );
+        const querySnapshot = await getDocs(followQuery);
+        if (!querySnapshot.empty) {
+          const batch = writeBatch(db);
+          querySnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+        }
         setIsFollowing(false);
-        setFollowerCount(prev => prev - 1);
+        setFollowerCount(prev => Math.max(0, prev - 1));
         toast.success(`Vous ne suivez plus ${creatorData.displayName || creatorData.username}.`);
       } else {
         // Follow
-        const { error } = await supabase
-          .from('user_follows')
-          .insert({ follower_id: user.id, creator_id: creatorData.id }); // Ensure creatorData.id
-        if (error) throw error;
+        const followRef = doc(collection(db, 'user_follows'));
+        await setDoc(followRef, {
+          id: followRef.id,
+          follower_id: user.uid,
+          creator_id: creatorData.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
         setIsFollowing(true);
         setFollowerCount(prev => prev + 1);
         toast.success(`Vous suivez maintenant ${creatorData.displayName || creatorData.username}!`);
       }
     } catch (error: any) {
       console.error("Error following/unfollowing:", error);
-      toast.error("Une erreur s'est produite: " + error.message);
+      toast.error("Une erreur s'est produite: " + (error.message || 'Erreur inconnue'));
     }
   };
   
-  const handleContentClick = (content: VideoSupabaseData) => {
+  const handleContentClick = (content: VideoFirestoreData) => {
     // Mux Playback ID check
     if (content.mux_playback_id && content.status === 'ready') {
       setSelectedVideo(content);
@@ -197,70 +163,106 @@ const CreatorProfile: React.FC = () => {
 
 
   if (loadingProfile || authLoading) {
-    return (
-      <div className="container mx-auto p-4">
-        <Skeleton className="h-32 w-full mb-4" />
-        <Skeleton className="h-8 w-1/2 mb-2" />
-        <Skeleton className="h-6 w-1/3 mb-4" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-        </div>
-      </div>
-    );
   }
 
   if (!creatorData) {
-    return <div className="container mx-auto p-4 text-center">Profil créateur non trouvé.</div>;
+    return <div className="flex items-center justify-center min-h-screen">Profil non trouvé</div>;
   }
   
-  const profileActions = isOwnProfile ? (
-    <>
-      <Button variant="outline" onClick={() => navigate('/settings')}><Settings className="mr-2 h-4 w-4" />Gérer le Profil</Button>
-      <Button onClick={() => navigate('/creator/dashboard')}><BarChart2 className="mr-2 h-4 w-4" />Tableau de Bord</Button>
-    </>
-  ) : (
-    <>
-      <Button onClick={handleFollow} variant={isFollowing ? "secondary" : "default"}>
-        <UserPlus className="mr-2 h-4 w-4" /> {isFollowing ? 'Suivi' : 'Suivre'}
-      </Button>
-      <Button variant="outline" onClick={() => navigate(`/secure-messaging`, { state: { recipientId: creatorData.id, recipientName: creatorData.displayName || creatorData.username, recipientAvatar: creatorData.avatarUrl } })}>
-        <MessageCircle className="mr-2 h-4 w-4" /> Message
-      </Button>
-      <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
-    </>
-  );
-
+  const profileActions = !isOwnProfile ? (
+    <button
+      onClick={handleFollow}
+      className={`px-4 py-2 rounded-full font-medium ${
+        isFollowing 
+          ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' 
+          : 'bg-blue-600 text-white hover:bg-blue-700'
+      }`}
+    >
+      {isFollowing ? 'Se désabonner' : "S'abonner"}
+    </button>
+  ) : null;
 
   // Adapt ContentGrid items to match expected structure if necessary
   const contentGridItems = videos.map(video => ({
-    id: video.id?.toString() || Math.random().toString(), // Ensure ID is string for ContentGrid
-    title: video.title || "Vidéo sans titre",
-    type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard", // Example mapping
-    format: video.format as '16:9' | '9:16' | '1:1' || '16:9',
+    id: video.id,
+    title: video.title || 'Sans titre',
+    type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard",
+    format: (video.format as '16:9' | '9:16' | '1:1') || '16:9',
     thumbnailUrl: video.thumbnail_url || undefined,
-    // videoUrl: video.mux_playback_id ? `https://stream.mux.com/${video.mux_playback_id}.m3u8` : undefined, // This will be handled by handleContentClick
-    data: video, // Pass the original video data for the click handler
-    // Removed duration as it's not on VideoSupabaseData
+    videoData: video, // Store video data in a properly typed property
   }));
 
+  const handleVideoClick = (item: any) => {
+    if (item.videoData) {
+      handleContentClick(item.videoData);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <CreatorHeader
-        avatarUrl={creatorData.avatarUrl || `https://avatar.vercel.sh/${creatorData.username}.png`}
-        displayName={creatorData.displayName || creatorData.username || "Créateur"}
-        username={creatorData.username || ""}
-        bio={creatorData.bio || "Bienvenue sur mon profil !"}
-        followerCount={followerCount}
-        isFollowing={isFollowing}
-        onFollowToggle={handleFollow}
-        isOwnProfile={isOwnProfile}
-        profileActions={profileActions}
-        coverImageUrl={creatorData.coverImageUrl} // Assuming this field exists or is added
-      />
+      <div className="relative bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden mb-8">
+        <div 
+          className="h-48 bg-cover bg-center"
+          style={{ backgroundImage: `url(${creatorData.coverImageUrl || '/default-cover.jpg'})` }}
+        ></div>
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="w-24 h-24 -mt-12 rounded-full overflow-hidden border-4 border-white dark:border-gray-900">
+              <img 
+                src={creatorData.avatarUrl || '/default-avatar.png'} 
+                alt={creatorData.displayName || creatorData.username}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold">{creatorData.displayName || creatorData.username}</h1>
+                  <p className="text-gray-600 dark:text-gray-400">@{creatorData.username}</p>
+                </div>
+                <div className="flex gap-2">
+                  {profileActions}
+                </div>
+              </div>
+              <p className="mt-2 text-gray-700 dark:text-gray-300">
+                {creatorData.bio || 'Aucune biographie disponible'}
+              </p>
+              <div className="mt-4 flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">{followerCount}</span>
+                  <span className="text-gray-600 dark:text-gray-400">abonnés</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <main className="container mx-auto px-2 sm:px-4 py-6">
-        <ProfileNav isOwnProfile={isOwnProfile} creatorId={creatorId!} />
+        <div className="border-b border-gray-200 dark:border-gray-800 mb-6">
+        <nav className="flex space-x-8">
+          <button 
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              true 
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            Vidéos
+          </button>
+          {isOwnProfile && (
+            <button 
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                false 
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Statistiques
+            </button>
+          )}
+        </nav>
+      </div>
 
         <Tabs defaultValue="videos" className="mt-6">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
@@ -271,12 +273,16 @@ const CreatorProfile: React.FC = () => {
           </TabsList>
           
           <TabsContent value="videos" className="mt-6">
-            {loadingVideos ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-72 w-full rounded-lg" />)}
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               </div>
             ) : videos.length > 0 ? (
-              <ContentGrid contents={contentGridItems} layout="masonry" onItemClick={(item) => handleContentClick(item.data as VideoSupabaseData)} />
+              <ContentGrid 
+                contents={contentGridItems} 
+                layout="masonry" 
+                onItemClick={handleVideoClick} 
+              />
             ) : (
               <p className="text-center text-muted-foreground py-8">Ce créateur n'a pas encore publié de vidéos.</p>
             )}
@@ -295,14 +301,28 @@ const CreatorProfile: React.FC = () => {
         </Tabs>
       </main>
 
-      {selectedVideo && selectedVideo.mux_playback_id && (
-        <XteasePlayerModal
-          isOpen={isPlayerOpen}
-          onClose={() => setIsPlayerOpen(false)}
-          videoSrc={`https://stream.mux.com/${selectedVideo.mux_playback_id}.m3u8`}
-          thumbnailUrl={selectedVideo.thumbnail_url || undefined}
-          title={selectedVideo.title || "Vidéo"}
-        />
+      {selectedVideo && (
+        <div className={`fixed inset-0 z-50 ${isPlayerOpen ? 'block' : 'hidden'}`}>
+          <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+            <button 
+              onClick={() => setIsPlayerOpen(false)}
+              className="absolute top-4 right-4 text-white text-2xl"
+            >
+              &times;
+            </button>
+            <div className="w-full max-w-4xl aspect-video">
+              <video
+                className="w-full h-full"
+                controls
+                autoPlay
+                src={`https://stream.mux.com/${selectedVideo.mux_playback_id}.m3u8`}
+                poster={selectedVideo.thumbnail_url}
+              >
+                Votre navigateur ne supporte pas la lecture de vidéos.
+              </video>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

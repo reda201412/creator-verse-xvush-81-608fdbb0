@@ -1,16 +1,18 @@
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import * as UpChunk from '@mux/upchunk';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-// Import Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService';
-// Removed old VideoMetadata import:
-// import { VideoMetadata } from '@/types/video';
+import { uploadVideoToMux, uploadThumbnail } from '@/services/muxService';
+import { saveVideoMetadata, type VideoMetadata } from '@/services/videoService';
+
+// Type pour l'utilisateur Firebase
+type FirebaseUser = {
+  uid: string;
+  // Ajoutez d'autres propriétés utilisateur si nécessaire
+};
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska', 'video/x-msvideo', 'video/mpeg']; // MKV, AVI, MPEG
@@ -38,7 +40,8 @@ type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'processing_metada
 
 
 const useVideoUpload = () => {
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user as unknown as FirebaseUser | undefined;
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -50,7 +53,8 @@ const useVideoUpload = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
 
-  const upchunkRef = useRef<UpChunk.UpChunk | null>(null);
+  // Référence pour annuler l'upload si nécessaire
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoFormSchema),
@@ -167,179 +171,122 @@ const useVideoUpload = () => {
     setUploadProgress(0);
     setUploadError(null);
     videoFormat.current = 'other';
-    if (upchunkRef.current) {
-      upchunkRef.current.abort(); // Abort ongoing upload if any
-      upchunkRef.current = null;
+    
+    // Annuler tout upload en cours
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
+    
     setUploadStage('idle');
   };
 
-  const uploadThumbnail = async (file: File, videoId: number): Promise<string | null> => {
-    if (!user) throw new Error("Utilisateur non authentifié.");
-    
-    const fileName = `video_thumbnails/${user.id}/${videoId}-${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('xtease-bucket') // Replace with your actual bucket name
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      console.error('Error uploading thumbnail:', error);
-      throw new Error(`Erreur lors du téléchargement de la miniature: ${error.message}`);
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('xtease-bucket') // Replace with your actual bucket name
-      .getPublicUrl(data.path);
-      
-    return publicUrlData.publicUrl;
-  };
-  
-  const saveVideoMetadata = async (
-    values: VideoFormValues, 
-    muxUploadId: string | undefined, 
-    initialThumbnailUrl?: string | null
-  ): Promise<VideoSupabaseData | null> => {
-    if (!user) {
-      setUploadError("Utilisateur non authentifié.");
-      throw new Error("Utilisateur non authentifié.");
-    }
-    
-    setUploadStage('processing_metadata');
-
-    try {
-      const { data: videoData, error: insertError } = await supabase
-        .from('videos')
-        .insert({
-          user_id: user.id, // Corrected from user.uid
-          title: values.title,
-          description: values.description,
-          type: values.type,
-          format: videoFormat.current,
-          is_premium: values.isPremium,
-          token_price: values.isPremium ? values.tokenPrice : null,
-          thumbnail_url: initialThumbnailUrl, // Use pre-uploaded thumbnail URL or null
-          upload_id: muxUploadId, // This is Mux Upload ID from createUpload response
-          status: 'processing', // Initial status, Mux webhook will update to 'ready' and add asset/playback IDs
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Error inserting video metadata:', insertError);
-        throw insertError;
-      }
-
-      // If there was no pre-uploaded thumbnail (e.g. user provided one),
-      // and a thumbnailFile exists (user selected one or generated one), upload it now.
-      let finalThumbnailUrl = initialThumbnailUrl;
-      if (!finalThumbnailUrl && thumbnailFile && videoData) {
-         finalThumbnailUrl = await uploadThumbnail(thumbnailFile, videoData.id);
-         // Update the video record with the new thumbnail URL
-         const { error: updateError } = await supabase
-           .from('videos')
-           .update({ thumbnail_url: finalThumbnailUrl })
-           .eq('id', videoData.id);
-         if (updateError) {
-           console.warn('Failed to update video with final thumbnail URL:', updateError);
-           // Non-critical, proceed but log it
-         }
-      }
-      
-      setUploadStage('complete');
-      return { ...videoData, thumbnail_url: finalThumbnailUrl } as VideoSupabaseData;
-
-    } catch (error: any) {
-      console.error('Error in saveVideoMetadata:', error);
-      setUploadError(error.message || "Erreur lors de la sauvegarde des métadonnées de la vidéo.");
-      setUploadStage('error');
-      toast.error("Erreur de sauvegarde", { description: error.message || "Impossible de sauvegarder les informations de la vidéo."});
-      return null;
-    }
-  };
-
-
-  const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoSupabaseData | null> => {
+  const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoMetadata | null> => {
     if (!videoFile || !user) {
       setUploadError("Fichier vidéo ou utilisateur manquant.");
       return null;
     }
 
+    // Créer un nouvel AbortController pour cette requête
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError(null);
     setUploadStage('creating_upload');
 
     try {
-      // 1. Create MUX Direct Upload URL via an edge function
-      // No manual token fetching, Supabase client handles it for edge functions.
-      const { data: uploadData, error: createUploadError } = await supabase.functions.invoke('create-mux-upload');
+      // 1. Uploader la vidéo vers MUX avec support d'annulation
+      setUploadStage('uploading');
+      const muxResponse = await uploadVideoToMux(videoFile, controller.signal);
       
-      if (createUploadError || !uploadData || !uploadData.url || !uploadData.id) {
-        console.error('Error creating Mux upload:', createUploadError, uploadData);
-        throw new Error(createUploadError?.message || "Impossible de préparer l'upload vidéo avec Mux.");
+      // Vérifier si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
       }
       
-      const muxUploadUrl = uploadData.url as string;
-      const muxUploadId = uploadData.id as string;
-
-      // 2. Upload video file to MUX using UpChunk
-      setUploadStage('uploading');
-      return new Promise<VideoSupabaseData | null>((resolve, reject) => {
-        upchunkRef.current = UpChunk.createUpload({
-          endpoint: muxUploadUrl,
-          file: videoFile,
-          chunkSize: 7680, // 7.5MB chunk size (adjust as needed)
-        });
-
-        upchunkRef.current.on('progress', (progressEvent: { detail: number }) => {
-          setUploadProgress(Math.floor(progressEvent.detail));
-        });
-
-        upchunkRef.current.on('success', async () => {
-          console.log('Video uploaded to Mux successfully!');
-          // 3. Save video metadata to Supabase
-          try {
-            let initialThumbUrl: string | null = null;
-            // If user provided a thumbnail, upload it first
-            if (thumbnailFile && !thumbnailPreviewUrl?.startsWith('blob:')) { // Ensure it's not a generated blob
-                // This logic might be tricky: if thumbnailFile is set but preview is a blob, it means it was generated.
-                // If thumbnailFile exists and preview is NOT a blob, it means user uploaded it.
-                // Let's simplify: if thumbnailFile exists, try to upload it.
-                // The saveVideoMetadata will handle its own thumbnail logic now.
-            }
-
-            const metadata = await saveVideoMetadata(values, muxUploadId, initialThumbUrl);
-            setIsUploading(false);
-            resolve(metadata);
-          } catch (metaError: any) {
-            setIsUploading(false);
-            reject(metaError);
-          }
-        });
-
-        upchunkRef.current.on('error', (errorEvent: { detail: any }) => {
-          console.error('UpChunk upload error:', errorEvent.detail);
-          setIsUploading(false);
-          setUploadError(`Erreur lors du téléversement: ${errorEvent.detail?.message || 'Erreur UpChunk'}`);
-          setUploadStage('error');
-          toast.error("Erreur de téléversement", { description: errorEvent.detail?.message || 'Une erreur est survenue lors du téléversement.'});
-          reject(new Error(errorEvent.detail?.message || 'Erreur UpChunk'));
-        });
+      // Mettre à jour la progression
+      setUploadProgress(100);
+      
+      // 2. Uploader la miniature si elle existe
+      let thumbnailUrl: string | undefined;
+      if (thumbnailFile) {
+        setUploadStage('generating_thumbnail');
+        thumbnailUrl = await uploadThumbnail(thumbnailFile, user?.uid || '', { signal: controller.signal });
+        
+        // Vérifier si la requête a été annulée après l'upload de la miniature
+        if (controller.signal.aborted) {
+          return null;
+        }
+      }
+      
+      // Vérifier à nouveau si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
+      }
+      
+      // 3. Sauvegarder les métadonnées dans Neon DB
+      setUploadStage('processing_metadata');
+      const videoMetadata: Omit<VideoMetadata, 'id' | 'created_at' | 'updated_at'> = {
+        user_id: user?.uid || '',
+        title: values.title,
+        description: values.description,
+        type: values.type,
+        is_premium: values.isPremium,
+        token_price: values.isPremium ? values.tokenPrice : undefined,
+        mux_asset_id: muxResponse.assetId,
+        mux_playback_id: muxResponse.playbackId,
+        mux_upload_id: muxResponse.uploadId,
+        thumbnail_url: thumbnailUrl,
+        status: 'processing', // MUX mettra à jour ce statut via le webhook
+      };
+      
+      const savedMetadata = await saveVideoMetadata(videoMetadata);
+      
+      // Vérifier une dernière fois si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
+      }
+      
+      setUploadStage('complete');
+      toast.success("Vidéo téléversée avec succès !", {
+        description: "Votre vidéo est en cours de traitement et sera bientôt disponible."
       });
-
+      
+      return savedMetadata;
+      
     } catch (error: any) {
-      console.error('General upload process error:', error);
-      setIsUploading(false);
-      setUploadError(error.message || "Une erreur générale est survenue lors de l'upload.");
+      // Ne pas afficher d'erreur si la requête a été annulée
+      if (error.name === 'AbortError') {
+        console.log('Upload annulé par l\'utilisateur');
+        return null;
+      }
+      
+      console.error('Erreur lors du téléversement de la vidéo:', error);
+      setUploadError(error.message || "Une erreur est survenue lors du téléversement de la vidéo.");
       setUploadStage('error');
-      toast.error("Erreur d'upload", { description: error.message || "Une erreur générale est survenue."});
+      toast.error("Erreur de téléversement", { 
+        description: error.message || "Une erreur est survenue lors du téléversement de la vidéo." 
+      });
       return null;
+    } finally {
+      // Nettoyer l'AbortController
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      setIsUploading(false);
     }
   };
 
+
+  // Nettoyer les URLs d'objets blob lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+      if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    };
+  }, [videoPreviewUrl, thumbnailPreviewUrl]);
 
   return {
     form,

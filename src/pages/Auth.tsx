@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-// import { auth, db } from '@/integrations/firebase/firebase'; // Removed Firebase
-// import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'; // Removed Firebase Auth
-// import { doc, setDoc, serverTimestamp } from 'firebase/firestore'; // Removed Firestore
+import { auth, db } from '@/integrations/firebase/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,7 @@ import { toast } from '@/components/ui/sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
-import { useAuth } from '@/contexts/AuthContext'; 
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -44,62 +43,40 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      // Use Supabase Auth signUp
-      // The database trigger 'handle_new_user' will automatically create the profile.
-      const { data, error } = await supabase.auth.signUp({
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create user profile in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        username: username,
         email: email,
-        password: password,
-        options: {
-          // Pass username and role so the DB trigger can use them
-          data: { 
-             username: username, // Use 'username' key for the trigger
-             role: userRole,     // Use 'role' key for the trigger
-          }
-        },
+        role: userRole,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
 
-      if (error) {
-        console.error("Erreur d'inscription Supabase:", error);
-        // Map Supabase errors to user-friendly messages
-        let errorMessage = "Une erreur est survenue lors de l'inscription.";
-        if (error.message.includes('already registered')) {
-          errorMessage = "Cette adresse e-mail est déjà utilisée.";
-        } else if (error.message.includes('Password should be')) {
-           errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
-        } else if (error.message.includes('User already registered')) { // Supabase might return this
-           errorMessage = "Cette adresse e-mail est déjà utilisée.";
-        }
-         else if (error.message) {
-           errorMessage = error.message;
-        }
-        toast.error(errorMessage);
-        setLoading(false);
-        return; // Stop execution if there's an auth error
-      }
-
-      // Check if email confirmation is required (data.user will be null if so)
-       if (data && data.user && data.session) { // User signed up and session created (email confirm might be off or auto-confirmed)
-           console.log("Inscription réussie et utilisateur créé:", data.user);
-            toast.success("Inscription réussie ! Redirection...");
-             // Redirection handled by AuthContext listener
-       } else if (data && data.user && !data.session) { // User created, email confirmation needed
-            console.log("Inscription réussie. Vérification de l'e-mail requise.");
-            toast.success("Inscription réussie ! Veuillez vérifier votre e-mail pour confirmer votre compte.");
-            setActiveTab('login'); // Suggest login after confirmation
-       }
-       else { // Fallback for other cases, possibly older Supabase versions or unexpected responses
-           console.log("Inscription initiée. Si la confirmation par e-mail est activée, veuillez vérifier votre e-mail.");
-            toast.success("Inscription initiée ! Veuillez vérifier votre e-mail si la confirmation est requise.");
-            setActiveTab('login');
-       }
-
-      setLoading(false);
-      // No need to navigate here, AuthContext listener handles it based on auth state
+      console.log("Inscription réussie et utilisateur créé:", user);
+      toast.success("Inscription réussie ! Redirection...");
+      // Redirection handled by AuthContext listener
+      
     } catch (error: any) {
-      console.error("Une erreur inattendue est survenue pendant l'inscription:", error);
-       let errorMessage = "Une erreur inattendue est survenue lors de l'inscription.";
-       if (error.message) errorMessage = error.message;
+      console.error("Erreur d'inscription Firebase:", error);
+      let errorMessage = "Une erreur est survenue lors de l'inscription.";
+      
+      // Map Firebase errors to user-friendly messages
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Cette adresse e-mail est déjà utilisée.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "L'adresse e-mail n'est pas valide.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast.error(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
@@ -114,34 +91,28 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      // Use Supabase Auth signInWithPassword
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error("Erreur de connexion Supabase:", error);
-         // Map Supabase errors to user-friendly messages
-        let errorMessage = "Identifiants incorrects ou erreur de connexion.";
-         if (error.message.includes('Invalid login credentials')) {
-             errorMessage = "Adresse e-mail ou mot de passe incorrect.";
-         } else if (error.message) {
-             errorMessage = error.message;
-         }
-        toast.error(errorMessage);
-         setLoading(false);
-         return; // Stop execution if there's an auth error
-      }
-
+      // Sign in with Firebase Auth
+      await signInWithEmailAndPassword(auth, email, password);
       toast.success("Connexion réussie ! Redirection...");
-      // No need to navigate here, context listener does it
-
+      // Redirection handled by AuthContext listener
+      
     } catch (error: any) {
-      console.error("Une erreur inattendue est survenue pendant la connexion:", error);
-       let errorMessage = "Une erreur inattendue est survenue lors de la connexion.";
-        if (error.message) errorMessage = error.message;
+      console.error("Erreur de connexion Firebase:", error);
+      let errorMessage = "Identifiants incorrects ou erreur de connexion.";
+      
+      // Map Firebase errors to user-friendly messages
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Adresse e-mail ou mot de passe incorrect.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Trop de tentatives de connexion. Veuillez réessayer plus tard.";
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = "Ce compte a été désactivé.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast.error(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
@@ -217,17 +188,39 @@ const Auth = () => {
               
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-signup">Email</Label>
-                    <Input 
-                      id="email-signup"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="votre@email.com"
-                      required
-                      autoComplete="email"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email-signup">Email</Label>
+                      <Input 
+                        id="email-signup"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre@email.com"
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Je m'inscris en tant que</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div 
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${userRole === 'fan' ? 'border-xvush-pink bg-xvush-pink/10' : 'border-muted-foreground/30'}`}
+                          onClick={() => setUserRole('fan')}
+                        >
+                          <div className="font-medium text-center">👥 Spectateur</div>
+                          <p className="text-sm text-muted-foreground text-center mt-1">Découvrez et soutenez les créateurs</p>
+                        </div>
+                        <div 
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${userRole === 'creator' ? 'border-xvush-pink bg-xvush-pink/10' : 'border-muted-foreground/30'}`}
+                          onClick={() => setUserRole('creator')}
+                        >
+                          <div className="font-medium text-center">🎨 Créateur</div>
+                          <p className="text-sm text-muted-foreground text-center mt-1">Créez et monétisez votre contenu</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

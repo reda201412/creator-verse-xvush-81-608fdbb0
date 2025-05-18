@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { 
   User as FirebaseUser,
@@ -96,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("Auth state changed:", firebaseUser ? `User ${firebaseUser.uid} signed in` : "User signed out");
+      console.log("Auth state changed:", firebaseUser ? "User signed in" : "User signed out");
       setUser(firebaseUser);
       
       if (firebaseUser) {
@@ -123,21 +124,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const userProfile = await fetchOrCreateUserProfile(user);
+      const profile = await fetchOrCreateUserProfile(user);
       
-      return { 
-        user, 
-        profile: userProfile, 
-        error: null 
-      };
+      return { user, profile, error: null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error("Error signing in:", errorMessage);
-      return { 
-        user: null, 
-        profile: null, 
-        error: errorMessage 
-      };
+      return { user: null, profile: null, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -160,21 +153,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await sendEmailVerification(user);
       
       // Create user profile
-      const userProfile = await fetchOrCreateUserProfile(user);
+      const profile = await fetchOrCreateUserProfile(user);
       
-      return { 
-        user, 
-        profile: userProfile, 
-        error: null 
-      };
+      return { user, profile, error: null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error("Error signing up:", errorMessage);
-      return { 
-        user: null, 
-        profile: null, 
-        error: errorMessage 
-      };
+      return { user: null, profile: null, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -205,12 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Error resetting password:", errorMessage);
       return { error: errorMessage };
     }
-  };
-
-  // Refresh user profile
-  const refreshProfile = async () => {
-    if (!user) return;
-    await fetchOrCreateUserProfile(user);
   };
 
   // Update user profile
@@ -254,22 +233,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const response = await fetch('/api/users/me/upgrade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`
-        }
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        role: 'creator',
+        updatedAt: serverTimestamp()
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to upgrade to creator status');
-      }
-      
-      const updatedProfile = await response.json();
-      
       // Update local state
-      setProfile(updatedProfile);
+      setProfile(prev => prev ? { ...prev, role: 'creator' } : null);
       setIsCreator(true);
       
       return { error: null };
@@ -325,6 +296,122 @@ export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+  };
+
+  // Reset password
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error("Error sending password reset email:", error);
+      throw error;
+    }
+  };
+
+  // Refresh the user profile
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    return fetchOrCreateUserProfile(user);
+  }, [user, fetchOrCreateUserProfile]);
+
+  // Update user profile in Firestore
+  const updateUserProfile = async (updates: Partial<Omit<UserProfile, 'id' | 'createdAt'>>) => {
+    if (!user) throw new Error("No user is authenticated");
+    
+    try {
+      setIsLoading(true);
+      
+      const userRef = doc(db, 'users', user.uid);
+      const updateData: any = {
+        ...updates,
+        updatedAt: serverTimestamp()
+      };
+      
+      // Update Firestore
+      await updateDoc(userRef, updateData);
+      
+      // Update local state
+      setProfile(prev => ({
+        ...prev!,
+        ...updates
+      }));
+      
+      // Update role state if it was changed
+      if (updates.role) {
+        setIsCreator(updates.role === 'creator');
+      }
+      
+      // Update Firebase Auth profile if displayName or photoURL changed
+      if (updates.displayName || updates.avatarUrl) {
+        await updateFirebaseProfile(user, {
+          displayName: updates.displayName || user.displayName,
+          photoURL: updates.avatarUrl || user.photoURL
+        });
+      }
+      
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Upgrade user to creator role
+  const becomeCreator = async () => {
+    if (!user) throw new Error("No user is authenticated");
+    await updateUserProfile({ role: 'creator' });
+  };
+  
+  // Upload avatar to Firebase Storage
+  const uploadAvatar = async (file: File): Promise<string> => {
+    if (!user) throw new Error("No user is authenticated");
+    
+    try {
+      const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      // Update user profile with new avatar URL
+      await updateUserProfile({ avatarUrl: downloadURL });
+      
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      throw error;
+    }
+  };
+
+  console.log("AuthProvider: Preparing context value. User:", user?.id, "Profile role:", profile?.role, "isLoading:", isLoading);
+  const value = {
+    user,
+    profile,
+    isLoading,
+    isCreator,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    refreshProfile,
+    updateUserProfile,
+    becomeCreator,
+    uploadAvatar
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
