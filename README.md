@@ -1,8 +1,84 @@
-# Welcome to your Lovable project
+# CreatorVerse - Plateforme de contenu vidéo
 
-## Project info
+## Configuration de la base de données
 
-**URL**: https://lovable.dev/projects/2fded085-118e-4a12-9963-359fd3d38819
+### Prérequis
+
+- Node.js 16+
+- PostgreSQL 13+
+- Compte [NEON](https://neon.tech/) (pour la base de données serverless)
+
+### Configuration des variables d'environnement
+
+Créez un fichier `.env` à la racine du projet avec les variables suivantes :
+
+```env
+# Configuration de la base de données NEON
+VITE_NEON_DATABASE_URL=postgresql://user:password@host:port/dbname?sslmode=require
+NEXT_PUBLIC_NEON_DATABASE_URL=postgresql://user:password@host:port/dbname?sslmode=require
+
+# Configuration MUX
+NEXT_PUBLIC_MUX_TOKEN_ID=votre_token_id
+MUX_TOKEN_SECRET=votre_token_secret
+NEXT_PUBLIC_MUX_UPLOAD_ENDPOINT=/api/mux/upload
+```
+
+### Initialisation de la base de données
+
+1. **Créer la table des vidéos** :
+   ```bash
+   npm run db:init
+   ```
+   Ce script va :
+   - Tester la connexion à la base de données
+   - Créer la table `videos` si elle n'existe pas
+   - Afficher le nombre d'enregistrements existants
+
+2. **Exécuter les migrations** :
+   ```bash
+   npm run db:migrate
+   ```
+   Ce script va exécuter toutes les migrations SQL du dossier `migrations/` qui n'ont pas encore été appliquées.
+
+3. **Vérifier l'état des migrations** :
+   ```bash
+   npm run db:status
+   ```
+   Affiche la liste des migrations avec leur statut (appliquées ou en attente).
+
+## Structure de la base de données
+
+### Table `videos`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | SERIAL | Identifiant unique |
+| user_id | TEXT | ID de l'utilisateur |
+| title | TEXT | Titre de la vidéo |
+| description | TEXT | Description |
+| mux_asset_id | TEXT | ID de l'asset MUX |
+| mux_playback_id | TEXT | ID de lecture MUX |
+| mux_upload_id | TEXT | ID d'upload MUX |
+| thumbnail_url | TEXT | URL de la miniature |
+| duration | INTEGER | Durée en secondes |
+| aspect_ratio | TEXT | Format d'écran |
+| status | TEXT | Statut (processing/ready/error) |
+| type | TEXT | Type de contenu |
+| is_premium | BOOLEAN | Contenu premium |
+| token_price | DECIMAL(10,2) | Prix en tokens |
+| created_at | TIMESTAMPTZ | Date de création |
+| updated_at | TIMESTAMPTZ | Date de mise à jour |
+
+## Développement
+
+### Commandes disponibles
+
+- `npm run dev` - Lance le serveur de développement
+- `npm run build` - Compile pour la production
+- `npm run preview` - Prévisualise la version de production
+- `npm run db:init` - Initialise la base de données
+- `npm run db:migrate` - Exécute les migrations
+- `npm run db:status` - Affiche l'état des migrations
 
 ## How can I edit this code?
 

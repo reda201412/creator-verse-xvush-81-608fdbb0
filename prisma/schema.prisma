@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["clientExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_NON_POOLING")
+}
+
+enum VideoStatus {
+  processing
+  ready
+  error
+}
+
+enum VideoType {
+  standard
+  teaser
+  premium
+  vip
+}
+
+model Video {
+  id              Int         @id @default(autoincrement())
+  user_id         String      @db.Text
+  title           String      @db.Text
+  description     String?     @db.Text
+  mux_asset_id    String      @unique @db.Text
+  mux_playback_id String?     @db.Text
+  mux_upload_id   String?     @db.Text
+  thumbnail_url   String?     @db.Text
+  duration        Int?        @db.Integer
+  aspect_ratio    String?     @db.Text
+  status          VideoStatus @default(processing)
+  type            VideoType   @default(standard)
+  is_premium      Boolean     @default(false)
+  token_price     Decimal?    @db.Decimal(10, 2)
+  created_at      DateTime    @default(now()) @db.Timestamptz
+  updated_at      DateTime    @updatedAt @db.Timestamptz
+
+  @@index([user_id], name: "idx_videos_user_id")
+  @@index([status], name: "idx_videos_status")
+  @@index([created_at], name: "idx_videos_created_at")
+}
