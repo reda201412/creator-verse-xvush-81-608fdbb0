@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { MetadataForm } from './MetadataForm';
 import { ShieldStatus } from './ShieldStatus';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { useEnhancedUploader } from './hooks';
 
 export const VideoUploader: React.FC<{
   onUploadComplete: (metadata?: any) => void;
@@ -28,6 +30,8 @@ export const VideoUploader: React.FC<{
     setError,
     reset,
   } = useUploader();
+
+  const { handleUpload, submitMetadata } = useEnhancedUploader(onUploadComplete);
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -74,7 +78,7 @@ export const VideoUploader: React.FC<{
     switch (stage) {
       case 'idle':
       case 'selecting':
-        return <UploadDropzone onComplete={() => setStage('uploading')} />;
+        return <UploadDropzone onComplete={handleUpload} />;
       
       case 'uploading':
         return (
@@ -97,7 +101,7 @@ export const VideoUploader: React.FC<{
         return (
           <div className="space-y-6">
             <MetadataForm 
-              onComplete={handleUploadComplete} 
+              onComplete={submitMetadata} 
               onBack={() => setStage('uploading')} 
             />
             <ShieldStatus status={shieldStatus} />
