@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -74,7 +73,7 @@ export const UploadDropzone: React.FC<{ onComplete: () => void }> = ({ onComplet
         }, 'image/png');
       }
       
-      // After setting the file and thumbnail, proceed with upload
+      // Proceed to next stage
       onComplete();
     };
     
