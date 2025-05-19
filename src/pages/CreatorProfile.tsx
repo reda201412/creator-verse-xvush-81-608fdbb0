@@ -186,14 +186,33 @@ const CreatorProfile: React.FC = () => {
   ) : null;
 
   // Adapt ContentGrid items to match expected structure if necessary
-  const contentGridItems = videos.map(video => ({
-    id: video.id,
-    title: video.title || 'Sans titre',
-    type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard",
-    format: (video.format as '16:9' | '9:16' | '1:1') || '16:9',
-    thumbnailUrl: video.thumbnail_url || undefined,
-    videoData: video, // Store video data in a properly typed property
-  }));
+  const contentGridItems = videos.map(video => {
+    // Extraire le format de la vidéo (par défaut '16:9' si non défini)
+    let videoFormat: 'image' | 'video' | 'audio' | 'text' = 'video';
+    
+    // Si video.format est défini et est un objet avec aspect_ratio, on peut l'utiliser
+    // Sinon, on utilise le type par défaut 'video'
+    if (video.format && typeof video.format === 'object' && 'aspect_ratio' in video.format) {
+      // Ici, vous pouvez ajouter une logique pour déterminer le format en fonction de l'aspect ratio si nécessaire
+      // Par exemple, si l'aspect ratio est '9:16', cela pourrait être une story ou un format vertical
+      videoFormat = 'video';
+    }
+    
+    return {
+      id: video.id.toString(), // S'assurer que l'ID est une chaîne
+      title: video.title || 'Sans titre',
+      type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard",
+      format: videoFormat,
+      duration: video.duration || 0,
+      thumbnailUrl: video.thumbnail_url || undefined,
+      metrics: {
+        views: video.viewCount || 0,
+        likes: video.likeCount || 0,
+        comments: video.commentCount || 0,
+      },
+      videoData: video, // Store video data in a properly typed property
+    };
+  });
 
   const handleVideoClick = (videoId: number | string) => {
     // Convertir l'ID en nombre si nécessaire

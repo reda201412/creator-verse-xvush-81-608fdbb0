@@ -113,8 +113,8 @@ const TrendingContent = () => {
         ...c,
         metrics: {
           followers: Math.floor(Math.random() * 10000),
-          likes: Math.floor(Math.random() * 5000),
-          rating: 4 + Math.random(),
+          following: Math.floor(Math.random() * 500), // Ajout de la propriété following manquante
+          videos: Math.floor(Math.random() * 100),    // Ajout de la propriété videos manquante
         },
         isPremium: Math.random() > 0.5 // Simulé
       }));
@@ -168,6 +168,41 @@ const TrendingContent = () => {
     loadTrendingVideos(); // Charger les vidéos tendance
   }, [trackInteraction]); // Dépendance trackInteraction correcte ? Ou vide [] si chargement unique.
 
+  // Gère le clic sur un créateur pour naviguer vers son profil ou envoyer un message
+  const handleCreatorClick = (creator: CreatorProfileData, event?: React.MouseEvent) => {
+    if (!creator?.id) {
+      console.error("Impossible de naviguer: ID du créateur manquant");
+      toast({
+        title: "Erreur",
+        description: "Impossible d'accéder au profil du créateur.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Enregistre l'interaction
+    triggerMicroReward('click');
+    
+    // Si l'utilisateur maintient la touche Ctrl ou Cmd (ou clic molette), ouvre dans un nouvel onglet
+    const isNewTab = event ? (event.ctrlKey || event.metaKey || event.button === 1) : false;
+    
+    if (isNewTab) {
+      // Ouvre dans un nouvel onglet
+      window.open(`/creator/${creator.id}`, '_blank');
+    } else if (event?.shiftKey) {
+      // Si Shift est maintenu, ouvre la messagerie
+      trackInteraction('click', { target: 'creator_message', creatorId: creator.id });
+      navigate('/secure-messaging', { state: { creatorId: creator.id } });
+    } else {
+      // Comportement par défaut : ouvre le profil
+      trackInteraction('click', { 
+        target: 'creator_profile',
+        creatorId: creator.id 
+      });
+      navigate(`/creator/${creator.id}`);
+    }
+  };
+
   const handleContentClick = (content: TrendingContentItem) => {
     triggerMicroReward('click');
     trackInteraction('click', { contentId: content.id });
@@ -178,11 +213,7 @@ const TrendingContent = () => {
     }
   };
 
-  const handleCreatorClick = (creator: CreatorProfileData) => {
-    triggerMicroReward('click');
-    trackInteraction('click', { creatorId: creator.id.toString() });
-    navigate('/secure-messaging', { state: { creatorId: creator.id.toString() } });
-  };
+  // La fonction handleCreatorClick est maintenant définie plus haut avec plus de fonctionnalités
 
   const filteredContentByTab = activeTab === 'all' 
     ? trendingVideos
@@ -272,22 +303,27 @@ const TrendingContent = () => {
               >
                 {creators.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {creators.map((creator) => (
-                      <ContentCreatorCard
-                        key={creator.id.toString()}
-                        creator={{
-                          id: creator.id.toString(),
-                          userId: creator.id.toString(),
-                          username: creator.username,
-                          name: creator.displayName || creator.username,
-                          avatar: creator.avatarUrl || `https://i.pravatar.cc/300?u=${creator.id}`,
-                          bio: creator.bio || undefined,
-                          metrics: creator.metrics, // Métriques simulées ajoutées
-                          isPremium: creator.isPremium || false,
-                        }}
-                        onClick={() => handleCreatorClick(creator)}
-                      />
-                    ))}
+                    {creators
+                      .filter(creator => creator && creator.id) // Filtre les créateurs sans ID
+                      .map((creator) => {
+                        const creatorId = creator.id?.toString() || 'unknown';
+                        return (
+                          <ContentCreatorCard
+                            key={creatorId}
+                            creator={{
+                              id: creatorId,
+                              userId: creatorId,
+                              username: creator.username || 'Utilisateur inconnu',
+                              name: creator.name || creator.username || 'Utilisateur',
+                              avatar: creator.profileImageUrl || `https://i.pravatar.cc/300?u=${creatorId}`,
+                              bio: creator.bio,
+                              metrics: creator.metrics || {},
+                              isPremium: creator.isPremium || false,
+                            }}
+                            onClick={() => handleCreatorClick(creator)}
+                          />
+                        );
+                      })}
                   </div>
                 ) : (
                   <p>Aucun créateur trouvé.</p>

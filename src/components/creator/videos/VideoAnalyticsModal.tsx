@@ -49,7 +49,12 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOp
           if (!videoId) {
             throw new Error('Video ID is required');
           }
-          const fetchedVideo = await getVideoById(videoId);
+          // Convertir videoId en nombre avant de l'utiliser
+          const videoIdNumber = videoId ? parseInt(videoId, 10) : null;
+          if (videoIdNumber === null) {
+            throw new Error('Invalid video ID');
+          }
+          const fetchedVideo = await getVideoById(videoIdNumber);
           if (fetchedVideo) {
             setVideoDetails(fetchedVideo);
             // TODO: Remplacer par la récupération des vraies données analytiques pour cette vidéo

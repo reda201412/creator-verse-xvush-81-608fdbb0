@@ -1,81 +1,101 @@
-import { db } from '@/integrations/firebase/firebase';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  addDoc,
-  deleteDoc,
-  serverTimestamp,
-  writeBatch,
-  getCountFromServer
-} from 'firebase/firestore';
-import { UserProfile } from '@/contexts/AuthContext'; // Keep UserProfile type
+import { prisma } from '@/lib/prisma';
 
-// Extend UserProfile to include creator specific metrics if needed
-export interface CreatorProfileData extends UserProfile {
-  metrics?: {
-    followers?: number;
-    following?: number; // Number of people the creator follows
-    videos?: number;
-    // revenue?: number; // Revenue might be more complex to calculate client-side
+export interface VideoData {
+  id: number;
+  userId: string;
+  user_id?: string; // For backward compatibility
+  title: string;
+  description: string | null;
+  assetId: string | null;
+  mux_asset_id?: string | null; // For backward compatibility
+  uploadId: string | null;
+  mux_upload_id?: string | null; // For backward compatibility
+  playbackId: string | null;
+  mux_playback_id?: string | null; // For backward compatibility
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  duration: number | null;
+  aspectRatio: string | null;
+  aspect_ratio?: string | null; // For backward compatibility
+  thumbnailUrl: string | null;
+  thumbnail_url?: string | null; // For backward compatibility
+  videoUrl: string | null;
+  video_url?: string | null; // For backward compatibility
+  isPublished: boolean;
+  isPremium: boolean;
+  is_premium?: boolean; // For backward compatibility
+  price: number | null;
+  token_price?: number | null; // For backward compatibility
+  viewCount: number;
+  view_count?: number; // For backward compatibility
+  likeCount: number;
+  like_count?: number; // For backward compatibility
+  commentCount: number;
+  comment_count?: number; // For backward compatibility
+  type?: string; // Video type (standard, teaser, premium, vip)
+  format?: {
+    duration?: number;
+    width?: number;
+    height?: number;
+    aspect_ratio?: string;
+    [key: string]: unknown;
   };
-  isOnline?: boolean; // Online status is usually managed by a presence system (ex: Realtime Database)
-  isPremium?: boolean; // Indicates if the creator has a premium account
+  error_details?: Record<string, unknown>; // Error details if any
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  metadata?: Record<string, unknown> | null;
 }
 
-// Interface for video metadata stored in Neon DB (MATCHING YOUR SCHEMA + MUX FIELDS)
-import { VideoMetadata } from './videoService';
+export interface CreatorProfileData {
+  id: string;
+  email: string;
+  name: string | null;
+  username: string | null;
+  bio: string | null;
+  profileImageUrl: string | null;
+  coverImageUrl: string | null;
+  isCreator: boolean;
+  isOnline?: boolean;
+  isPremium?: boolean;
+  metrics: {
+    followers: number;
+    following: number;
+    videos: number;
+  };
+}
 
-export type VideoData = VideoMetadata;
-
-// Keep Firebase fetching for user profiles and follows for now, as the request didn't specify changing these.
-// You might want to migrate these to Firestore later for full consistency.
-
-// NOTE: getCreatorById still fetches creator profile and follow counts from Firebase
+// Get creator by ID from Prisma
 export const getCreatorById = async (id: string): Promise<CreatorProfileData | null> => {
   try {
-    // NOTE: This still fetches from Firebase 'users' collection.
-    // You might need to adjust this if you migrate users to Firestore auth/db.
-    // Assuming Firebase user id is compatible with Firestore user_id uuid string representation
-    const userRef = doc(db, 'users', id);
-    const userSnap = await getDoc(userRef);
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            videos: true,
+            followers: true,
+            following: true,
+          },
+        },
+      },
+    });
 
-    if (!userSnap.exists() || userSnap.data()?.role !== 'creator') {
-      console.warn(`Creator profile not found for id: ${id} or user is not a creator.`);
-      return null;
-    }
-
-    const creatorData = userSnap.data() as UserProfile;
-
-    // Count followers (still Firebase)
-    // You might need to adjust this if you migrate follow relationships to Firestore.
-    const followersQuery = query(collection(db, 'follows'), where('creatorId', '==', id));
-    const followersSnap = await getCountFromServer(followersQuery);
-    const followersCount = followersSnap.data().count;
-
-    // Count who this creator follows (still Firebase)
-    // You might need to adjust this if you migrate follow relationships to Firestore.
-    const followingQuery = query(collection(db, 'follows'), where('followerId', '==', id));
-    const followingSnap = await getCountFromServer(followingQuery);
-    const followingCount = followingSnap.data().count;
-    
-    // TODO: Implement Firestore query to count videos
-    console.log('Counting videos from Firestore for user ID:', id);
-    const videosCount = 0; // Placeholder for Firestore implementation
+    if (!user) return null;
 
     return {
-      ...creatorData,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      bio: user.bio,
+      profileImageUrl: user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || '')}&background=random`,
+      coverImageUrl: user.coverImageUrl,
+      isCreator: user.isCreator,
+      isOnline: Math.random() > 0.5, // Simulate online status
       metrics: {
-        followers: followersCount,
-        following: followingCount,
-        videos: videosCount, // Use the count from Firestore, default to 0
+        followers: user._count?.followers || 0,
+        following: user._count?.following || 0,
+        videos: user._count?.videos || 0,
       },
-      isOnline: Math.random() > 0.5, // Simulate online status for now
     };
   } catch (error) {
     console.error('Error in getCreatorById:', error);
@@ -83,105 +103,196 @@ export const getCreatorById = async (id: string): Promise<CreatorProfileData | n
   }
 };
 
-// NOTE: getAllCreators still fetches from Firebase 'users' collection
+// Get all creators from Prisma
 export const getAllCreators = async (): Promise<CreatorProfileData[]> => {
   try {
-    const q = query(collection(db, 'users'), where('role', '==', 'creator'));
-    const querySnapshot = await getDocs(q);
-    
-    const creators: CreatorProfileData[] = [];
-    querySnapshot.forEach((doc) => {
-      creators.push({ 
-        ...(doc.data() as UserProfile),
-        isOnline: Math.random() > 0.5, // Simulate
-      } as CreatorProfileData);
+    const creators = await prisma.user.findMany({
+      where: { isCreator: true },
+      include: {
+        _count: {
+          select: {
+            videos: true,
+            followers: true,
+            following: true,
+          },
+        },
+      },
     });
-    return creators;
+
+    return creators.map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      bio: user.bio,
+      profileImageUrl: user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || '')}&background=random`,
+      coverImageUrl: user.coverImageUrl,
+      isCreator: user.isCreator,
+      isOnline: Math.random() > 0.5, // Simulate online status
+      metrics: {
+        followers: user._count?.followers || 0,
+        following: user._count?.following || 0,
+        videos: user._count?.videos || 0,
+      },
+    }));
   } catch (error) {
     console.error('Error in getAllCreators:', error);
     return [];
   }
 };
 
-// Get creator videos from Neon DB
+// Get creator videos from Prisma
 export const getCreatorVideos = async (creatorId: string): Promise<VideoData[]> => {
   try {
-    // TODO: Implement Firestore query to get creator videos
-    console.log('Fetching videos from Firestore for creator ID:', creatorId);
-    
-    // For now, return an empty array
-    return [];
+    const videos = await prisma.video.findMany({
+      where: {
+        userId: creatorId,
+        isPublished: true
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return videos.map(video => ({
+      id: video.id,
+      userId: video.userId,
+      user_id: video.userId, // For backward compatibility
+      title: video.title,
+      description: video.description,
+      assetId: video.assetId || null,
+      mux_asset_id: video.assetId || null, // For backward compatibility
+      uploadId: video.uploadId || null,
+      mux_upload_id: video.uploadId || null, // For backward compatibility
+      playbackId: video.playbackId || null,
+      mux_playback_id: video.playbackId || null, // For backward compatibility
+      status: video.status as 'pending' | 'processing' | 'ready' | 'error' || 'pending',
+      duration: video.duration || null,
+      aspectRatio: video.aspectRatio || null,
+      aspect_ratio: video.aspectRatio || null, // For backward compatibility
+      thumbnailUrl: video.thumbnailUrl || null,
+      thumbnail_url: video.thumbnailUrl || null, // For backward compatibility
+      videoUrl: video.videoUrl || null,
+      video_url: video.videoUrl || null, // For backward compatibility
+      isPublished: video.isPublished || false,
+      isPremium: video.isPremium || false,
+      is_premium: video.isPremium || false, // For backward compatibility
+      price: video.price || null,
+      token_price: video.price || null, // For backward compatibility
+      viewCount: video.viewCount || 0,
+      view_count: video.viewCount || 0, // For backward compatibility
+      likeCount: video.likeCount || 0,
+      like_count: video.likeCount || 0, // For backward compatibility
+      commentCount: video.commentCount || 0,
+      comment_count: video.commentCount || 0, // For backward compatibility
+      type: video.type || 'standard',
+      format: video.format ? JSON.parse(JSON.stringify(video.format)) : undefined,
+      error_details: video.errorDetails ? JSON.parse(JSON.stringify(video.errorDetails)) : undefined,
+      createdAt: video.createdAt,
+      updatedAt: video.updatedAt,
+      metadata: video.metadata ? JSON.parse(JSON.stringify(video.metadata)) : null,
+    }));
   } catch (error) {
-    console.error('Error in getCreatorVideos (Firestore):', error);
+    console.error('Error in getCreatorVideos:', error);
     return [];
   }
 };
 
-// Get a single video by ID from Neon DB
-export const getVideoById = async (videoId: string): Promise<VideoData | null> => {
+// Get a single video by ID from Prisma
+export const getVideoById = async (videoId: number): Promise<VideoData | null> => {
   try {
     if (!videoId) {
       throw new Error('Video ID is required');
     }
 
-    // TODO: Implement Firestore query to get video by ID
-    console.log('Fetching video from Firestore with ID:', videoId);
-    
-    // For now, return null
-    return null;
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+    });
+
+    if (!video) return null;
+
+    return {
+      id: video.id,
+      userId: video.userId,
+      user_id: video.userId, // For backward compatibility
+      title: video.title,
+      description: video.description,
+      assetId: video.assetId || null,
+      mux_asset_id: video.assetId || null, // For backward compatibility
+      uploadId: video.uploadId || null,
+      mux_upload_id: video.uploadId || null, // For backward compatibility
+      playbackId: video.playbackId || null,
+      mux_playback_id: video.playbackId || null, // For backward compatibility
+      status: video.status as 'pending' | 'processing' | 'ready' | 'error' || 'pending',
+      duration: video.duration || null,
+      aspectRatio: video.aspectRatio || null,
+      aspect_ratio: video.aspectRatio || null, // For backward compatibility
+      thumbnailUrl: video.thumbnailUrl || null,
+      thumbnail_url: video.thumbnailUrl || null, // For backward compatibility
+      videoUrl: video.videoUrl || null,
+      video_url: video.videoUrl || null, // For backward compatibility
+      isPublished: video.isPublished || false,
+      isPremium: video.isPremium || false,
+      is_premium: video.isPremium || false, // For backward compatibility
+      price: video.price || null,
+      token_price: video.price || null, // For backward compatibility
+      viewCount: video.viewCount || 0,
+      view_count: video.viewCount || 0, // For backward compatibility
+      likeCount: video.likeCount || 0,
+      like_count: video.likeCount || 0, // For backward compatibility
+      commentCount: video.commentCount || 0,
+      comment_count: video.commentCount || 0, // For backward compatibility
+      type: video.type || 'standard',
+      format: video.format ? JSON.parse(JSON.stringify(video.format)) : undefined,
+      error_details: video.errorDetails ? JSON.parse(JSON.stringify(video.errorDetails)) : undefined,
+      createdAt: video.createdAt,
+      updatedAt: video.updatedAt,
+      metadata: video.metadata ? JSON.parse(JSON.stringify(video.metadata)) : null,
+    };
   } catch (error) {
-    console.error('Error in getVideoById (Firestore):', error);
+    console.error('Error in getVideoById:', error);
     return null;
   }
 };
 
-// The follow/unfollow/getUserFollowedCreatorIds functions still use Firebase
-// You might need to adjust these if you migrate follow relationships to Supabase.
-
+// Check if a user follows a creator
 export const checkUserFollowsCreator = async (userId: string, creatorId: string): Promise<boolean> => {
   try {
-    const q = query(
-      collection(db, 'follows'),
-      where('followerId', '==', userId),
-      where('creatorId', '==', creatorId),
-      limit(1)
-    );
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      console.log("Follow relationship not found.");
-      return false;
-    }
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach(doc => {
-      batch.delete(doc.ref);
+    const follow = await prisma.follow.findFirst({
+      where: {
+        followerId: userId,
+        creatorId: creatorId,
+      },
     });
-    await batch.commit();
-    return true;
+    
+    return !!follow;
   } catch (error) {
     console.error('Error in checkUserFollowsCreator:', error);
     return false;
   }
 };
 
+// Follow a creator
 export const followCreator = async (userId: string, creatorId: string): Promise<boolean> => {
   if (userId === creatorId) {
     console.warn("User cannot follow themselves.");
     return false;
   }
+
   try {
     const alreadyFollowing = await checkUserFollowsCreator(userId, creatorId);
     if (alreadyFollowing) {
       console.log("User already follows this creator.");
-      return true; 
+      return true;
     }
 
-    await addDoc(collection(db, 'follows'), {
-      followerId: userId,
-      creatorId: creatorId,
-      followedAt: serverTimestamp()
+    await prisma.follow.create({
+      data: {
+        followerId: userId,
+        creatorId: creatorId,
+      },
     });
+    
     return true;
   } catch (error) {
     console.error('Error in followCreator:', error);
@@ -189,25 +300,16 @@ export const followCreator = async (userId: string, creatorId: string): Promise<
   }
 };
 
+// Unfollow a creator
 export const unfollowCreator = async (userId: string, creatorId: string): Promise<boolean> => {
   try {
-    const q = query(
-      collection(db, 'follows'),
-      where('followerId', '==', userId),
-      where('creatorId', '==', creatorId)
-    );
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      console.log("Follow relationship not found.");
-      return false;
-    }
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach(doc => {
-      batch.delete(doc.ref);
+    await prisma.follow.deleteMany({
+      where: {
+        followerId: userId,
+        creatorId: creatorId,
+      },
     });
-    await batch.commit();
+    
     return true;
   } catch (error) {
     console.error('Error in unfollowCreator:', error);
@@ -215,20 +317,21 @@ export const unfollowCreator = async (userId: string, creatorId: string): Promis
   }
 };
 
+// Get all creator IDs that a user follows
 export const getUserFollowedCreatorIds = async (userId: string): Promise<string[]> => {
   try {
-    const q = query(collection(db, 'follows'), where('followerId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    const creatorIds: string[] = [];
-    querySnapshot.forEach((doc) => {
-      const followData = doc.data();
-      if (followData.creatorId) {
-        creatorIds.push(followData.creatorId);
-      }
+    const follows = await prisma.follow.findMany({
+      where: {
+        followerId: userId,
+      },
+      select: {
+        creatorId: true,
+      },
     });
-    return creatorIds;
+    
+    return follows.map(follow => follow.creatorId);
   } catch (error) {
     console.error('Error in getUserFollowedCreatorIds:', error);
-    return []; 
+    return [];
   }
 };
