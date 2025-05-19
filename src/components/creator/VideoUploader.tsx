@@ -5,15 +5,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-// Import the Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService';
-// Removed old VideoMetadata import:
-// import { VideoMetadata } from '@/types/video';
+import { VideoData } from '@/services/creatorService';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
 import useVideoUpload from './video-uploader/useVideoUpload';
 
 interface VideoUploaderProps {
-  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
+  onUploadComplete: (metadata?: VideoData | null) => void;
   isCreator: boolean;
   className?: string;
 }
@@ -55,7 +52,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   }, [isOpen, user]);
 
-  const handleUploadCompleteInternal = (metadata?: VideoSupabaseData | null) => {
+  const handleUploadCompleteInternal = (metadata?: VideoData | null) => {
     onUploadComplete(metadata);
     
     // *** Modified condition to explicitly check for metadata and metadata.id ***
@@ -127,15 +124,18 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  const metadata: VideoSupabaseData | null = await uploadVideoAndSaveMetadata(values);
+                  const metadata: VideoData | null = await uploadVideoAndSaveMetadata(values);
                    handleUploadCompleteInternal(metadata);
-                } catch (error: any) {
+                } catch (error: unknown) {
                   console.error('Upload process error (caught in onSubmit):', error);
-                  setUploadError(error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo.");
+                  const errorMessage = error instanceof Error 
+                    ? error.message 
+                    : "Une erreur s'est produite lors du téléchargement de votre vidéo.";
+                  setUploadError(errorMessage);
                   toast("Erreur de téléchargement", {
-                    description: error.message || "Une erreur s'est produite lors du téléchargement de votre vidéo."
+                    description: errorMessage
                   });
-                   handleUploadCompleteInternal(null);
+                  handleUploadCompleteInternal(null);
                 }
               }}
             />

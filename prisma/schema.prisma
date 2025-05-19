@@ -9,8 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_NON_POOLING")
 }
 
@@ -27,25 +27,153 @@ enum VideoType {
   vip
 }
 
+model User {
+  id              String    @id @db.Text
+  email           String    @unique @db.Text
+  emailVerified   Boolean   @map("email_verified") @default(false)
+  name            String?   @db.Text
+  username        String?   @unique @db.Text
+  bio             String?   @db.Text
+  profileImageUrl String?   @map("profile_image_url") @db.Text
+  coverImageUrl   String?   @map("cover_image_url") @db.Text
+  isCreator       Boolean   @map("is_creator") @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  videos          Video[]
+  comments        Comment[]
+  likes           Like[]
+  videoViews      VideoView[]
+  followers       Follower[] @relation("following")
+  following       Follower[] @relation("follower")
+  
+  @@index([email], name: "idx_user_email")
+  @@index([username], name: "idx_user_username")
+  @@map("users")
+}
+
+model Follower {
+  id          String   @id @default(uuid()) @db.Text
+  followerId  String   @map("follower_id") @db.Text // ID de l'utilisateur qui suit
+  followingId String   @map("following_id") @db.Text // ID de l'utilisateur suivi
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  
+  // Relations
+  follower  User   @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User   @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId], name: "uq_follower_following")
+  @@index([followerId], name: "idx_follower_id")
+  @@index([followingId], name: "idx_following_id")
+  @@map("followers")
+}
+
 model Video {
   id              Int         @id @default(autoincrement())
   user_id         String      @db.Text
   title           String      @db.Text
   description     String?     @db.Text
-  mux_asset_id    String      @unique @db.Text
-  mux_playback_id String?     @db.Text
-  mux_upload_id   String?     @db.Text
-  thumbnail_url   String?     @db.Text
-  duration        Int?        @db.Integer
-  aspect_ratio    String?     @db.Text
-  status          VideoStatus @default(processing)
-  type            VideoType   @default(standard)
-  is_premium      Boolean     @default(false)
-  token_price     Decimal?    @db.Decimal(10, 2)
-  created_at      DateTime    @default(now()) @db.Timestamptz
-  updated_at      DateTime    @updatedAt @db.Timestamptz
-
+  assetId         String?     @unique @db.Text // ID de l'asset Mux
+  uploadId        String?     @db.Text // ID de l'upload Mux
+  playbackId      String?     @db.Text // ID de lecture Mux
+  status          String      @default("pending") // pending, processing, ready, failed
+  duration        Float?      // Durée en secondes
+  aspectRatio     String?     // Format d'aspect (ex: "16:9")
+  thumbnailUrl    String?     @db.Text
+  videoUrl        String?     @db.Text // URL de la vidéo prête à la lecture
+  isPublished     Boolean     @default(false)
+  isPremium       Boolean     @default(false)
+  price           Float?      // Prix en tokens (si vidéo premium)
+  viewCount       Int         @default(0)
+  likeCount       Int         @default(0)
+  commentCount    Int         @default(0)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  user            User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  metadata        VideoMetadata?
+  comments        Comment[]
+  likes           Like[]
+  views           VideoView[]
+  
   @@index([user_id], name: "idx_videos_user_id")
   @@index([status], name: "idx_videos_status")
-  @@index([created_at], name: "idx_videos_created_at")
+  @@index([createdAt], name: "idx_videos_created_at")
+  @@map("videos")
+}
+
+model VideoMetadata {
+  id              Int       @id @default(autoincrement())
+  videoId         Int       @unique
+  filename        String?
+  fileSize        Int?      // Taille en octets
+  mimeType        String?
+  width           Int?
+  height          Int?
+  frameRate       Float?
+  bitrate         Int?      // Débit binaire en bits par seconde
+  originalUrl     String?   @db.Text
+  uploadStatus    String?   // created, waiting, asset_created, ready, error
+  error           String?   @db.Text
+  metadata        Json?     // Métadonnées supplémentaires
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  video           Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@map("video_metadata")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  userId    String   @map("user_id") @db.Text
+  videoId   Int      @map("video_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@index([userId], name: "idx_comments_user_id")
+  @@index([videoId], name: "idx_comments_video_id")
+  @@map("comments")
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.Text
+  videoId   Int      @map("video_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, videoId], name: "uq_like_user_video")
+  @@index([userId], name: "idx_like_user_id")
+  @@index([videoId], name: "idx_like_video_id")
+  @@map("likes")
+}
+
+model VideoView {
+  id        Int      @id @default(autoincrement())
+  userId    String?  @map("user_id") @db.Text // Peut être null pour les utilisateurs non connectés
+  videoId   Int      @map("video_id")
+  ipAddress String?  @map("ip_address") @db.Text
+  userAgent String?  @map("user_agent") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  
+  // Relations
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  video Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  @@index([userId], name: "idx_videoview_user_id")
+  @@index([videoId], name: "idx_videoview_video_id")
+  @@index([createdAt], name: "idx_videoview_created_at")
+  @@map("video_views")
 }

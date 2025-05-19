@@ -25,33 +25,13 @@ export interface CreatorProfileData extends UserProfile {
     // revenue?: number; // Revenue might be more complex to calculate client-side
   };
   isOnline?: boolean; // Online status is usually managed by a presence system (ex: Realtime Database)
+  isPremium?: boolean; // Indicates if the creator has a premium account
 }
 
-// Interface for video metadata stored in Firestore (MATCHING YOUR SCHEMA + MUX FIELDS)
-export interface VideoFirestoreData {
-  id: number; // Matches your 'id' serial primary key
-  creatorId?: number | null; // Matches your 'creatorId' integer
-  videoUrl?: string | null; // Matches your 'videoUrl' varchar (camelCase)
-  isFree?: boolean | null; // Matches your 'isFree' boolean (camelCase)
-  uploadedat?: string | null; // Matches your 'uploadedat' timestamp (camelCase)
-  title?: string | null;
-  description?: string | null;
-  thumbnail_url?: string | null; // Matches your 'thumbnail_url' text
-  video_url?: string | null; // Matches your 'video_url' text (snake_case, likely for Mux playback)
-  user_id?: string | null; // Matches your 'user_id' uuid (stored as text in JS)
-  type?: string | null;
-  format?: string | null;
-  is_premium?: boolean | null; // Matches your 'is_premium' boolean
-  token_price?: number | null; // Matches your 'token_price' integer
-  restrictions?: any | null; // Matches your 'restrictions' jsonb
+// Interface for video metadata stored in Neon DB (MATCHING YOUR SCHEMA + MUX FIELDS)
+import { VideoMetadata } from './videoService';
 
-  // *** Columns needed for Mux Integration (ADD THESE TO YOUR FIRESTORE DB) ***
-  upload_id?: string | null; // Mux upload ID
-  mux_asset_id?: string | null; // Mux asset ID
-  mux_playback_id?: string | null; // Mux playback ID
-  status?: 'created' | 'processing' | 'ready' | 'error' | null; // Processing status
-  error_details?: any | null; // Mux error details
-}
+export type VideoData = VideoMetadata;
 
 // Keep Firebase fetching for user profiles and follows for now, as the request didn't specify changing these.
 // You might want to migrate these to Firestore later for full consistency.
@@ -123,8 +103,8 @@ export const getAllCreators = async (): Promise<CreatorProfileData[]> => {
   }
 };
 
-// Get creator videos from Firestore
-export const getCreatorVideos = async (creatorId: string): Promise<VideoFirestoreData[]> => {
+// Get creator videos from Neon DB
+export const getCreatorVideos = async (creatorId: string): Promise<VideoData[]> => {
   try {
     // TODO: Implement Firestore query to get creator videos
     console.log('Fetching videos from Firestore for creator ID:', creatorId);
@@ -137,8 +117,8 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoFirestor
   }
 };
 
-// Get a single video by ID from Firestore
-export const getVideoById = async (videoId: string): Promise<VideoFirestoreData | null> => {
+// Get a single video by ID from Neon DB
+export const getVideoById = async (videoId: string): Promise<VideoData | null> => {
   try {
     if (!videoId) {
       throw new Error('Video ID is required');

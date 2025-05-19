@@ -16,14 +16,13 @@ import XteasePlayerModal from "@/components/video/XteasePlayerModal";
 // import { fetchAvailableCreators } from "@/utils/create-conversation-utils"; // Supprimé (Supabase util)
 // import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { useToast } from '@/hooks/use-toast';
-import { getAllCreators, CreatorProfileData, getCreatorVideos, VideoFirestoreData } from "@/services/creatorService"; // Services Firebase
+import { getAllCreators, CreatorProfileData, getCreatorVideos, VideoData } from "@/services/creatorService"; // Services Firebase
 
-// Utiliser VideoFirestoreData pour le contenu aussi, en l'adaptant si besoin
-// ou créer un type spécifique pour le contenu "trending"
-interface TrendingContentItem extends VideoFirestoreData {
+// Type pour le contenu tendance
+interface TrendingContentItem extends VideoData {
   // Ajouter des champs spécifiques au trending si nécessaire, ex: score de tendance
-  // Pour l'instant, on se base sur VideoFirestoreData et on ajoute des données mockées pour l'UI
-  metrics?: { // Métriques mockées pour l'UI, car elles ne sont pas sur VideoFirestoreData par défaut
+  // Pour l'instant, on se base sur VideoData et on ajoute des données mockées pour l'UI
+  metrics?: { // Métriques mockées pour l'UI
     likes?: number;
     comments?: number;
     views?: number;
@@ -34,25 +33,49 @@ interface TrendingContentItem extends VideoFirestoreData {
 // Ces données pourraient être enrichies ou remplacées par des données de Firestore
 const staticTrendingPlaceholders: TrendingContentItem[] = [
   {
-    id: "trend1",
+    id: 1,
     userId: "mockUserId1",
-    uploadedAt: new Date(),
     title: "Morning Coffee Routine (Placeholder)",
-    type: "premium",
-    format: "9:16",
+    description: null,
+    assetId: null,
+    uploadId: null,
+    playbackId: "mockPlaybackId1",
+    status: 'ready',
+    duration: 120,
+    aspectRatio: null,
     thumbnailUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop",
     videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-taking-cold-pictures-33355-large.mp4",
+    isPublished: true,
+    isPremium: true,
+    price: 5.99,
+    viewCount: 1200,
+    likeCount: 89,
+    commentCount: 24,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     metrics: { likes: 1200, comments: 89, views: 5600 }
   },
   {
-    id: "trend2",
+    id: 2,
     userId: "mockUserId2",
-    uploadedAt: new Date(),
     title: "Spring Fashion Look (Placeholder)",
-    type: "vip",
-    format: "9:16",
+    description: null,
+    assetId: null,
+    uploadId: null,
+    playbackId: "mockPlaybackId2",
+    status: 'ready',
+    duration: 180,
+    aspectRatio: null,
     thumbnailUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
     videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-through-a-mountain-range-41576-large.mp4",
+    isPublished: true,
+    isPremium: true,
+    price: 7.99,
+    viewCount: 950,
+    likeCount: 63,
+    commentCount: 15,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     metrics: { likes: 950, comments: 63, views: 4100 }
   },
   // ... ajoutez plus de placeholders si nécessaire pour remplir l'UI initialement
@@ -157,13 +180,13 @@ const TrendingContent = () => {
 
   const handleCreatorClick = (creator: CreatorProfileData) => {
     triggerMicroReward('click');
-    trackInteraction('click', { creatorId: creator.uid });
-    navigate('/secure-messaging', { state: { creatorId: creator.uid } });
+    trackInteraction('click', { creatorId: creator.id.toString() });
+    navigate('/secure-messaging', { state: { creatorId: creator.id.toString() } });
   };
 
   const filteredContentByTab = activeTab === 'all' 
     ? trendingVideos
-    : trendingVideos.filter(content => content.type === activeTab);
+    : trendingVideos.filter(content => content.isPremium === (activeTab === 'premium'));
 
   return (
     <div className="relative z-10">
@@ -227,7 +250,10 @@ const TrendingContent = () => {
                     <ContentGrid 
                       contents={filteredContentByTab} 
                       layout="masonry"
-                      onItemClick={handleContentClick} // Passez TrendingContentItem
+                      onItemClick={(id) => {
+                        const content = filteredContentByTab.find(c => c.id === Number(id));
+                        if (content) handleContentClick(content);
+                      }}
                     />
                   </motion.div>
                 )}
@@ -248,16 +274,16 @@ const TrendingContent = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {creators.map((creator) => (
                       <ContentCreatorCard
-                        key={creator.uid} 
+                        key={creator.id.toString()}
                         creator={{
-                          id: creator.uid, // Utiliser uid
-                          userId: creator.uid,
+                          id: creator.id.toString(),
+                          userId: creator.id.toString(),
                           username: creator.username,
                           name: creator.displayName || creator.username,
-                          avatar: creator.avatarUrl || `https://i.pravatar.cc/300?u=${creator.uid}`,
+                          avatar: creator.avatarUrl || `https://i.pravatar.cc/300?u=${creator.id}`,
                           bio: creator.bio || undefined,
                           metrics: creator.metrics, // Métriques simulées ajoutées
-                          isPremium: creator.isPremium // Simulé
+                          isPremium: creator.isPremium || false,
                         }}
                         onClick={() => handleCreatorClick(creator)}
                       />

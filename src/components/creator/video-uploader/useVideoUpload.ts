@@ -6,7 +6,12 @@ import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { uploadVideoToMux, uploadThumbnail } from '@/services/muxService';
-import { saveVideoMetadata, type VideoMetadata } from '@/services/videoService';
+import { 
+  saveVideoMetadata, 
+  type VideoMetadata, 
+  type CreateVideoInput,
+  VideoStatus 
+} from '@/services/videoService';
 
 // Type pour l'utilisateur Firebase
 type FirebaseUser = {
@@ -228,18 +233,22 @@ const useVideoUpload = () => {
       
       // 3. Sauvegarder les métadonnées dans Neon DB
       setUploadStage('processing_metadata');
-      const videoMetadata: Omit<VideoMetadata, 'id' | 'created_at' | 'updated_at'> = {
-        user_id: user?.uid || '',
+      const videoMetadata: CreateVideoInput = {
+        userId: user?.uid || '',
         title: values.title,
         description: values.description,
-        type: values.type,
-        is_premium: values.isPremium,
-        token_price: values.isPremium ? values.tokenPrice : undefined,
-        mux_asset_id: muxResponse.assetId,
-        mux_playback_id: muxResponse.playbackId,
-        mux_upload_id: muxResponse.uploadId,
-        thumbnail_url: thumbnailUrl,
+        assetId: muxResponse.assetId,
+        uploadId: muxResponse.uploadId,
+        playbackId: muxResponse.playbackId,
         status: 'processing', // MUX mettra à jour ce statut via le webhook
+        thumbnailUrl: thumbnailUrl,
+        isPremium: values.isPremium,
+        price: values.isPremium ? values.tokenPrice : undefined,
+        // Les champs suivants seront remplis par le serveur
+        duration: undefined,
+        aspectRatio: undefined,
+        videoUrl: undefined,
+        isPublished: false
       };
       
       const savedMetadata = await saveVideoMetadata(videoMetadata);
@@ -256,19 +265,28 @@ const useVideoUpload = () => {
       
       return savedMetadata;
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Ne pas afficher d'erreur si la requête a été annulée
-      if (error.name === 'AbortError') {
-        console.log('Upload annulé par l\'utilisateur');
-        return null;
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('Upload annulé par l\'utilisateur');
+          return null;
+        }
+        
+        console.error('Erreur lors du téléversement de la vidéo:', error);
+        setUploadError(error.message || "Une erreur est survenue lors du téléversement de la vidéo.");
+        setUploadStage('error');
+        toast.error("Erreur de téléversement", { 
+          description: error.message || "Une erreur est survenue lors du téléversement de la vidéo." 
+        });
+      } else {
+        console.error('Erreur inconnue lors du téléversement de la vidéo:', error);
+        setUploadError("Une erreur inconnue est survenue lors du téléversement de la vidéo.");
+        setUploadStage('error');
+        toast.error("Erreur de téléversement", { 
+          description: "Une erreur inconnue est survenue lors du téléversement de la vidéo." 
+        });
       }
-      
-      console.error('Erreur lors du téléversement de la vidéo:', error);
-      setUploadError(error.message || "Une erreur est survenue lors du téléversement de la vidéo.");
-      setUploadStage('error');
-      toast.error("Erreur de téléversement", { 
-        description: error.message || "Une erreur est survenue lors du téléversement de la vidéo." 
-      });
       return null;
     } finally {
       // Nettoyer l'AbortController

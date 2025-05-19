@@ -1,25 +1,25 @@
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-// Import the Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService';
+// Import the data type
+import { VideoData } from '@/services/creatorService';
 // Removed original VideoMetadata import:
 // import { VideoMetadata } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
-  // Use the Supabase data type for the videos array
-  videos: VideoSupabaseData[];
+  // Use the VideoData type for the videos array
+  videos: VideoData[];
   activeTab: string;
   searchQuery: string;
-  // Update videoId type to number to match Supabase ID
+  // videoId is a number
   onDeleteVideo: (videoId: number) => void;
   onEditVideo: (videoId: number) => void;
   onPromoteVideo: (videoId: number) => void;
   onAnalyticsVideo: (videoId: number) => void;
-  // Update onUploadComplete type to match CreatorVideos.tsx
-  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
+  // onUploadComplete callback with VideoData type
+  onUploadComplete: (metadata?: VideoData | null) => void;
   isLoading?: boolean;
 }
 

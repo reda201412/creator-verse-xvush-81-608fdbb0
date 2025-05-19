@@ -120,28 +120,101 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  emailVerified: 'emailVerified',
+  name: 'name',
+  username: 'username',
+  bio: 'bio',
+  profileImageUrl: 'profileImageUrl',
+  coverImageUrl: 'coverImageUrl',
+  isCreator: 'isCreator',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.FollowerScalarFieldEnum = {
+  id: 'id',
+  followerId: 'followerId',
+  followingId: 'followingId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.VideoScalarFieldEnum = {
   id: 'id',
   user_id: 'user_id',
   title: 'title',
   description: 'description',
-  mux_asset_id: 'mux_asset_id',
-  mux_playback_id: 'mux_playback_id',
-  mux_upload_id: 'mux_upload_id',
-  thumbnail_url: 'thumbnail_url',
-  duration: 'duration',
-  aspect_ratio: 'aspect_ratio',
+  assetId: 'assetId',
+  uploadId: 'uploadId',
+  playbackId: 'playbackId',
   status: 'status',
-  type: 'type',
-  is_premium: 'is_premium',
-  token_price: 'token_price',
-  created_at: 'created_at',
-  updated_at: 'updated_at'
+  duration: 'duration',
+  aspectRatio: 'aspectRatio',
+  thumbnailUrl: 'thumbnailUrl',
+  videoUrl: 'videoUrl',
+  isPublished: 'isPublished',
+  isPremium: 'isPremium',
+  price: 'price',
+  viewCount: 'viewCount',
+  likeCount: 'likeCount',
+  commentCount: 'commentCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VideoMetadataScalarFieldEnum = {
+  id: 'id',
+  videoId: 'videoId',
+  filename: 'filename',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  width: 'width',
+  height: 'height',
+  frameRate: 'frameRate',
+  bitrate: 'bitrate',
+  originalUrl: 'originalUrl',
+  uploadStatus: 'uploadStatus',
+  error: 'error',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CommentScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  userId: 'userId',
+  videoId: 'videoId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LikeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  videoId: 'videoId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.VideoViewScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  videoId: 'videoId',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -153,21 +226,22 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
-exports.VideoStatus = exports.$Enums.VideoStatus = {
-  processing: 'processing',
-  ready: 'ready',
-  error: 'error'
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 
-exports.VideoType = exports.$Enums.VideoType = {
-  standard: 'standard',
-  teaser: 'teaser',
-  premium: 'premium',
-  vip: 'vip'
-};
 
 exports.Prisma.ModelName = {
-  Video: 'Video'
+  User: 'User',
+  Follower: 'Follower',
+  Video: 'Video',
+  VideoMetadata: 'VideoMetadata',
+  Comment: 'Comment',
+  Like: 'Like',
+  VideoView: 'VideoView'
 };
 
 /**

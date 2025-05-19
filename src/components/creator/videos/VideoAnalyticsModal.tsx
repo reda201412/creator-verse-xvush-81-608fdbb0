@@ -8,12 +8,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineCh
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EyeIcon, TrendingUp, DollarSign, ChartBar } from 'lucide-react';
-// import { getVideoById } from '@/integrations/supabase/client'; // Ancienne importation
-import { getVideoById, VideoSupabaseData } from '@/services/creatorService'; // Modifié pour utiliser le nom mis à jour et le type Supabase
+import { getVideoById, VideoData } from '@/services/creatorService';
 import { formatNumber } from '@/lib/utils';
 
 interface VideoAnalyticsModalProps {
-  videoId: number | null; // Changed to number as per Supabase schema
+  videoId: string | null; // ID de la vidéo sous forme de chaîne
   isOpen: boolean;
   onClose: () => void;
 }
@@ -34,7 +33,7 @@ interface VideoAnalytics {
 }
 
 const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOpen, onClose }) => {
-  const [videoDetails, setVideoDetails] = useState<VideoSupabaseData | null>(null); // Updated type
+  const [videoDetails, setVideoDetails] = useState<VideoData | null>(null);
   const [analytics, setAnalytics] = useState<VideoAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -47,7 +46,9 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOp
       
       const fetchData = async () => {
         try {
-          // Use the correctly imported and renamed function
+          if (!videoId) {
+            throw new Error('Video ID is required');
+          }
           const fetchedVideo = await getVideoById(videoId);
           if (fetchedVideo) {
             setVideoDetails(fetchedVideo);
@@ -74,8 +75,7 @@ const VideoAnalyticsModal: React.FC<VideoAnalyticsModalProps> = ({ videoId, isOp
         setLoading(true);
         setActiveTab('overview');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, videoId]); // generateMockAnalytics is not a stable dependency if defined within the scope
+  }, [isOpen, videoId]);
 
   // Function to generate mock analytics data (to be replaced with real data)
   // This function now generates random data and does not rely on properties from the video object

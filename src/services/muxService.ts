@@ -2,6 +2,7 @@ import * as UpChunk from '@mux/upchunk';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { storage } from '@/firebase/config';
+import { prisma } from '@/lib/prisma';
 
 declare global {
   interface Window {
@@ -141,7 +142,36 @@ export const uploadThumbnail = async (file: File, userId: string, options?: Uplo
   }
 };
 
-export const getVideoStatus = async (assetId: string): Promise<string> => {
-  console.warn('getVideoStatus: Cette fonction nécessite une implémentation côté serveur');
-  return 'processing';
+export const getVideoStatus = async (assetId: string): Promise<MuxAssetStatus> => {
+  try {
+    const response = await fetch(`/api/mux/assets/${assetId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch asset status: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching video status:', error);
+    throw error;
+  }
+};
+
+export const updateVideoStatus = async (assetId: string, status: string, metadata: any = {}) => {
+  try {
+    await prisma.video.update({
+      where: { assetId },
+      data: {
+        status,
+        ...(status === 'ready' && { isPublished: true }),
+        metadata: {
+          update: metadata
+        },
+        updatedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error updating video status in database:', error);
+    throw error;
+  }
 };

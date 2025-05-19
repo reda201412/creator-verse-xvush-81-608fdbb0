@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // Use the Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService'; 
+import { VideoData } from '@/services/creatorService';
 import { 
   MoreVertical, 
   Play, 
@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast'; // Import useToast hook
 
 interface VideoCardProps {
   // Use the Supabase data type
-  video: VideoSupabaseData;
+  video: VideoData;
   onDelete: (videoId: number) => void; // Updated to use number ID
   onEdit: (videoId: number) => void; // Updated to use number ID
   onPromote: (videoId: number) => void; // Updated to use number ID
@@ -79,15 +79,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
    // Get the current video status message
    const getStatusMessage = () => {
        switch (video.status) {
-           case 'created': // Fallthrough
+           case 'pending': // Fallthrough
            case 'processing':
                return 'Vidéo en cours de traitement...';
            case 'error':
                return 'Erreur lors du traitement de la vidéo.';
+           case 'ready':
+               return 'Vidéo prête.';
            default:
-               // If status is 'ready' or null/undefined but no playback ID (which getPlaybackUrl handles)
-               // or if status is an unexpected value.
-               if (video.mux_playback_id) return 'Vidéo prête.'; // Should be caught by getPlaybackUrl logic ideally
+               // If status is null/undefined but no playback ID (which getPlaybackUrl handles)
+               if (video.playbackId) return 'Vidéo prête.';
                return 'Vidéo non disponible.'; // General fallback
        }
    };

@@ -1,79 +1,142 @@
 // Types pour les métadonnées de la vidéo
-export type VideoStatus = 'processing' | 'ready' | 'error';
-export type VideoType = 'standard' | 'teaser' | 'premium' | 'vip';
+export type VideoStatus = 'pending' | 'processing' | 'ready' | 'error';
 
 export interface VideoMetadata {
-  id?: number;
-  user_id: string;
+  id: number;
+  userId: string;
+  user_id?: string; // Pour la rétrocompatibilité
   title: string;
-  description?: string | null;
-  mux_asset_id: string;
-  mux_playback_id?: string | null;
-  mux_upload_id?: string | null;
-  thumbnail_url?: string | null;
-  duration?: number | null;
-  aspect_ratio?: string | null;
+  description: string | null;
+  assetId: string | null;
+  mux_asset_id?: string | null; // Pour la rétrocompatibilité
+  uploadId: string | null;
+  mux_upload_id?: string | null; // Pour la rétrocompatibilité
+  playbackId: string | null;
+  mux_playback_id?: string | null; // Pour la rétrocompatibilité
   status: VideoStatus;
-  type: VideoType;
-  is_premium: boolean;
-  token_price?: number | null;
-  created_at?: Date;
-  updated_at?: Date;
+  duration: number | null;
+  aspectRatio: string | null;
+  aspect_ratio?: string | null; // Pour la rétrocompatibilité
+  thumbnailUrl: string | null;
+  thumbnail_url?: string | null; // Pour la rétrocompatibilité
+  videoUrl: string | null;
+  video_url?: string | null; // Pour la rétrocompatibilité
+  isPublished: boolean;
+  isPremium: boolean;
+  is_premium?: boolean; // Pour la rétrocompatibilité
+  price: number | null;
+  token_price?: number | null; // Pour la rétrocompatibilité
+  viewCount: number;
+  view_count?: number; // Pour la rétrocompatibilité
+  likeCount: number;
+  like_count?: number; // Pour la rétrocompatibilité
+  commentCount: number;
+  comment_count?: number; // Pour la rétrocompatibilité
+  type?: string; // Type de vidéo (standard, teaser, premium, vip)
+  format?: {
+    duration?: number;
+    width?: number;
+    height?: number;
+    aspect_ratio?: string;
+    [key: string]: unknown;
+  };
+  error_details?: Record<string, unknown>; // Détails d'erreur éventuels
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface CreateVideoInput {
+  userId: string;
+  title: string;
+  description?: string;
+  assetId?: string;
+  uploadId?: string;
+  playbackId?: string;
+  status?: VideoStatus;
+  duration?: number;
+  aspectRatio?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  isPublished?: boolean;
+  isPremium?: boolean;
+  price?: number;
+}
+
+export interface UpdateVideoInput {
+  title?: string;
+  description?: string | null;
+  status?: VideoStatus;
+  duration?: number | null;
+  aspectRatio?: string | null;
+  thumbnailUrl?: string | null;
+  videoUrl?: string | null;
+  isPublished?: boolean;
+  isPremium?: boolean;
+  price?: number | null;
+  type?: string;
+  tokenPrice?: number;
+  metadata?: Record<string, unknown> | null;
 }
 
 const API_BASE_URL = '/api/videos';
 
 /**
- * Enregistre ou met à jour les métadonnées d'une vidéo
+ * Enregistre les métadonnées d'une vidéo
  */
-export const saveVideoMetadata = async (metadata: VideoMetadata): Promise<VideoMetadata> => {
+export const saveVideoMetadata = async (data: CreateVideoInput): Promise<VideoMetadata> => {
   try {
-    const method = metadata.id ? 'PUT' : 'POST';
-    const url = metadata.id ? `${API_BASE_URL}/${metadata.id}` : API_BASE_URL;
-    
-    const response = await fetch(url, {
-      method,
+    const response = await fetch(`${API_BASE_URL}/metadata`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(metadata),
+      body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde des métadonnées de la vidéo:', error);
-    throw new Error(`Échec de la sauvegarde des métadonnées: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    console.error('Erreur lors de l\'enregistrement des métadonnées de la vidéo:', error);
+    throw new Error(`Échec de l'enregistrement des métadonnées: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
 /**
- * Met à jour les métadonnées d'une vidéo existante
+ * Crée une nouvelle vidéo
+ * @deprecated Utilisez saveVideoMetadata à la place
  */
-export const updateVideoMetadata = async (id: number, updates: Partial<VideoMetadata>): Promise<VideoMetadata> => {
+export const createVideo = async (data: CreateVideoInput): Promise<VideoMetadata> => {
+  console.warn('La fonction createVideo est dépréciée. Utilisez saveVideoMetadata à la place.');
+  return saveVideoMetadata(data);
+};
+
+/**
+ * Met à jour une vidéo existante
+ */
+export const updateVideo = async (id: number, updates: UpdateVideoInput): Promise<VideoMetadata> => {
   try {
     const response = await fetch(`${API_BASE_URL}/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        id,
-        ...updates,
-      }),
+      body: JSON.stringify(updates),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la mise à jour des métadonnées de la vidéo:', error);
-    throw new Error(`Échec de la mise à jour des métadonnées: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    console.error('Erreur lors de la mise à jour de la vidéo:', error);
+    throw new Error(`Échec de la mise à jour de la vidéo: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
@@ -85,18 +148,14 @@ export const getVideosByUserId = async (userId: string): Promise<VideoMetadata[]
     const response = await fetch(`${API_BASE_URL}?userId=${userId}`);
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
     
-    const videos = await response.json();
-    return videos.map((video: any) => ({
-      ...video,
-      created_at: video.created_at ? new Date(video.created_at) : undefined,
-      updated_at: video.updated_at ? new Date(video.updated_at) : undefined,
-    }));
+    return await response.json();
   } catch (error) {
     console.error('Erreur lors de la récupération des vidéos:', error);
-    throw new Error('Échec de la récupération des vidéos');
+    throw new Error(`Échec de la récupération des vidéos: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
@@ -112,19 +171,14 @@ export const getVideoById = async (id: number): Promise<VideoMetadata | null> =>
     }
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
     
-    const video = await response.json();
-    
-    return {
-      ...video,
-      created_at: video.created_at ? new Date(video.created_at) : undefined,
-      updated_at: video.updated_at ? new Date(video.updated_at) : undefined,
-    };
+    return await response.json();
   } catch (error) {
     console.error('Erreur lors de la récupération de la vidéo:', error);
-    throw new Error('Échec de la récupération de la vidéo');
+    throw new Error(`Échec de la récupération de la vidéo: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 
@@ -138,11 +192,40 @@ export const deleteVideo = async (id: number): Promise<void> => {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
   } catch (error) {
     console.error('Erreur lors de la suppression de la vidéo:', error);
-    throw new Error('Échec de la suppression de la vidéo');
+    throw new Error(`Échec de la suppression de la vidéo: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+  }
+};
+
+/**
+ * Met à jour le statut d'une vidéo
+ */
+export const updateVideoStatus = async (id: number, status: VideoStatus, metadata?: Partial<VideoMetadata>): Promise<VideoMetadata> => {
+  return updateVideo(id, { status, ...metadata });
+};
+
+/**
+ * Incrémente le compteur de vues d'une vidéo
+ */
+export const incrementViewCount = async (id: number): Promise<VideoMetadata> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${id}/views`, {
+      method: 'POST',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors de l\'incrémentation du compteur de vues:', error);
+    throw new Error(`Échec de l'incrémentation du compteur de vues: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
 };
 

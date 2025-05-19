@@ -1,12 +1,12 @@
 import React from 'react';
 import VideoUploader from '@/components/creator/VideoUploader';
-// Import the Supabase data type
-import { VideoSupabaseData } from '@/services/creatorService';
+// Import the data type
+import { VideoData } from '@/services/creatorService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface VideoHeaderProps {
-  // Use the Supabase data type for onUploadComplete metadata
-  onUploadComplete: (metadata?: VideoSupabaseData | null) => void;
+  // Use the VideoData type for onUploadComplete metadata
+  onUploadComplete: (metadata?: VideoData | null) => void;
 }
 
 const VideoHeader: React.FC<VideoHeaderProps> = ({ onUploadComplete }) => {

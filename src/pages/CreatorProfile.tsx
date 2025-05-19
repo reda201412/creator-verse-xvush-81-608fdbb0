@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/integrations/firebase/firebase';
 import { doc, getDoc, collection, query, where, getDocs, getCountFromServer, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
-import { VideoFirestoreData, getCreatorVideos } from '@/services/creatorService';
+import { VideoData, getCreatorVideos } from '@/services/creatorService';
 
 interface CreatorProfileData {
   id: string;
@@ -36,14 +36,15 @@ const CreatorProfile: React.FC = () => {
   const navigate = useNavigate();
 
   const [creatorData, setCreatorData] = useState<CreatorProfileData | null>(null);
-  const [videos, setVideos] = useState<VideoFirestoreData[]>([]);
+  const [videos, setVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<VideoFirestoreData | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'videos' | 'stats'>('videos');
 
   useEffect(() => {
     if (!creatorId) return;
@@ -145,13 +146,14 @@ const CreatorProfile: React.FC = () => {
         setFollowerCount(prev => prev + 1);
         toast.success(`Vous suivez maintenant ${creatorData.displayName || creatorData.username}!`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error following/unfollowing:", error);
-      toast.error("Une erreur s'est produite: " + (error.message || 'Erreur inconnue'));
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      toast.error(`Une erreur s'est produite: ${errorMessage}`);
     }
   };
   
-  const handleContentClick = (content: VideoFirestoreData) => {
+  const handleContentClick = (content: VideoData) => {
     // Mux Playback ID check
     if (content.mux_playback_id && content.status === 'ready') {
       setSelectedVideo(content);
@@ -163,6 +165,7 @@ const CreatorProfile: React.FC = () => {
 
 
   if (loadingProfile || authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
   }
 
   if (!creatorData) {
@@ -192,9 +195,12 @@ const CreatorProfile: React.FC = () => {
     videoData: video, // Store video data in a properly typed property
   }));
 
-  const handleVideoClick = (item: any) => {
-    if (item.videoData) {
-      handleContentClick(item.videoData);
+  const handleVideoClick = (videoId: number | string) => {
+    // Convertir l'ID en nombre si nécessaire
+    const id = typeof videoId === 'string' ? parseInt(videoId, 10) : videoId;
+    const video = videos.find(v => v.id === id);
+    if (video) {
+      handleContentClick(video);
     }
   };
 
@@ -243,7 +249,7 @@ const CreatorProfile: React.FC = () => {
         <nav className="flex space-x-8">
           <button 
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              true 
+              activeTab === 'videos'
                 ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
@@ -253,7 +259,7 @@ const CreatorProfile: React.FC = () => {
           {isOwnProfile && (
             <button 
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                false 
+                activeTab === 'stats'
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
               }`}

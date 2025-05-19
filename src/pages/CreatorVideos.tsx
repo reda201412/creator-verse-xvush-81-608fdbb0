@@ -1,22 +1,22 @@
 
 import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useToast } from '@/hooks/use-toast';
-// import { VideoMetadata } from '@/types/video'; // Replaced by VideoSupabaseData
+// import { VideoMetadata } from '@/types/video'; // Replaced by VideoData
 import VideoHeader from '@/components/creator/videos/VideoHeader';
 import VideoFilterTabs from '@/components/creator/videos/VideoFilterTabs';
 import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
-// Import the Supabase version of the service function and the Supabase data type
-import { getCreatorVideos, VideoSupabaseData } from '@/services/creatorService';
+// Import the service function and the data type
+import { getCreatorVideos, VideoData } from '@/services/creatorService';
 // Removed Firebase imports for deletion:
 // import { doc, deleteDoc } from 'firebase/firestore';
 // import { db } from '@/integrations/firebase/firebase';
 
 const CreatorVideos: React.FC = () => {
-  // Use VideoSupabaseData type for the videos state
-  const [videos, setVideos] = useState<VideoSupabaseData[]>([]);
+  // Use VideoData type for the videos state
+  const [videos, setVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +27,7 @@ const CreatorVideos: React.FC = () => {
 
   // *** Moved fetchVideos outside useEffect ***
   const fetchVideos = useCallback(async () => { // Wrapped with useCallback
-    if (!user || !user.id) { // Check for user and user.id
+    if (!user || !user.uid) { // Check for user and user.uid (Firebase uses uid, not id)
       setLoading(false);
       setVideos([]); // Clear videos if no user
       return;
@@ -36,8 +36,8 @@ const CreatorVideos: React.FC = () => {
     setLoading(true);
     try {
       // Use the updated getCreatorVideos function from creatorService.ts
-      // Assuming user.id (Supabase UUID string) is compatible with Supabase user_id (uuid type stored as string)
-      const fetchedVideos = await getCreatorVideos(user.id); // Corrected from user.uid
+      // Using user.uid which is the Firebase user ID
+      const fetchedVideos = await getCreatorVideos(user.uid);
       console.log("Vidéos récupérées de Supabase:", fetchedVideos);
       // Ensure fetchedVideos is an array before setting state
       setVideos(Array.isArray(fetchedVideos) ? fetchedVideos : []);
@@ -61,7 +61,7 @@ const CreatorVideos: React.FC = () => {
 
   // This function needs to be updated to handle upload completion via the useVideoUpload hook
   // and react to the Supabase table updates (potentially via realtime subscriptions or refetching)
-  const handleUploadComplete = (newVideoData?: VideoSupabaseData | null) => { // Allow null/undefined
+  const handleUploadComplete = (newVideoData?: VideoData | null) => { // Allow null/undefined
      console.log("Upload initiated, initial Supabase record created or error:", newVideoData);
      // Refetch the videos list after an upload is initiated
      fetchVideos(); 
