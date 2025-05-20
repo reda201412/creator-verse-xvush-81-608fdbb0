@@ -1,8 +1,9 @@
+
 /// <reference types="vite/client" />
 
 interface User {
   id: string;
-  uid?: string; // Adding uid as optional for backward compatibility
+  uid: string; // Making uid not optional to fix errors
   email: string;
 }
 
@@ -37,6 +38,10 @@ interface FirestoreMessageThread {
   isGated: boolean;
   messages: FirestoreMessage[];
   readStatus?: Record<string, any>;
+  lastMessageText?: string;
+  lastMessageCreatedAt?: any;
+  lastMessageSenderId?: string;
+  name?: string;
 }
 
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
@@ -95,13 +100,13 @@ interface TrendingContentItem {
 interface CreatorProfileData {
   id: string;
   user_id: string; 
-  userId?: string; // Adding userId as an alternative
-  uid?: string; // Adding uid for backward compatibility
+  userId: string; // Adding userId as not optional
+  uid: string; // Adding uid as not optional
   username: string;
   name: string;
-  displayName?: string; // Adding displayName as an alternative to name
+  displayName: string; // Making displayName not optional
   bio?: string;
-  avatarUrl?: string;
+  avatarUrl: string; // Making avatarUrl not optional
   coverImageUrl?: string;
   isPremium?: boolean;
   metrics?: {
@@ -109,4 +114,27 @@ interface CreatorProfileData {
     likes?: number;
     rating?: number;
   };
+}
+
+// Add WalletResponse type to fix wallet hook errors
+interface WalletResponse {
+  wallet?: {
+    tron_address: string;
+    balance_usdt: number;
+    is_verified: boolean;
+  };
+  error?: string;
+}
+
+// Enhanced tron-wallet hook interface
+interface TronWalletHook {
+  walletInfo: WalletResponse;
+  isLoading: boolean;
+  loading: boolean; // Added for backward compatibility
+  error?: string;
+  getWalletInfo: () => void;
+  createWallet: () => Promise<any>;
+  requestWithdrawal?: (amount: number) => Promise<any>;
+  checkContentAccess?: (contentId: string, requiredLevel: string) => Promise<boolean>;
+  verifyTransaction?: (txData: any) => Promise<any>;
 }

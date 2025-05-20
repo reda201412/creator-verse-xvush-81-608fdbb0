@@ -1,9 +1,32 @@
-// Import the types
-import { FirestoreMessageThread } from '@/vite-env';
 
-// Create a type that includes the lastMessageText field
-interface EnhancedFirestoreThreadData extends Omit<FirestoreMessageThread, "id"> {
+// Export the types so they're accessible from other files
+export interface FirestoreMessage {
+  id: string;
+  senderId: string;
+  content: string | any;
+  type: string;
+  createdAt: any; // Firebase Timestamp
+  isEncrypted?: boolean;
+  monetization?: any;
+  status?: string;
+  sender_name?: string;
+  sender_avatar?: string;
+}
+
+// Create a type that includes the lastMessageText field, and export it
+export interface FirestoreMessageThread {
+  id: string;
+  participantIds: string[];
+  participantInfo: Record<string, any>;
+  lastActivity: any; // Firebase Timestamp
+  createdAt: any; // Firebase Timestamp
+  isGated: boolean;
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, any>;
   lastMessageText?: string;
+  lastMessageCreatedAt?: any;
+  lastMessageSenderId?: string;
+  name?: string;
 }
 
 // Helper function to generate a unique ID
@@ -47,14 +70,14 @@ function updateLastActivity(): string {
 export async function createConversation(data: any) {
   try {
     // Create thread object with properly typed fields
-    const threadData: EnhancedFirestoreThreadData = {
+    const threadData: Partial<FirestoreMessageThread> = {
       participantIds: data.participantIds,
       participantInfo: data.participantInfo,
       lastActivity: data.lastActivity,
       createdAt: data.createdAt,
       isGated: !!data.isGated,
       messages: [],
-      lastMessageText: data.initialMessage, // Now this property is allowed
+      lastMessageText: data.initialMessage,
     };
 
     // Simulate success
@@ -63,6 +86,46 @@ export async function createConversation(data: any) {
     return { success: true, threadId: "new-thread-id" }; // Replace with actual return value
   } catch (error) {
     console.error("Error creating conversation:", error);
+    return { success: false, error };
+  }
+}
+
+// Function to create a new conversation with a creator
+export async function createNewConversationWithCreator(params: {
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar: string | null;
+}) {
+  const { userId, userName, userAvatar, creatorId, creatorName, creatorAvatar } = params;
+  
+  try {
+    const threadData = {
+      participantIds: [userId, creatorId],
+      participantInfo: {
+        [userId]: {
+          name: userName,
+          avatar: userAvatar,
+          lastRead: null,
+        },
+        [creatorId]: {
+          name: creatorName,
+          avatar: creatorAvatar,
+          lastRead: null,
+        }
+      },
+      lastActivity: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isGated: false,
+      initialMessage: "Bonjour! Je suis intéressé(e) par votre contenu."
+    };
+    
+    const result = await createConversation(threadData);
+    return result;
+  } catch (error) {
+    console.error("Error creating new conversation with creator:", error);
     return { success: false, error };
   }
 }

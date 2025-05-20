@@ -26,14 +26,16 @@ import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'f
 import { Spinner } from '@/components/ui/spinner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { fetchUserThreads, sendMessage, markMessagesAsRead, fetchMessagesForThread } from '@/utils/messaging-utils'; 
-import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
+import { 
+  FirestoreMessage, 
+  FirestoreMessageThread, 
+  createNewConversationWithCreator 
+} from '@/utils/create-conversation-utils';
 import { useModals } from '@/hooks/use-modals';
-import { createNewConversationWithCreator } from '@/utils/create-conversation-utils';
 
-// Extend FirestoreMessageThread to include messages
+// Use the interface from create-conversation-utils.ts
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
-  readStatus?: Record<string, Timestamp>;
 }
 
 interface SecureMessagingProps {
@@ -158,7 +160,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
     if (!isInitialLoad && !hasMoreMessages) return;
     setIsLoadingMessages(true);
     try {
-      const { messages: newMessagesData, newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleMessageDoc);
+      const { messages: newMessagesData, lastVisibleDoc: newLastVisibleDoc } = await fetchMessagesForThread(activeThreadId, 20, isInitialLoad ? null : lastVisibleMessageDoc);
       setThreads(prevThreads =>
         prevThreads.map(thread =>
           thread.id === activeThreadId
@@ -173,7 +175,7 @@ const SecureMessaging: React.FC<SecureMessagingProps> = ({ userId, userName, use
             : thread
         )
       );
-      setLastVisibleMessageDoc(newLastVisibleMessageDoc);
+      setLastVisibleMessageDoc(newLastVisibleDoc);
       setHasMoreMessages(newMessagesData.length === 20);
       if (isInitialLoad) markMessagesAsRead(activeThreadId, userId);
     } catch (error) {

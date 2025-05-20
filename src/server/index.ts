@@ -1,8 +1,8 @@
 
 import express from 'express';
 import cors from 'cors';
-import videosRouter from './routes/videos';
-import muxRouter from './routes/mux';
+import videosRouter from './routes/videos.js';
+import muxRouter from './routes/mux.js';
 
 export async function createServer() {
   const app = express();

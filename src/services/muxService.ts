@@ -44,6 +44,7 @@ export async function uploadVideoToMux(file: File): Promise<VideoUploadResponse>
       url,
       assetId,
       uploadId: id, // Making uploadId match the id for compatibility
+      playbackId: `playback_${id}`, // Default mock playbackId
       status: 'uploaded',
     };
   } catch (error) {
