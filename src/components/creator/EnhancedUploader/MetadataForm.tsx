@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -143,14 +144,12 @@ export const MetadataForm: React.FC<{
                   {type === 'teaser' ? 'Extrait' : 
                    type === 'premium' ? 'Contenu Premium' : 
                    type === 'vip' ? 'VIP Exclusif' : 'Standard'}
-                  }
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {type === 'teaser' ? 'Un aperçu gratuit de votre contenu' :
                    type === 'premium' ? 'Contenu payant pour vos abonnés' :
                    type === 'vip' ? 'Contenu exclusif pour les abonnés VIP' :
                    'Contenu standard visible par tous'}
-                  }
                 </p>
               </div>
             ))}
