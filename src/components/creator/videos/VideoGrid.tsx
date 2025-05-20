@@ -1,19 +1,16 @@
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
-// Import the data type
-import { VideoData } from '@/services/creatorService';
-// Removed original VideoMetadata import:
-// import { VideoMetadata } from '@/types/video';
+// Import the VideoData type from our types folder
+import { VideoData } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
-  // Use the VideoData type for the videos array
+  // Use the VideoData type from our types folder
   videos: VideoData[];
   activeTab: string;
   searchQuery: string;
-  // videoId is a number
   onDeleteVideo: (videoId: number) => void;
   onEditVideo: (videoId: number) => void;
   onPromoteVideo: (videoId: number) => void;
@@ -34,10 +31,22 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   onUploadComplete,
   isLoading = false
 }) => {
+  // getTypeLabel function remains the same, it works with string types
+  const getTypeLabel = (type?: string | null) => {
+     if (!type) return 'Standard';
+    switch (type) {
+      case 'standard': return 'Gratuit';
+      case 'teaser': return 'Xtease';
+      case 'premium': return 'Premium';
+      case 'vip': return 'VIP';
+      default: return type;
+    }
+  };
+
   const getFilteredVideos = () => {
     let filteredVideos = videos;
 
-    // Filter by tab (video.type should exist in VideoSupabaseData)
+    // Filter by tab (video.type should exist in VideoData)
     if (activeTab !== 'all') {
       filteredVideos = filteredVideos.filter(video => video.type === activeTab);
     }
@@ -52,18 +61,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
     }
 
     return filteredVideos;
-  };
-
-  // getTypeLabel function remains the same, it works with string types
-  const getTypeLabel = (type?: string | null) => { // Allow null/undefined type
-     if (!type) return 'Standard';
-    switch (type) {
-      case 'standard': return 'Gratuit';
-      case 'teaser': return 'Xtease';
-      case 'premium': return 'Premium';
-      case 'vip': return 'VIP';
-      default: return type;
-    }
   };
 
   const filteredVideos = getFilteredVideos();
@@ -90,12 +87,12 @@ const VideoGrid: React.FC<VideoGridProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVideos.map((video) => (
             <VideoCard
-              key={video.id} // Use video.id (number)
-              video={video} // Pass the VideoSupabaseData object
-              onDelete={onDeleteVideo} // Pass the handler (expects number)
-              onEdit={onEditVideo} // Pass the handler (expects number)
-              onPromote={onPromoteVideo} // Pass the handler (expects number)
-              onAnalytics={onAnalyticsVideo} // Pass the handler (expects number)
+              key={video.id}
+              video={video}
+              onDelete={onDeleteVideo}
+              onEdit={onEditVideo}
+              onPromote={onPromoteVideo}
+              onAnalytics={onAnalyticsVideo}
             />
           ))}
         </div>
@@ -109,7 +106,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
               : `Vous n'avez pas encore ajouté de vidéo${activeTab !== 'all' ? ` de type ${getTypeLabel(activeTab)}` : ''}.`
             }
           </p>
-          {/* Ensure VideoUploader also uses the updated onUploadComplete type */}
           <VideoUploader 
             onUploadComplete={onUploadComplete} 
             isCreator={true} 

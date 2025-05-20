@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
-import { CreatorProfileData } from '@/types/video'; // Updated import
+import { CreatorProfileData } from '@/types/video';
 import StoryPublisher from '@/components/stories/StoryPublisher';
 
 const CreatorsFeed = () => {
@@ -201,7 +201,7 @@ const CreatorsFeed = () => {
   };
   
   return (
-    <div className="container py-8">
+    <div className="creators-feed">
       <Card>
         <CardHeader>
           <CardTitle>Découvrez de nouveaux créateurs</CardTitle>

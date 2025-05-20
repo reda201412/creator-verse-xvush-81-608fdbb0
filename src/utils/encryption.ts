@@ -47,6 +47,16 @@ export const decryptMessage = async (
   }
 };
 
+/**
+ * Check if a message is encrypted
+ * @param message The message to check
+ */
+export const isEncrypted = (message: any): boolean => {
+  return message?.isEncrypted === true && 
+    typeof message?.content === 'object' && 
+    message?.content?.data !== undefined;
+};
+
 export interface EncryptedContent {
   data: string;
   iv: string;

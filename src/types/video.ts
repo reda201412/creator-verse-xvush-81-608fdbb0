@@ -63,3 +63,33 @@ export interface User {
   displayName?: string;
   profileImageUrl?: string;
 }
+
+// Add CreatorProfileData to fix the missing type errors
+export interface CreatorProfileData {
+  id: string;
+  user_id?: string;
+  userId?: string;
+  uid: string;
+  username: string;
+  name?: string;
+  displayName: string;
+  bio?: string;
+  avatarUrl: string;
+  profileImageUrl?: string; // Added for compatibility
+  coverImageUrl?: string;
+  isPremium?: boolean;
+  isOnline?: boolean;
+  metrics?: {
+    followers?: number;
+    likes?: number;
+    rating?: number; // Changed from string to number to match expected type
+  };
+}
+
+// Function to ensure video type compatibility
+export function ensureVideoDataCompatibility(videoData: any): VideoData {
+  return {
+    ...videoData,
+    id: typeof videoData.id === 'string' ? parseInt(videoData.id, 10) || videoData.id : videoData.id,
+  };
+}

@@ -1,290 +1,193 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { XCircle, Heart, MessageCircle, Share, MoreVertical } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, X } from 'lucide-react';
 import { useStories } from '@/hooks/use-stories';
-import { cn } from '@/lib/utils';
 import { Story } from '@/types/stories';
 
 interface StoriesViewerProps {
   stories: Story[];
-  onClose: () => void;
   initialStoryId?: string;
+  onClose: () => void;
 }
 
-const StoriesViewer: React.FC<StoriesViewerProps> = ({ stories, onClose, initialStoryId }) => {
-  const { markStoryAsViewed } = useStories();
-  const [currentIndex, setCurrentIndex] = useState(initialStoryId ? stories.findIndex(s => s.id === initialStoryId) : 0);
-  const [isPaused, setPaused] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const currentStory = stories[currentIndex];
-  const isVideo = currentStory?.media_url?.endsWith('.mp4') || currentStory?.media_url?.endsWith('.mov');
-  const storyDuration = isVideo ? 0 : (currentStory?.duration || 5) * 1000; // Use 5 seconds as default duration for images
-  
-  const clearStoryTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-  
-  const markCurrentStoryAsViewed = async () => {
-    if (currentStory?.id) {
-      try {
-        await markStoryAsViewed(currentStory.id);
-      } catch (error) {
-        console.error("Error marking story as viewed:", error);
-      }
-    }
-  };
+const StoriesViewer: React.FC<StoriesViewerProps> = ({ stories, initialStoryId, onClose }) => {
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    // Mark story as viewed when it changes
-    markCurrentStoryAsViewed();
+    // Find the initial story index based on the initialStoryId
+    if (initialStoryId) {
+      const initialIndex = stories.findIndex(story => story.id === initialStoryId);
+      if (initialIndex !== -1) {
+        setCurrentStoryIndex(initialIndex);
+      }
+    }
+  }, [initialStoryId, stories]);
+  
+  useEffect(() => {
+    // Reset progress when the story changes
+    setCurrentProgress(0);
     
-    // Reset progress and timer when story changes
-    setProgress(0);
-    clearStoryTimer();
-    setPaused(false);
+    // Start the progress bar when the component mounts or the story changes
+    startProgress();
     
-    if (!isVideo) {
-      startImageTimer();
+    // Pause the progress bar if isPaused is true
+    if (isPaused) {
+      pauseProgress();
     }
     
+    // Cleanup the interval when the component unmounts
     return () => {
-      clearStoryTimer();
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
     };
-  }, [currentIndex, stories]);
+  }, [currentStoryIndex, isPaused]);
   
-  const startImageTimer = () => {
-    let startTime = Date.now();
-    const animationFrame = requestAnimationFrame(function animate() {
-      if (isPaused) {
-        startTime = Date.now() - (progress / 100) * storyDuration;
-        requestAnimationFrame(animate);
-        return;
-      }
-      
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min(100, (elapsed / storyDuration) * 100);
-      setProgress(newProgress);
-      
-      if (newProgress < 100) {
-        requestAnimationFrame(animate);
-      } else {
-        goToNextStory();
-      }
-    });
+  const startProgress = () => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
     
-    return () => cancelAnimationFrame(animationFrame);
+    progressInterval.current = setInterval(() => {
+      setCurrentProgress(prevProgress => {
+        if (prevProgress < 100) {
+          return prevProgress + 1;
+        } else {
+          clearInterval(progressInterval.current);
+          handleNextStory();
+          return 0;
+        }
+      });
+    }, 50);
   };
   
-  const handleVideoEnded = () => {
-    goToNextStory();
-  };
-  
-  const handleVideoProgress = () => {
-    if (videoRef.current) {
-      const duration = videoRef.current.duration;
-      const currentTime = videoRef.current.currentTime;
-      setProgress((currentTime / duration) * 100);
+  const pauseProgress = () => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
     }
   };
   
-  const togglePause = () => {
-    setPaused(!isPaused);
-    if (isVideo && videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  };
-  
-  const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
-  };
-  
-  const goToNextStory = () => {
-    if (currentIndex < stories.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+  const handleNextStory = () => {
+    if (currentStoryIndex < stories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
     } else {
       onClose();
     }
   };
   
-  const goToPrevStory = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+  const handlePreviousStory = () => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1);
+    } else {
+      onClose();
     }
   };
   
-  const handleTouchStart = () => {
-    setPaused(true);
-    if (isVideo && videoRef.current) {
-      videoRef.current.pause();
-    }
-  };
-  
-  const handleTouchEnd = () => {
-    setPaused(false);
-    if (isVideo && videoRef.current) {
-      videoRef.current.play();
-    }
-  };
-  
-  if (!currentStory) {
-    return null;
-  }
-  
-  return (
-    <motion.div 
-      className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center bg-black",
-        isFullScreen ? "pb-0" : "pb-20"
-      )}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Button 
-        className="absolute top-4 right-4 z-10" 
-        size="icon" 
-        variant="ghost"
-        onClick={onClose}
-      >
-        <X className="h-6 w-6 text-white" />
-      </Button>
-      
-      <div className="absolute top-4 left-4 right-4 flex space-x-2 z-10">
-        {stories.map((story, index) => (
-          <Progress 
-            key={story.id} 
-            value={index === currentIndex ? progress : index < currentIndex ? 100 : 0}
-            className={cn(
-              "h-1 flex-1 bg-white/20",
-              index === currentIndex ? "bg-white/20" : "bg-white/40"
-            )}
-            indicatorClassName="bg-white"
+  const currentStory = stories[currentStoryIndex];
+
+  // Fix story property access by adapting to the Story interface
+  const renderStory = (story: Story) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    
+    return (
+      <div className="relative h-full w-full">
+        {/* Make sure to use the correct property names from Story type */}
+        {story.media_url.endsWith('.mp4') ? (
+          <video 
+            ref={videoRef}
+            src={story.media_url}
+            className="h-full w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
           />
-        ))}
-      </div>
-      
-      {/* Story content */}
-      <div 
-        className="relative w-full max-w-sm md:max-w-md h-full max-h-screen overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onClick={togglePause}
-      >
-        {/* Story header */}
-        <div className="absolute top-12 left-0 right-0 px-4 z-10 flex items-center">
-          <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 p-0.5">
-              <img 
-                src={currentStory.creator_avatar || `https://i.pravatar.cc/150?u=${currentStory.creator_id}`} 
-                className="h-full w-full rounded-full object-cover border-2 border-black" 
-                alt="Profile"
-              />
-            </div>
-            <div className="ml-2">
-              <p className="text-white font-medium text-sm">{currentStory.creator_name || 'Creator'}</p>
-              <p className="text-white/70 text-xs">
-                {new Date(currentStory.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <img 
+            src={story.media_url} 
+            alt="Story" 
+            className="h-full w-full object-cover" 
+          />
+        )}
         
-        {/* Media content */}
-        <div className="h-full flex items-center justify-center bg-black">
-          {isVideo ? (
-            <video
-              ref={videoRef}
-              src={currentStory.media_url}
-              className="max-h-full max-w-full object-contain"
-              autoPlay
-              playsInline
-              muted={false}
-              controls={false}
-              onLoadedData={() => setProgress(0)}
-              onTimeUpdate={handleVideoProgress}
-              onEnded={handleVideoEnded}
-              onError={() => console.error("Video error")}
-              loop={false}
-            />
-          ) : (
-            <img 
-              src={currentStory.media_url} 
-              className="max-h-full max-w-full object-contain"
-              alt={currentStory.caption || "Story"} 
-            />
-          )}
+        {/* Creator info */}
+        <div className="absolute top-4 left-4 flex items-center space-x-2">
+          <img
+            src={story.creator_avatar || `https://i.pravatar.cc/150?u=${story.creator_id}`}
+            alt="Creator"
+            className="h-10 w-10 rounded-full border-2 border-white"
+          />
+          <div className="text-white">
+            <p className="font-medium">{story.creator_name || `User_${story.creator_id.substring(0, 5)}`}</p>
+            <p className="text-xs opacity-80">
+              {new Date(story.created_at).toLocaleDateString()}
+            </p>
+          </div>
         </div>
         
         {/* Caption */}
-        {currentStory.caption && (
-          <div className="absolute bottom-16 left-0 right-0 p-4">
-            <p className="text-white text-center bg-black/30 backdrop-blur-sm p-2 rounded-lg">
-              {currentStory.caption}
-            </p>
+        {story.caption && (
+          <div className="absolute bottom-20 left-4 right-4 bg-black/30 backdrop-blur-sm p-3 rounded-lg">
+            <p className="text-white">{story.caption}</p>
           </div>
         )}
       </div>
-      
-      {/* Navigation controls */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/20 hover:bg-black/40"
-        onClick={goToPrevStory}
+    );
+  };
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+    >
+      {/* Close button */}
+      <button 
+        onClick={onClose}
+        className="absolute top-4 right-4 z-10 text-white"
       >
-        <ChevronLeft className="h-6 w-6 text-white" />
-      </Button>
+        <XCircle className="h-8 w-8" />
+      </button>
       
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/20 hover:bg-black/40"
-        onClick={goToNextStory}
-      >
-        <ChevronRight className="h-6 w-6 text-white" />
-      </Button>
+      {/* Story progress bar */}
+      <div className="absolute top-0 left-0 right-0 px-4 py-2 z-10">
+        <Progress 
+          value={currentProgress} 
+          className="h-1 bg-gray-500/50" 
+          indicatorClassName="bg-white"
+        />
+      </div>
       
-      {/* Actions */}
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-8">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-white hover:text-pink-500 transition-colors"
-          onClick={() => setIsLiked(!isLiked)}
-        >
-          <Heart className={cn("h-6 w-6", isLiked && "fill-pink-500 text-pink-500")} />
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-white hover:text-blue-500 transition-colors"
-        >
+      {/* Main story content */}
+      <div className="w-full h-full max-w-md mx-auto">
+        {currentStory && renderStory(currentStory)}
+      </div>
+      
+      {/* Controls for next/previous */}
+      <div className="absolute inset-0 flex">
+        <div className="w-1/2 h-full" onClick={handlePreviousStory} />
+        <div className="w-1/2 h-full" onClick={handleNextStory} />
+      </div>
+      
+      {/* Action buttons */}
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-6">
+        <button className="text-white p-2 rounded-full bg-white/10">
+          <Heart className="h-6 w-6" />
+        </button>
+        <button className="text-white p-2 rounded-full bg-white/10">
           <MessageCircle className="h-6 w-6" />
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-white hover:text-green-500 transition-colors"
-        >
-          <Share2 className="h-6 w-6" />
-        </Button>
+        </button>
+        <button className="text-white p-2 rounded-full bg-white/10">
+          <Share className="h-6 w-6" />
+        </button>
+        <button className="text-white p-2 rounded-full bg-white/10">
+          <MoreVertical className="h-6 w-6" />
+        </button>
       </div>
     </motion.div>
   );

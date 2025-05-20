@@ -1,8 +1,10 @@
-import { useState, useEffect, useContext } from 'react';
+
+import { useState, useEffect } from 'react';
 import { db, storage } from '@/integrations/firebase/firebase';
 import { collection, query, where, getDocs, limit, orderBy, startAfter, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { AuthContext } from '@/contexts/AuthContext';
+// Fix the AuthContext import
+import { useAuth } from '@/contexts/AuthContext';
 import { Story, StoryGroup, StoryUploadParams, UseStoriesHookReturn } from '@/types/stories';
 
 const STORIES_PER_PAGE = 10;
@@ -13,7 +15,8 @@ export const useStories = (): UseStoriesHookReturn => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastVisible, setLastVisible] = useState<any>(null);
-  const { user } = useContext(AuthContext);
+  // Use the proper useAuth hook to get the user
+  const { user } = useAuth();
   
   useEffect(() => {
     loadInitialStories();
@@ -101,7 +104,7 @@ export const useStories = (): UseStoriesHookReturn => {
         view_count: 0,
         is_highlighted: false,
         creator_name: user.username || user.email || 'User',
-        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.username}`,
+        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`,
       };
 
       // Add to local stories array

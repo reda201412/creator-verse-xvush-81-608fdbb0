@@ -1,11 +1,12 @@
+
 import React from 'react';
 import VideoUploader from '@/components/creator/VideoUploader';
-// Import the data type
-import { VideoData } from '@/services/creatorService';
+// Import the VideoData type from our types folder
+import { VideoData } from '@/types/video';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface VideoHeaderProps {
-  // Use the VideoData type for onUploadComplete metadata
+  // Use the VideoData type from our types folder
   onUploadComplete: (metadata?: VideoData | null) => void;
 }
 
