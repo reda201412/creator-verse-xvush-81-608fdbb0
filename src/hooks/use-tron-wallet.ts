@@ -1,246 +1,223 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { TronWalletHook } from '@/vite-env';
+import { useAuth } from '@/contexts/AuthContext';
+import { TronWalletHook } from '../types/wallet';
 
-export function useTronWallet(): TronWalletHook {
+/**
+ * Hook to manage TRON wallet functionality
+ */
+export const useTronWallet = (): TronWalletHook => {
   const { user } = useAuth();
   const [walletInfo, setWalletInfo] = useState<any>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-
-  // Fetch wallet info
+  
+  // Fetch wallet info on load
+  useEffect(() => {
+    if (user?.uid) {
+      getWalletInfo();
+    }
+  }, [user]);
+  
+  // Get wallet information
   const getWalletInfo = useCallback(async () => {
-    if (!user) {
-      setError('User not authenticated');
+    if (!user?.uid) {
+      setError("User not authenticated");
       return;
     }
-
-    setIsLoading(true);
-    setError(undefined);
-
+    
     try {
-      // Mock wallet data for development purposes
-      const mockWallet = {
+      setIsLoading(true);
+      
+      // Mock API response
+      const mockResponse = {
         wallet: {
-          tron_address: 'TKv9PsG7jE2JntaHsbdkVG4QWQ2aP8a9zx',
-          balance_usdt: 125.75,
+          tron_address: "TRX1234567890abcdef",
+          balance_usdt: 125.45,
           is_verified: true
         },
         subscription: {
-          status: 'active',
+          status: "active",
           expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          level: 'superfan',
-          subscription_tiers: [
-            { id: 'fan', name: 'Fan', price: 5.99, currency: 'USD' },
-            { id: 'superfan', name: 'Super Fan', price: 15.99, currency: 'USD' },
-            { id: 'vip', name: 'VIP', price: 29.99, currency: 'USD' }
-          ]
-        },
-        transactions: [
-          {
-            id: 'tx-1',
-            amount: 15.99,
-            currency: 'USDT',
-            type: 'subscription',
-            status: 'completed',
-            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'tx-2',
-            amount: 5.50,
-            currency: 'USDT',
-            type: 'purchase',
-            status: 'completed',
-            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
+          level: "premium",
+          subscription_tiers: []
+        }
       };
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
       
-      setWalletInfo(mockWallet);
-    } catch (err: any) {
-      console.error('Error fetching wallet info:', err);
-      setError(err.message || 'Failed to fetch wallet information');
-      toast.error('Erreur', { description: 'Impossible de récupérer les informations du portefeuille' });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setWalletInfo(mockResponse);
+      setError(undefined);
+    } catch (err) {
+      console.error("Error fetching wallet:", err);
+      setError("Failed to fetch wallet information");
+      toast.error("Failed to fetch wallet information");
     } finally {
       setIsLoading(false);
     }
   }, [user]);
-
-  // Create wallet for user
-  const createWallet = async (): Promise<any> => {
-    if (!user) {
-      setError('User not authenticated');
-      toast.error('Erreur', { description: 'Vous devez être connecté pour créer un portefeuille' });
+  
+  // Create a new wallet
+  const createWallet = useCallback(async () => {
+    if (!user?.uid) {
+      setError("User not authenticated");
+      toast.error("You must be logged in to create a wallet");
       return null;
     }
-
-    setIsLoading(true);
-    setError(undefined);
-
+    
     try {
-      // Mock wallet creation
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setIsLoading(true);
       
-      const newWallet = {
-        tron_address: 'TKv9PsG7jE2JntaHsbdkVG4QWQ2aP8a9zx',
-        balance_usdt: 0,
-        is_verified: false
+      // Mock API response
+      const mockResponse = {
+        wallet: {
+          tron_address: "TRX" + Math.random().toString(36).substring(2, 15),
+          balance_usdt: 0,
+          is_verified: false
+        },
+        success: true
       };
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       setWalletInfo(prev => ({
         ...prev,
-        wallet: newWallet
+        wallet: mockResponse.wallet
       }));
       
-      toast.success('Portefeuille créé avec succès');
-      return newWallet;
-    } catch (err: any) {
-      console.error('Error creating wallet:', err);
-      setError(err.message || 'Failed to create wallet');
-      toast.error('Erreur', { description: 'Impossible de créer le portefeuille' });
+      toast.success("Wallet created successfully");
+      setError(undefined);
+      return mockResponse;
+    } catch (err) {
+      console.error("Error creating wallet:", err);
+      setError("Failed to create wallet");
+      toast.error("Failed to create wallet");
       return null;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Request withdrawal of funds
-  const requestWithdrawal = async (amountInput: number | { amount: number; destinationAddress?: string }): Promise<any> => {
-    if (!user) {
-      setError('User not authenticated');
-      toast.error('Erreur', { description: 'Vous devez être connecté pour effectuer un retrait' });
-      return null;
+  }, [user]);
+  
+  // Request withdrawal
+  const requestWithdrawal = useCallback(async (amount: number | { amount: number; destinationAddress: string }) => {
+    if (!user?.uid) {
+      setError("User not authenticated");
+      toast.error("You must be logged in to request a withdrawal");
+      return false;
     }
     
-    if (!walletInfo.wallet) {
-      setError('Wallet not found');
-      toast.error('Erreur', { description: 'Aucun portefeuille trouvé' });
-      return null;
-    }
-
-    const amount = typeof amountInput === 'number' ? amountInput : amountInput.amount;
-    const destinationAddress = typeof amountInput === 'object' && amountInput.destinationAddress 
-      ? amountInput.destinationAddress 
-      : walletInfo.wallet.tron_address;
-    
-    if (amount <= 0) {
-      setError('Invalid amount');
-      toast.error('Erreur', { description: 'Le montant doit être supérieur à 0' });
-      return null;
-    }
-    
-    if (amount > walletInfo.wallet.balance_usdt) {
-      setError('Insufficient balance');
-      toast.error('Erreur', { description: 'Solde insuffisant pour effectuer ce retrait' });
-      return null;
-    }
-
-    setIsLoading(true);
-    setError(undefined);
-
     try {
-      // Mock withdrawal request
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setIsLoading(true);
       
-      const withdrawal = {
-        id: `wd-${Date.now()}`,
-        amount: amount,
-        destination_address: destinationAddress,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
+      const withdrawalAmount = typeof amount === 'number' ? amount : amount.amount;
       
-      // Update local wallet balance
+      // Validate amount
+      if (withdrawalAmount <= 0) {
+        setError("Invalid withdrawal amount");
+        toast.error("Withdrawal amount must be greater than 0");
+        return false;
+      }
+      
+      // Check if user has enough balance
+      const currentBalance = walletInfo.wallet?.balance_usdt || 0;
+      if (withdrawalAmount > currentBalance) {
+        setError("Insufficient balance");
+        toast.error("Insufficient balance for withdrawal");
+        return false;
+      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update local state optimistically
       setWalletInfo(prev => ({
         ...prev,
         wallet: {
           ...prev.wallet,
-          balance_usdt: prev.wallet.balance_usdt - amount
-        },
-        transactions: [
-          {
-            id: withdrawal.id,
-            amount: amount,
-            currency: 'USDT',
-            type: 'withdrawal',
-            status: 'pending',
-            date: withdrawal.created_at
-          },
-          ...(prev.transactions || [])
-        ]
+          balance_usdt: prev.wallet.balance_usdt - withdrawalAmount
+        }
       }));
       
-      toast.success('Demande de retrait envoyée');
-      return withdrawal;
-    } catch (err: any) {
-      console.error('Error requesting withdrawal:', err);
-      setError(err.message || 'Failed to request withdrawal');
-      toast.error('Erreur', { description: 'Impossible de traiter la demande de retrait' });
-      return null;
+      toast.success(`Withdrawal of ${withdrawalAmount} USDT initiated`);
+      setError(undefined);
+      return true;
+    } catch (err) {
+      console.error("Error requesting withdrawal:", err);
+      setError("Failed to process withdrawal");
+      toast.error("Failed to process withdrawal");
+      return false;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Check if user has access to gated content
-  const checkContentAccess = async (contentId: string, requiredLevel: string): Promise<boolean> => {
-    if (!walletInfo.subscription) {
+  }, [user, walletInfo]);
+  
+  // Check content access
+  const checkContentAccess = useCallback(async (contentId: string, requiredLevel: string): Promise<boolean> => {
+    if (!user?.uid) {
+      setError("User not authenticated");
       return false;
     }
     
-    const subscriptionLevels = ['free', 'fan', 'superfan', 'vip', 'exclusive'];
-    const userLevelIndex = subscriptionLevels.indexOf(walletInfo.subscription.level);
-    const requiredLevelIndex = subscriptionLevels.indexOf(requiredLevel);
-    
-    // Check if user's subscription is active and level is sufficient
-    return (
-      walletInfo.subscription.status === 'active' && 
-      userLevelIndex >= requiredLevelIndex && 
-      new Date(walletInfo.subscription.expiry) > new Date()
-    );
-  };
-
-  // Verify transaction
-  const verifyTransaction = async (txData: any): Promise<any> => {
-    setIsLoading(true);
-    
     try {
-      // Mock transaction verification
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check user subscription level
+      const userLevel = walletInfo.subscription?.level;
       
-      return {
-        verified: true,
-        message: 'Transaction verified successfully'
+      // Mock logic - this would be more complex in a real app
+      const levelHierarchy = {
+        free: 0,
+        basic: 1,
+        fan: 2,
+        premium: 3,
+        vip: 4,
+        exclusive: 5
       };
-    } catch (err: any) {
-      console.error('Error verifying transaction:', err);
-      return {
-        verified: false,
-        message: err.message || 'Failed to verify transaction'
-      };
+      
+      const userLevelValue = levelHierarchy[userLevel as keyof typeof levelHierarchy] || 0;
+      const requiredLevelValue = levelHierarchy[requiredLevel as keyof typeof levelHierarchy] || 0;
+      
+      return userLevelValue >= requiredLevelValue;
+    } catch (err) {
+      console.error("Error checking content access:", err);
+      setError("Failed to verify content access");
+      return false;
+    }
+  }, [user, walletInfo]);
+  
+  // Verify transaction
+  const verifyTransaction = useCallback(async (txData: any) => {
+    try {
+      setIsLoading(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Mock verification
+      const isVerified = Math.random() > 0.1; // 90% chance of success
+      
+      if (isVerified) {
+        toast.success("Transaction verified successfully");
+      } else {
+        toast.error("Transaction verification failed");
+      }
+      
+      return { success: isVerified };
+    } catch (err) {
+      console.error("Error verifying transaction:", err);
+      setError("Failed to verify transaction");
+      toast.error("Failed to verify transaction");
+      return { success: false, error: "Verification failed" };
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Load wallet info on component mount
-  useEffect(() => {
-    if (user) {
-      getWalletInfo();
-    }
-  }, [user, getWalletInfo]);
-
+  }, []);
+  
   return {
     walletInfo,
     isLoading,
-    loading: isLoading, // For backward compatibility
+    loading: isLoading, // Backward compatibility
     error,
     getWalletInfo,
     createWallet,
@@ -248,6 +225,4 @@ export function useTronWallet(): TronWalletHook {
     checkContentAccess,
     verifyTransaction
   };
-}
-
-export default useTronWallet;
+};

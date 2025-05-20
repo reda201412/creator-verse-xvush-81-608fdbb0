@@ -1,236 +1,132 @@
-
-import React, { useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Plus, ChevronLeft, Loader2, Camera, Upload, Clock, Clock12 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useStories } from '@/hooks/use-stories';
 import { Button } from '@/components/ui/button';
-import StoriesViewer from '@/components/stories/StoriesViewer';
+import { Plus } from 'lucide-react';
+import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
-import useStories from '@/hooks/use-stories';
-import { toast } from 'sonner';
-import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { useAuth } from '@/contexts/AuthContext';
+import { Story } from '@/types/stories';
 
-// Helper to parse query params
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
-
-const StoriesPage: React.FC = () => {
-  const { creatorId } = useParams<{ creatorId: string }>();
-  const query = useQuery();
-  const initialStoryId = query.get('story');
+const Stories = () => {
+  const [showStoryPublisher, setShowStoryPublisher] = useState(false);
+  const { stories, loadingStories } = useStories();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { triggerHaptic } = useHapticFeedback();
-  const { stories: allStories, userStories, isLoading } = useStories();
+  const [storyGroups, setStoryGroups] = useState<any[]>([]);
   
-  const [isCreating, setIsCreating] = useState(false);
-  const [selectedCreatorIndex, setSelectedCreatorIndex] = useState(0);
-  
-  // Organize stories by creator
-  const storiesByCreator = React.useMemo(() => {
-    const result = new Map();
-    
-    // Add user's own stories first if they exist
-    if (userStories.length > 0) {
-      result.set(userStories[0].creator_id, {
-        creator_id: userStories[0].creator_id,
-        creator_name: 'You',
-        creator_avatar: userStories[0].creator_avatar,
-        stories: userStories,
-        is_mine: true
-      });
+  useEffect(() => {
+    if (stories && stories.length > 0) {
+      // Group stories by creator
+      const groupedStories = stories.reduce((acc: any, story: Story) => {
+        const creatorId = story.creator_id;
+        if (!acc[creatorId]) {
+          acc[creatorId] = {
+            creator: {
+              id: creatorId,
+              username: story.creator_name || `User_${creatorId.substring(0, 5)}`,
+              display_name: story.creator_name || null,
+              avatar_url: story.creator_avatar || `https://i.pravatar.cc/150?u=${creatorId}`,
+              bio: null,
+              role: 'creator'
+            },
+            stories: [],
+            lastUpdated: '',
+            hasUnviewed: false
+          };
+        }
+        
+        acc[creatorId].stories.push(story);
+        
+        // Update lastUpdated if this story is more recent
+        if (!acc[creatorId].lastUpdated || new Date(story.created_at) > new Date(acc[creatorId].lastUpdated)) {
+          acc[creatorId].lastUpdated = story.created_at;
+        }
+        
+        // Check if there are any unviewed stories
+        if (!story.viewed) {
+          acc[creatorId].hasUnviewed = true;
+        }
+        
+        return acc;
+      }, {});
+      
+      // Convert to array and sort by lastUpdated
+      const groupsArray = Object.values(groupedStories);
+      groupsArray.sort((a: any, b: any) => 
+        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+      );
+      
+      setStoryGroups(groupsArray);
     }
-    
-    // Add others' stories
-    allStories.forEach(story => {
-      if (!result.has(story.creator_id)) {
-        result.set(story.creator_id, {
-          creator_id: story.creator_id,
-          creator_name: story.creator_name || `Creator ${story.creator_id.substring(0, 4)}`,
-          creator_avatar: story.creator_avatar,
-          stories: [story],
-          is_mine: false
-        });
-      } else {
-        const existingEntry = result.get(story.creator_id);
-        existingEntry.stories.push(story);
-      }
-    });
-    
-    return Array.from(result.values());
-  }, [allStories, userStories]);
-  
-  // If creatorId is provided, find matching creator's stories
-  const selectedCreatorStories = React.useMemo(() => {
-    if (creatorId) {
-      const creator = storiesByCreator.find(c => c.creator_id === creatorId);
-      return creator ? creator.stories : [];
-    }
-    
-    // If no creatorId, default to first creator in list
-    if (storiesByCreator.length > 0) {
-      return storiesByCreator[selectedCreatorIndex]?.stories || [];
-    }
-    
-    return [];
-  }, [creatorId, storiesByCreator, selectedCreatorIndex]);
-  
-  // Find the initial story index if storyId is provided
-  const initialStoryIndex = React.useMemo(() => {
-    if (initialStoryId) {
-      const index = selectedCreatorStories.findIndex(s => s.id === initialStoryId);
-      return index >= 0 ? index : 0;
-    }
-    return 0;
-  }, [initialStoryId, selectedCreatorStories]);
-  
-  const handleNextUser = () => {
-    let nextIndex = selectedCreatorIndex + 1;
-    if (nextIndex >= storiesByCreator.length) {
-      // Loop back to first
-      nextIndex = 0;
-    }
-    
-    setSelectedCreatorIndex(nextIndex);
-    navigate(`/stories/${storiesByCreator[nextIndex].creator_id}`);
-  };
-  
-  const handlePrevUser = () => {
-    let prevIndex = selectedCreatorIndex - 1;
-    if (prevIndex < 0) {
-      // Loop to last
-      prevIndex = storiesByCreator.length - 1;
-    }
-    
-    setSelectedCreatorIndex(prevIndex);
-    navigate(`/stories/${storiesByCreator[prevIndex].creator_id}`);
-  };
-  
-  const handleClose = () => {
-    triggerHaptic('light');
-    navigate('/');
-  };
+  }, [stories]);
   
   const handleCreateStory = () => {
-    if (!user) {
-      toast.error("Please sign in to create a story");
-      return;
-    }
-    
-    setIsCreating(true);
+    setShowStoryPublisher(true);
   };
   
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  // Show empty state if no stories
-  if (!isCreating && storiesByCreator.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-4">
-        <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <Clock className="h-12 w-12 text-primary/60" />
-        </div>
-        
-        <h1 className="text-2xl font-bold mb-2">No Stories Yet</h1>
-        <p className="text-center text-muted-foreground mb-8 max-w-md">
-          Be the first of your friends to share a story. Stories disappear after 24 hours.
-        </p>
-        
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <Button
-            size="lg"
-            className="w-full flex items-center gap-2"
-            onClick={handleCreateStory}
-          >
-            <Camera className="h-5 w-5" />
-            Create a Story
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={handleClose}
-          >
-            Go Back
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleClosePublisher = () => {
+    setShowStoryPublisher(false);
+  };
   
   return (
-    <AnimatePresence mode="wait">
-      {isCreating ? (
-        <motion.div
-          key="create"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50"
-        >
-          <StoryPublisher onCancel={() => setIsCreating(false)} />
-        </motion.div>
-      ) : selectedCreatorStories.length > 0 ? (
-        <motion.div
-          key="view"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50"
-        >
-          <StoriesViewer 
-            stories={selectedCreatorStories}
-            initialStoryIndex={initialStoryIndex}
-            onClose={handleClose}
-            onNextUser={handleNextUser}
-            onPrevUser={handlePrevUser}
-          />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="empty-creator"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 flex flex-col items-center justify-center p-4 bg-background"
-        >
-          <Button 
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 left-4"
-            onClick={handleClose}
-          >
-            <ChevronLeft className="h-6 w-6" />
+    <div className="container py-4 md:py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Stories</h1>
+        {user && (
+          <Button onClick={handleCreateStory} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Story
           </Button>
-          
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Clock12 className="h-12 w-12 text-primary/60" />
-          </div>
-          
-          <h1 className="text-2xl font-bold mb-2">No Stories Available</h1>
-          <p className="text-center text-muted-foreground mb-8 max-w-md">
-            This creator hasn't posted any stories yet.
-          </p>
-          
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleClose}
-          >
-            Go Back
-          </Button>
-        </motion.div>
+        )}
+      </div>
+      
+      <div className="mb-8">
+        <StoriesTimeline storyGroups={storyGroups} />
+      </div>
+      
+      {showStoryPublisher && (
+        <StoryPublisher onCancel={handleClosePublisher} />
       )}
-    </AnimatePresence>
+      
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Highlighted Stories</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {loadingStories ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="aspect-[9/16] bg-gray-200 animate-pulse rounded-lg"></div>
+            ))
+          ) : (
+            stories
+              .filter(story => story.is_highlighted)
+              .map(story => (
+                <div 
+                  key={story.id} 
+                  className="aspect-[9/16] bg-gray-100 rounded-lg overflow-hidden cursor-pointer relative"
+                  onClick={() => {/* Handle story click */}}
+                >
+                  <img 
+                    src={story.thumbnail_url || story.media_url} 
+                    alt={story.caption || "Story"} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                    <div className="flex items-center">
+                      <img 
+                        src={story.creator_avatar || `https://i.pravatar.cc/40?u=${story.creator_id}`} 
+                        alt="Creator" 
+                        className="w-6 h-6 rounded-full mr-2"
+                      />
+                      <span className="text-white text-sm truncate">
+                        {story.creator_name || `User_${story.creator_id.substring(0, 5)}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default StoriesPage;
+export default Stories;

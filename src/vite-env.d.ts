@@ -2,7 +2,7 @@
 /// <reference types="vite/client" />
 
 interface User {
-  id: string;
+  id?: string;
   uid: string;
   email: string;
   username?: string;
@@ -118,7 +118,7 @@ interface CreatorProfileData {
   metrics?: {
     followers?: number;
     likes?: number;
-    rating?: number;
+    rating?: number | string;
   };
 }
 

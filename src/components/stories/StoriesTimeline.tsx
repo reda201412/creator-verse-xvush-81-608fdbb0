@@ -1,171 +1,125 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2 } from 'lucide-react';
+import { useStories } from '@/hooks/use-stories';
+import StoriesViewer from './StoriesViewer';
+import { Story } from '@/types/stories';
 import { useAuth } from '@/contexts/AuthContext';
-import useStories from '@/hooks/use-stories';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import useHapticFeedback from '@/hooks/use-haptic-feedback';
-import { toast } from 'sonner';
 
 interface StoriesTimelineProps {
-  onViewStory?: (userId: string, storyId: string) => void;
-  onCreateStory?: () => void;
-  compact?: boolean;
+  storyGroups?: any[];
+  onViewStory?: (storyId: string) => void;
 }
 
-const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ onViewStory, onCreateStory, compact = false }) => {
+const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ storyGroups = [], onViewStory }) => {
+  const { stories, loadingStories } = useStories();
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>(undefined);
+  const [filteredStories, setFilteredStories] = useState<Story[]>([]);
   const { user } = useAuth();
-  const { stories, userStories, isLoading: loadingStories } = useStories();
   const navigate = useNavigate();
-  const { triggerHaptic } = useHapticFeedback();
   
-  const [isUploading, setIsUploading] = useState(false);
-  
-  // Organize stories by creator
-  const storiesByCreator = React.useMemo(() => {
-    const result = new Map();
-    
-    // Add user's own stories first
-    if (userStories.length > 0) {
-      result.set(userStories[0].creator_id, {
-        creator_id: userStories[0].creator_id,
-        creator_name: 'You',
-        creator_avatar: userStories[0].creator_avatar,
-        stories: userStories,
-        is_mine: true
+  useEffect(() => {
+    // If we have stories from the prop, use those, otherwise use the ones from the hook
+    if (storyGroups && storyGroups.length > 0) {
+      // Flatten story groups into a single array of stories
+      const allStories: Story[] = [];
+      storyGroups.forEach(group => {
+        if (group.stories && Array.isArray(group.stories)) {
+          allStories.push(...group.stories);
+        }
       });
+      setFilteredStories(allStories);
+    } else if (stories && stories.length > 0) {
+      setFilteredStories(stories);
     }
-    
-    // Then add others' stories
-    stories.forEach(story => {
-      if (!result.has(story.creator_id)) {
-        result.set(story.creator_id, {
-          creator_id: story.creator_id,
-          creator_name: story.creator_name || `Creator ${story.creator_id.substring(0, 4)}`,
-          creator_avatar: story.creator_avatar,
-          stories: [story],
-          is_mine: false
-        });
-      } else {
-        const existingEntry = result.get(story.creator_id);
-        existingEntry.stories.push(story);
-      }
-    });
-    
-    return Array.from(result.values());
-  }, [stories, userStories]);
+  }, [storyGroups, stories]);
   
-  const handleStoryClick = (creatorId: string, storyId: string) => {
-    triggerHaptic('light');
-    
+  const handleOpenStory = (storyId: string) => {
+    setSelectedStoryId(storyId);
+    setViewerOpen(true);
     if (onViewStory) {
-      onViewStory(creatorId, storyId);
-    } else {
-      navigate(`/stories/${creatorId}?story=${storyId}`);
+      onViewStory(storyId);
     }
   };
   
-  const handleCreateClick = () => {
-    triggerHaptic('medium');
-    
-    if (!user) {
-      toast.error("Please sign in to create a story");
-      return;
-    }
-    
-    if (onCreateStory) {
-      onCreateStory();
-    } else {
-      navigate('/stories/create');
-    }
-  };
-  
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    return name.substring(0, 2).toUpperCase();
+  const handleCloseViewer = () => {
+    setViewerOpen(false);
+    setSelectedStoryId(undefined);
   };
   
   if (loadingStories) {
     return (
-      <div className={`flex justify-center p-4 ${compact ? 'max-w-md' : 'w-full'}`}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="overflow-x-auto py-4">
+        <div className="flex space-x-4 px-4">
+          {[1, 2, 3, 4, 5].map((_, index) => (
+            <div key={index} className="flex-shrink-0">
+              <div className="h-16 w-16 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="mt-2 h-3 w-16 rounded-full bg-gray-200 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
+  if (filteredStories.length === 0) {
+    return (
+      <div className="overflow-x-auto py-4">
+        <div className="flex justify-center items-center h-24">
+          <p className="text-muted-foreground">No stories available</p>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className={`px-1 ${compact ? 'max-w-md' : 'w-full'}`}>
-      <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-hide">
-        {/* Create story button */}
-        <div className="flex flex-col items-center min-w-[72px]">
-          <button
-            onClick={handleCreateClick}
-            disabled={isUploading}
-            className="w-16 h-16 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors relative"
-          >
-            {isUploading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <Plus className="h-6 w-6 text-primary" />
-            )}
-          </button>
-          <span className="text-xs mt-1 text-center">Create</span>
-        </div>
-        
-        {/* Stories */}
-        {storiesByCreator.map((creatorStories) => {
-          const hasUnviewed = creatorStories.stories.some(story => !story.viewed);
-          const latestStory = creatorStories.stories[creatorStories.stories.length - 1];
-          
-          return (
-            <div
-              key={creatorStories.creator_id}
-              className="flex flex-col items-center min-w-[72px] cursor-pointer"
-              onClick={() => handleStoryClick(creatorStories.creator_id, latestStory.id)}
+    <div className="relative">
+      <div className="overflow-x-auto py-4">
+        <div className="flex space-x-4 px-4">
+          {user && (
+            <div 
+              className="flex flex-col items-center cursor-pointer"
+              onClick={() => navigate('/stories/create')}
             >
-              <div className="relative">
-                <div className={`p-[2px] rounded-full ${hasUnviewed ? 'bg-gradient-to-tr from-pink-500 via-purple-500 to-blue-500' : 'bg-muted'}`}>
-                  <Avatar className="w-16 h-16 border-2 border-background">
-                    <AvatarImage 
-                      src={creatorStories.creator_avatar || `https://i.pravatar.cc/150?u=${creatorStories.creator_id}`}
-                      alt={creatorStories.creator_name}
-                    />
-                    <AvatarFallback>
-                      {getInitials(creatorStories.creator_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                
-                {creatorStories.is_mine && creatorStories.stories.some(s => s.is_highlighted) && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full border-2 border-background flex items-center justify-center">
-                    <span className="text-[8px] font-bold">⭐</span>
-                  </span>
-                )}
+              <div className="h-16 w-16 rounded-full flex items-center justify-center border-2 border-dashed border-primary">
+                <span className="text-2xl font-semibold text-primary">+</span>
               </div>
-              
-              <span className="text-xs mt-1 truncate max-w-[72px] text-center">
-                {creatorStories.is_mine ? 'Your Story' : creatorStories.creator_name}
-              </span>
+              <span className="mt-1 text-xs text-center">Add Story</span>
             </div>
-          );
-        })}
-        
-        {storiesByCreator.length === 0 && !userStories.length && (
-          <div className="flex flex-col items-center justify-center px-4 py-2">
-            <p className="text-sm text-muted-foreground">No stories yet</p>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={handleCreateClick}
-              className="text-xs px-0"
+          )}
+          
+          {filteredStories.map((story) => (
+            <motion.div
+              key={story.id}
+              className="flex flex-col items-center cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleOpenStory(story.id)}
             >
-              Be the first to create one
-            </Button>
-          </div>
-        )}
+              <div className={`h-16 w-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 ${story.viewed ? 'opacity-50' : ''}`}>
+                <img
+                  src={story.thumbnail_url || `https://i.pravatar.cc/150?u=${story.creator_id}`}
+                  alt="Story thumbnail"
+                  className="h-full w-full object-cover rounded-full border-2 border-background"
+                />
+              </div>
+              <span className="mt-1 text-xs text-center truncate w-16">
+                {story.creator_name || `User_${story.creator_id?.substring(0, 5)}`}
+              </span>
+            </motion.div>
+          ))}
+        </div>
       </div>
+      
+      {viewerOpen && selectedStoryId && (
+        <StoriesViewer
+          stories={filteredStories}
+          initialStoryId={selectedStoryId}
+          onClose={handleCloseViewer}
+        />
+      )}
     </div>
   );
 };

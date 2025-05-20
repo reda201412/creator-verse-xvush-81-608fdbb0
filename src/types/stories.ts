@@ -25,6 +25,8 @@ export interface Story {
   expires_at: string;
   view_count: number;
   is_highlighted: boolean;
+  creator_name?: string;
+  creator_avatar?: string;
   metadata?: {
     location?: {
       latitude: number;
@@ -73,14 +75,9 @@ export interface StoryView {
 }
 
 export interface StoryUploadParams {
-  mediaFile: File;
-  thumbnailFile?: File;
+  file: File;
   caption?: string;
-  filter?: StoryFilter;
-  duration?: number;
-  expiresIn?: number; // Hours (default: 24)
-  tags?: string[];
-  metadata?: Partial<Story['metadata']>;
+  onProgress?: (progress: number) => void;
 }
 
 export interface StoryGroup {
@@ -88,4 +85,12 @@ export interface StoryGroup {
   stories: Story[];
   lastUpdated: string;
   hasUnviewed: boolean;
+}
+
+export interface UseStoriesHookReturn {
+  stories: Story[];
+  loadingStories: boolean;
+  uploadStory: (params: StoryUploadParams) => Promise<boolean>;
+  markStoryAsViewed: (storyId: string) => Promise<void>;
+  error: string | null;
 }

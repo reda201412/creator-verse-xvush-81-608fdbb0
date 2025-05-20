@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToast } from "@/hooks/use-toast";
@@ -68,7 +67,7 @@ const MessageCenter = ({
   const [encryptionEnabled, setEncryptionEnabled] = useState(true);
   const [sessionKeys, setSessionKeys] = useState<Record<string, string>>({});
   const [showEncryptionSettings, setShowEncryptionSettings] = useState(false);
-
+  
   const { toast } = useToast();
   const messageEndRef = useRef<HTMLDivElement>(null);
   
@@ -156,8 +155,9 @@ const MessageCenter = ({
         }
       } : undefined,
       emotional: {
-        primaryEmotion: 'neutral',
+        sentiment: 'neutral',
         intensity: 50,
+        primaryEmotion: 'neutral',
         threadMapping: []
       }
     };

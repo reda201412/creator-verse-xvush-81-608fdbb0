@@ -46,6 +46,26 @@ const CreatorProfile: React.FC = () => {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'videos' | 'stats'>('videos');
 
+  // Mock video data for the creator
+  const mockVideoData: VideoData[] = [
+    {
+      id: "v1",
+      userId: creatorId || "unknown",
+      title: "Introduction to Digital Art",
+      description: "Learn the basics of digital art creation with these simple techniques.",
+      thumbnailUrl: "https://images.unsplash.com/photo-1615184697985-c9bde1b07da7",
+      isPremium: false,
+      type: "standard",
+      format: "16:9", // Added format field
+      isPublished: true,
+      viewCount: 1250,
+      likeCount: 85, // Added likeCount
+      commentCount: 32, // Added commentCount
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    // ... other mock videos with format field
+  ];
+
   useEffect(() => {
     if (!creatorId) return;
     
@@ -162,7 +182,6 @@ const CreatorProfile: React.FC = () => {
       toast.info("Cette vidéo n'est pas encore prête pour la lecture ou est en cours de traitement.");
     }
   };
-
 
   if (loadingProfile || authLoading) {
     return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;

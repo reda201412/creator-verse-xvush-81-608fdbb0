@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoData } from '@/vite-env';
+import { VideoData } from '@/types/video';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
 import useVideoUpload from './video-uploader/useVideoUpload';
 

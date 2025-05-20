@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Upload, X } from 'lucide-react';
 
-interface StoryPublisherProps {
+export interface StoryPublisherProps {
   onCancel: () => void;
 }
 

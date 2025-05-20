@@ -23,3 +23,6 @@ export interface VideoMetadata {
   tokenPrice?: number;
   restrictions?: VideoRestrictions;
 }
+
+// Add VideoData type for compatibility with creatorService
+export { VideoData } from '@/vite-env';

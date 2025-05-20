@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, Heart, Share } from 'lucide-react';
@@ -13,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { generateSessionKey } from '@/utils/encryption';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { EncryptedContent } from '@/utils/encryption';
+import { ensureRequiredRestrictionProps } from '@/utils/exclusive-content-utils';
 
 // Define type for exclusive content
 interface ExclusiveContent {
@@ -159,6 +159,14 @@ const ExclusiveContent: React.FC = () => {
     return keys;
   });
   
+  const generateSessionKey = (): string => {
+    // Implementation remains but is now synchronous
+    return Array.from(
+      { length: 32 },
+      () => Math.floor(Math.random() * 36).toString(36)
+    ).join('');
+  };
+
   const handleUnlock = () => {
     toast.success("Contenu déverrouillé");
     triggerMicroReward('action');
@@ -175,7 +183,7 @@ const ExclusiveContent: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    <div className="container py-8">
       <div className="mx-auto max-w-7xl px-4 py-8">
         <header className="mb-8">
           <div className="flex items-center justify-between">
@@ -251,10 +259,10 @@ const ExclusiveContent: React.FC = () => {
                       transition={{ duration: 0.3 }}
                     >
                       <ExclusiveContentViewer
-                        content={content}
-                        userTier={userTier}
-                        userTokenBalance={userTokenBalance}
-                        sessionKey={content.encryption?.isEncrypted ? sessionKeys[content.id] : undefined}
+                        content={{
+                          ...content,
+                          restrictions: ensureRequiredRestrictionProps(content.restrictions)
+                        }}
                         onUnlock={handleUnlock}
                         onLike={handleLike}
                         onComment={handleComment}
@@ -276,10 +284,10 @@ const ExclusiveContent: React.FC = () => {
                       transition={{ duration: 0.3 }}
                     >
                       <ExclusiveContentViewer
-                        content={content}
-                        userTier={userTier}
-                        userTokenBalance={userTokenBalance}
-                        sessionKey={content.encryption?.isEncrypted ? sessionKeys[content.id] : undefined}
+                        content={{
+                          ...content,
+                          restrictions: ensureRequiredRestrictionProps(content.restrictions)
+                        }}
                         onUnlock={handleUnlock}
                         onLike={handleLike}
                         onComment={handleComment}

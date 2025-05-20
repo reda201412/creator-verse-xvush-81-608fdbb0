@@ -1,72 +1,39 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { WalletConnect } from '@/components/wallet/WalletConnect';
-import WalletBalance from '@/components/wallet/WalletBalance';
-import TransactionList from '@/components/wallet/TransactionList';
+import React from 'react';
+import { Dialog } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
+import WalletConnect from '@/components/wallet/WalletConnect';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
 
 interface WalletModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const WalletModal: React.FC<WalletModalProps> = ({ 
-  open, 
-  onOpenChange 
-}) => {
-  const { user } = useAuth();
-  const { walletInfo, getWalletInfo, isLoading } = useTronWallet();
-  const [activeTab, setActiveTab] = useState('balance');
-  
-  // Fetch wallet info when modal opens
-  useEffect(() => {
-    if (open && user) {
-      getWalletInfo();
-    }
-  }, [open, user, getWalletInfo]);
+const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
+  const { walletInfo } = useTronWallet();
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Portefeuille</DialogTitle>
-        </DialogHeader>
-
-        {(isLoading) ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="bg-card rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h2 className="text-lg font-semibold">Wallet</h2>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="balance">Solde</TabsTrigger>
-              <TabsTrigger value="connect">Connecter</TabsTrigger>
-              <TabsTrigger value="history">Historique</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="balance" className="space-y-4 py-4">
-              <WalletBalance walletInfo={walletInfo} />
-            </TabsContent>
-
-            <TabsContent value="connect" className="space-y-4 py-4">
-              <WalletConnect 
-                isOpen={activeTab === 'connect'} 
-                onOpenChange={() => {}}
-                onClose={() => setActiveTab('balance')}
-                walletInfo={walletInfo}
-              />
-            </TabsContent>
-
-            <TabsContent value="history" className="space-y-4 py-4">
-              <TransactionList transactions={walletInfo?.transactions || []} />
-            </TabsContent>
-          </Tabs>
-        )}
-      </DialogContent>
+          
+          <div className="p-4">
+            <WalletConnect 
+              isOpen={isOpen} 
+              onClose={onClose}
+              walletInfo={walletInfo}
+            />
+          </div>
+        </div>
+      </div>
     </Dialog>
   );
 };

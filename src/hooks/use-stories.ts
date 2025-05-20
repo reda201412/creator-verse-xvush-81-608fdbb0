@@ -1,229 +1,163 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { FirestoreStory } from '@/vite-env';
+import { Story, StoryUploadParams, UseStoriesHookReturn } from '@/types/stories';
 
-// Mock story data
-const mockStories = [
+// Mocked stories data for development
+const mockStories: Story[] = [
   {
-    id: '1',
-    creatorId: 'creator-1',
-    mediaUrl: 'https://picsum.photos/1080/1920',
-    thumbnailUrl: 'https://picsum.photos/400/800',
-    caption: 'Beautiful day!',
-    format: '9:16',
-    duration: 0,
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
-    viewCount: 127,
-    isHighlighted: false
+    id: "story1",
+    creator_id: "user1",
+    media_url: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131",
+    caption: "My first story!",
+    format: "16:9",
+    duration: 5,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    view_count: 0,
+    is_highlighted: false,
+    creator_name: "John Doe",
+    creator_avatar: "https://i.pravatar.cc/150?img=1"
   },
   {
-    id: '2',
-    creatorId: 'creator-2',
-    mediaUrl: 'https://picsum.photos/1080/1920?random=2',
-    thumbnailUrl: 'https://picsum.photos/400/800?random=2',
-    caption: 'Check out my new content!',
-    format: '9:16',
-    duration: 0,
-    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
-    viewCount: 89,
-    isHighlighted: true
+    id: "story2",
+    creator_id: "user2",
+    media_url: "https://images.unsplash.com/photo-1569569970363-df7b6160d111",
+    caption: "Beautiful sunset!",
+    format: "9:16",
+    duration: 5,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    view_count: 12,
+    is_highlighted: true,
+    creator_name: "Jane Smith",
+    creator_avatar: "https://i.pravatar.cc/150?img=2"
   },
   {
-    id: '3',
-    creatorId: 'creator-3',
-    mediaUrl: 'https://picsum.photos/1080/1920?random=3',
-    thumbnailUrl: 'https://picsum.photos/400/800?random=3',
-    caption: 'Behind the scenes!',
-    format: '9:16',
-    duration: 0,
-    createdAt: new Date(Date.now() - 10800000).toISOString(), // 3 hours ago
-    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
-    viewCount: 205,
-    isHighlighted: false
+    id: "story3",
+    creator_id: "user3",
+    media_url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
+    caption: "Check out this video!",
+    format: "16:9",
+    duration: 15,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    view_count: 28,
+    is_highlighted: false,
+    creator_name: "Alex Johnson",
+    creator_avatar: "https://i.pravatar.cc/150?img=3"
   }
 ];
 
-// Dummy creator data
-const creators = {
-  'creator-1': {
-    id: 'creator-1',
-    name: 'Jane Smith',
-    username: 'janesmith',
-    avatarUrl: 'https://i.pravatar.cc/150?img=5'
-  },
-  'creator-2': {
-    id: 'creator-2',
-    name: 'Robert Johnson',
-    username: 'rob_j',
-    avatarUrl: 'https://i.pravatar.cc/150?img=8'
-  },
-  'creator-3': {
-    id: 'creator-3',
-    name: 'Alice Wonder',
-    username: 'alice_wonder',
-    avatarUrl: 'https://i.pravatar.cc/150?img=9'
-  }
-};
-
-// Types
-export interface StoryUploadOptions {
-  file: File;
-  caption?: string;
-  onProgress?: (progress: number) => void;
-}
-
-export interface Story extends FirestoreStory {
-  creator: {
-    id: string;
-    name: string;
-    username: string;
-    avatarUrl: string;
-  };
-  timeAgo: string;
-}
-
-export interface UseStoriesHookReturn {
-  stories: Story[];
-  userStories: Story[];
-  featuredStories: Story[];
-  uploadStory: (options: StoryUploadOptions) => Promise<boolean>;
-  loadingStories: boolean;
-  refreshStories: () => Promise<void>;
-  markStoryAsViewed: (storyId: string) => Promise<void>;
-}
-
-export function useStories(): UseStoriesHookReturn {
+/**
+ * Hook to manage stories functionality
+ */
+export const useStories = (): UseStoriesHookReturn => {
   const { user } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
-  const [userStories, setUserStories] = useState<Story[]>([]);
-  const [featuredStories, setFeaturedStories] = useState<Story[]>([]);
-  const [loadingStories, setLoadingStories] = useState(false);
-
-  // Load stories
-  const fetchStories = async () => {
-    setLoadingStories(true);
-    try {
-      // In a real app, fetch stories from your backend
-      const fetchedStories = mockStories.map((story) => ({
-        ...story,
-        creator: creators[story.creatorId as keyof typeof creators],
-        timeAgo: formatDistanceToNow(new Date(story.createdAt), { addSuffix: true, locale: fr })
-      }));
-      
-      setStories(fetchedStories);
-      
-      // Filter user's own stories
-      if (user) {
-        const ownStories = fetchedStories.filter(
-          story => story.creatorId === user.uid
-        );
-        setUserStories(ownStories);
-      }
-      
-      // Filter featured/highlighted stories
-      const featured = fetchedStories.filter(story => story.isHighlighted);
-      setFeaturedStories(featured);
-    } catch (error) {
-      console.error('Error fetching stories:', error);
-      toast.error('Impossible de charger les stories');
-    }
-    setLoadingStories(false);
-  };
-
+  const [loadingStories, setLoadingStories] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch stories from API or use mock data
   useEffect(() => {
+    const fetchStories = async () => {
+      try {
+        setLoadingStories(true);
+        
+        // In a real app, this would be an API call
+        // const response = await api.getStories();
+        // setStories(response.data);
+        
+        // Using mock data for now
+        setStories(mockStories);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching stories:", err);
+        setError("Failed to load stories");
+      } finally {
+        setLoadingStories(false);
+      }
+    };
+    
     fetchStories();
-  }, [user]);
-
-  // Upload story function
-  const uploadStory = async (options: StoryUploadOptions): Promise<boolean> => {
-    if (!user) {
-      toast.error('Vous devez être connecté pour publier une story');
+  }, []);
+  
+  // Upload a story
+  const uploadStory = useCallback(async (params: StoryUploadParams): Promise<boolean> => {
+    if (!user?.uid) {
+      toast.error("You must be logged in to upload stories");
       return false;
     }
-
-    const { file, caption, onProgress } = options;
-    
-    // Simulate upload progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += 10;
-      if (progress <= 100) {
-        onProgress?.(progress);
-      } else {
-        clearInterval(progressInterval);
-      }
-    }, 300);
     
     try {
-      // Simulate API call delay
+      const { file, caption, onProgress } = params;
+      
+      // Simulate upload progress
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 10;
+        if (progress <= 100 && onProgress) {
+          onProgress(progress);
+        }
+        if (progress > 100) {
+          clearInterval(progressInterval);
+        }
+      }, 300);
+      
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // In a real app, upload the file to storage and save metadata to database
-      const newStoryId = `story-${Date.now()}`;
+      // Create a new story object
       const newStory: Story = {
-        id: newStoryId,
-        creatorId: user.uid,
-        mediaUrl: URL.createObjectURL(file),
-        thumbnailUrl: URL.createObjectURL(file),
-        caption: caption || '',
-        format: '9:16',
-        duration: file.type.startsWith('video/') ? 15 : 0, // Assume videos are 15 seconds
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
-        viewCount: 0,
-        isHighlighted: false,
-        creator: {
-          id: user.uid,
-          name: user.displayName || user.username || user.email?.split('@')[0] || 'User',
-          username: user.username || user.email?.split('@')[0] || 'user',
-          avatarUrl: user.profileImageUrl || 'https://i.pravatar.cc/150'
-        },
-        timeAgo: 'à l\'instant'
+        id: `story_${Date.now()}`,
+        creator_id: user?.uid || '',
+        media_url: URL.createObjectURL(file),
+        caption: caption,
+        format: "16:9",
+        duration: 5,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        view_count: 0,
+        is_highlighted: false,
+        creator_name: user?.username || user?.displayName || 'User',
+        creator_avatar: user?.profileImageUrl || `https://i.pravatar.cc/150?u=${user?.username}`
       };
       
-      // Update state with the new story
+      // Add the new story to the state
       setStories(prev => [newStory, ...prev]);
-      setUserStories(prev => [newStory, ...prev]);
-      
-      clearInterval(progressInterval);
-      onProgress?.(100);
       
       return true;
-    } catch (error) {
-      console.error('Error uploading story:', error);
-      clearInterval(progressInterval);
+    } catch (err) {
+      console.error("Error uploading story:", err);
+      setError("Failed to upload story");
       return false;
     }
-  };
-
-  // Mark story as viewed
-  const markStoryAsViewed = async (storyId: string): Promise<void> => {
-    // In a real app, update the view status in the backend
-    setStories(prev => 
-      prev.map(story => 
-        story.id === storyId ? { ...story, viewed: true } : story
-      )
-    );
-  };
-
-  // Refresh stories
-  const refreshStories = async (): Promise<void> => {
-    return fetchStories();
-  };
-
+  }, [user]);
+  
+  // Mark a story as viewed
+  const markStoryAsViewed = useCallback(async (storyId: string): Promise<void> => {
+    try {
+      // In a real app, this would call an API
+      // await api.markStoryAsViewed(storyId);
+      
+      // Update the local state
+      setStories(prev => 
+        prev.map(story => 
+          story.id === storyId ? { ...story, viewed: true } : story
+        )
+      );
+    } catch (err) {
+      console.error("Error marking story as viewed:", err);
+      setError("Failed to mark story as viewed");
+    }
+  }, []);
+  
   return {
     stories,
-    userStories,
-    featuredStories,
-    uploadStory,
     loadingStories,
-    refreshStories,
-    markStoryAsViewed
+    uploadStory,
+    markStoryAsViewed,
+    error
   };
-}
+};

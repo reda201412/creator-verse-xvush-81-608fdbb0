@@ -17,6 +17,8 @@ export interface Message {
   emotional?: {
     sentiment?: string;
     intensity?: number;
+    primaryEmotion?: string;
+    threadMapping?: any[];
   };
   monetization?: {
     tier: MonetizationTier;
