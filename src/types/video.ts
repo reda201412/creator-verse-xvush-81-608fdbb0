@@ -24,9 +24,9 @@ export interface VideoMetadata {
   restrictions?: VideoRestrictions;
 }
 
-// Define VideoData interface with flexible ID type that works with both services
+// Define VideoData interface with consistent ID type that works with both services
 export interface VideoData {
-  id: number | string;
+  id: number;
   userId?: string;
   creator_id?: string; // For compatibility with creatorService
   title: string;
@@ -55,17 +55,17 @@ export interface VideoData {
   mux_playback_id?: string;
 }
 
-// Define User type here directly
+// Define User type here directly with necessary fields
 export interface User {
   uid: string;
   id?: string; // Some components expect this
   email: string;
-  username?: string;
+  username: string; // Added as required field
   displayName?: string;
-  profileImageUrl?: string;
+  profileImageUrl: string; // Added as required field
 }
 
-// Add CreatorProfileData for this type
+// Add CreatorProfileData type
 export interface CreatorProfileData {
   id: string;
   user_id?: string; 
@@ -87,10 +87,10 @@ export interface CreatorProfileData {
   };
 }
 
-// Function to ensure video type compatibility
+// Function to normalize video data across different sources
 export function ensureVideoDataCompatibility(videoData: any): VideoData {
   return {
     ...videoData,
-    id: typeof videoData.id === 'string' ? parseInt(videoData.id, 10) || videoData.id : videoData.id,
+    id: typeof videoData.id === 'string' ? parseInt(videoData.id, 10) : videoData.id,
   };
 }

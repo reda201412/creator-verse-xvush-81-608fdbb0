@@ -14,7 +14,7 @@ const SecureMessaging = () => {
     return key;
   };
   
-  // Fix user property access issues by adding optional chaining
+  // Fix user property access issues by adding optional chaining and fallbacks
   const renderUserInfo = () => {
     if (!user) return null;
     

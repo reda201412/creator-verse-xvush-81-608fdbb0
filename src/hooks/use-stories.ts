@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db, storage } from '@/integrations/firebase/firebase';
 import { collection, query, where, getDocs, limit, orderBy, startAfter, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
@@ -92,7 +91,7 @@ export const useStories = (): UseStoriesHookReturn => {
         storyId
       };
       
-      // Create the story object with optional chaining for user properties
+      // Create the story object with fallbacks for user properties
       const newStory: Story = {
         id: storyId,
         creator_id: user.uid, // Use uid as it's guaranteed to exist
@@ -104,8 +103,8 @@ export const useStories = (): UseStoriesHookReturn => {
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
         view_count: 0,
         is_highlighted: false,
-        creator_name: user?.username || user.email || 'User',
-        creator_avatar: user?.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`,
+        creator_name: user.username || user.email || 'User',
+        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`,
       };
 
       // Add to local stories array
@@ -131,7 +130,6 @@ export const useStories = (): UseStoriesHookReturn => {
       );
       
       // Simulate updating the view count on the server
-      // In a real application, you would make an API call to update the view count
       console.log(`Marked story ${storyId} as viewed`);
     } catch (error) {
       console.error("Error marking story as viewed:", error);

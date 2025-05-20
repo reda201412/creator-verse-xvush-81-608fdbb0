@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { ensureRequiredRestrictionProps } from '@/utils/exclusive-content-utils';
-// Import the missing ExclusiveContentViewer component
-import { ExclusiveContentViewer } from '@/components/exclusive/ExclusiveContentViewer';
+// Import the correct ExclusiveContent component
+import { ExclusiveContent as ExclusiveContentViewer } from '@/components/exclusive/ExclusiveContentViewer';
 
 const ExclusiveContent = () => {
   // Mock content data

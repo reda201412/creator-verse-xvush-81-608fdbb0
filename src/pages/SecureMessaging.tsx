@@ -54,9 +54,7 @@ const SecureMessagingPage = () => {
   return (
     <ConversationProvider>
       <div className="h-screen w-screen overflow-hidden">
-        <SecureMessagingComponent 
-          selectedConversation={mockConversation}
-        />
+        <SecureMessagingComponent />
       </div>
     </ConversationProvider>
   );
