@@ -20,7 +20,7 @@ export interface UploadMetadata {
 
 export type UploadStage = 'idle' | 'selecting' | 'uploading' | 'processing' | 'metadata' | 'complete' | 'error';
 
-// Add missing types for UploaderContext
+// Upload state for UploaderContext
 export interface UploadState {
   stage: UploadStage;
   progress: number;

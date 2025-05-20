@@ -1,105 +1,87 @@
 
 import { useState, useCallback } from 'react';
-import { useVideoUploadToMux } from '@/hooks/useVideoUploadToMux';
+import { useUploader } from '../UploaderContext';
 import { ShieldStatus } from '../types';
+import { uploadVideoToMux } from '@/services/muxService';
 
-export const useVideoUpload = () => {
-  const {
-    uploadState,
-    uploadProgress,
-    uploadVideo,
-    error,
-    reset: resetUpload,
-  } = useVideoUploadToMux();
-  
-  const [shieldStatus, setShieldStatus] = useState<ShieldStatus>({
-    encryption: 'pending',
-    watermark: 'pending',
-    drm: 'pending',
-  });
+export function useShieldProtection() {
+  const { setShieldStatus } = useUploader();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Simulate shield status check after upload
-  const checkShieldStatus = useCallback(async (assetId: string) => {
+  const applyShield = useCallback(async () => {
+    setIsProcessing(true);
+    
+    // Set features to "pending" status during processing
+    setShieldStatus({
+      encryption: 'pending',
+      watermark: 'pending',
+      drm: 'pending'
+    });
+    
     try {
-      console.log('Checking shield status for asset:', assetId);
-      // Simulate a delay for processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulating shield application process
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // Update shield status
+      // All features applied successfully
       setShieldStatus({
         encryption: 'active',
         watermark: 'active',
-        drm: 'pending',
+        drm: 'active'
       });
       
       return true;
     } catch (error) {
-      console.error('Error checking shield status:', error);
+      // Application failed
+      setShieldStatus({
+        encryption: 'error',
+        watermark: 'error',
+        drm: 'error'
+      });
+      
       return false;
+    } finally {
+      setIsProcessing(false);
     }
-  }, []);
-
-  // Wrapper function that combines upload and shield check
-  const upload = useCallback(async (file: File) => {
-    try {
-      const result = await uploadVideo(file);
-      
-      // Check shield status if upload was successful
-      if (result.assetId) {
-        await checkShieldStatus(result.assetId);
-      }
-      
-      return result;
-    } catch (err) {
-      // Let the error propagate
-      throw err;
-    }
-  }, [uploadVideo, checkShieldStatus]);
+  }, [setShieldStatus]);
 
   return {
-    upload,
-    uploadProgress,
-    uploadState,
-    shieldStatus,
-    error,
-    resetUpload,
+    applyShield,
+    isProcessing
   };
-};
+}
 
-export const useVideoProcessing = () => {
-  const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
-  const [processingProgress, setProcessingProgress] = useState(0);
-  
-  const process = useCallback(async (videoId: string) => {
-    try {
-      setProcessingStatus('processing');
-      setProcessingProgress(0);
-      
-      console.log('Processing video:', videoId);
-      
-      // Simulate processing with progress updates
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setProcessingProgress(progress);
-      }
-      
-      setProcessingStatus('completed');
-      return { status: 'completed' };
-    } catch (err) {
-      setProcessingStatus('failed');
-      throw err;
+export function useVideoUpload() {
+  const { file, setProgress, setStage, setError } = useUploader();
+  const [isUploading, setIsUploading] = useState(false);
+
+  const uploadVideo = useCallback(async () => {
+    if (!file) {
+      setError('No file selected');
+      return null;
     }
-  }, []);
-  
-  const resetProcessing = useCallback(() => {
-    setProcessingStatus('idle');
-    setProcessingProgress(0);
-  }, []);
-  
+
+    try {
+      setIsUploading(true);
+      
+      // Start the upload process
+      const uploadResponse = await uploadVideoToMux(file);
+      
+      // Move to the metadata stage after successful upload
+      setStage('metadata');
+      setProgress(100);
+      
+      return uploadResponse;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Upload failed');
+      setStage('error');
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  }, [file, setError, setProgress, setStage]);
+
   return {
-    process,
-    processingStatus,
-    processingProgress,
-    resetProcessing,
+    uploadVideo,
+    isUploading
   };
-};
+}

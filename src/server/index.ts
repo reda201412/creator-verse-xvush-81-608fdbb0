@@ -33,8 +33,8 @@ export async function createServer() {
   app.use(vite.middlewares);
 
   // API routes
-  app.use('/api/videos', (await import('./routes/videos')).default);
-  app.use('/api/mux', (await import('./routes/mux')).default);
+  app.use('/api/videos', (await import('./routes/videos.js')).default);
+  app.use('/api/mux', (await import('./routes/mux.js')).default);
   
   // Serve the app - all other routes go to the SPA
   app.use('*', async (req, res, next) => {
@@ -69,4 +69,14 @@ export async function createServer() {
   });
 
   return app;
+}
+
+// Start the server if this file is run directly
+if (typeof process !== 'undefined' && process.argv[1] === fileURLToPath(import.meta.url)) {
+  const PORT = process.env.PORT || 3000;
+  createServer().then(app => {
+    app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+    });
+  });
 }
