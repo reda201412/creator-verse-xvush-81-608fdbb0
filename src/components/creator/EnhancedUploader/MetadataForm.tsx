@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -79,11 +79,16 @@ export const MetadataForm: React.FC<{
         }
       });
       
-      // Update global metadata state
-      setMetadata({
+      // Convert tags from string to array if present
+      const processedMetadata = {
         ...data,
+        // Convert tags string to array (splitting by comma)
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
         tokenPrice: data.isPremium ? data.tokenPrice || 0 : 0,
-      });
+      };
+      
+      // Update global metadata state
+      setMetadata(processedMetadata);
       
       // Call the complete handler with the form data
       onComplete(formData);

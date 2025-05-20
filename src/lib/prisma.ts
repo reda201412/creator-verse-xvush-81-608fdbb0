@@ -1,76 +1,26 @@
-// Importation conditionnelle de PrismaClient
-import type { PrismaClient as PrismaClientType } from '@prisma/client';
 
-let PrismaClient: typeof PrismaClientType;
-// Type pour le client Prisma côté client
-type ClientPrisma = {
-  $on: () => void;
-  $connect: () => Promise<void>;
-  $disconnect: () => Promise<void>;
-  [key: string]: unknown;
-};
+// Ce fichier utilise une version adaptée du client Prisma pour le navigateur
 
-let prisma: PrismaClientType | ClientPrisma;
+import { PrismaClient as PrismaClientType } from '@prisma/client';
 
-// Vérifie si nous sommes en mode serveur (Node.js)
-const isServer = typeof window === 'undefined';
+// Importation dynamique du client Prisma - modifié pour être compatible avec le browser
+const prismaClientPackage = '@prisma/client';
 
-if (isServer) {
-  // Côté serveur, importe le vrai PrismaClient
-  const { PrismaClient: PrismaClientType } = await import('@prisma/client');
-  PrismaClient = PrismaClientType;
-  
-  // Vérifie si nous sommes en mode développement
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
-  // Vérifie si une instance de PrismaClient existe déjà dans le contexte global
-  const globalForPrisma = global as unknown as { prisma: typeof PrismaClient };
-  
-  // Initialise PrismaClient avec le logging en mode développement
-  prisma = globalForPrisma.prisma || new PrismaClient({
-    log: isDevelopment ? ['query', 'error', 'warn'] : ['error'],
-  });
-  
-  // En mode développement, conserve l'instance de PrismaClient dans le contexte global
-  // pour éviter les fuites de mémoire lors du rechargement à chaud (HMR)
-  if (isDevelopment) {
-    globalForPrisma.prisma = prisma;
-  }
-} else {
-  // Côté client, utilise une implémentation vide
-  prisma = {
-    $on: () => {},
-    $connect: () => Promise.resolve(),
-    $disconnect: () => Promise.resolve(),
-  };
+// Variable globale pour maintenir une connexion entre les hot-reloads
+declare global {
+  var prisma: PrismaClientType | undefined;
 }
 
-// Fonction utilitaire pour se connecter à la base de données
-export const connectDB = async () => {
-  if (!isServer) {
-    console.warn('connectDB ne peut être appelé que côté serveur');
-    return;
-  }
-  try {
-    await prisma.$connect();
-    console.log('Database connected successfully');
-  } catch (error) {
-    console.error('Database connection error:', error);
-    process.exit(1);
-  }
-};
+// Configuration du client Prisma
+export const prisma: PrismaClientType = globalThis.prisma || 
+  // @ts-ignore - On ignore l'erreur de typescript ici car nous savons que notre client-prisma.ts s'occupe de la compatibilité
+  new (require(prismaClientPackage)).PrismaClient({
+    log: ['query', 'info', 'warn', 'error'],
+  });
 
-// Fonction pour fermer la connexion à la base de données
-export const disconnectDB = async () => {
-  try {
-    await prisma.$disconnect();
-    console.log('Database disconnected successfully');
-  } catch (error) {
-    console.error('Error disconnecting from database:', error);
-    process.exit(1);
-  }
-};
+// En développement, on garde le client dans l'objet global pour éviter les connexions multiples
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = prisma;
+}
 
-// Export à la fois par défaut et nommé pour la rétrocompatibilité
-export { prisma };
-export default prisma;
+export { PrismaClientType as PrismaClient };
