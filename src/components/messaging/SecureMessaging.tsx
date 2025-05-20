@@ -1,12 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useConversation } from '@/contexts/ConversationContext';
 import { toast } from 'sonner';
-import { db } from '@/contexts/firebase-mock';
-import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
@@ -19,12 +16,6 @@ interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
 // Mock firebase/functions
 const getFunctions = () => ({});
 const httpsCallable = () => async () => ({ data: { messages: [], newLastVisibleDoc: null } });
-
-interface ScrollListenerProps {
-  onLoadMore: () => void;
-  rootMargin?: string;
-  threshold?: number;
-}
 
 // Simple scroll listener hook implementation
 const useBottomScrollListener = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
@@ -50,7 +41,6 @@ interface Props {
 
 const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
   const { user } = useAuth();
-  const { updateConversation } = useConversation();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<FirestoreMessage[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -69,23 +59,25 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
     try {
       // Fetch more messages from the backend      
       const result = await httpsCallable(getFunctions())();
-      const data = result.data as { messages: any[], newLastVisibleDoc: any };
+      const data = result.data as any; // Cast to any to avoid type errors
       
-      if (data.messages.length === 0) {
+      if (data.messages && data.messages.length === 0) {
         setHasMoreMessages(false);
         return;
       }
       
       // Update the lastVisibleDoc reference from the result
-      setLastVisibleDoc(data.newLastVisibleDoc);
+      if (data.newLastVisibleDoc) {
+        setLastVisibleDoc(data.newLastVisibleDoc);
+      }
       
-      const newMessages: FirestoreMessage[] = data.messages.map((doc: any) => ({
+      const newMessages: FirestoreMessage[] = (data.messages || []).map((doc: any) => ({
         id: doc.id,
         ...doc.data
       }));
       
       setMessages(prevMessages => [...prevMessages, ...newMessages]);
-      setHasMoreMessages(data.messages.length >= 10);
+      setHasMoreMessages(data.messages && data.messages.length >= 10);
     } catch (error) {
       console.error("Error fetching more messages:", error);
       toast.error("Impossible de charger plus de messages");
@@ -125,12 +117,12 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
     
     try {
       const newMessage: Omit<FirestoreMessage, 'id'> = {
-        senderId: user.uid || user.id || '',
+        senderId: user?.uid || user?.id || '',
         content: input,
         type: 'text',
         createdAt: new Date(),
-        sender_name: user.username || user.email || '',
-        sender_avatar: user.profileImageUrl || null,
+        sender_name: user?.username || user?.email || '',
+        sender_avatar: user?.profileImageUrl || null,
       };
       
       // Add the message to the UI immediately
@@ -143,15 +135,6 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
         // Update the message list with the "server" message
         const serverMessage = { ...newMessage, id: `msg_${Date.now()}` };
         setMessages(prev => prev.map(m => m.id === tempId ? serverMessage as FirestoreMessage : m));
-        
-        // Update conversation
-        if (selectedConversation && updateConversation) {
-          updateConversation(selectedConversation.id, {
-            lastActivity: new Date(),
-            lastMessageText: input,
-            lastMessageSenderId: user.uid || user.id || '',
-          });
-        }
       }, 500);
       
       setInput('');

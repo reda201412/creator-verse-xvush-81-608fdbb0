@@ -51,4 +51,6 @@ const db = {
   }),
 };
 
-export default new MockPrismaClient();
+const mockPrismaClient = new MockPrismaClient();
+
+export default mockPrismaClient;

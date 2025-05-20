@@ -1,141 +1,171 @@
 
-import React, { useState, useEffect } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import useStories from '@/hooks/use-stories';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Plus } from 'lucide-react';
+import useStories from '@/hooks/use-stories';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { toast } from 'sonner';
 
-const StoriesTimeline = () => {
-  const { stories, loadingStories } = useStories();
+interface StoriesTimelineProps {
+  onViewStory?: (userId: string, storyId: string) => void;
+  onCreateStory?: () => void;
+  compact?: boolean;
+}
+
+const StoriesTimeline: React.FC<StoriesTimelineProps> = ({ onViewStory, onCreateStory, compact = false }) => {
   const { user } = useAuth();
-  const [isShowingAll, setIsShowingAll] = useState(false);
+  const { stories, userStories, isLoading: loadingStories } = useStories();
+  const navigate = useNavigate();
+  const { triggerHaptic } = useHapticFeedback();
   
-  // Group stories by creator
-  const groupedStories = React.useMemo(() => {
-    const grouped = new Map();
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Organize stories by creator
+  const storiesByCreator = React.useMemo(() => {
+    const result = new Map();
     
+    // Add user's own stories first
+    if (userStories.length > 0) {
+      result.set(userStories[0].creator_id, {
+        creator_id: userStories[0].creator_id,
+        creator_name: 'You',
+        creator_avatar: userStories[0].creator_avatar,
+        stories: userStories,
+        is_mine: true
+      });
+    }
+    
+    // Then add others' stories
     stories.forEach(story => {
-      if (grouped.has(story.creator_id)) {
-        grouped.get(story.creator_id).stories.push(story);
-      } else {
-        grouped.set(story.creator_id, {
+      if (!result.has(story.creator_id)) {
+        result.set(story.creator_id, {
           creator_id: story.creator_id,
-          creator_name: story.creator_name || 'Creator',
-          creator_avatar: story.creator_avatar || `https://i.pravatar.cc/150?u=${story.creator_id}`,
-          stories: [story]
+          creator_name: story.creator_name || `Creator ${story.creator_id.substring(0, 4)}`,
+          creator_avatar: story.creator_avatar,
+          stories: [story],
+          is_mine: false
         });
+      } else {
+        const existingEntry = result.get(story.creator_id);
+        existingEntry.stories.push(story);
       }
-      
-      // Sort stories by date (newest first)
-      const creatorData = grouped.get(story.creator_id);
-      creatorData.stories.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     });
     
-    // Convert map to array and sort by date of latest story
-    return Array.from(grouped.values()).sort((a, b) => {
-      const latestA = a.stories[0].created_at;
-      const latestB = b.stories[0].created_at;
-      return new Date(latestB).getTime() - new Date(latestA).getTime();
-    });
-  }, [stories]);
-
-  // Determine which stories to show
-  const visibleCreators = isShowingAll ? groupedStories : groupedStories.slice(0, 6);
+    return Array.from(result.values());
+  }, [stories, userStories]);
   
-  const [openStory, setOpenStory] = useState<string | null>(null);
-
-  // Open a story when clicked
-  const handleStoryClick = (creatorId: string) => {
-    setOpenStory(creatorId);
-    // In a real app, this would navigate to a story viewer or open a modal
-    console.log(`Opening stories for creator ${creatorId}`);
+  const handleStoryClick = (creatorId: string, storyId: string) => {
+    triggerHaptic('light');
+    
+    if (onViewStory) {
+      onViewStory(creatorId, storyId);
+    } else {
+      navigate(`/stories/${creatorId}?story=${storyId}`);
+    }
   };
   
-  // Handle creating a story (mock)
-  const handleCreateStory = () => {
+  const handleCreateClick = () => {
+    triggerHaptic('medium');
+    
     if (!user) {
+      toast.error("Please sign in to create a story");
       return;
     }
     
-    // In a real app, this would open a story creation UI
-    console.log(`Creating story for user ${user.uid || user.id || ''}`);
+    if (onCreateStory) {
+      onCreateStory();
+    } else {
+      navigate('/stories/create');
+    }
   };
-
-  if (groupedStories.length === 0 && !loadingStories) {
-    return null; // Don't show the component if there are no stories
+  
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    return name.substring(0, 2).toUpperCase();
+  };
+  
+  if (loadingStories) {
+    return (
+      <div className={`flex justify-center p-4 ${compact ? 'max-w-md' : 'w-full'}`}>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
-
+  
   return (
-    <div className="mb-6">
-      <ScrollArea className="w-full">
-        <div className="flex gap-4 pb-4">
-          {/* Add Story Button (only for logged in users) */}
-          {user && (
-            <div className="flex flex-col items-center">
-              <Button 
-                size="icon" 
-                variant="outline" 
-                className="w-16 h-16 rounded-full relative border-dashed"
-                onClick={handleCreateStory}
-              >
-                <Plus className="w-6 h-6" />
-              </Button>
-              <span className="text-xs mt-1 text-muted-foreground">Add Story</span>
-            </div>
-          )}
+    <div className={`px-1 ${compact ? 'max-w-md' : 'w-full'}`}>
+      <div className="flex gap-2 overflow-x-auto py-2 px-1 scrollbar-hide">
+        {/* Create story button */}
+        <div className="flex flex-col items-center min-w-[72px]">
+          <button
+            onClick={handleCreateClick}
+            disabled={isUploading}
+            className="w-16 h-16 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors relative"
+          >
+            {isUploading ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <Plus className="h-6 w-6 text-primary" />
+            )}
+          </button>
+          <span className="text-xs mt-1 text-center">Create</span>
+        </div>
+        
+        {/* Stories */}
+        {storiesByCreator.map((creatorStories) => {
+          const hasUnviewed = creatorStories.stories.some(story => !story.viewed);
+          const latestStory = creatorStories.stories[creatorStories.stories.length - 1];
           
-          {/* Story Avatars */}
-          {loadingStories ? (
-            // Loading skeletons
-            Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <Skeleton className="w-16 h-16 rounded-full" />
-                <Skeleton className="w-12 h-3 mt-1" />
+          return (
+            <div
+              key={creatorStories.creator_id}
+              className="flex flex-col items-center min-w-[72px] cursor-pointer"
+              onClick={() => handleStoryClick(creatorStories.creator_id, latestStory.id)}
+            >
+              <div className="relative">
+                <div className={`p-[2px] rounded-full ${hasUnviewed ? 'bg-gradient-to-tr from-pink-500 via-purple-500 to-blue-500' : 'bg-muted'}`}>
+                  <Avatar className="w-16 h-16 border-2 border-background">
+                    <AvatarImage 
+                      src={creatorStories.creator_avatar || `https://i.pravatar.cc/150?u=${creatorStories.creator_id}`}
+                      alt={creatorStories.creator_name}
+                    />
+                    <AvatarFallback>
+                      {getInitials(creatorStories.creator_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                
+                {creatorStories.is_mine && creatorStories.stories.some(s => s.is_highlighted) && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full border-2 border-background flex items-center justify-center">
+                    <span className="text-[8px] font-bold">⭐</span>
+                  </span>
+                )}
               </div>
-            ))
-          ) : (
-            visibleCreators.map(creator => (
-              <div key={creator.creator_id} className="flex flex-col items-center">
-                <button 
-                  className={cn(
-                    "w-16 h-16 rounded-full overflow-hidden border-2",
-                    "border-primary hover:scale-105 transition-transform",
-                    "focus:outline-none focus:ring-2 focus:ring-primary-50"
-                  )}
-                  onClick={() => handleStoryClick(creator.creator_id)}
-                >
-                  <img 
-                    src={creator.creator_avatar} 
-                    alt={creator.creator_name} 
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-                <span className="text-xs mt-1 truncate w-16 text-center">{creator.creator_name}</span>
-              </div>
-            ))
-          )}
-          
-          {/* Show More/Less Button */}
-          {!loadingStories && groupedStories.length > 6 && (
-            <div className="flex flex-col items-center">
-              <Button
-                size="icon"
-                variant="outline"
-                className="w-16 h-16 rounded-full"
-                onClick={() => setIsShowingAll(!isShowingAll)}
-              >
-                {isShowingAll ? '−' : '+'}
-              </Button>
-              <span className="text-xs mt-1 text-center">
-                {isShowingAll ? 'Show Less' : 'Show More'}
+              
+              <span className="text-xs mt-1 truncate max-w-[72px] text-center">
+                {creatorStories.is_mine ? 'Your Story' : creatorStories.creator_name}
               </span>
             </div>
-          )}
-        </div>
-      </ScrollArea>
+          );
+        })}
+        
+        {storiesByCreator.length === 0 && !userStories.length && (
+          <div className="flex flex-col items-center justify-center px-4 py-2">
+            <p className="text-sm text-muted-foreground">No stories yet</p>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={handleCreateClick}
+              className="text-xs px-0"
+            >
+              Be the first to create one
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

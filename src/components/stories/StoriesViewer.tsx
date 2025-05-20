@@ -1,236 +1,281 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import useStories from '@/hooks/use-stories';
-import { useToast } from '@/hooks/use-toast';
 
-const StoriesViewer = ({ isOpen, onClose, creatorId }) => {
-  const { stories, markStoryAsViewed } = useStories();
-  const { toast } = useToast();
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import useStories, { Story } from '@/hooks/use-stories';
+
+interface StoriesViewerProps {
+  stories: Story[];
+  initialStoryIndex: number;
+  onClose: () => void;
+  onNextUser?: () => void;
+  onPrevUser?: () => void;
+}
+
+const StoriesViewer: React.FC<StoriesViewerProps> = ({
+  stories,
+  initialStoryIndex,
+  onClose,
+  onNextUser,
+  onPrevUser
+}) => {
+  const { markStoryAsViewed } = useStories();
+  const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isMediaError, setIsMediaError] = useState(false);
   
-  // Filter stories by creator
-  const creatorStories = React.useMemo(() => {
-    return stories.filter(story => story.creator_id === creatorId);
-  }, [stories, creatorId]);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
   
-  // Reset state when stories change
+  const currentStory = stories[currentIndex];
+  const isVideo = currentStory?.media_url?.includes('.mp4') || currentStory?.media_url?.includes('.mov');
+  
+  // Default duration for stories
+  const defaultDuration = 5000; // 5 seconds for images
+  const storyDuration = currentStory?.duration ? currentStory.duration * 1000 : defaultDuration;
+  
   useEffect(() => {
-    if (creatorStories.length > 0) {
-      setCurrentStoryIndex(0);
-      setProgress(0);
-      setIsPaused(false);
-    }
-  }, [creatorStories]);
-  
-  // Handle story progression
-  useEffect(() => {
-    if (!isOpen || creatorStories.length === 0 || isPaused) return;
-    
-    const currentStory = creatorStories[currentStoryIndex];
     if (!currentStory) return;
     
     // Mark story as viewed
     markStoryAsViewed(currentStory.id);
     
-    // Set up progress timer
-    const duration = currentStory.duration * 1000 || 5000; // Default to 5 seconds
-    const interval = 100; // Update progress every 100ms
-    const step = (interval / duration) * 100;
+    // Reset state for new story
+    setProgress(0);
+    setIsVideoLoaded(false);
+    setIsMediaError(false);
     
-    let currentProgress = 0;
-    const timer = setInterval(() => {
-      currentProgress += step;
-      setProgress(currentProgress);
-      
-      if (currentProgress >= 100) {
-        clearInterval(timer);
-        // Move to next story or close if last
-        if (currentStoryIndex < creatorStories.length - 1) {
-          setCurrentStoryIndex(prev => prev + 1);
-          setProgress(0);
-        } else {
-          // End of stories
-          setTimeout(() => onClose(), 300);
-        }
+    // Clear any existing interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    // Start progress tracking for images immediately, for videos wait until loaded
+    if (!isVideo) {
+      startProgressTracking();
+    }
+    
+    // Auto-pause when switching to a new story
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(err => {
+          console.error("Failed to play video:", err);
+        });
+      } else {
+        videoRef.current.pause();
       }
-    }, interval);
+    }
     
-    return () => clearInterval(timer);
-  }, [currentStoryIndex, creatorStories, isOpen, isPaused, markStoryAsViewed, onClose]);
+    // Return cleanup function
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [currentStory, currentIndex, isVideo, isPlaying, markStoryAsViewed]);
   
-  // Handle media loading
-  const handleMediaLoaded = () => {
-    setIsLoading(false);
+  const startProgressTracking = () => {
+    // Don't start if there's already an interval
+    if (progressIntervalRef.current) return;
+    
+    const duration = isVideo && videoRef.current 
+      ? videoRef.current.duration * 1000 
+      : storyDuration;
+    
+    const startTime = Date.now();
+    const endTime = startTime + duration;
+    
+    progressIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const newProgress = Math.min(100, (elapsed / duration) * 100);
+      setProgress(newProgress);
+      
+      if (now >= endTime) {
+        handleNext();
+      }
+    }, 100);
   };
   
-  // Navigate to previous story
-  const handlePrevStory = (e) => {
-    e.stopPropagation();
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(prev => prev - 1);
-      setProgress(0);
-    }
-  };
-  
-  // Navigate to next story
-  const handleNextStory = (e) => {
-    e.stopPropagation();
-    if (currentStoryIndex < creatorStories.length - 1) {
-      setCurrentStoryIndex(prev => prev + 1);
-      setProgress(0);
+  const handleNext = () => {
+    if (currentIndex < stories.length - 1) {
+      setCurrentIndex(prevIndex => prevIndex + 1);
     } else {
-      onClose();
+      onNextUser?.();
     }
   };
   
-  // Toggle pause on click
-  const handleContentClick = () => {
-    setIsPaused(prev => !prev);
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prevIndex => prevIndex - 1);
+    } else {
+      onPrevUser?.();
+    }
   };
   
-  // Current story being displayed
-  const currentStory = creatorStories[currentStoryIndex];
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+    
+    if (isVideo && videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(err => {
+          console.error("Failed to play video:", err);
+          toast({
+            title: "Erreur",
+            description: "Impossible de lire la vidéo",
+            variant: "destructive"
+          });
+        });
+      }
+    }
+  };
+  
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+    }
+  };
+  
+  const handleVideoLoaded = () => {
+    setIsVideoLoaded(true);
+    startProgressTracking();
+  };
+  
+  const handleMediaError = () => {
+    setIsMediaError(true);
+    toast({
+      title: "Erreur",
+      description: "Impossible de charger le média",
+      variant: "destructive"
+    });
+  };
+  
+  if (!currentStory) {
+    return null;
+  }
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 bg-transparent border-0 h-[80vh]">
-        <div className="bg-black rounded-lg overflow-hidden h-full flex items-center justify-center relative">
-          {/* Close button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="absolute top-2 right-2 z-10 text-white bg-black/20 hover:bg-black/40"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
-          {/* Progress bars */}
-          <div className="absolute top-4 left-4 right-4 z-10 flex gap-1">
-            {creatorStories.map((story, index) => (
-              <div 
-                key={story.id} 
-                className="h-1 bg-white/30 rounded-full flex-1 overflow-hidden"
-              >
-                <div 
-                  className="h-full bg-white"
-                  style={{ 
-                    width: index === currentStoryIndex ? `${progress}%` : 
-                           index < currentStoryIndex ? '100%' : '0%'
-                  }}
-                />
-              </div>
-            ))}
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+      {/* Close button */}
+      <button 
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white z-10 p-2"
+        aria-label="Close"
+      >
+        <X size={24} />
+      </button>
+      
+      {/* Navigation buttons */}
+      <button 
+        onClick={handlePrevious}
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-white z-10 p-2"
+        aria-label="Previous"
+      >
+        <ChevronLeft size={24} />
+      </button>
+      
+      <button 
+        onClick={handleNext}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-white z-10 p-2"
+        aria-label="Next"
+      >
+        <ChevronRight size={24} />
+      </button>
+      
+      {/* Story content container */}
+      <div className="w-full max-w-md max-h-[80vh] relative">
+        {/* Progress bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 z-10">
+          <div 
+            className="h-full bg-white"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        {/* Creator info */}
+        <div className="absolute top-4 left-4 flex items-center z-10">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
+            <img 
+              src={currentStory.creator_avatar || `https://i.pravatar.cc/150?u=${currentStory.creator_id}`} 
+              alt={currentStory.creator_name || "Creator"}
+              className="w-full h-full object-cover"
+            />
           </div>
-          
-          {/* Creator info */}
-          <div className="absolute top-8 left-4 z-10 flex items-center">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
-              <img 
-                src={currentStory?.creator_avatar || `https://i.pravatar.cc/150?u=${creatorId}`}
-                alt="Creator"
-                className="w-full h-full object-cover"
-              />
+          <div className="ml-2 text-white">
+            <div className="font-semibold text-sm">
+              {currentStory.creator_name || "Creator"}
             </div>
-            <div className="ml-2 text-white">
-              <p className="font-medium">{currentStory?.creator_name || 'Creator'}</p>
-              <p className="text-xs opacity-80">
-                {currentStory ? new Date(currentStory.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-              </p>
+            <div className="text-xs text-white/70">
+              {new Date(currentStory.created_at).toLocaleDateString()}
             </div>
           </div>
-          
-          {/* Story content */}
-          {currentStory && (
-            <div 
-              className="w-full h-full flex items-center justify-center"
-              onClick={handleContentClick}
-            >
-              {isLoading && (
+        </div>
+        
+        {/* Media content */}
+        <div className="flex items-center justify-center h-full">
+          {isVideo ? (
+            <div className="relative w-full h-full flex items-center justify-center">
+              {!isVideoLoaded && !isMediaError && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Skeleton className="w-12 h-12 rounded-full" />
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
                 </div>
               )}
               
-              {currentStory.format.includes('video') || currentStory.media_url.includes('.mp4') ? (
-                <video
-                  src={currentStory.media_url}
-                  className="w-full h-full object-contain"
-                  autoPlay
-                  playsInline
-                  muted={false}
-                  controls={false}
-                  onLoadedData={handleMediaLoaded}
-                  onError={() => {
-                    toast({
-                      title: "Error",
-                      description: "Failed to load video",
-                      variant: "destructive"
-                    });
-                    setIsLoading(false);
-                  }}
-                  loop={false}
-                  paused={isPaused}
-                />
-              ) : (
-                <img
-                  src={currentStory.media_url}
-                  alt="Story"
-                  className="w-full h-full object-contain"
-                  onLoad={handleMediaLoaded}
-                  onError={() => {
-                    toast({
-                      title: "Error",
-                      description: "Failed to load image",
-                      variant: "destructive"
-                    });
-                    setIsLoading(false);
-                  }}
-                />
-              )}
-              
-              {/* Caption */}
-              {currentStory.caption && (
-                <div className="absolute bottom-8 left-4 right-4 text-white text-center bg-black/30 p-2 rounded">
-                  {currentStory.caption}
+              {isMediaError && (
+                <div className="text-white bg-black/50 p-4 rounded">
+                  Erreur de chargement de la vidéo
                 </div>
               )}
-            </div>
-          )}
-          
-          {/* Navigation buttons */}
-          <button 
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white opacity-70 hover:opacity-100"
-            onClick={handlePrevStory}
-            disabled={currentStoryIndex === 0}
-          >
-            <ChevronLeft className="h-8 w-8" />
-          </button>
-          
-          <button 
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white opacity-70 hover:opacity-100"
-            onClick={handleNextStory}
-          >
-            <ChevronRight className="h-8 w-8" />
-          </button>
-          
-          {/* Pause indicator */}
-          {isPaused && (
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <div className="bg-white/20 rounded-full p-4">
-                <div className="w-12 h-12 border-4 border-white rounded-full" />
+              
+              <video 
+                src={currentStory.media_url}
+                className="max-h-[80vh] max-w-full object-contain"
+                autoPlay={true}
+                playsInline={true}
+                muted={isMuted}
+                controls={false}
+                onLoadedData={handleVideoLoaded}
+                onError={handleMediaError}
+                loop={false}
+                ref={videoRef}
+              />
+              
+              {/* Video controls */}
+              <div className="absolute bottom-4 right-4 flex items-center space-x-4">
+                <button onClick={togglePlayPause} className="text-white p-2">
+                  {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                </button>
+                <button onClick={toggleMute} className="text-white p-2">
+                  {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                </button>
               </div>
             </div>
+          ) : (
+            <img 
+              src={currentStory.media_url}
+              alt={currentStory.caption || "Story"}
+              className="max-h-[80vh] max-w-full object-contain"
+              onError={handleMediaError}
+            />
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        
+        {/* Caption */}
+        {currentStory.caption && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+            <p className="text-white text-sm">{currentStory.caption}</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { db, storage } from '@/contexts/firebase-mock';
 
 export interface Story {
   id: string;
@@ -17,18 +16,22 @@ export interface Story {
   viewed: boolean;
   is_highlighted: boolean;
   is_mine?: boolean;
+  duration?: number;
 }
 
 interface UseStoriesHookReturn {
   stories: Story[];
   userStories: Story[];
   isLoading: boolean;
+  loadingStories: boolean; // Added for backward compatibility
   error: string | null;
   createStory: (file: File, caption?: string, format?: string) => Promise<boolean>;
   deleteStory: (storyId: string) => Promise<boolean>;
   markAsViewed: (storyId: string) => Promise<void>;
+  markStoryAsViewed: (storyId: string) => Promise<void>; // Added for compatibility
   highlightStory: (storyId: string, highlight: boolean) => Promise<boolean>;
   getStoryCreatorInfo: (creatorId: string) => Promise<{ name: string; avatar: string } | null>;
+  uploadStory: (file: File, caption?: string) => Promise<boolean>; // Added for compatibility
 }
 
 const useStories = (): UseStoriesHookReturn => {
@@ -62,7 +65,8 @@ const useStories = (): UseStoriesHookReturn => {
           created_at: new Date(Date.now() - 3600000).toISOString(),
           expires_at: new Date(Date.now() + 86400000).toISOString(),
           viewed: false,
-          is_highlighted: false
+          is_highlighted: false,
+          duration: 15
         },
         {
           id: '2',
@@ -76,7 +80,8 @@ const useStories = (): UseStoriesHookReturn => {
           created_at: new Date(Date.now() - 7200000).toISOString(),
           expires_at: new Date(Date.now() + 86400000).toISOString(),
           viewed: true,
-          is_highlighted: true
+          is_highlighted: true,
+          duration: 10
         }
       ];
 
@@ -84,9 +89,9 @@ const useStories = (): UseStoriesHookReturn => {
       const mockUserStories: Story[] = [
         {
           id: '3',
-          creator_id: user.uid || user.id || '',
-          creator_name: user.displayName || 'You',
-          creator_avatar: user.photoURL || 'https://i.pravatar.cc/150?img=3',
+          creator_id: user?.uid || user?.id || '',
+          creator_name: user?.displayName || 'You',
+          creator_avatar: user?.photoURL || 'https://i.pravatar.cc/150?img=3',
           media_url: 'https://example.com/story3.mp4',
           thumbnail_url: 'https://example.com/thumbnail3.jpg',
           format: '9:16',
@@ -95,7 +100,8 @@ const useStories = (): UseStoriesHookReturn => {
           expires_at: new Date(Date.now() + 86400000).toISOString(),
           viewed: false,
           is_highlighted: false,
-          is_mine: true
+          is_mine: true,
+          duration: 20
         }
       ];
 
@@ -124,9 +130,9 @@ const useStories = (): UseStoriesHookReturn => {
       // Create a new story
       const newStory: Story = {
         id: `story_${Date.now()}`,
-        creator_id: user.uid || user.id || '',
-        creator_name: user.displayName || 'You',
-        creator_avatar: user.photoURL || 'https://i.pravatar.cc/150?img=3',
+        creator_id: user?.uid || user?.id || '',
+        creator_name: user?.displayName || 'You',
+        creator_avatar: user?.photoURL || 'https://i.pravatar.cc/150?img=3',
         media_url: mediaUrl,
         thumbnail_url: thumbnailUrl,
         format: '9:16',
@@ -135,7 +141,8 @@ const useStories = (): UseStoriesHookReturn => {
         expires_at: new Date(Date.now() + 86400000).toISOString(),
         viewed: false,
         is_highlighted: false,
-        is_mine: true
+        is_mine: true,
+        duration: 15
       };
       
       // Add to user stories
@@ -167,6 +174,9 @@ const useStories = (): UseStoriesHookReturn => {
     );
   };
 
+  // Alias for markAsViewed for compatibility
+  const markStoryAsViewed = markAsViewed;
+
   const highlightStory = async (storyId: string, highlight: boolean): Promise<boolean> => {
     try {
       setUserStories(prev => 
@@ -195,16 +205,22 @@ const useStories = (): UseStoriesHookReturn => {
     }
   };
 
+  // Alias for createStory for compatibility
+  const uploadStory = createStory;
+
   return {
     stories,
     userStories,
     isLoading,
+    loadingStories: isLoading, // Alias for backward compatibility
     error,
     createStory,
     deleteStory,
     markAsViewed,
+    markStoryAsViewed, // Added for compatibility
     highlightStory,
-    getStoryCreatorInfo
+    getStoryCreatorInfo,
+    uploadStory // Added for compatibility
   };
 };
 

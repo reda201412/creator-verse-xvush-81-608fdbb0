@@ -1,5 +1,7 @@
 
-// Export the types for use in other modules
+import { Message, MessageThread } from "@/types/messaging";
+
+// Types for FirestoreMessage and FirestoreMessageThread
 export interface FirestoreMessage {
   id: string;
   senderId: string;
@@ -28,37 +30,29 @@ export interface FirestoreMessageThread {
   name?: string;
 }
 
-// Export the function with the correct signature
-export const createNewConversationWithCreator = async (
-  params: {
-    userId: string,
-    userName: string,
-    userAvatar: string,
-    creatorId: string,
-    creatorName: string,
-    creatorAvatar: string | null,
-    initialMessage?: string
-  }
-): Promise<{ success: boolean, threadId?: string }> => {
-  // Mock implementation
-  const { userId, creatorId, initialMessage = "Hello!" } = params;
-  
+export interface CreateConversationParams {
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar: string | null;
+}
+
+export const createNewConversationWithCreator = async (params: CreateConversationParams): Promise<{ success: boolean; threadId?: string; error?: string }> => {
   try {
-    const thread = {
-      id: `conversation_${Date.now()}`,
-      participantIds: [userId, creatorId],
-      participantInfo: {
-        [userId]: { displayName: params.userName, photoURL: params.userAvatar },
-        [creatorId]: { displayName: params.creatorName, photoURL: params.creatorAvatar },
-      },
-      lastActivity: new Date(),
-      createdAt: new Date(),
-      isGated: false,
-    };
+    // Mock implementation
+    const threadId = `thread_${Date.now()}`;
     
-    return { success: true, threadId: thread.id };
+    return {
+      success: true,
+      threadId
+    };
   } catch (error) {
     console.error("Error creating conversation:", error);
-    return { success: false };
+    return {
+      success: false,
+      error: "Failed to create conversation"
+    };
   }
-};
+}

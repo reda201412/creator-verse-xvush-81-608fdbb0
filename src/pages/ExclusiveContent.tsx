@@ -10,16 +10,51 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ExclusiveContentViewer from '@/components/exclusive/ExclusiveContentViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { generateSessionKey, encryptMessage } from '@/utils/encryption';
+import { generateSessionKey } from '@/utils/encryption';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
+import { EncryptedContent } from '@/utils/encryption';
+
+// Define type for exclusive content
+interface ExclusiveContent {
+  id: string;
+  title: string;
+  description: string;
+  type: "premium" | "vip" | "standard";
+  mediaUrl: string;
+  thumbnailUrl: string;
+  creator: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  stats: {
+    likes: number;
+    views: number;
+    shares: number;
+    comments: number;
+  };
+  encryption: {
+    isEncrypted: boolean;
+    accessKey?: string;
+    encryptedData?: EncryptedContent;
+  };
+  restrictions: {
+    tier: "fan" | "superfan" | "vip";
+    tokenPrice?: number;
+    expiresAt?: string;
+    viewLimit?: number;
+    downloadsAllowed?: boolean;
+    sharingAllowed?: boolean;
+  }
+}
 
 // Exemple de données de contenu exclusif
-const mockExclusiveContent = [
+const mockExclusiveContent: ExclusiveContent[] = [
   {
     id: "ec1",
     title: "Séance photo privée: Sunset Vibes",
     description: "Collection exclusive de photos prises lors d'une séance au coucher du soleil.",
-    type: "premium" as const,
+    type: "premium",
     mediaUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop",
     thumbnailUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&blur=10",
     creator: {
@@ -38,7 +73,7 @@ const mockExclusiveContent = [
       accessKey: "exclusive-123"
     },
     restrictions: {
-      tier: "fan" as const,
+      tier: "fan",
       tokenPrice: 50,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       viewLimit: 10,
@@ -50,7 +85,7 @@ const mockExclusiveContent = [
     id: "ec2",
     title: "Behind the scenes: Fashion Week",
     description: "Accédez aux coulisses exclusives de mon shooting lors de la Paris Fashion Week.",
-    type: "vip" as const,
+    type: "vip",
     mediaUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop",
     thumbnailUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&blur=10",
     creator: {
@@ -69,7 +104,7 @@ const mockExclusiveContent = [
       accessKey: "exclusive-456"
     },
     restrictions: {
-      tier: "vip" as const,
+      tier: "vip",
       tokenPrice: 150,
       viewLimit: 5,
       downloadsAllowed: false,
@@ -80,7 +115,7 @@ const mockExclusiveContent = [
     id: "ec3",
     title: "Tutoriel retouche avancée",
     description: "Apprenez mes techniques professionnelles de retouche photo et vidéo.",
-    type: "premium" as const,
+    type: "premium",
     mediaUrl: "https://images.unsplash.com/photo-1542395765-761f1b5f9a55?w=800&auto=format&fit=crop",
     thumbnailUrl: "https://images.unsplash.com/photo-1542395765-761f1b5f9a55?w=800&auto=format&fit=crop&blur=10",
     creator: {
@@ -98,7 +133,7 @@ const mockExclusiveContent = [
       isEncrypted: false
     },
     restrictions: {
-      tier: "superfan" as const,
+      tier: "superfan",
       tokenPrice: 75,
       downloadsAllowed: true,
       sharingAllowed: true
@@ -122,25 +157,6 @@ const ExclusiveContent: React.FC = () => {
       }
     });
     return keys;
-  });
-  
-  // Préparer les contenus avec les données chiffrées
-  const preparedContent = mockExclusiveContent.map(content => {
-    if (content.encryption?.isEncrypted && sessionKeys[content.id]) {
-      return {
-        ...content,
-        encryption: {
-          ...content.encryption,
-          encryptedData: {
-            data: "encrypted_data_placeholder",
-            iv: "iv_placeholder",
-            salt: "salt_placeholder",
-            timestamp: Date.now()
-          }
-        }
-      };
-    }
-    return content;
   });
   
   const handleUnlock = () => {
@@ -202,7 +218,7 @@ const ExclusiveContent: React.FC = () => {
 
             <TabsContent value="all" className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {preparedContent.map((content) => (
+                {mockExclusiveContent.map((content) => (
                   <motion.div
                     key={content.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -225,7 +241,7 @@ const ExclusiveContent: React.FC = () => {
             
             <TabsContent value="premium" className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {preparedContent
+                {mockExclusiveContent
                   .filter(content => content.type === 'premium')
                   .map((content) => (
                     <motion.div
@@ -250,7 +266,7 @@ const ExclusiveContent: React.FC = () => {
             
             <TabsContent value="vip" className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {preparedContent
+                {mockExclusiveContent
                   .filter(content => content.type === 'vip')
                   .map((content) => (
                     <motion.div

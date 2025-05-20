@@ -108,11 +108,17 @@ export function WalletConnect({ isOpen, onOpenChange, onClose, walletInfo }: Wal
           />
         </ModalBody>
         <ModalFooter>
-          <Button color="danger" variant="flat" onPress={onClose}>
+          <Button 
+            color="danger" 
+            variant="flat" 
+            onPress={onClose}
+            isLoading={false}
+          >
             Fermer
           </Button>
           <Button 
             color="primary" 
+            variant="default"
             onPress={handleWithdrawalRequest}
             isLoading={requestLoading}
           >

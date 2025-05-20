@@ -6,6 +6,7 @@ export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip' | 'exclusive
 export interface Message {
   id: string;
   senderId: string;
+  recipientId?: string;
   senderName?: string;
   senderAvatar?: string;
   content: string;
@@ -16,6 +17,7 @@ export interface Message {
     tier: MonetizationTier;
     price?: number;
     currency?: string;
+    instantPayoutEnabled?: boolean;
   };
   attachment?: {
     type: 'image' | 'video' | 'audio' | 'file';
