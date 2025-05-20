@@ -104,11 +104,11 @@ interface TrendingContentItem {
 
 interface CreatorProfileData {
   id: string;
-  user_id: string; 
-  userId: string;
+  user_id?: string; 
+  userId?: string;
   uid: string;
   username: string;
-  name: string;
+  name?: string;
   displayName: string;
   bio?: string;
   avatarUrl: string;

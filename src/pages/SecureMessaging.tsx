@@ -13,9 +13,9 @@ const SecureMessagingPage = () => {
         <SecureMessaging 
           selectedConversation={{
             id: 'sample-conversation',
-            participantIds: [(user?.uid || user?.id || ''), 'other-user'],
+            participantIds: [(user?.uid || ''), 'other-user'],
             participantInfo: { 
-              [(user?.uid || user?.id || '')]: { name: profile?.displayName || profile?.username || 'User' },
+              [(user?.uid || '')]: { name: profile?.displayName || profile?.username || 'User' },
               'other-user': { name: 'Other User' } 
             },
             lastActivity: new Date(),
@@ -33,7 +33,7 @@ const SecureMessagingPage = () => {
               },
               {
                 id: 'sample-message-2',
-                senderId: (user?.uid || user?.id || ''),
+                senderId: (user?.uid || ''),
                 content: 'Hi! Thanks for the welcome.',
                 type: 'text',
                 createdAt: new Date(),

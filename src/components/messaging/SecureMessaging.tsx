@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 
-interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'messages'> {
   messages: FirestoreMessage[];
   readStatus?: Record<string, any>;
+  name?: string;
+  participants?: string[]; // Added for compatibility with ConversationView
   lastMessageCreatedAt?: any;
   lastMessageSenderId?: string;
   lastVisibleDoc?: any;

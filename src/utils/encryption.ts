@@ -1,63 +1,55 @@
 
-// Mock encryption utility for message encryption/decryption
+// Encryption utilities for secure messaging
 
 export interface EncryptedContent {
-  iv: string;
   data: string;
+  iv: string;
+  salt: string;
+  timestamp: number;
   sessionKeyId: string;
 }
 
-/**
- * Generate a session key for encryption
- * @returns A mock session key string
- */
-export const generateSessionKey = (): string => {
-  return `session_key_${Date.now()}`;
+// Mock function for checking if content is encrypted
+export const isEncrypted = (content: any): boolean => {
+  if (!content) return false;
+  
+  // Check if content has encryption markers
+  if (typeof content === 'object' && content.iv && content.data) {
+    return true;
+  }
+  
+  return false;
 };
 
-/**
- * Encrypt a message using the provided session key
- * @param content - The content to encrypt
- * @param sessionKey - The session key to use for encryption
- * @returns Encrypted content
- */
-export const encryptMessage = async (content: string, sessionKey: string): Promise<EncryptedContent | null> => {
-  // This is a mock implementation
-  if (!content) return null;
-  
+// Mock encryption function
+export const encryptMessage = async (message: string, sessionKey: string): Promise<EncryptedContent> => {
+  // In a real app, this would use Web Crypto API for encryption
   return {
-    iv: "mockIV",
-    data: btoa(content), // Just base64 encoding for mock
+    data: `encrypted:${message}`,
+    iv: 'mock-iv',
+    salt: 'mock-salt',
+    timestamp: Date.now(),
     sessionKeyId: sessionKey,
   };
 };
 
-/**
- * Decrypt a message using the provided session key
- * @param encryptedContent - The encrypted content
- * @param sessionKey - The session key to use for decryption
- * @returns Decrypted content
- */
-export const decryptMessage = async (encryptedContent: EncryptedContent | any, sessionKey: string): Promise<string> => {
-  // This is a mock implementation
-  if (!encryptedContent || !encryptedContent.data) {
-    return "Error: Invalid encrypted content";
+// Mock decryption function
+export const decryptMessage = async (encryptedContent: EncryptedContent, sessionKey: string): Promise<string> => {
+  // In a real app, this would use Web Crypto API for decryption
+  if (encryptedContent.data.startsWith('encrypted:')) {
+    return encryptedContent.data.replace('encrypted:', '');
   }
-  
-  try {
-    return atob(encryptedContent.data); // Just base64 decoding for mock
-  } catch (error) {
-    console.error("Decryption error:", error);
-    return "Decryption failed";
-  }
+  return 'Failed to decrypt message';
 };
 
-/**
- * Check if content is encrypted
- * @param content - The content to check
- * @returns Boolean indicating if content is encrypted
- */
-export const isEncrypted = (content: any): boolean => {
-  if (typeof content !== 'object') return false;
-  return !!(content && content.iv && content.data && content.sessionKeyId);
+// Generate a session key for the current conversation
+export const generateSessionKey = async (userId: string, recipientId: string): Promise<string> => {
+  // In a real app, this would use a secure key exchange mechanism
+  return `session-${userId}-${recipientId}-${Date.now()}`;
+};
+
+// Export additional encryption utilities
+export const verifyMessageIntegrity = async (message: any): Promise<boolean> => {
+  // Mock implementation
+  return true;
 };

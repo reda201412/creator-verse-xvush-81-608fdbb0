@@ -1,5 +1,5 @@
 
-import { MessageThread } from '@/types/messaging';
+import { Message, MessageThread } from '@/types/messaging';
 
 // Mock data for message threads
 export const mockMessageThreads: MessageThread[] = [
@@ -87,6 +87,7 @@ export const mockMessageThreads: MessageThread[] = [
     ],
     isGated: false,
     lastActivity: new Date(Date.now() - 3200000).toISOString(),
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
     emotionalMap: {
       dominantEmotion: 'curiosity',
       volatility: 15,
@@ -124,6 +125,7 @@ export const mockMessageThreads: MessageThread[] = [
     ],
     isGated: false,
     lastActivity: new Date(Date.now() - 85000000).toISOString(),
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
   },
   {
     id: 'thread_3',
@@ -187,6 +189,7 @@ export const mockMessageThreads: MessageThread[] = [
     isGated: true,
     requiredTier: 'vip',
     lastActivity: new Date(Date.now() - 171000000).toISOString(),
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
     emotionalMap: {
       dominantEmotion: 'excitement',
       volatility: 35,
@@ -203,7 +206,7 @@ export const mockMessageThreads: MessageThread[] = [
         senderId: 'user_5',
         senderName: 'Marie',
         senderAvatar: 'https://i.pravatar.cc/300?img=5',
-        recipientId: ['user_1', 'user_6', 'user_7'],
+        recipientId: 'user_1',
         content: 'Salut tout le monde ! Qui sera à la prochaine session live ?',
         type: 'text',
         timestamp: new Date(Date.now() - 259200000).toISOString(),
@@ -215,7 +218,7 @@ export const mockMessageThreads: MessageThread[] = [
         senderId: 'user_6',
         senderName: 'Paul',
         senderAvatar: 'https://i.pravatar.cc/300?img=13',
-        recipientId: ['user_1', 'user_5', 'user_7'],
+        recipientId: 'user_1',
         content: 'Je serai là ! J\'ai hâte de voir le nouveau set.',
         type: 'text',
         timestamp: new Date(Date.now() - 258000000).toISOString(),
@@ -227,7 +230,7 @@ export const mockMessageThreads: MessageThread[] = [
         senderId: 'user_1',
         senderName: 'Julie Sky',
         senderAvatar: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?crop=faces&w=200&h=200',
-        recipientId: ['user_5', 'user_6', 'user_7'],
+        recipientId: 'user_1',
         content: 'Coucou tout le monde ! La session live commencera demain à 20h. J\'ai préparé quelque chose de spécial ! 💃',
         type: 'text',
         timestamp: new Date(Date.now() - 257000000).toISOString(),
@@ -238,5 +241,6 @@ export const mockMessageThreads: MessageThread[] = [
     isGated: true,
     requiredTier: 'premium',
     lastActivity: new Date(Date.now() - 257000000).toISOString(),
+    createdAt: new Date(Date.now() - 259200000).toISOString(),
   }
 ];

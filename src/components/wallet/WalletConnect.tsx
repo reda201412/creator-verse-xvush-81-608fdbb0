@@ -16,7 +16,16 @@ const ModalContent = ({ children }) => <div>{children}</div>;
 const ModalHeader = ({ children }) => <h3 className="text-lg font-bold mb-4">{children}</h3>;
 const ModalBody = ({ children }) => <div className="mb-4">{children}</div>;
 const ModalFooter = ({ children }) => <div className="flex justify-end gap-2">{children}</div>;
-const Button = ({ color, variant = "default", onPress, children, isLoading = false }) => (
+
+interface ButtonProps {
+  color: string;
+  variant?: string;
+  onPress: () => void;
+  children: React.ReactNode;
+  isLoading?: boolean;
+}
+
+const Button = ({ color, variant = "default", onPress, children, isLoading = false }: ButtonProps) => (
   <button
     className={`px-4 py-2 rounded ${
       color === 'primary' ? 'bg-blue-500 text-white' :

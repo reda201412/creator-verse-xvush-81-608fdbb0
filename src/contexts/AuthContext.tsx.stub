@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   profile: any | null;
   loading: boolean;
+  isCreator?: boolean;
   signIn: (email: string, password: string) => Promise<User>;
   signUp: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  isCreator: false,
   signIn: () => Promise.resolve({} as User),
   signUp: () => Promise.resolve({} as User),
   signOut: () => Promise.resolve(),
@@ -134,6 +136,7 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
+    isCreator: profile?.role === 'creator',
     signIn,
     signUp,
     signOut,
