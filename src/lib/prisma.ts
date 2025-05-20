@@ -1,7 +1,8 @@
 
 // Ce fichier utilise une version adaptée du client Prisma pour le navigateur
 
-import { PrismaClient as PrismaClientType } from '@prisma/client';
+// Directly importing from the generated types to avoid issues
+import type { PrismaClient as PrismaClientType } from '../generated/prisma/index';
 
 // Importation dynamique du client Prisma - modifié pour être compatible avec le browser
 const prismaClientPackage = '@prisma/client';
@@ -23,4 +24,4 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
 
-export { PrismaClientType as PrismaClient };
+export type { PrismaClientType as PrismaClient };

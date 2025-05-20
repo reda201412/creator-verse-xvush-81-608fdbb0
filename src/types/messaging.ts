@@ -1,4 +1,3 @@
-
 export type MessageType = 'text' | 'voice' | 'media' | 'call' | 'whisper' | 'roar';
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'monetized';
 export type EmotionType = 'joy' | 'excitement' | 'curiosity' | 'admiration' | 'gratitude' | 'neutral';
@@ -156,7 +155,7 @@ export function convertSupabaseMessageToLocal(message: SupabaseMessageData): Mes
   };
 }
 
-// Interface pour les données de wallet utilisées dans Tron
+// Interface for the wallet data used in Tron
 export interface WalletData {
   balance_usdt: number;
   tron_address?: string;
@@ -183,4 +182,17 @@ export interface WalletResponse {
       price_usdt: number;
     };
   } | null;
+}
+
+// Extended wallet hook response type to include all needed methods
+export interface WalletHookResponse {
+  walletInfo: WalletResponse;
+  isLoading: boolean;
+  loading?: boolean; // Backward compatibility
+  error?: any; // For error handling
+  getWalletInfo: () => void;
+  createWallet?: () => Promise<any>;
+  requestWithdrawal?: (amount: number) => Promise<any>;
+  verifyTransaction?: (txId: string) => Promise<any>;
+  checkContentAccess?: (contentId: string, contentType: string) => Promise<boolean>;
 }

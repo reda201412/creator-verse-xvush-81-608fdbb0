@@ -1,5 +1,6 @@
 
-import { createServer } from './src/server';
+// Using ESM syntax for consistency
+import { createServer } from './src/server/index.js';
 
 // Start the server
 const PORT = process.env.PORT || 3000;

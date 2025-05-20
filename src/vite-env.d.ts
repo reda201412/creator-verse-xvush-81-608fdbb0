@@ -1,8 +1,8 @@
-
 /// <reference types="vite/client" />
 
 interface User {
   id: string;
+  uid?: string; // Adding uid as optional for backward compatibility
   email: string;
 }
 
@@ -37,6 +37,14 @@ interface FirestoreMessageThread {
   isGated: boolean;
   messages: FirestoreMessage[];
   readStatus?: Record<string, any>;
+}
+
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, any>;
+  name?: string;
+  lastMessageCreatedAt?: any;
+  lastMessageSenderId?: string;
 }
 
 interface FirestoreStory {
@@ -87,8 +95,11 @@ interface TrendingContentItem {
 interface CreatorProfileData {
   id: string;
   user_id: string; 
+  userId?: string; // Adding userId as an alternative
+  uid?: string; // Adding uid for backward compatibility
   username: string;
   name: string;
+  displayName?: string; // Adding displayName as an alternative to name
   bio?: string;
   avatarUrl?: string;
   coverImageUrl?: string;

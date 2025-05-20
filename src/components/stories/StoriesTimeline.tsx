@@ -74,7 +74,7 @@ const StoriesTimeline: React.FC = () => {
                 </Avatar>
               </div>
               <span className="text-xs truncate w-16 text-center">
-                {group.creator.id === user?.id
+                {group.creator.id === (user?.uid || user?.id || '') 
                   ? 'Votre story'
                   : group.creator.display_name || group.creator.username}
               </span>

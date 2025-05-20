@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { useUploader } from '../UploaderContext';
-import { ShieldStatus } from '../types';
+import { ShieldStatus, ShieldFeatureStatus } from '../types';
 import { uploadVideoToMux } from '@/services/muxService';
 
 export function useShieldProtection() {
@@ -13,9 +13,9 @@ export function useShieldProtection() {
     
     // Set features to "pending" status during processing
     setShieldStatus({
-      encryption: 'pending',
-      watermark: 'pending',
-      drm: 'pending'
+      encryption: 'pending' as ShieldFeatureStatus,
+      watermark: 'pending' as ShieldFeatureStatus,
+      drm: 'pending' as ShieldFeatureStatus
     });
     
     try {
@@ -24,18 +24,18 @@ export function useShieldProtection() {
       
       // All features applied successfully
       setShieldStatus({
-        encryption: 'active',
-        watermark: 'active',
-        drm: 'active'
+        encryption: 'active' as ShieldFeatureStatus,
+        watermark: 'active' as ShieldFeatureStatus,
+        drm: 'active' as ShieldFeatureStatus
       });
       
       return true;
     } catch (error) {
       // Application failed
       setShieldStatus({
-        encryption: 'error',
-        watermark: 'error',
-        drm: 'error'
+        encryption: 'error' as ShieldFeatureStatus,
+        watermark: 'error' as ShieldFeatureStatus,
+        drm: 'error' as ShieldFeatureStatus
       });
       
       return false;
