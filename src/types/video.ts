@@ -1,3 +1,4 @@
+
 export type ContentType = 'standard' | 'teaser' | 'premium' | 'vip';
 
 export interface VideoRestrictions {
@@ -61,7 +62,7 @@ export interface User {
   email: string;
   username?: string; // Changed to optional for backward compatibility
   displayName?: string;
-  profileImageUrl?: string; // Added as optional for SecureMessaging.tsx
+  profileImageUrl?: string; // Adding this property to fix the error
 }
 
 // Add CreatorProfileData type
