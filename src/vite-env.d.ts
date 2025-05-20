@@ -122,6 +122,32 @@ interface CreatorProfileData {
   };
 }
 
+// Add VideoData type to align with creatorService
+interface VideoData {
+  id: number | string;
+  userId: string;
+  title: string;
+  description?: string;
+  assetId?: string;
+  uploadId?: string;
+  playbackId?: string;
+  status?: string;
+  thumbnailUrl?: string;
+  isPremium?: boolean;
+  price?: number;
+  duration?: number;
+  aspectRatio?: string;
+  videoUrl?: string;
+  format?: '16:9' | '9:16' | '1:1';
+  type: 'standard' | 'teaser' | 'premium' | 'vip';
+  isPublished?: boolean;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Add WalletResponse type to fix wallet hook errors
 interface WalletResponse {
   wallet?: {

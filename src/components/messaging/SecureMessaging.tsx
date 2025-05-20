@@ -119,12 +119,12 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
     
     try {
       const newMessage: Omit<FirestoreMessage, 'id'> = {
-        senderId: user?.uid || user?.id || '',
+        senderId: user.uid || '',
         content: input,
         type: 'text',
         createdAt: new Date(),
-        sender_name: user?.username || user?.email || '',
-        sender_avatar: user?.profileImageUrl || null,
+        sender_name: user.username || user.email || '',
+        sender_avatar: user.profileImageUrl || null,
       };
       
       // Add the message to the UI immediately
@@ -165,7 +165,7 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
           <div
             key={message.id}
             className={`mb-2 p-2 rounded-lg ${
-              message.senderId === (user?.uid || user?.id || '') 
+              message.senderId === (user?.uid || '') 
                 ? 'bg-blue-100 ml-auto text-right' 
                 : 'bg-gray-100 mr-auto text-left'
             }`}

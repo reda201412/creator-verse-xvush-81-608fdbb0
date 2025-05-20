@@ -59,7 +59,7 @@ interface WalletConnectProps {
   walletInfo?: any;
 }
 
-export function WalletConnect({ isOpen, onOpenChange, onClose, walletInfo }: WalletConnectProps) {
+function WalletConnect({ isOpen, onOpenChange, onClose, walletInfo }: WalletConnectProps) {
   const { requestWithdrawal } = useTronWallet();
   const [amount, setAmount] = useState<number | undefined>(0);
   const [requestLoading, setRequestLoading] = useState(false);

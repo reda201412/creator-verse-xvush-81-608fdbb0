@@ -1,118 +1,190 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import useStories from '@/hooks/use-stories';
-import { useAuth } from '@/contexts/AuthContext';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useStories } from '@/hooks/use-stories';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Loader2, Upload, X } from 'lucide-react';
 
-const StoryPublisher = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface StoryPublisherProps {
+  onCancel: () => void;
+}
+
+const StoryPublisher: React.FC<StoryPublisherProps> = ({ onCancel }) => {
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const { uploadStory } = useStories();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   
+  // Access the useStories hook
+  const { uploadStory } = useStories();
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      
+      // Check if file is video or image
+      if (!selectedFile.type.startsWith('video/') && !selectedFile.type.startsWith('image/')) {
+        toast.error("Format non pris en charge", {
+          description: "Veuillez sélectionner une image ou une vidéo"
+        });
+        return;
+      }
+      
       setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
     }
   };
-  
-  const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCaption(e.target.value);
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!file) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un fichier à uploader.",
-        variant: "destructive"
+      toast.error("Fichier manquant", {
+        description: "Veuillez sélectionner une image ou une vidéo pour votre story"
       });
       return;
     }
     
-    setUploading(true);
+    setIsLoading(true);
+    setProgress(0);
     
     try {
-      const result = await uploadStory(file, caption);
-      if (result.success) {
-        toast({
-          title: "Succès",
-          description: "Votre story a été uploadée avec succès."
-        });
-        setIsOpen(false);
-        setFile(null);
-        setCaption('');
+      // Use the uploadStory function from the useStories hook
+      const result = await uploadStory({
+        file,
+        caption,
+        onProgress: (percent) => setProgress(percent)
+      });
+      
+      if (result) {
+        toast.success("Story publiée avec succès !");
+        onCancel(); // Close the publisher
       } else {
-        toast({
-          title: "Erreur",
-          description: result.error || "Impossible d'uploader la story.",
-          variant: "destructive"
+        toast.error("Échec de publication", {
+          description: "Une erreur est survenue lors de la publication de votre story."
         });
       }
     } catch (error) {
       console.error("Error uploading story:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de l'upload de la story.",
-        variant: "destructive"
+      toast.error("Échec de publication", {
+        description: "Une erreur est survenue lors de la publication de votre story."
       });
     } finally {
-      setUploading(false);
+      setIsLoading(false);
     }
   };
-  
+
+  const handleRemoveFile = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null);
+    setPreview(null);
+  };
+
+  const isVideo = file?.type.startsWith('video/');
+
   return (
-    <Button variant="ghost" size="sm" className="flex gap-2 items-center" onClick={() => setIsOpen(true)}>
-      <PlusCircle className="w-4 h-4" />
-      Add Story
+    <div className="bg-white rounded-lg p-4 shadow-lg max-w-md w-full">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Créer une story</h2>
+        <Button variant="ghost" size="icon" onClick={onCancel}>
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
       
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload une Story</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <input
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileChange}
+      <form onSubmit={handleSubmit}>
+        {!preview ? (
+          <div 
+            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => document.getElementById('story-file-input')?.click()}
+          >
+            <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+            <p className="text-gray-500 mb-1">Cliquez pour sélectionner un fichier</p>
+            <p className="text-xs text-gray-400">Images ou vidéos acceptées</p>
+            <input 
+              id="story-file-input"
+              type="file" 
+              accept="image/*, video/*" 
               className="hidden"
-              id="story-upload"
+              onChange={handleFileChange}
             />
-            <label htmlFor="story-upload" className="bg-secondary text-secondary-foreground rounded-md p-2 text-center cursor-pointer hover:bg-secondary/80 transition">
-              {file ? `Fichier sélectionné: ${file.name}` : "Sélectionner un fichier"}
-            </label>
-            
-            <textarea
-              placeholder="Ajouter une légende..."
+          </div>
+        ) : (
+          <div className="relative bg-gray-100 rounded-lg overflow-hidden mb-4">
+            {isVideo ? (
+              <video 
+                src={preview} 
+                className="w-full h-64 object-contain" 
+                controls 
+              />
+            ) : (
+              <img 
+                src={preview} 
+                alt="Preview" 
+                className="w-full h-64 object-contain" 
+              />
+            )}
+            <Button 
+              type="button"
+              variant="destructive" 
+              size="icon" 
+              className="absolute top-2 right-2" 
+              onClick={handleRemoveFile}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        
+        <div className="space-y-4 mt-4">
+          <div>
+            <Label htmlFor="caption">Légende</Label>
+            <Textarea 
+              id="caption"
+              placeholder="Ajouter une légende..." 
               value={caption}
-              onChange={handleCaptionChange}
-              className="border rounded-md p-2 resize-none"
+              onChange={(e) => setCaption(e.target.value)}
+              className="mt-1 resize-none"
+              rows={3}
             />
-            
-            <Button type="submit" disabled={uploading} className="w-full">
-              {uploading ? (
+          </div>
+          
+          {isLoading && (
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+          
+          <div className="flex justify-end space-x-2">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={onCancel}
+              disabled={isLoading}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="submit"
+              disabled={!file || isLoading}
+            >
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
+                  Publication...
                 </>
-              ) : (
-                "Upload Story"
-              )}
+              ) : 'Publier'}
             </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </Button>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 };
 

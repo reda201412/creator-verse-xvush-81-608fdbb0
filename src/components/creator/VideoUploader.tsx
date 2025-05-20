@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useAuth } from '@/contexts/AuthContext';
-import { VideoData } from '@/services/creatorService';
+import { VideoData } from '@/vite-env';
 import { VideoUploadForm } from './video-uploader/VideoUploadForm';
 import useVideoUpload from './video-uploader/useVideoUpload';
 
@@ -56,7 +57,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     onUploadComplete(metadata);
     
     // *** Modified condition to explicitly check for metadata and metadata.id ***
-    if(metadata && typeof metadata.id === 'number') { 
+    if(metadata && metadata.id) { 
        triggerMicroReward('interaction');
         toast("Vidéo initiée", {
           description: "Votre vidéo est en cours de téléchargement et de traitement."
@@ -124,8 +125,9 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                 }
                 
                 try {
-                  const metadata: VideoData | null = await uploadVideoAndSaveMetadata(values);
-                   handleUploadCompleteInternal(metadata);
+                  // Cast to VideoData to ensure compatibility
+                  const metadata = await uploadVideoAndSaveMetadata(values) as unknown as VideoData;
+                  handleUploadCompleteInternal(metadata);
                 } catch (error: unknown) {
                   console.error('Upload process error (caught in onSubmit):', error);
                   const errorMessage = error instanceof Error 

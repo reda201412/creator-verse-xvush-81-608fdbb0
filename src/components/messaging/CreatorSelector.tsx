@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
+import { getAllCreators } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { CreatorProfileData } from '@/vite-env';
 
 interface CreatorSelectorProps {
   onSelectCreator: (creator: CreatorProfileData) => void;
@@ -26,7 +27,17 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
       setIsLoading(true);
       try {
         const fetchedCreators = await getAllCreators();
-        setCreators(fetchedCreators);
+        // Convert string rating to number if needed
+        const validatedCreators = fetchedCreators.map(creator => ({
+          ...creator,
+          metrics: {
+            ...creator.metrics,
+            rating: typeof creator.metrics?.rating === 'string' 
+              ? parseFloat(creator.metrics.rating) || 0 
+              : creator.metrics?.rating || 0
+          }
+        }));
+        setCreators(validatedCreators);
       } catch (error) {
         console.error("Error loading creators for selector:", error);
         toast({ title: "Erreur", description: "Impossible de charger les créateurs.", variant: "destructive" });
@@ -39,7 +50,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
   
   const filteredCreators = creators.filter(creator => {
     const searchLower = searchTerm.toLowerCase();
-    const nameLower = creator.name?.toLowerCase() || creator.username?.toLowerCase() || '';
+    const nameLower = creator.displayName?.toLowerCase() || creator.username?.toLowerCase() || '';
     const usernameLower = creator.username?.toLowerCase() || '';
     return nameLower.includes(searchLower) || usernameLower.includes(searchLower);
   });
@@ -89,14 +100,14 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
                     <img 
                       src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.id}`} 
-                      alt={creator.name || creator.username}
+                      alt={creator.displayName || creator.username}
                       className="object-cover w-full h-full"
                     />
                   </div>
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="font-semibold">{creator.name || creator.username}</h3>
+                  <h3 className="font-semibold">{creator.displayName || creator.username}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
                     {creator.bio || `@${creator.username}`}
                   </p>

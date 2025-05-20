@@ -14,6 +14,10 @@ export interface Message {
   status?: 'sent' | 'delivered' | 'read';
   isEncrypted?: boolean;
   type?: 'text' | 'media' | 'image' | 'video' | 'audio' | 'file';
+  emotional?: {
+    sentiment?: string;
+    intensity?: number;
+  };
   monetization?: {
     tier: MonetizationTier;
     price?: number;

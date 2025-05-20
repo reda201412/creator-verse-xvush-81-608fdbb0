@@ -1,172 +1,210 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { FirestoreStory } from '@/vite-env';
 
-export interface Story {
-  id: string;
-  creator_id: string;
-  creator_name?: string;
-  creator_avatar?: string;
-  media_url: string;
-  thumbnail_url?: string;
-  format: '16:9' | '9:16' | '1:1';
+// Mock story data
+const mockStories = [
+  {
+    id: '1',
+    creatorId: 'creator-1',
+    mediaUrl: 'https://picsum.photos/1080/1920',
+    thumbnailUrl: 'https://picsum.photos/400/800',
+    caption: 'Beautiful day!',
+    format: '9:16',
+    duration: 0,
+    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
+    viewCount: 127,
+    isHighlighted: false
+  },
+  {
+    id: '2',
+    creatorId: 'creator-2',
+    mediaUrl: 'https://picsum.photos/1080/1920?random=2',
+    thumbnailUrl: 'https://picsum.photos/400/800?random=2',
+    caption: 'Check out my new content!',
+    format: '9:16',
+    duration: 0,
+    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
+    viewCount: 89,
+    isHighlighted: true
+  },
+  {
+    id: '3',
+    creatorId: 'creator-3',
+    mediaUrl: 'https://picsum.photos/1080/1920?random=3',
+    thumbnailUrl: 'https://picsum.photos/400/800?random=3',
+    caption: 'Behind the scenes!',
+    format: '9:16',
+    duration: 0,
+    createdAt: new Date(Date.now() - 10800000).toISOString(), // 3 hours ago
+    expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
+    viewCount: 205,
+    isHighlighted: false
+  }
+];
+
+// Dummy creator data
+const creators = {
+  'creator-1': {
+    id: 'creator-1',
+    name: 'Jane Smith',
+    username: 'janesmith',
+    avatarUrl: 'https://i.pravatar.cc/150?img=5'
+  },
+  'creator-2': {
+    id: 'creator-2',
+    name: 'Robert Johnson',
+    username: 'rob_j',
+    avatarUrl: 'https://i.pravatar.cc/150?img=8'
+  },
+  'creator-3': {
+    id: 'creator-3',
+    name: 'Alice Wonder',
+    username: 'alice_wonder',
+    avatarUrl: 'https://i.pravatar.cc/150?img=9'
+  }
+};
+
+// Types
+export interface StoryUploadOptions {
+  file: File;
   caption?: string;
-  created_at: string;
-  expires_at: string;
-  viewed: boolean;
-  is_highlighted: boolean;
-  is_mine?: boolean;
-  duration?: number;
+  onProgress?: (progress: number) => void;
 }
 
-interface UseStoriesHookReturn {
+export interface Story extends FirestoreStory {
+  creator: {
+    id: string;
+    name: string;
+    username: string;
+    avatarUrl: string;
+  };
+  timeAgo: string;
+}
+
+export interface UseStoriesHookReturn {
   stories: Story[];
   userStories: Story[];
-  isLoading: boolean;
-  loadingStories: boolean; // Added for backward compatibility
-  error: string | null;
-  createStory: (file: File, caption?: string, format?: string) => Promise<boolean>;
-  deleteStory: (storyId: string) => Promise<boolean>;
-  markAsViewed: (storyId: string) => Promise<void>;
-  markStoryAsViewed: (storyId: string) => Promise<void>; // Added for compatibility
-  highlightStory: (storyId: string, highlight: boolean) => Promise<boolean>;
-  getStoryCreatorInfo: (creatorId: string) => Promise<{ name: string; avatar: string } | null>;
-  uploadStory: (file: File, caption?: string) => Promise<boolean>; // Added for compatibility
+  featuredStories: Story[];
+  uploadStory: (options: StoryUploadOptions) => Promise<boolean>;
+  loadingStories: boolean;
+  refreshStories: () => Promise<void>;
+  markStoryAsViewed: (storyId: string) => Promise<void>;
 }
 
-const useStories = (): UseStoriesHookReturn => {
+export function useStories(): UseStoriesHookReturn {
   const { user } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
   const [userStories, setUserStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [featuredStories, setFeaturedStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
 
-  const fetchStories = useCallback(async () => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
+  // Load stories
+  const fetchStories = async () => {
+    setLoadingStories(true);
     try {
-      // Mock data for stories
-      const mockStories: Story[] = [
-        {
-          id: '1',
-          creator_id: 'creator1',
-          creator_name: 'Creator One',
-          creator_avatar: 'https://i.pravatar.cc/150?img=1',
-          media_url: 'https://example.com/story1.mp4',
-          thumbnail_url: 'https://example.com/thumbnail1.jpg',
-          format: '9:16',
-          caption: 'This is story 1',
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          expires_at: new Date(Date.now() + 86400000).toISOString(),
-          viewed: false,
-          is_highlighted: false,
-          duration: 15
-        },
-        {
-          id: '2',
-          creator_id: 'creator2',
-          creator_name: 'Creator Two',
-          creator_avatar: 'https://i.pravatar.cc/150?img=2',
-          media_url: 'https://example.com/story2.mp4',
-          thumbnail_url: 'https://example.com/thumbnail2.jpg',
-          format: '9:16',
-          caption: 'This is story 2',
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-          expires_at: new Date(Date.now() + 86400000).toISOString(),
-          viewed: true,
-          is_highlighted: true,
-          duration: 10
-        }
-      ];
-
-      // Add a mock user story
-      const mockUserStories: Story[] = [
-        {
-          id: '3',
-          creator_id: user?.uid || user?.id || '',
-          creator_name: user?.displayName || 'You',
-          creator_avatar: user?.photoURL || 'https://i.pravatar.cc/150?img=3',
-          media_url: 'https://example.com/story3.mp4',
-          thumbnail_url: 'https://example.com/thumbnail3.jpg',
-          format: '9:16',
-          caption: 'Your story',
-          created_at: new Date(Date.now() - 1800000).toISOString(),
-          expires_at: new Date(Date.now() + 86400000).toISOString(),
-          viewed: false,
-          is_highlighted: false,
-          is_mine: true,
-          duration: 20
-        }
-      ];
-
-      setStories(mockStories);
-      setUserStories(mockUserStories);
-    } catch (err) {
-      console.error('Error fetching stories:', err);
-      setError('Failed to load stories');
-    } finally {
-      setIsLoading(false);
+      // In a real app, fetch stories from your backend
+      const fetchedStories = mockStories.map((story) => ({
+        ...story,
+        creator: creators[story.creatorId as keyof typeof creators],
+        timeAgo: formatDistanceToNow(new Date(story.createdAt), { addSuffix: true, locale: fr })
+      }));
+      
+      setStories(fetchedStories);
+      
+      // Filter user's own stories
+      if (user) {
+        const ownStories = fetchedStories.filter(
+          story => story.creatorId === user.uid
+        );
+        setUserStories(ownStories);
+      }
+      
+      // Filter featured/highlighted stories
+      const featured = fetchedStories.filter(story => story.isHighlighted);
+      setFeaturedStories(featured);
+    } catch (error) {
+      console.error('Error fetching stories:', error);
+      toast.error('Impossible de charger les stories');
     }
-  }, [user]);
+    setLoadingStories(false);
+  };
 
   useEffect(() => {
     fetchStories();
-  }, [fetchStories]);
+  }, [user]);
 
-  const createStory = async (file: File, caption = '', format = '9:16'): Promise<boolean> => {
-    if (!user) return false;
+  // Upload story function
+  const uploadStory = async (options: StoryUploadOptions): Promise<boolean> => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour publier une story');
+      return false;
+    }
+
+    const { file, caption, onProgress } = options;
+    
+    // Simulate upload progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += 10;
+      if (progress <= 100) {
+        onProgress?.(progress);
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 300);
     
     try {
-      // Mock file upload
-      const mediaUrl = URL.createObjectURL(file);
-      const thumbnailUrl = mediaUrl; // In a real app, generate a thumbnail
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Create a new story
+      // In a real app, upload the file to storage and save metadata to database
+      const newStoryId = `story-${Date.now()}`;
       const newStory: Story = {
-        id: `story_${Date.now()}`,
-        creator_id: user?.uid || user?.id || '',
-        creator_name: user?.displayName || 'You',
-        creator_avatar: user?.photoURL || 'https://i.pravatar.cc/150?img=3',
-        media_url: mediaUrl,
-        thumbnail_url: thumbnailUrl,
+        id: newStoryId,
+        creatorId: user.uid,
+        mediaUrl: URL.createObjectURL(file),
+        thumbnailUrl: URL.createObjectURL(file),
+        caption: caption || '',
         format: '9:16',
-        caption,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 86400000).toISOString(),
-        viewed: false,
-        is_highlighted: false,
-        is_mine: true,
-        duration: 15
+        duration: file.type.startsWith('video/') ? 15 : 0, // Assume videos are 15 seconds
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86400000).toISOString(), // 24 hours from now
+        viewCount: 0,
+        isHighlighted: false,
+        creator: {
+          id: user.uid,
+          name: user.displayName || user.username || user.email?.split('@')[0] || 'User',
+          username: user.username || user.email?.split('@')[0] || 'user',
+          avatarUrl: user.profileImageUrl || 'https://i.pravatar.cc/150'
+        },
+        timeAgo: 'à l\'instant'
       };
       
-      // Add to user stories
+      // Update state with the new story
+      setStories(prev => [newStory, ...prev]);
       setUserStories(prev => [newStory, ...prev]);
+      
+      clearInterval(progressInterval);
+      onProgress?.(100);
+      
       return true;
-    } catch (err) {
-      console.error('Error creating story:', err);
-      setError('Failed to create story');
+    } catch (error) {
+      console.error('Error uploading story:', error);
+      clearInterval(progressInterval);
       return false;
     }
   };
 
-  const deleteStory = async (storyId: string): Promise<boolean> => {
-    try {
-      setUserStories(prev => prev.filter(story => story.id !== storyId));
-      return true;
-    } catch (err) {
-      console.error('Error deleting story:', err);
-      setError('Failed to delete story');
-      return false;
-    }
-  };
-
-  const markAsViewed = async (storyId: string): Promise<void> => {
+  // Mark story as viewed
+  const markStoryAsViewed = async (storyId: string): Promise<void> => {
+    // In a real app, update the view status in the backend
     setStories(prev => 
       prev.map(story => 
         story.id === storyId ? { ...story, viewed: true } : story
@@ -174,54 +212,18 @@ const useStories = (): UseStoriesHookReturn => {
     );
   };
 
-  // Alias for markAsViewed for compatibility
-  const markStoryAsViewed = markAsViewed;
-
-  const highlightStory = async (storyId: string, highlight: boolean): Promise<boolean> => {
-    try {
-      setUserStories(prev => 
-        prev.map(story => 
-          story.id === storyId ? { ...story, is_highlighted: highlight } : story
-        )
-      );
-      return true;
-    } catch (err) {
-      console.error('Error highlighting story:', err);
-      setError('Failed to highlight story');
-      return false;
-    }
+  // Refresh stories
+  const refreshStories = async (): Promise<void> => {
+    return fetchStories();
   };
-
-  const getStoryCreatorInfo = async (creatorId: string): Promise<{ name: string; avatar: string } | null> => {
-    try {
-      // Mock creator info retrieval
-      return {
-        name: `Creator ${creatorId}`,
-        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
-      };
-    } catch (err) {
-      console.error('Error getting creator info:', err);
-      return null;
-    }
-  };
-
-  // Alias for createStory for compatibility
-  const uploadStory = createStory;
 
   return {
     stories,
     userStories,
-    isLoading,
-    loadingStories: isLoading, // Alias for backward compatibility
-    error,
-    createStory,
-    deleteStory,
-    markAsViewed,
-    markStoryAsViewed, // Added for compatibility
-    highlightStory,
-    getStoryCreatorInfo,
-    uploadStory // Added for compatibility
+    featuredStories,
+    uploadStory,
+    loadingStories,
+    refreshStories,
+    markStoryAsViewed
   };
-};
-
-export default useStories;
+}
