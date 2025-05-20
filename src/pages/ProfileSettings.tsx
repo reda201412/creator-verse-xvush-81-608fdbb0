@@ -32,6 +32,7 @@ const ProfileSettings = () => {
   const [isBecomingCreator, setIsBecomingCreator] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -204,7 +205,12 @@ const ProfileSettings = () => {
           </div>
         </div>
       </motion.div>
-      <WalletModal open={openModals.wallet} onOpenChange={(open) => open ? openModal('wallet') : closeModal('wallet')} />
+      {isWalletModalOpen && (
+        <WalletModal 
+          isOpen={isWalletModalOpen} 
+          onClose={() => setIsWalletModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

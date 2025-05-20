@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
-import { CreatorProfileData } from '@/vite-env';
+import { CreatorProfileData } from '@/types/video'; // Updated import
 import StoryPublisher from '@/components/stories/StoryPublisher';
 
 const CreatorsFeed = () => {

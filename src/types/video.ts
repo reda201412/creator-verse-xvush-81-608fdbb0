@@ -24,5 +24,42 @@ export interface VideoMetadata {
   restrictions?: VideoRestrictions;
 }
 
-// Add VideoData type for compatibility with creatorService
-export { VideoData } from '@/vite-env';
+// Define VideoData in this file directly instead of importing from vite-env.d.ts
+export interface VideoData {
+  id: number | string;
+  userId: string;
+  title: string;
+  description?: string;
+  assetId?: string;
+  uploadId?: string;
+  playbackId?: string;
+  status?: string;
+  thumbnailUrl?: string;
+  thumbnail_url?: string; // Alternative property name
+  isPremium?: boolean;
+  is_premium?: boolean; // Alternative property name
+  price?: number;
+  duration?: number;
+  aspectRatio?: string;
+  videoUrl?: string;
+  video_url?: string; // Alternative property name
+  format?: '16:9' | '9:16' | '1:1';
+  type: 'standard' | 'teaser' | 'premium' | 'vip';
+  isPublished?: boolean;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  mux_playback_id?: string;
+}
+
+// Define User type here directly
+export interface User {
+  uid: string;
+  id?: string; // Some components expect this
+  email: string;
+  username?: string;
+  displayName?: string;
+  profileImageUrl?: string;
+}

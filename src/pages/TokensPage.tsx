@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Check, Clock, CreditCard, Loader2, RefreshCcw, Wallet } from 'lucide-react';
-import { WalletConnect } from '@/components/wallet/WalletConnect';
+import WalletConnect from '@/components/wallet/WalletConnect';
 import TransactionList from '@/components/wallet/TransactionList';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent } from '@/components/ui/dialog';

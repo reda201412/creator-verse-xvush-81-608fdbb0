@@ -17,3 +17,11 @@ export const ensureRequiredRestrictionProps = (restrictions: any) => {
     sharingAllowed: restrictions.sharingAllowed ?? false,
   };
 };
+
+// A synchronous version of generateSessionKey
+export const generateSessionKey = (): string => {
+  return Array.from(
+    { length: 32 },
+    () => Math.floor(Math.random() * 36).toString(36)
+  ).join('');
+};

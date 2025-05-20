@@ -56,14 +56,14 @@ const CreatorProfile: React.FC = () => {
       thumbnailUrl: "https://images.unsplash.com/photo-1615184697985-c9bde1b07da7",
       isPremium: false,
       type: "standard",
-      format: "16:9", // Added format field
+      format: "16:9" as '16:9', // Added type assertion
       isPublished: true,
       viewCount: 1250,
-      likeCount: 85, // Added likeCount
-      commentCount: 32, // Added commentCount
+      likeCount: 85,
+      commentCount: 32,
       createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     },
-    // ... other mock videos with format field
+    // ... other mock videos
   ];
 
   useEffect(() => {
@@ -204,32 +204,26 @@ const CreatorProfile: React.FC = () => {
     </button>
   ) : null;
 
-  // Adapt ContentGrid items to match expected structure if necessary
+  // Make sure the contentGridItems references properties correctly
   const contentGridItems = videos.map(video => {
-    // Extraire le format de la vidéo (par défaut '16:9' si non défini)
     let videoFormat: 'image' | 'video' | 'audio' | 'text' = 'video';
     
-    // Si video.format est défini et est un objet avec aspect_ratio, on peut l'utiliser
-    // Sinon, on utilise le type par défaut 'video'
-    if (video.format && typeof video.format === 'object' && 'aspect_ratio' in video.format) {
-      // Ici, vous pouvez ajouter une logique pour déterminer le format en fonction de l'aspect ratio si nécessaire
-      // Par exemple, si l'aspect ratio est '9:16', cela pourrait être une story ou un format vertical
-      videoFormat = 'video';
-    }
+    // Safely access the format property with fallback
+    const format = video.format || '16:9';
     
     return {
-      id: video.id.toString(), // S'assurer que l'ID est une chaîne
+      id: video.id.toString(),
       title: video.title || 'Sans titre',
-      type: video.type === "teaser" ? "teaser" : video.is_premium ? "premium" : "standard",
+      type: video.type === "teaser" ? "teaser" : video.isPremium ? "premium" : "standard",
       format: videoFormat,
       duration: video.duration || 0,
-      thumbnailUrl: video.thumbnail_url || undefined,
+      thumbnailUrl: video.thumbnailUrl || video.thumbnail_url || undefined,
       metrics: {
         views: video.viewCount || 0,
         likes: video.likeCount || 0,
         comments: video.commentCount || 0,
       },
-      videoData: video, // Store video data in a properly typed property
+      videoData: video,
     };
   });
 

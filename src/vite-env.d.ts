@@ -1,4 +1,3 @@
-
 /// <reference types="vite/client" />
 
 interface User {
@@ -96,10 +95,14 @@ interface TrendingContentItem {
   id?: string;
   title?: string;
   thumbnailUrl?: string;
+  thumbnail_url?: string;
   videoUrl?: string;
+  video_url?: string;
   type?: string;
   format?: string;
   isPremium?: boolean;
+  is_premium?: boolean;
+  userId?: string; // Added for compatibility
 }
 
 interface CreatorProfileData {
@@ -112,17 +115,19 @@ interface CreatorProfileData {
   displayName: string;
   bio?: string;
   avatarUrl: string;
+  profileImageUrl?: string; // Added for compatibility
   coverImageUrl?: string;
   isPremium?: boolean;
   isOnline?: boolean;
   metrics?: {
     followers?: number;
     likes?: number;
-    rating?: number | string;
+    rating?: number;
   };
 }
 
-// Add VideoData type to align with creatorService
+// Add VideoData to align with creatorService
+// Will keep as reference but main type is in types/video.ts
 interface VideoData {
   id: number | string;
   userId: string;
@@ -133,11 +138,14 @@ interface VideoData {
   playbackId?: string;
   status?: string;
   thumbnailUrl?: string;
+  thumbnail_url?: string;
   isPremium?: boolean;
+  is_premium?: boolean;
   price?: number;
   duration?: number;
   aspectRatio?: string;
   videoUrl?: string;
+  video_url?: string;
   format?: '16:9' | '9:16' | '1:1';
   type: 'standard' | 'teaser' | 'premium' | 'vip';
   isPublished?: boolean;

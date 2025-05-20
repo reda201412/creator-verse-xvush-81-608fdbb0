@@ -1,163 +1,139 @@
+import { useState, useEffect, useContext } from 'react';
+import { db, storage } from '@/integrations/firebase/firebase';
+import { collection, query, where, getDocs, limit, orderBy, startAfter, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { AuthContext } from '@/contexts/AuthContext';
+import { Story, StoryGroup, StoryUploadParams, UseStoriesHookReturn } from '@/types/stories';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { Story, StoryUploadParams, UseStoriesHookReturn } from '@/types/stories';
+const STORIES_PER_PAGE = 10;
 
-// Mocked stories data for development
-const mockStories: Story[] = [
-  {
-    id: "story1",
-    creator_id: "user1",
-    media_url: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131",
-    caption: "My first story!",
-    format: "16:9",
-    duration: 5,
-    created_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    view_count: 0,
-    is_highlighted: false,
-    creator_name: "John Doe",
-    creator_avatar: "https://i.pravatar.cc/150?img=1"
-  },
-  {
-    id: "story2",
-    creator_id: "user2",
-    media_url: "https://images.unsplash.com/photo-1569569970363-df7b6160d111",
-    caption: "Beautiful sunset!",
-    format: "9:16",
-    duration: 5,
-    created_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    view_count: 12,
-    is_highlighted: true,
-    creator_name: "Jane Smith",
-    creator_avatar: "https://i.pravatar.cc/150?img=2"
-  },
-  {
-    id: "story3",
-    creator_id: "user3",
-    media_url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-    caption: "Check out this video!",
-    format: "16:9",
-    duration: 15,
-    created_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    view_count: 28,
-    is_highlighted: false,
-    creator_name: "Alex Johnson",
-    creator_avatar: "https://i.pravatar.cc/150?img=3"
-  }
-];
-
-/**
- * Hook to manage stories functionality
- */
 export const useStories = (): UseStoriesHookReturn => {
-  const { user } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
-  const [loadingStories, setLoadingStories] = useState<boolean>(true);
+  const [loadingStories, setLoadingStories] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const { user } = useContext(AuthContext);
   
-  // Fetch stories from API or use mock data
   useEffect(() => {
-    const fetchStories = async () => {
-      try {
-        setLoadingStories(true);
-        
-        // In a real app, this would be an API call
-        // const response = await api.getStories();
-        // setStories(response.data);
-        
-        // Using mock data for now
-        setStories(mockStories);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching stories:", err);
-        setError("Failed to load stories");
-      } finally {
-        setLoadingStories(false);
-      }
-    };
-    
-    fetchStories();
+    loadInitialStories();
   }, []);
   
-  // Upload a story
-  const uploadStory = useCallback(async (params: StoryUploadParams): Promise<boolean> => {
-    if (!user?.uid) {
-      toast.error("You must be logged in to upload stories");
-      return false;
+  const loadInitialStories = async () => {
+    setLoadingStories(true);
+    try {
+      const storiesQuery = query(
+        collection(db, 'stories'),
+        orderBy('created_at', 'desc'),
+        limit(STORIES_PER_PAGE)
+      );
+      
+      const snapshot = await getDocs(storiesQuery);
+      if (!snapshot.empty) {
+        const newStories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Story));
+        setStories(newStories);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      }
+    } catch (error) {
+      console.error("Error loading initial stories:", error);
+      setError('Failed to load stories');
+    } finally {
+      setLoadingStories(false);
     }
+  };
+  
+  const loadMoreStories = async () => {
+    if (!lastVisible) return;
+    setLoadingStories(true);
     
     try {
-      const { file, caption, onProgress } = params;
+      const storiesQuery = query(
+        collection(db, 'stories'),
+        orderBy('created_at', 'desc'),
+        startAfter(lastVisible),
+        limit(STORIES_PER_PAGE)
+      );
       
-      // Simulate upload progress
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 10;
-        if (progress <= 100 && onProgress) {
-          onProgress(progress);
-        }
-        if (progress > 100) {
-          clearInterval(progressInterval);
-        }
-      }, 300);
+      const snapshot = await getDocs(storiesQuery);
+      if (!snapshot.empty) {
+        const newStories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Story));
+        setStories(prev => [...prev, ...newStories]);
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      }
+    } catch (error) {
+      console.error("Error loading more stories:", error);
+      setError('Failed to load more stories');
+    } finally {
+      setLoadingStories(false);
+    }
+  };
+  
+  const uploadStory = async ({ file, caption, onProgress = () => {} }: StoryUploadParams): Promise<boolean> => {
+    setError(null);
+
+    if (!user) {
+      setError('You must be logged in to upload a story');
+      return false;
+    }
+
+    try {
+      setIsUploading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Update in storage
+      const storyId = `story_${Date.now()}`;
       
-      // Create a new story object
-      const newStory: Story = {
-        id: `story_${Date.now()}`,
-        creator_id: user?.uid || '',
-        media_url: URL.createObjectURL(file),
-        caption: caption,
-        format: "16:9",
-        duration: 5,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        view_count: 0,
-        is_highlighted: false,
-        creator_name: user?.username || user?.displayName || 'User',
-        creator_avatar: user?.profileImageUrl || `https://i.pravatar.cc/150?u=${user?.username}`
+      // Generate fake upload response
+      const mockUploadResponse = {
+        url: URL.createObjectURL(file),
+        storyId
       };
       
-      // Add the new story to the state
+      // Create the story object
+      const newStory: Story = {
+        id: storyId,
+        creator_id: user.uid, // Use uid as it's guaranteed to exist
+        media_url: mockUploadResponse.url,
+        caption: caption,
+        format: '9:16', // Default vertical format for stories
+        duration: 5, // Default duration in seconds
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        view_count: 0,
+        is_highlighted: false,
+        creator_name: user.username || user.email || 'User',
+        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.username}`,
+      };
+
+      // Add to local stories array
       setStories(prev => [newStory, ...prev]);
       
       return true;
-    } catch (err) {
-      console.error("Error uploading story:", err);
-      setError("Failed to upload story");
+    } catch (error) {
+      console.error("Error uploading story:", error);
+      setError('Failed to upload story');
       return false;
+    } finally {
+      setIsUploading(false);
     }
-  }, [user]);
+  };
   
-  // Mark a story as viewed
-  const markStoryAsViewed = useCallback(async (storyId: string): Promise<void> => {
+  const markStoryAsViewed = async (storyId: string) => {
     try {
-      // In a real app, this would call an API
-      // await api.markStoryAsViewed(storyId);
-      
-      // Update the local state
-      setStories(prev => 
-        prev.map(story => 
+      // Optimistically update the local state
+      setStories(prevStories =>
+        prevStories.map(story =>
           story.id === storyId ? { ...story, viewed: true } : story
         )
       );
-    } catch (err) {
-      console.error("Error marking story as viewed:", err);
-      setError("Failed to mark story as viewed");
+      
+      // Simulate updating the view count on the server
+      // In a real application, you would make an API call to update the view count
+      console.log(`Marked story ${storyId} as viewed`);
+    } catch (error) {
+      console.error("Error marking story as viewed:", error);
+      setError('Failed to mark story as viewed');
     }
-  }, []);
-  
-  return {
-    stories,
-    loadingStories,
-    uploadStory,
-    markStoryAsViewed,
-    error
   };
+  
+  return { stories, loadingStories, uploadStory, markStoryAsViewed, error };
 };

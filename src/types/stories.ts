@@ -1,5 +1,6 @@
 
-// Remove the import of UserProfile from AuthContext and define it here instead
+// Define types for stories functionality
+
 export type StoryFilter = 'none' | 'sepia' | 'grayscale' | 'blur' | 'vintage' | 'neon' | 'vibrant' | 'minimal';
 
 // Use the same interface structure but defined here rather than imported
@@ -77,6 +78,12 @@ export interface StoryView {
 export interface StoryUploadParams {
   file: File;
   caption?: string;
+  filter?: StoryFilter;
+  duration?: number;
+  thumbnailFile?: File;
+  mediaFile?: File; // Alternative to file for compatibility
+  expiresIn?: number;
+  tags?: string[];
   onProgress?: (progress: number) => void;
 }
 
@@ -93,4 +100,8 @@ export interface UseStoriesHookReturn {
   uploadStory: (params: StoryUploadParams) => Promise<boolean>;
   markStoryAsViewed: (storyId: string) => Promise<void>;
   error: string | null;
+}
+
+export interface StoryPublisherProps {
+  onCancel: () => void;
 }

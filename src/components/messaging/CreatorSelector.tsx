@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getAllCreators } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
-import { CreatorProfileData } from '@/vite-env';
+import { CreatorProfileData } from '@/types/video';
 
 interface CreatorSelectorProps {
   onSelectCreator: (creator: CreatorProfileData) => void;
@@ -36,7 +35,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
               ? parseFloat(creator.metrics.rating) || 0 
               : creator.metrics?.rating || 0
           }
-        }));
+        })) as CreatorProfileData[];
         setCreators(validatedCreators);
       } catch (error) {
         console.error("Error loading creators for selector:", error);

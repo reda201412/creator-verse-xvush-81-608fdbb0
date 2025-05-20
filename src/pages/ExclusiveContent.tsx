@@ -159,8 +159,8 @@ const ExclusiveContent: React.FC = () => {
     return keys;
   });
   
+  // Fix the synchronous generateSessionKey function
   const generateSessionKey = (): string => {
-    // Implementation remains but is now synchronous
     return Array.from(
       { length: 32 },
       () => Math.floor(Math.random() * 36).toString(36)
@@ -263,6 +263,8 @@ const ExclusiveContent: React.FC = () => {
                           ...content,
                           restrictions: ensureRequiredRestrictionProps(content.restrictions)
                         }}
+                        userTier={userTier}
+                        userTokenBalance={userTokenBalance}
                         onUnlock={handleUnlock}
                         onLike={handleLike}
                         onComment={handleComment}
@@ -288,6 +290,8 @@ const ExclusiveContent: React.FC = () => {
                           ...content,
                           restrictions: ensureRequiredRestrictionProps(content.restrictions)
                         }}
+                        userTier={userTier}
+                        userTokenBalance={userTokenBalance}
                         onUnlock={handleUnlock}
                         onLike={handleLike}
                         onComment={handleComment}

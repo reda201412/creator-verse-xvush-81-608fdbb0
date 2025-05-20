@@ -46,6 +46,14 @@ interface MessageCenterProps {
   className?: string;
 }
 
+// Fixed implementation for generateSessionKey to ensure it's synchronous
+const generateSessionKey = (): string => {
+  return Array.from(
+    { length: 32 },
+    () => Math.floor(Math.random() * 36).toString(36)
+  ).join('');
+};
+
 const MessageCenter = ({
   userId,
   userName,
@@ -82,7 +90,7 @@ const MessageCenter = ({
         [activeThreadId]: newSessionKey
       }));
     }
-  }, [activeThreadId]);
+  }, [activeThreadId, sessionKeys]);
   
   useEffect(() => {
     // Handle mobile view - hide thread list when thread is selected
@@ -111,7 +119,7 @@ const MessageCenter = ({
     let finalContent = content;
     let isEncrypted = false;
     
-    // Chiffrer le message si l'option est activée
+    // Encrypt the message if option is enabled
     if (encryptionEnabled && activeThreadId && sessionKeys[activeThreadId]) {
       try {
         const encryptedData = await encryptMessage(content, sessionKeys[activeThreadId]);
