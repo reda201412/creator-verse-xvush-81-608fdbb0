@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +39,7 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
   
   const filteredCreators = creators.filter(creator => {
     const searchLower = searchTerm.toLowerCase();
-    const nameLower = creator.displayName?.toLowerCase() || creator.username?.toLowerCase() || '';
+    const nameLower = creator.name?.toLowerCase() || creator.username?.toLowerCase() || '';
     const usernameLower = creator.username?.toLowerCase() || '';
     return nameLower.includes(searchLower) || usernameLower.includes(searchLower);
   });
@@ -88,14 +89,14 @@ const CreatorSelector: React.FC<CreatorSelectorProps> = ({ onSelectCreator, onCa
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
                     <img 
                       src={creator.avatarUrl || `https://i.pravatar.cc/150?u=${creator.id}`} 
-                      alt={creator.displayName || creator.username}
+                      alt={creator.name || creator.username}
                       className="object-cover w-full h-full"
                     />
                   </div>
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="font-semibold">{creator.displayName || creator.username}</h3>
+                  <h3 className="font-semibold">{creator.name || creator.username}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
                     {creator.bio || `@${creator.username}`}
                   </p>

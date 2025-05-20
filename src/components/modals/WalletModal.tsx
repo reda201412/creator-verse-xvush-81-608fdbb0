@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import WalletConnect from '@/components/wallet/WalletConnect';
+import { WalletConnect } from '@/components/wallet/WalletConnect';
 import WalletBalance from '@/components/wallet/WalletBalance';
 import TransactionList from '@/components/wallet/TransactionList';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
@@ -19,7 +19,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
   onOpenChange 
 }) => {
   const { user } = useAuth();
-  const { walletInfo, getWalletInfo, loading } = useTronWallet();
+  const { walletInfo, getWalletInfo, isLoading, loading } = useTronWallet();
   const [activeTab, setActiveTab] = useState('balance');
   
   // Fetch wallet info when modal opens
@@ -36,7 +36,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
           <DialogTitle>Portefeuille</DialogTitle>
         </DialogHeader>
 
-        {loading ? (
+        {(isLoading || loading) ? (
           <div className="flex justify-center items-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -53,7 +53,12 @@ const WalletModal: React.FC<WalletModalProps> = ({
             </TabsContent>
 
             <TabsContent value="connect" className="space-y-4 py-4">
-              <WalletConnect walletInfo={walletInfo} />
+              <WalletConnect 
+                isOpen={activeTab === 'connect'} 
+                onOpenChange={() => {}}
+                onClose={() => setActiveTab('balance')}
+                walletInfo={walletInfo}
+              />
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4 py-4">

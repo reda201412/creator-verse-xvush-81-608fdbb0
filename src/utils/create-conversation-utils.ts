@@ -1,26 +1,15 @@
+
 import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  startAfter,
-  where,
-} from 'firebase/firestore';
-import { db } from '@/config/firebase';
+  FirestoreMessageThread,
+  FirestoreMessage,
+} from "@/vite-env";
 
-// Export the FirestoreMessageThread and FirestoreMessage types
-export type { FirestoreMessageThread, FirestoreMessage };
-
-// Add the createNewConversationWithCreator function export
+// Export the function with the correct signature
 export const createNewConversationWithCreator = async (
   userId: string,
   creatorId: string,
   initialMessage: string
-): Promise<any> => {
+): Promise<FirestoreMessageThread> => {
   // Mock implementation
   return {
     id: `conversation_${Date.now()}`,
@@ -32,6 +21,5 @@ export const createNewConversationWithCreator = async (
     lastActivity: new Date(),
     createdAt: new Date(),
     isGated: false,
-    messages: [],
   };
 };

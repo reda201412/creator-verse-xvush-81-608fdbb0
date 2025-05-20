@@ -34,6 +34,27 @@ export function useTronWallet(): TronWalletHook {
           tron_address: 'TNVr67ewag4wELRzXxEbhdihs3NGE3Lt7K',
           balance_usdt: 100.00,
           is_verified: true
+        },
+        transactions: [
+          {
+            id: 'tx1',
+            date: new Date().toISOString(),
+            amount: 25.00,
+            type: 'withdrawal',
+            status: 'completed'
+          },
+          {
+            id: 'tx2',
+            date: new Date(Date.now() - 86400000).toISOString(),
+            amount: 50.00,
+            type: 'deposit',
+            status: 'completed'
+          }
+        ],
+        subscription: {
+          status: 'active',
+          expiry: new Date(Date.now() + 30 * 86400000).toISOString(),
+          level: 'premium'
         }
       };
       
@@ -174,3 +195,5 @@ export function useTronWallet(): TronWalletHook {
     verifyTransaction
   };
 }
+
+export default useTronWallet;

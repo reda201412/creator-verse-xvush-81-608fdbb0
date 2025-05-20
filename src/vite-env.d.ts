@@ -3,8 +3,10 @@
 
 interface User {
   id: string;
-  uid: string; // Making uid not optional to fix errors
+  uid: string;
   email: string;
+  username?: string;
+  profileImageUrl?: string;
 }
 
 interface UserProfile {
@@ -36,7 +38,7 @@ interface FirestoreMessageThread {
   lastActivity: any; // Firebase Timestamp
   createdAt: any; // Firebase Timestamp
   isGated: boolean;
-  messages: FirestoreMessage[];
+  messages?: FirestoreMessage[];
   readStatus?: Record<string, any>;
   lastMessageText?: string;
   lastMessageCreatedAt?: any;
@@ -125,6 +127,12 @@ interface WalletResponse {
     is_verified: boolean;
   };
   error?: string;
+  transactions?: Array<any>;
+  subscription?: {
+    status: string;
+    expiry: string;
+    level: string;
+  };
 }
 
 // Enhanced tron-wallet hook interface

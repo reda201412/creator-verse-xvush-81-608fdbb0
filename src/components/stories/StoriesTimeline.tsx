@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useStories } from '@/hooks/use-stories';
+import useStories from '@/hooks/use-stories';
 import StoriesViewer from './StoriesViewer';
 import StoryPublisher from './StoryPublisher';
 import { PlusCircle } from 'lucide-react';

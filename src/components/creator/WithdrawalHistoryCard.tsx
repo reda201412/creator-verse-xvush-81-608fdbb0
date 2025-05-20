@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
@@ -21,7 +22,7 @@ const WithdrawalHistoryCard: React.FC<WithdrawalHistoryCardProps> = ({ className
     const value = e.target.value;
     // Allow only numbers and ensure it can be cleared
     if (/^\d*\.?\d*$/.test(value) || value === '') {
-      setAmount(value);
+      setAmount(value === '' ? '' : Number(value));
     }
   };
 

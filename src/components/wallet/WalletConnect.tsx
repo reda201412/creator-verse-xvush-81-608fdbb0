@@ -1,24 +1,57 @@
+
 import React, { useState } from 'react';
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-} from "@nextui-org/react";
 import { useTronWallet } from '@/hooks/use-tron-wallet';
 import { toast } from 'sonner';
 
+// Temporary UI components until we can add @nextui-org/react
+const Modal = ({ isOpen, onClose, children }) => isOpen ? (
+  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      {children}
+    </div>
+  </div>
+) : null;
+
+const ModalContent = ({ children }) => <div>{children}</div>;
+const ModalHeader = ({ children }) => <h3 className="text-lg font-bold mb-4">{children}</h3>;
+const ModalBody = ({ children }) => <div className="mb-4">{children}</div>;
+const ModalFooter = ({ children }) => <div className="flex justify-end gap-2">{children}</div>;
+const Button = ({ color, variant, onPress, children, isLoading }) => (
+  <button
+    className={`px-4 py-2 rounded ${
+      color === 'primary' ? 'bg-blue-500 text-white' :
+      color === 'danger' ? 'bg-red-500 text-white' :
+      'bg-gray-200'
+    } ${variant === 'flat' ? 'hover:bg-opacity-80' : ''} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    onClick={onPress}
+    disabled={isLoading}
+  >
+    {isLoading ? 'Chargement...' : children}
+  </button>
+);
+
+const Input = ({ label, type, placeholder, value, onChange }) => (
+  <div className="mb-4">
+    <label className="block text-sm mb-1">{label}</label>
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 border rounded"
+    />
+  </div>
+);
+
 interface WalletConnectProps {
-  isOpen: boolean;
-  onOpenChange: () => void;
-  onClose: () => void;
+  isOpen?: boolean;
+  onOpenChange?: () => void;
+  onClose?: () => void;
+  walletInfo?: any;
 }
 
-export function WalletConnect({ isOpen, onOpenChange, onClose }: WalletConnectProps) {
-  const { walletInfo, requestWithdrawal } = useTronWallet();
+export function WalletConnect({ isOpen, onOpenChange, onClose, walletInfo }: WalletConnectProps) {
+  const { requestWithdrawal } = useTronWallet();
   const [amount, setAmount] = useState<number | undefined>(0);
   const [requestLoading, setRequestLoading] = useState(false);
   
@@ -45,7 +78,7 @@ export function WalletConnect({ isOpen, onOpenChange, onClose }: WalletConnectPr
       if (success) {
         toast.success("Demande de retrait initiée");
         setAmount(0);
-        onClose();
+        if (onClose) onClose();
       }
     } catch (error) {
       console.error("Error processing withdrawal:", error);
@@ -56,41 +89,39 @@ export function WalletConnect({ isOpen, onOpenChange, onClose }: WalletConnectPr
   };
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">Connecter le portefeuille</ModalHeader>
-            <ModalBody>
-              <p>
-                Adresse du portefeuille: {walletInfo?.wallet?.tron_address || "Non connecté"}
-              </p>
-              <p>
-                Balance: {walletInfo?.wallet?.balance_usdt || 0} USDT
-              </p>
-              <Input
-                type="number"
-                label="Montant à retirer"
-                placeholder="0.00"
-                value={amount === undefined ? '' : amount.toString()}
-                onChange={handleAmountChange}
-              />
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="flat" onPress={onClose}>
-                Fermer
-              </Button>
-              <Button 
-                color="primary" 
-                onPress={handleWithdrawalRequest}
-                isLoading={requestLoading}
-              >
-                Demande de retrait
-              </Button>
-            </ModalFooter>
-          </>
-        )}
+        <ModalHeader>Connecter le portefeuille</ModalHeader>
+        <ModalBody>
+          <p>
+            Adresse du portefeuille: {walletInfo?.wallet?.tron_address || "Non connecté"}
+          </p>
+          <p>
+            Balance: {walletInfo?.wallet?.balance_usdt || 0} USDT
+          </p>
+          <Input
+            type="number"
+            label="Montant à retirer"
+            placeholder="0.00"
+            value={amount === undefined ? '' : amount.toString()}
+            onChange={handleAmountChange}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button color="danger" variant="flat" onPress={onClose}>
+            Fermer
+          </Button>
+          <Button 
+            color="primary" 
+            onPress={handleWithdrawalRequest}
+            isLoading={requestLoading}
+          >
+            Demande de retrait
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
 }
+
+export default WalletConnect;
