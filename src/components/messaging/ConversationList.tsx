@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -111,7 +112,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
         userAvatar,
         creatorId: creator.user_id,
         creatorName: creator.name || creator.username,
-        creatorAvatar: creator.avatarUrl || null, // Add creatorAvatar
+        creatorAvatar: creator.avatarUrl || null,
       });
       
       if (result.success && result.threadId) {

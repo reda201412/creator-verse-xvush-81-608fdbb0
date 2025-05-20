@@ -8,8 +8,7 @@ import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
 import { getAllCreators, CreatorProfileData } from '@/services/creatorService';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/integrations/firebase/firebase';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { db } from '@/contexts/firebase-mock';
 
 const CreatorsFeed: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,15 +31,11 @@ const CreatorsFeed: React.FC = () => {
         const creatorFollowers: Record<string, number> = {};
         for (const creator of fetchedCreators) {
           try {
-            const followersQuery = query(
-              collection(db, 'user_follows'),
-              where('creator_id', '==', creator.uid)
-            );
-            const snapshot = await getCountFromServer(followersQuery);
-            creatorFollowers[creator.uid] = snapshot.data().count;
+            // Mock followers count
+            creatorFollowers[creator.id] = Math.floor(Math.random() * 1000);
           } catch (error) {
             console.error('Error fetching followers count:', error);
-            creatorFollowers[creator.uid] = 0;
+            creatorFollowers[creator.id] = 0;
           }
         }
         setFollowersCount(creatorFollowers);
@@ -78,7 +73,7 @@ const CreatorsFeed: React.FC = () => {
     } else if (activeTab === 'popular') {
       // Trier par nombre de followers (données réelles maintenant)
       processedCreators.sort((a, b) => 
-        (followersCount[b.uid] || 0) - (followersCount[a.uid] || 0)
+        (followersCount[b.id] || 0) - (followersCount[a.id] || 0)
       );
     }
 
@@ -169,13 +164,13 @@ const CreatorsFeed: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredCreators.map((creator) => (
             <CreatorCard
-              key={creator.uid}
-              id={creator.uid}
+              key={creator.id}
+              id={creator.id}
               username={creator.username}
               displayName={creator.displayName || creator.username}
               avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'}
               bio={creator.bio || 'Aucune bio disponible'}
-              followersCount={followersCount[creator.uid] || 0}
+              followersCount={followersCount[creator.id] || 0}
               isOnline={creator.isOnline || false}
             />
           ))}

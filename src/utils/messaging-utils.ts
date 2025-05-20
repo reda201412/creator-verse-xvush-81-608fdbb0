@@ -1,168 +1,77 @@
 
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs, 
-  addDoc, 
-  doc, 
-  writeBatch, 
-  serverTimestamp, 
-  Timestamp, 
-  getDoc,
-  limit,
-  startAfter, // Ajout pour la pagination
-  updateDoc   // Ajout pour markMessagesAsRead
-} from 'firebase/firestore';
-import { db } from '@/integrations/firebase/firebase';
-import { 
-  FirestoreMessageThread, 
-  FirestoreMessage 
-} from './create-conversation-utils'; // Réutiliser les types définis là-bas
-import { MessageType } from '@/types/messaging'; // Types existants
+// Utility functions for messaging
+import { FirestoreMessage, FirestoreMessageThread } from './create-conversation-utils';
 
-// Récupère les fils de discussion pour un utilisateur donné (métadonnées uniquement)
-export const fetchUserThreads = async (userId: string): Promise<FirestoreMessageThread[]> => {
-  try {
-    const q = query(
-      collection(db, 'messageThreads'),
-      where('participantIds', 'array-contains', userId),
-      orderBy('lastActivity', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    const threads: FirestoreMessageThread[] = querySnapshot.docs.map(threadDoc => {
-      const threadData = threadDoc.data() as Omit<FirestoreMessageThread, 'id' | 'messages'>;
-      return {
-        id: threadDoc.id,
-        ...threadData,
-        messages: [] // Initialiser avec un tableau de messages vide, seront chargés à la demande
-      } as FirestoreMessageThread;
-    });
-    return threads;
-  } catch (error) {
-    console.error('Error fetching user threads metadata from Firestore:', error);
-    return [];
+/**
+ * Format a timestamp for display
+ * @param timestamp - The timestamp to format
+ * @returns Formatted timestamp string
+ */
+export const formatMessageTimestamp = (timestamp: any): string => {
+  if (!timestamp) return '';
+  
+  let date;
+  if (typeof timestamp === 'object' && timestamp.seconds) {
+    // Firebase Timestamp
+    date = new Date(timestamp.seconds * 1000);
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === 'string') {
+    date = new Date(timestamp);
+  } else {
+    return '';
+  }
+  
+  const now = new Date();
+  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 3600 * 24));
+  
+  if (diffInDays === 0) {
+    // Today - show time only
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (diffInDays === 1) {
+    // Yesterday
+    return 'Hier';
+  } else if (diffInDays < 7) {
+    // Within a week - show day name
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    return days[date.getDay()];
+  } else {
+    // More than a week ago - show date
+    return date.toLocaleDateString();
   }
 };
 
-// Récupère les messages pour un fil de discussion spécifique (avec pagination optionnelle)
-export const fetchMessagesForThread = async (
-  threadId: string, 
-  limitCount = 20, 
-  lastVisibleDoc: any = null // Le dernier document visible de la requête précédente pour la pagination
-): Promise<{ messages: FirestoreMessage[], newLastVisibleDoc: any }> => {
-  try {
-    let messagesQuery;
-    const messagesCollectionRef = collection(db, 'messageThreads', threadId, 'messages');
-
-    if (lastVisibleDoc) {
-      messagesQuery = query(
-        messagesCollectionRef,
-        orderBy('createdAt', 'desc'), // Récupérer les plus récents en premier pour la pagination inversée
-        startAfter(lastVisibleDoc),
-        limit(limitCount)
-      );
-    } else {
-      messagesQuery = query(
-        messagesCollectionRef,
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
-    }
-    
-    const messagesSnapshot = await getDocs(messagesQuery);
-    const messages: FirestoreMessage[] = messagesSnapshot.docs
-      .map(msgDoc => ({
-        id: msgDoc.id,
-        ...(msgDoc.data() as Omit<FirestoreMessage, 'id'>)
-      }))
-      .reverse(); // Inverser pour avoir les plus anciens en premier dans l'UI (ordre chronologique)
-
-    const newLastVisibleDoc = messagesSnapshot.docs[messagesSnapshot.docs.length - 1];
-    return { messages, newLastVisibleDoc };
-
-  } catch (error) {
-    console.error(`Error fetching messages for thread ${threadId}:`, error);
-    return { messages: [], newLastVisibleDoc: null };
-  }
+/**
+ * Convert Firestore message thread to app message thread format
+ * @param firestoreThread - The Firestore message thread
+ * @returns Converted message thread
+ */
+export const convertFirestoreThreadToAppThread = (firestoreThread: FirestoreMessageThread): any => {
+  return {
+    id: firestoreThread.id,
+    participants: firestoreThread.participantIds || [],
+    name: firestoreThread.name || '',
+    lastActivity: firestoreThread.lastActivity || new Date(),
+    messages: (firestoreThread.messages || []).map(convertFirestoreMessageToAppMessage),
+    isEncrypted: false, // Default value, should be determined based on actual data
+    createdAt: firestoreThread.createdAt || new Date(),
+  };
 };
 
-// Envoie un message et met à jour le fil de discussion parent
-export const sendMessage = async ({
-  threadId,
-  senderId,
-  // senderName, // N'est plus passé, car on suppose qu'il est dans participantInfo du thread
-  // senderAvatar, // N'est plus passé
-  content,
-  isEncrypted = false,
-  monetizationData = null,
-  messageType = 'text' as MessageType,
-}: {
-  threadId: string;
-  senderId: string;
-  content: string;
-  isEncrypted?: boolean;
-  monetizationData?: any;
-  messageType?: MessageType;
-}): Promise<FirestoreMessage> => {
-  try {
-    const batch = writeBatch(db);
-    const now = serverTimestamp() as Timestamp;
-    const threadRef = doc(db, 'messageThreads', threadId);
-    const newMessageRef = doc(collection(threadRef, 'messages'));
-
-    const messageData: Omit<FirestoreMessage, 'id'> = {
-      senderId,
-      content,
-      type: messageType,
-      createdAt: now,
-      isEncrypted,
-      ...(monetizationData && { monetization: monetizationData }), 
-    };
-    batch.set(newMessageRef, messageData);
-
-    // Mettre à jour le fil de discussion parent
-    // Récupérer le displayName du sender depuis le thread pour lastMessageSenderName (optionnel)
-    batch.update(threadRef, {
-      lastMessageText: content.length > 100 ? content.substring(0, 97) + "..." : content,
-      lastMessageSenderId: senderId,
-      lastMessageCreatedAt: now,
-      lastActivity: now,
-      // Optionnel: mettre à jour readStatus pour que l'expéditeur ait lu son propre message
-      [`readStatus.${senderId}`]: now 
-    });
-
-    await batch.commit();
-    return {
-      id: newMessageRef.id,
-      ...messageData,
-      createdAt: Timestamp.now() // Simuler le timestamp pour l'UI
-    } as FirestoreMessage;
-
-  } catch (error) {
-    console.error('Error sending message to Firestore:', error);
-    throw error;
-  }
-};
-
-// Marque les messages comme lus dans un fil pour un utilisateur donné en mettant à jour son timestamp lastReadAt
-export const markMessagesAsRead = async (threadId: string, userId: string): Promise<boolean> => {
-  try {
-    const threadRef = doc(db, 'messageThreads', threadId);
-    
-    // Mettre à jour/créer un champ lastReadAt pour l'utilisateur dans une map `readStatus`
-    // readStatus: { [userId]: Timestamp }
-    // Cela marque tous les messages *avant* ce timestamp comme lus par cet utilisateur.
-    const updateData:any = {};
-    updateData[`readStatus.${userId}`] = serverTimestamp();
-
-    await updateDoc(threadRef, updateData);
-    
-    console.log(`Thread ${threadId} marked as read up to now for user ${userId}`);
-    return true;
-  } catch (error) {
-    console.error('Error marking thread as read in Firestore:', error);
-    return false;
-  }
+/**
+ * Convert Firestore message to app message format
+ * @param firestoreMessage - The Firestore message
+ * @returns Converted message
+ */
+export const convertFirestoreMessageToAppMessage = (firestoreMessage: FirestoreMessage): any => {
+  return {
+    id: firestoreMessage.id,
+    senderId: firestoreMessage.senderId,
+    senderName: firestoreMessage.sender_name || '',
+    content: firestoreMessage.content,
+    timestamp: firestoreMessage.createdAt || new Date(),
+    status: firestoreMessage.status || 'sent',
+    isEncrypted: firestoreMessage.isEncrypted || false,
+    monetization: firestoreMessage.monetization || null,
+  };
 };

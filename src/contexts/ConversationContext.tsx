@@ -1,18 +1,19 @@
 
 import React, { createContext, useContext, useState } from 'react';
+import { FirestoreMessageThread } from '@/utils/create-conversation-utils';
 
 interface ConversationContextType {
-  conversations: any[];
-  selectedConversation: any | null;
-  setSelectedConversation: (conversation: any | null) => void;
+  conversations: FirestoreMessageThread[];
+  selectedConversation: FirestoreMessageThread | null;
+  setSelectedConversation: (conversation: FirestoreMessageThread | null) => void;
   updateConversation: (conversationId: string, updates: any) => Promise<void>;
 }
 
 const ConversationContext = createContext<ConversationContextType | undefined>(undefined);
 
 export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [conversations, setConversations] = useState<FirestoreMessageThread[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<FirestoreMessageThread | null>(null);
 
   const updateConversation = async (conversationId: string, updates: any) => {
     // Mock implementation
@@ -24,7 +25,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     
     // If the selected conversation is being updated, update that too
     if (selectedConversation?.id === conversationId) {
-      setSelectedConversation(prev => ({ ...prev, ...updates }));
+      setSelectedConversation(prev => prev ? { ...prev, ...updates } : null);
     }
   };
 

@@ -3,16 +3,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversation } from '@/contexts/ConversationContext';
 import { toast } from 'sonner';
-import { db } from '@/firebase';
-import { FirestoreMessage, FirestoreMessageThread, ExtendedFirestoreMessageThread } from '@/vite-env';
+import { db } from '@/contexts/firebase-mock';
+import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useInfiniteQuery } from '@tanstack/react-query';
+
+interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+  messages: FirestoreMessage[];
+  readStatus?: Record<string, any>;
+  lastMessageCreatedAt?: any;
+  lastMessageSenderId?: string;
+  lastVisibleDoc?: any;
+}
 
 // Mock firebase/functions
 const getFunctions = () => ({});
-const httpsCallable = () => async (...args) => ({ data: { messages: [], newLastVisibleDoc: null } });
+const httpsCallable = () => async () => ({ data: { messages: [], newLastVisibleDoc: null } });
 
 // Mock scroll listener hook
-const useBottomScrollListener = (ref, callback) => {
+const useBottomScrollListener = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -41,7 +49,7 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [lastVisibleDoc, setLastVisibleDoc] = useState<any>(null);
-  const bottomBoundaryRef = useRef(null);
+  const bottomBoundaryRef = useRef<HTMLDivElement>(null);
   const [isGated, setIsGated] = useState(false);
   const [isPremiumContent, setIsPremiumContent] = useState(false);
   
@@ -53,23 +61,24 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
     
     try {
       // Fetch more messages from the backend      
-      const result = await httpsCallable(getFunctions(), 'getMoreMessages')(selectedConversation.id);
+      const result = await httpsCallable(getFunctions())();
+      const data = result.data as { messages: any[], newLastVisibleDoc: any };
       
-      if (result.data.messages.length === 0) {
+      if (data.messages.length === 0) {
         setHasMoreMessages(false);
         return;
       }
       
       // Update the lastVisibleDoc reference from the result
-      setLastVisibleDoc(result.data.newLastVisibleDoc);
+      setLastVisibleDoc(data.newLastVisibleDoc);
       
-      const newMessages: FirestoreMessage[] = result.data.messages.map((doc: any) => ({
+      const newMessages: FirestoreMessage[] = data.messages.map((doc: any) => ({
         id: doc.id,
         ...doc.data
       }));
       
       setMessages(prevMessages => [...prevMessages, ...newMessages]);
-      setHasMoreMessages(result.data.messages.length >= 10);
+      setHasMoreMessages(data.messages.length >= 10);
     } catch (error) {
       console.error("Error fetching more messages:", error);
       toast.error("Impossible de charger plus de messages");
@@ -109,11 +118,11 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
     
     try {
       const newMessage: Omit<FirestoreMessage, 'id'> = {
-        senderId: user.id || user.uid,
+        senderId: user.uid || user.id || '',
         content: input,
         type: 'text',
         createdAt: new Date(),
-        sender_name: user.username || user.email,
+        sender_name: user.username || user.email || '',
         sender_avatar: user.profileImageUrl || null,
       };
       
@@ -133,7 +142,7 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
           updateConversation(selectedConversation.id, {
             lastActivity: new Date(),
             lastMessageText: input,
-            lastMessageSenderId: user.id || user.uid,
+            lastMessageSenderId: user.uid || user.id || '',
           });
         }
       }, 500);
@@ -164,7 +173,7 @@ const SecureMessaging: React.FC<Props> = ({ selectedConversation }) => {
           <div
             key={message.id}
             className={`mb-2 p-2 rounded-lg ${
-              message.senderId === (user?.id || user?.uid) 
+              message.senderId === (user?.uid || user?.id || '') 
                 ? 'bg-blue-100 ml-auto text-right' 
                 : 'bg-gray-100 mr-auto text-left'
             }`}

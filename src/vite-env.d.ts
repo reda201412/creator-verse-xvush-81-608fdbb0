@@ -6,6 +6,7 @@ interface User {
   uid: string;
   email: string;
   username?: string;
+  displayName?: string;
   profileImageUrl?: string;
 }
 
@@ -50,6 +51,7 @@ interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
   readStatus?: Record<string, any>;
   name?: string;
+  participants?: string[]; // Added for compatibility with ConversationView
   lastMessageCreatedAt?: any;
   lastMessageSenderId?: string;
   lastVisibleDoc?: any;
@@ -112,6 +114,7 @@ interface CreatorProfileData {
   avatarUrl: string;
   coverImageUrl?: string;
   isPremium?: boolean;
+  isOnline?: boolean;
   metrics?: {
     followers?: number;
     likes?: number;
@@ -131,7 +134,9 @@ interface WalletResponse {
   subscription?: {
     status: string;
     expiry: string;
+    expires_at?: string;
     level: string;
+    subscription_tiers?: any[];
   };
 }
 

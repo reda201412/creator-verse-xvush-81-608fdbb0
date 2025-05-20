@@ -1,181 +1,159 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Message } from '@/types/messaging';
-import { Lock, Zap, Eye, Heart } from 'lucide-react';
+import { formatMessageTimestamp } from '@/utils/messaging-utils';
+import { Lock, Zap, CheckCheck, Check, Image, FileText, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isEncrypted } from '@/utils/encryption';
-import { Spinner } from '@/components/ui/spinner';
+import { FirestoreMessage } from '@/utils/create-conversation-utils';
 
 interface MessageBubbleProps {
-  message: Message;
+  message: FirestoreMessage;
   isCurrentUser: boolean;
-  isEphemeral?: boolean;
-  isRevealed?: boolean;
-  onReveal?: () => void;
   sessionKey: string;
-  decryptMessage?: (message: Message) => Promise<string>;
+  decryptMessage?: (message: FirestoreMessage) => Promise<string>;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isCurrentUser,
-  isEphemeral = false,
-  isRevealed = false,
-  onReveal,
   sessionKey,
   decryptMessage
 }) => {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
-  const [showDecrypted, setShowDecrypted] = useState(false);
-  const hasMonetization = !!message.monetization;
+  const [showOptions, setShowOptions] = useState(false);
   
   const handleDecrypt = async () => {
-    if (!decryptMessage || !isEncrypted(message.content)) return;
+    if (!decryptMessage) return;
     
     setIsDecrypting(true);
     try {
       const content = await decryptMessage(message);
       setDecryptedContent(content);
-      setShowDecrypted(true);
     } catch (error) {
-      console.error("Error decrypting:", error);
+      console.error('Failed to decrypt message:', error);
+      setDecryptedContent('Failed to decrypt message');
     } finally {
       setIsDecrypting(false);
     }
   };
-
-  const renderContent = () => {
-    // If content is encrypted and we have decrypted it
-    if (isEncrypted(message.content) && decryptedContent && showDecrypted) {
-      return <p className="text-sm whitespace-pre-wrap">{decryptedContent}</p>;
-    }
-    
-    // If content is encrypted but not yet decrypted
-    if (isEncrypted(message.content)) {
+  
+  const renderMessageContent = () => {
+    if (message.isEncrypted && !decryptedContent) {
       return (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1 text-green-500 dark:text-green-400">
-            <Lock size={14} />
-            <span className="text-xs font-medium">Message chiffré</span>
+        <div className="flex flex-col">
+          <div className="flex items-center mb-1">
+            <Lock className="h-3 w-3 mr-1" />
+            <span className="text-xs">Message chiffré</span>
           </div>
           <Button 
-            variant="secondary" 
+            variant="ghost" 
             size="sm" 
-            onClick={handleDecrypt}
+            onClick={handleDecrypt} 
             disabled={isDecrypting}
-            className="w-full"
+            className="text-xs h-6"
           >
-            {isDecrypting ? (
-              <Spinner size="sm" className="mr-2" />
-            ) : (
-              <Eye size={14} className="mr-2" />
-            )}
-            Déchiffrer
+            {isDecrypting ? 'Déchiffrement...' : 'Déchiffrer'}
           </Button>
         </div>
       );
     }
     
-    // Regular content
-    return <p className="text-sm whitespace-pre-wrap">{message.content as string}</p>;
+    // If we have decrypted content or the message isn't encrypted
+    const contentToRender = decryptedContent || message.content;
+    
+    if (message.type === 'image') {
+      return (
+        <div className="relative rounded overflow-hidden">
+          <img 
+            src={contentToRender} 
+            alt="Image" 
+            className="w-full max-h-48 object-cover"
+          />
+          <div className="absolute bottom-1 right-1 bg-black/50 rounded-full p-1">
+            <Image className="h-3 w-3 text-white" />
+          </div>
+        </div>
+      );
+    } else if (message.type === 'video') {
+      return (
+        <div className="relative rounded overflow-hidden">
+          <video 
+            src={contentToRender}
+            className="w-full max-h-48 object-cover"
+            controls
+          />
+          <div className="absolute top-1 right-1 bg-black/50 rounded-full p-1">
+            <Video className="h-3 w-3 text-white" />
+          </div>
+        </div>
+      );
+    } else if (message.type === 'file') {
+      return (
+        <div className="flex items-center p-2 bg-background rounded border">
+          <FileText className="h-4 w-4 mr-2" />
+          <span className="text-sm truncate">{contentToRender}</span>
+        </div>
+      );
+    }
+    
+    return <span>{contentToRender}</span>;
   };
-
+  
+  const renderTimestamp = () => {
+    return (
+      <div className="text-xs text-muted-foreground flex items-center">
+        <span>{formatMessageTimestamp(message.createdAt)}</span>
+        {isCurrentUser && (
+          <span className="ml-1">
+            {message.status === 'read' ? (
+              <CheckCheck className="h-3 w-3" />
+            ) : (
+              <Check className="h-3 w-3" />
+            )}
+          </span>
+        )}
+      </div>
+    );
+  };
+  
   return (
-    <div className={cn(
-      "flex mb-2",
-      isCurrentUser ? "justify-end" : "justify-start"
-    )}>
-      <div className={cn(
-        "max-w-[80%] flex",
-        isCurrentUser ? "flex-row-reverse" : "flex-row"
-      )}>
-        {!isCurrentUser && (
-          <div className="mr-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white overflow-hidden">
-              {message.senderAvatar ? (
-                <img 
-                  src={message.senderAvatar} 
-                  alt={message.senderName} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                message.senderName.charAt(0).toUpperCase()
-              )}
-            </div>
+    <div
+      className={cn(
+        "group flex flex-col mb-2 max-w-[80%]",
+        isCurrentUser ? "self-end items-end" : "self-start items-start"
+      )}
+      onMouseEnter={() => setShowOptions(true)}
+      onMouseLeave={() => setShowOptions(false)}
+    >
+      <div
+        className={cn(
+          "relative rounded-lg px-3 py-2",
+          isCurrentUser
+            ? "bg-primary text-primary-foreground rounded-br-none"
+            : "bg-muted text-foreground rounded-bl-none"
+        )}
+      >
+        {message.monetization && (
+          <div className="absolute -top-3 -right-2 bg-amber-500 text-white rounded-full p-1">
+            <Zap className="h-3 w-3" />
           </div>
         )}
         
-        <div className={cn(
-          "flex flex-col",
-          isCurrentUser ? "items-end" : "items-start"
-        )}>
-          {!isCurrentUser && (
-            <span className="text-xs text-muted-foreground mb-1">{message.senderName}</span>
-          )}
-          
-          <div className={cn(
-            "rounded-2xl py-2 px-3 group relative",
-            isCurrentUser 
-              ? "bg-primary text-primary-foreground dark:bg-primary/90 rounded-tr-none" 
-              : "bg-muted/60 dark:bg-muted/30 backdrop-blur-sm rounded-tl-none",
-            hasMonetization && (isCurrentUser 
-              ? "border-l-4 border-amber-400" 
-              : "border-r-4 border-amber-400"
-            ),
-            message.isEncrypted && "border border-green-400/20",
-            "transition-all duration-300"
-          )}>
-            {/* Indicateurs de sécurité et premium */}
-            <div className={cn(
-              "absolute -top-2",
-              isCurrentUser ? "-left-2" : "-right-2",
-              "flex space-x-1"
-            )}>
-              {message.isEncrypted && (
-                <div className="bg-green-500 rounded-full p-1 shadow-lg">
-                  <Lock size={10} className="text-white" />
-                </div>
-              )}
-              {hasMonetization && (
-                <div className="bg-amber-400 rounded-full p-1 shadow-lg">
-                  <Heart size={10} className="text-amber-900" />
-                </div>
-              )}
-            </div>
-            
-            {/* Contenu du message */}
-            <motion.div
-              initial={{ opacity: 0.8 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              {renderContent()}
-            </motion.div>
+        {!isCurrentUser && message.sender_name && (
+          <div className="text-xs font-medium mb-1">
+            {message.sender_name}
           </div>
-          
-          <span className="text-[10px] text-muted-foreground mt-1">
-            {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-            {message.isEncrypted && <span className="ml-1">• {showDecrypted ? "Déchiffré" : "Chiffré"}</span>}
-          </span>
-          
-          {hasMonetization && (
-            <div className={cn(
-              "flex items-center mt-1",
-              isCurrentUser ? "justify-end" : "justify-start"
-            )}>
-              <span className="text-xs text-amber-500 flex items-center">
-                <Zap size={10} className="mr-1" />
-                {message.monetization?.tier} · {message.monetization?.price} USDT
-              </span>
-            </div>
-          )}
+        )}
+        
+        {renderMessageContent()}
+        
+        <div className="mt-1 text-right">
+          {renderTimestamp()}
         </div>
       </div>
     </div>
   );
 };
 
-export default React.memo(MessageBubble);
+export default MessageBubble;

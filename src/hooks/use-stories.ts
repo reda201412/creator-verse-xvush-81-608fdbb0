@@ -1,220 +1,194 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/contexts/firebase-mock';
+import { toast } from 'sonner';
+import { FirestoreStory } from '@/vite-env';
 
-// Mock firestore functions and DB
-const collection = (db, path) => ({ path });
-const query = (collectionRef, ...args) => ({ collectionRef, args });
-const where = (field, operator, value) => ({ field, operator, value });
-const orderBy = (field, direction) => ({ field, direction });
-const limit = (n) => ({ limit: n });
-const serverTimestamp = () => new Date().toISOString();
-
-// Mock db
-const db = {};
-
-// Mock getDocs function
-const getDocs = async (query) => {
-  // Return mock data
-  const docs = [
-    {
-      id: 'story1',
-      data: () => ({
-        creatorId: 'user1',
-        mediaUrl: 'https://example.com/story1.mp4',
-        thumbnailUrl: 'https://example.com/story1.jpg',
-        caption: 'My first story',
-        filterUsed: 'none',
-        format: '16:9',
-        duration: 15,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 86400000).toISOString(),
-        viewCount: 10,
-        isHighlighted: false,
-        metadata: {}
-      })
-    }
-  ];
-  return { 
-    docs,
-    empty: docs.length === 0
-  };
-};
-
-// Mock addDoc function
-const addDoc = async (collectionRef, data) => {
-  console.log('Adding doc to collection', collectionRef.path, data);
-  return { id: `story_${Date.now()}` };
-};
+// Define Story type
+interface Story {
+  id: string;
+  creator_id: string;
+  creator_name?: string;
+  creator_avatar?: string;
+  media_url: string;
+  thumbnail_url?: string;
+  caption?: string;
+  filter_used?: string;
+  format: '16:9' | '9:16' | '1:1';
+  duration: number;
+  created_at: string;
+  expires_at: string;
+  view_count: number;
+  is_highlighted: boolean;
+  metadata?: any;
+  viewed?: boolean;
+}
 
 const useStories = () => {
   const { user } = useAuth();
-  const [stories, setStories] = useState<any[]>([]);
-  const [storyGroups, setStoryGroups] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const mapFirestoreStoryToStory = (firestoreStory: any): any => {
+  // Function to map Firestore stories to our app's Story format
+  const mapFirestoreToStory = (firestoreStory: FirestoreStory): Story => {
     return {
       id: firestoreStory.id,
       creator_id: firestoreStory.creatorId,
       media_url: firestoreStory.mediaUrl,
-      thumbnail_url: firestoreStory.thumbnailUrl || '',
-      caption: firestoreStory.caption || '',
-      filter_used: firestoreStory.filterUsed || '',
+      thumbnail_url: firestoreStory.thumbnailUrl,
+      caption: firestoreStory.caption,
+      filter_used: firestoreStory.filterUsed,
       format: firestoreStory.format as '16:9' | '9:16' | '1:1',
       duration: firestoreStory.duration,
       created_at: firestoreStory.createdAt,
       expires_at: firestoreStory.expiresAt,
       view_count: firestoreStory.viewCount,
-      is_highlighted: firestoreStory.isHighlighted || false,
-      metadata: firestoreStory.metadata || {},
-      viewed: firestoreStory.viewed || false,
+      is_highlighted: firestoreStory.isHighlighted,
+      metadata: firestoreStory.metadata,
+      viewed: firestoreStory.viewed
     };
   };
 
-  const fetchActiveStories = async () => {
+  // Fetch stories from Firestore
+  const fetchStories = async () => {
+    setLoadingStories(true);
+    setError(null);
+
     try {
-      setIsLoading(true);
-      setError(null);
+      // Mock data for now
+      const mockStoriesData: FirestoreStory[] = [
+        {
+          id: '1',
+          creatorId: 'creator1',
+          mediaUrl: 'https://example.com/video1.mp4',
+          thumbnailUrl: 'https://example.com/thumb1.jpg',
+          caption: 'My first story',
+          format: '9:16',
+          duration: 15,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          viewCount: 120,
+          isHighlighted: true,
+        },
+        {
+          id: '2',
+          creatorId: 'creator2',
+          mediaUrl: 'https://example.com/video2.mp4',
+          format: '16:9',
+          duration: 20,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          viewCount: 85,
+          isHighlighted: false,
+        }
+      ];
 
-      const now = new Date();
-      const storiesRef = collection(db, 'stories');
-      const activeStoriesQuery = query(
-        storiesRef,
-        where('expiresAt', '>=', now.toISOString()),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-
-      const querySnapshot = await getDocs(activeStoriesQuery);
-      const responseData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      const mappedStories = responseData.map(firestoryStory => mapFirestoreStoryToStory(firestoryStory));
+      const mappedStories = mockStoriesData.map(mapFirestoreToStory);
       setStories(mappedStories);
-      
-      // Group stories by creator
-      const groups = mappedStories.reduce((acc, story) => {
-        const creatorId = story.creator_id;
-        if (!acc[creatorId]) {
-          acc[creatorId] = {
-            creator: {
-              id: creatorId,
-              username: `user_${creatorId}`,
-              display_name: `User ${creatorId}`,
-              avatar_url: `https://i.pravatar.cc/150?u=${creatorId}`
-            },
-            stories: [],
-            hasUnviewed: false
-          };
-        }
-        
-        acc[creatorId].stories.push(story);
-        if (!story.viewed) {
-          acc[creatorId].hasUnviewed = true;
-        }
-        
-        return acc;
-      }, {});
-      
-      setStoryGroups(Object.values(groups));
-      
-    } catch (error: any) {
-      console.error("Error fetching stories:", error);
-      setError(error.message || "Failed to fetch stories");
+    } catch (err) {
+      console.error('Error fetching stories:', err);
+      setError('Failed to load stories');
+      toast.error('Failed to load stories');
     } finally {
-      setIsLoading(false);
-      setLoading(false);
+      setLoadingStories(false);
     }
   };
 
-  const checkIfUserCreatedStoriesInLast24Hours = async () => {
+  // Upload a new story
+  const uploadStory = async (file: File, caption?: string) => {
+    if (!user?.uid && !user?.id) {
+      toast.error('You must be logged in to upload a story');
+      return { success: false };
+    }
+
     try {
-      if (!user?.uid && !user?.id) return false;
+      // Mock story upload
+      const newStory: Story = {
+        id: `story_${Date.now()}`,
+        creator_id: user?.uid || user?.id || '',
+        media_url: URL.createObjectURL(file),
+        caption: caption || '',
+        format: '9:16',
+        duration: 15,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+        view_count: 0,
+        is_highlighted: false,
+      };
 
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      setStories(prev => [newStory, ...prev]);
+      toast.success('Story uploaded successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('Error uploading story:', err);
+      toast.error('Failed to upload story');
+      return { success: false, error: err };
+    }
+  };
 
-      const storiesRef = collection(db, 'stories');
-      const userStoriesQuery = query(
-        storiesRef,
-        where('creatorId', '==', user.uid || user.id),
-        where('createdAt', '>=', twentyFourHoursAgo.toISOString()),
-        limit(1)
+  // Mark a story as viewed
+  const markStoryAsViewed = async (storyId: string) => {
+    try {
+      setStories(prev => 
+        prev.map(story => 
+          story.id === storyId 
+            ? { ...story, viewed: true, view_count: story.view_count + 1 } 
+            : story
+        )
       );
-
-      const querySnapshot = await getDocs(userStoriesQuery);
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error("Error checking user stories:", error);
-      setError("Failed to check user stories");
+      
+      // If user is logged in, record their view
+      if (user?.uid || user?.id) {
+        console.log(`User ${user?.uid || user?.id} viewed story ${storyId}`);
+        // Mock API call to record view
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error marking story as viewed:', err);
       return false;
     }
   };
 
-  const createStory = async (storyData: any) => {
+  // Highlight or unhighlight a story
+  const toggleHighlight = async (storyId: string) => {
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const storiesRef = collection(db, 'stories');
-      await addDoc(storiesRef, {
-        creatorId: user?.uid || user?.id,
-        mediaUrl: storyData.mediaUrl,
-        thumbnailUrl: storyData.thumbnailUrl,
-        caption: storyData.caption,
-        filterUsed: storyData.filterUsed,
-        format: storyData.format,
-        duration: storyData.duration,
-        createdAt: serverTimestamp(),
-        expiresAt: storyData.expiresAt,
-        viewCount: 0,
-        isHighlighted: false,
-        metadata: storyData.metadata,
-      });
-
-      try {
-        const response = await fetch(`/api/stories`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(storyData),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to create story: ${response.status}`);
-        }
-      } catch (err) {
-        console.log("API error, but continuing with local story creation", err);
-      }
-
-      await fetchActiveStories();
-    } catch (error: any) {
-      console.error("Error creating story:", error);
-      setError(error.message || "Failed to create story");
-    } finally {
-      setIsLoading(false);
+      setStories(prev => 
+        prev.map(story => 
+          story.id === storyId 
+            ? { ...story, is_highlighted: !story.is_highlighted } 
+            : story
+        )
+      );
+      
+      const story = stories.find(s => s.id === storyId);
+      const action = story?.is_highlighted ? 'removed from' : 'added to';
+      toast.success(`Story ${action} highlights`);
+      return true;
+    } catch (err) {
+      console.error('Error toggling story highlight:', err);
+      toast.error('Failed to update highlights');
+      return false;
     }
   };
 
+  // Load stories on mount or when user changes
   useEffect(() => {
-    fetchActiveStories();
-  }, []);
+    if (user) {
+      fetchStories();
+    }
+  }, [user]);
 
   return {
     stories,
-    storyGroups,
-    isLoading,
-    loading,
+    loadingStories,
     error,
-    fetchActiveStories,
-    checkIfUserCreatedStoriesInLast24Hours,
-    createStory,
+    uploadStory,
+    markStoryAsViewed,
+    toggleHighlight,
+    fetchStories,
   };
 };
 

@@ -19,7 +19,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
   onOpenChange 
 }) => {
   const { user } = useAuth();
-  const { walletInfo, getWalletInfo, isLoading, loading } = useTronWallet();
+  const { walletInfo, getWalletInfo, isLoading } = useTronWallet();
   const [activeTab, setActiveTab] = useState('balance');
   
   // Fetch wallet info when modal opens
@@ -27,7 +27,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
     if (open && user) {
       getWalletInfo();
     }
-  }, [open, user]);
+  }, [open, user, getWalletInfo]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -36,7 +36,7 @@ const WalletModal: React.FC<WalletModalProps> = ({
           <DialogTitle>Portefeuille</DialogTitle>
         </DialogHeader>
 
-        {(isLoading || loading) ? (
+        {(isLoading) ? (
           <div className="flex justify-center items-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>

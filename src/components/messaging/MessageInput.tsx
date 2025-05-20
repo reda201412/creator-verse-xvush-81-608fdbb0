@@ -1,189 +1,184 @@
 
-import React, { useRef, useState } from 'react';
-import { SendHorizontal, Image, Smile, Paperclip, HeartHandshake, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { Paperclip, Image, Send, Smile, Zap, Lock } from 'lucide-react';
 import { MonetizationTier } from '@/types/messaging';
 
 interface MessageInputProps {
-  onSendMessage: (message: string) => void;
-  isComposing?: boolean;
-  setIsComposing?: (isComposing: boolean) => void;
-  monetizationEnabled?: boolean;
+  onSendMessage: (content: string) => void;
+  isComposing: boolean;
+  setIsComposing: (composing: boolean) => void;
+  monetizationEnabled: boolean;
   onToggleMonetization?: () => void;
-  monetizationTier?: MonetizationTier;
-  setMonetizationTier?: (tier: MonetizationTier) => void;
-  monetizationAmount?: number;
-  setMonetizationAmount?: (amount: number) => void;
-  disabled?: boolean;
-  placeholder?: string;
+  monetizationTier: MonetizationTier;
+  setMonetizationTier: (tier: MonetizationTier) => void;
+  monetizationAmount: number;
+  setMonetizationAmount: (amount: number) => void;
   isEncrypted?: boolean;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
-  isComposing = false,
+  isComposing,
   setIsComposing,
-  monetizationEnabled = false,
+  monetizationEnabled,
   onToggleMonetization,
-  monetizationTier = 'basic',
+  monetizationTier,
   setMonetizationTier,
-  monetizationAmount = 0,
+  monetizationAmount,
   setMonetizationAmount,
-  disabled = false,
-  placeholder = "Écrivez un message...",
-  isEncrypted = false,
+  isEncrypted = false
 }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
   
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    if (setIsComposing) {
-      setIsComposing(e.target.value.length > 0);
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Auto-resize textarea based on content
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  };
+  }, [message]);
   
-  const handleSend = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!message.trim()) return;
     
     onSendMessage(message);
     setMessage('');
     
+    // Reset height after sending
     if (textareaRef.current) {
-      textareaRef.current.focus();
+      textareaRef.current.style.height = 'auto';
     }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSubmit(e);
     }
   };
   
-  const handleImageUpload = () => {
-    toast({
-      title: "Bientôt disponible",
-      description: "L'envoi d'images sera bientôt disponible",
-    });
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    
+    // Notify about composing state
+    if (e.target.value.trim() && !isComposing) {
+      setIsComposing(true);
+    } else if (!e.target.value.trim() && isComposing) {
+      setIsComposing(false);
+    }
   };
   
   return (
-    <div className="flex flex-col space-y-2">
+    <form onSubmit={handleSubmit} className="relative">
       {monetizationEnabled && (
-        <div className="px-2 py-1 bg-amber-500/10 rounded-lg flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Zap size={16} className="text-amber-500" />
-            <span className="text-sm font-medium text-amber-500">
-              Message monétisé ({monetizationTier}) - {monetizationAmount} USDT
-            </span>
+        <div className="absolute -top-10 left-0 right-0 bg-amber-50 dark:bg-amber-900/30 p-2 rounded-t border border-amber-200 dark:border-amber-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="text-amber-500 h-4 w-4" />
+            <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Message premium</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleMonetization}
-          >
-            Annuler
-          </Button>
+          <div className="flex items-center gap-2">
+            <select 
+              value={monetizationTier}
+              onChange={(e) => setMonetizationTier(e.target.value as MonetizationTier)}
+              className="bg-transparent border border-amber-300 dark:border-amber-700 rounded px-1 py-0.5 text-xs"
+            >
+              <option value="basic">Basic</option>
+              <option value="premium">Premium</option>
+              <option value="vip">VIP</option>
+            </select>
+            <input 
+              type="number"
+              value={monetizationAmount}
+              onChange={(e) => setMonetizationAmount(Number(e.target.value))}
+              min="0.01"
+              step="0.01"
+              className="w-16 bg-transparent border border-amber-300 dark:border-amber-700 rounded px-1 py-0.5 text-xs"
+            />
+          </div>
         </div>
       )}
       
-      <div className="relative flex items-end gap-2">
-        <div className="relative flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className={cn(
-              "resize-none min-h-[60px] pr-10 pt-3 bg-white dark:bg-gray-800",
-              "border border-gray-300 dark:border-gray-700",
-              "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-              "focus:ring-1",
-              isEncrypted && "border-green-500/30 focus:ring-green-500/20",
-              disabled && "opacity-60 cursor-not-allowed"
-            )}
-            disabled={disabled}
-            rows={1}
-            style={{ height: 'auto', maxHeight: '120px' }}
-          />
-          
-          <div className="absolute right-2 bottom-2 flex space-x-1">
-            <Button 
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              onClick={handleImageUpload}
-              disabled={disabled}
-            >
-              <Image size={16} />
-            </Button>
-          </div>
-        </div>
-        
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || disabled}
-          className={cn(
-            "rounded-full h-10 w-10 flex items-center justify-center",
-            message.trim() ? "bg-primary hover:bg-primary/90" : "bg-gray-300 dark:bg-gray-700"
-          )}
-          aria-label="Envoyer"
-        >
-          <SendHorizontal size={18} />
-        </Button>
-      </div>
-      
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center space-x-1">
+      <div className={cn(
+        "flex items-end gap-2 rounded-lg border bg-background p-2",
+        monetizationEnabled && "border-amber-300 dark:border-amber-700"
+      )}>
+        <div className="flex gap-2 self-end">
           <Button
-            variant="ghost" 
+            type="button"
             size="icon"
-            className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            onClick={() => toast({
-              title: "Bientôt disponible",
-              description: "Les émojis seront bientôt disponibles",
-            })}
-            disabled={disabled}
-          >
-            <Smile size={18} />
-          </Button>
-          
-          <Button
-            variant="ghost" 
-            size="icon"
-            className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            onClick={() => toast({
-              title: "Bientôt disponible",
-              description: "Les pièces jointes seront bientôt disponibles",
-            })}
-            disabled={disabled}
-          >
-            <Paperclip size={18} />
-          </Button>
-        </div>
-        
-        {!monetizationEnabled && onToggleMonetization && (
-          <Button
             variant="ghost"
-            size="sm"
-            onClick={onToggleMonetization}
-            className="text-amber-600 hover:text-amber-700 hover:bg-amber-100/30 dark:text-amber-500 dark:hover:text-amber-400 dark:hover:bg-amber-900/30"
-            disabled={disabled}
+            className="h-8 w-8"
           >
-            <HeartHandshake size={16} className="mr-1" />
-            <span>Soutenir</span>
+            <Paperclip className="h-4 w-4" />
           </Button>
-        )}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+          >
+            <Image className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <Textarea
+          ref={textareaRef}
+          placeholder="Type a message..."
+          value={message}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          className="flex-1 resize-none border-0 focus-visible:ring-0 focus-visible:ring-transparent"
+          rows={1}
+          maxLength={2000}
+        />
+        
+        <div className="flex gap-2 self-end">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+          >
+            <Smile className="h-4 w-4" />
+          </Button>
+          
+          {onToggleMonetization && (
+            <Button
+              type="button"
+              size="icon"
+              variant={monetizationEnabled ? "default" : "ghost"}
+              className={cn(
+                "h-8 w-8", 
+                monetizationEnabled && "bg-amber-500 hover:bg-amber-600 text-white"
+              )}
+              onClick={onToggleMonetization}
+            >
+              <Zap className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {isEncrypted && (
+            <div className="flex items-center px-2">
+              <Lock className="h-3 w-3 text-green-500" />
+            </div>
+          )}
+          
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!message.trim()}
+            className="h-8 w-8"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-    </div>
+    </form>
   );
 };
 

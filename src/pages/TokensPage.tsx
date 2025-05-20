@@ -1,273 +1,323 @@
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Wallet, CreditCard, ArrowUpRight, ArrowDownLeft, 
-  BarChart3, Clock, Copy, RefreshCw
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
 import { useTronWallet } from '@/hooks/use-tron-wallet';
-import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import WalletConnect from '@/components/wallet/WalletConnect';
-import WalletBalance from '@/components/wallet/WalletBalance';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Check, Clock, CreditCard, Loader2, RefreshCcw, Wallet } from 'lucide-react';
+import { WalletConnect } from '@/components/wallet/WalletConnect';
 import TransactionList from '@/components/wallet/TransactionList';
-import TokenPurchasePanel from '@/components/monetization/TokenPurchasePanel';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 const TokensPage: React.FC = () => {
+  const { walletInfo, isLoading, getWalletInfo } = useTronWallet();
   const { user } = useAuth();
-  const { walletInfo, loading, error, getWalletInfo, createWallet } = useTronWallet();
-  const [isPurchasePanelOpen, setIsPurchasePanelOpen] = useState(false);
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
   
   useEffect(() => {
     if (user) {
       getWalletInfo();
     }
-  }, [user]);
+  }, [user, getWalletInfo]);
   
-  const handleCreateWallet = async () => {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
     try {
-      await createWallet();
-      toast.success("Portefeuille TRON créé avec succès");
-    } catch (err) {
-      toast.error("Erreur lors de la création du portefeuille");
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(date);
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+  
+  const getSubscriptionStatusColor = () => {
+    if (!walletInfo.subscription) return 'bg-gray-200 text-gray-800';
+    
+    switch (walletInfo.subscription.status) {
+      case 'active':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'expired':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
   
   const handleRefresh = () => {
     getWalletInfo();
-    toast.success("Informations du portefeuille mises à jour");
+    toast.success('Données mises à jour');
   };
   
-  const handlePurchase = async () => {
-    return new Promise<boolean>((resolve) => {
-      // Simulate purchase completion
-      setTimeout(() => {
-        toast.success("Achat de tokens réussi!");
-        getWalletInfo(); // Refresh wallet info
-        resolve(true);
-      }, 1500);
-    });
+  const handleSubscribe = (tier) => {
+    setIsLoadingSubscription(true);
+    
+    // Mock subscription process
+    setTimeout(() => {
+      toast.success(`Abonnement ${tier.name} souscrit avec succès`);
+      setIsLoadingSubscription(false);
+      getWalletInfo();
+    }, 2000);
   };
   
-  const hasWallet = walletInfo?.wallet !== null;
+  // Safely access subscription tiers with fallback
+  const subscriptionTiers = walletInfo.subscription?.subscription_tiers || [
+    { id: 'basic', name: 'Basic', price: 9.99 },
+    { id: 'premium', name: 'Premium', price: 19.99 },
+    { id: 'vip', name: 'VIP', price: 49.99 }
+  ];
   
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.1 
-      } 
-    }
-  };
+  // Safely get subscription expiry date
+  const subscriptionExpiryDate = walletInfo.subscription?.expiry || 
+                               walletInfo.subscription?.expires_at ||
+                               null;
   
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <motion.div 
-        className="space-y-6"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div variants={itemVariants}>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold">Portefeuille de Tokens</h1>
-              <p className="text-muted-foreground mt-1">
-                Gérez vos tokens, achetez du contenu premium et suivez vos transactions
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRefresh}
-                disabled={loading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Actualiser
-              </Button>
-              
-              <Button 
-                onClick={() => setIsPurchasePanelOpen(true)}
-                size="sm"
-                className="bg-gradient-to-r from-amber-500 to-amber-600"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Acheter des Tokens
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Jetons & Abonnements</h1>
+        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+        </Button>
+      </div>
+      
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Aperçu</TabsTrigger>
+          <TabsTrigger value="subscription">Abonnement</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+        </TabsList>
         
-        {error && (
-          <motion.div variants={itemVariants} className="bg-destructive/20 text-destructive p-4 rounded-lg">
-            {error}
-          </motion.div>
-        )}
-        
-        {loading && !walletInfo ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="w-full h-32 animate-pulse bg-muted" />
-            ))}
-          </div>
-        ) : !hasWallet ? (
-          <motion.div variants={itemVariants} className="text-center py-16">
-            <Wallet className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Vous n'avez pas encore de portefeuille</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Créez un portefeuille TRON pour acheter et gérer des tokens, accéder au contenu premium et soutenir vos créateurs préférés.
-            </p>
-            <Button onClick={handleCreateWallet} disabled={loading}>
-              {loading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full" />
-                  Création en cours...
-                </>
-              ) : (
-                <>
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Créer un portefeuille
-                </>
-              )}
-            </Button>
-          </motion.div>
-        ) : (
-          <>
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <WalletBalance walletInfo={walletInfo} />
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Abonnement Actif
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {walletInfo?.subscription ? (
-                    <div>
-                      <div className="text-2xl font-bold">{walletInfo.subscription.subscription_tiers.name}</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Expire le {new Date(walletInfo.subscription.expires_at).toLocaleDateString()}
-                      </div>
-                      <Button variant="outline" size="sm" className="mt-4 w-full">
-                        Renouveler
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="text-lg font-semibold">Aucun abonnement</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Abonnez-vous pour accéder au contenu premium
-                      </div>
-                      <Button variant="outline" size="sm" className="mt-4 w-full">
-                        Voir les abonnements
-                      </Button>
-                    </div>
+        <TabsContent value="overview">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex justify-between">
+                  <span>Portefeuille</span>
+                  {walletInfo.wallet?.is_verified && (
+                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">Vérifié</Badge>
                   )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Statistiques
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Contenu acheté</div>
-                      <div className="text-2xl font-bold">0</div>
+                </CardTitle>
+                <CardDescription>Gérer et recharger votre solde</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-8 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ) : walletInfo.wallet ? (
+                  <div>
+                    <div className="text-3xl font-bold">{walletInfo.wallet.balance_usdt} USDT</div>
+                    <div className="text-sm text-muted-foreground truncate mt-1">{walletInfo.wallet.tron_address}</div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-2">Pas de portefeuille connecté</p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full flex gap-2" 
+                  onClick={() => setIsWalletOpen(true)}
+                >
+                  <Wallet className="h-4 w-4" />
+                  {walletInfo.wallet ? "Accéder au portefeuille" : "Créer un portefeuille"}
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex justify-between">
+                  <span>Abonnement</span>
+                  {walletInfo.subscription && (
+                    <Badge variant="outline" className={getSubscriptionStatusColor()}>
+                      {walletInfo.subscription.status === 'active' ? 'Actif' : 
+                       walletInfo.subscription.status === 'pending' ? 'En attente' :
+                       walletInfo.subscription.status === 'expired' ? 'Expiré' : walletInfo.subscription.status}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>Votre abonnement actuel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-8 w-32" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ) : walletInfo.subscription ? (
+                  <div>
+                    <div className="text-2xl font-semibold capitalize">{walletInfo.subscription.level}</div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <Clock className="h-4 w-4" />
+                      <span>Expire le {formatDate(subscriptionExpiryDate)}</span>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Créateurs supportés</div>
-                      <div className="text-2xl font-bold">0</div>
+                    
+                    <div className="mt-4">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Période d'abonnement</span>
+                        <span>30 jours</span>
+                      </div>
+                      <Progress value={75} className="h-2" />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="mt-8">
-              <Tabs defaultValue="transactions">
-                <TabsList className="mb-6">
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                  <TabsTrigger value="purchases">Achats</TabsTrigger>
-                  <TabsTrigger value="wallet">Portefeuille</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="transactions">
-                  <Card>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-2">Pas d'abonnement actif</p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full" 
+                  variant={walletInfo.subscription ? "outline" : "default"}
+                  onClick={() => setActiveTab('subscription')}
+                >
+                  {walletInfo.subscription ? "Gérer l'abonnement" : "Souscrire à un abonnement"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Transactions récentes</CardTitle>
+              <CardDescription>Historique de vos dernières transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex justify-between">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                  ))}
+                </div>
+              ) : walletInfo.transactions && walletInfo.transactions.length > 0 ? (
+                <TransactionList 
+                  transactions={walletInfo.transactions.slice(0, 3)} 
+                  compact={true}
+                />
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">Aucune transaction récente</p>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setActiveTab('transactions')}
+              >
+                Voir toutes les transactions
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="subscription">
+          <Card>
+            <CardHeader>
+              <CardTitle>Abonnements disponibles</CardTitle>
+              <CardDescription>Choisissez un plan qui vous convient</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-3">
+                {subscriptionTiers.map((tier) => (
+                  <Card key={tier.id} className={`overflow-hidden ${walletInfo.subscription?.level === tier.id ? 'border-primary' : ''}`}>
+                    <div className={`p-1 ${walletInfo.subscription?.level === tier.id ? 'bg-primary' : 'bg-transparent'}`}></div>
                     <CardHeader>
-                      <CardTitle>Historique des transactions</CardTitle>
-                      <CardDescription>Consultez l'historique de vos transactions récentes</CardDescription>
+                      <CardTitle>{tier.name}</CardTitle>
+                      <CardDescription>{tier.description || `Access to ${tier.name} content`}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <TransactionList transactions={walletInfo?.transactions || []} />
+                      <div className="text-2xl font-bold">${tier.price}<span className="text-sm text-muted-foreground">/mois</span></div>
+                      <ul className="mt-4 space-y-2">
+                        <li className="flex items-center">
+                          <Check className="h-4 w-4 text-green-500 mr-2" />
+                          <span className="text-sm">Accès {tier.name}</span>
+                        </li>
+                      </ul>
                     </CardContent>
+                    <CardFooter>
+                      <Button 
+                        className="w-full" 
+                        variant={walletInfo.subscription?.level === tier.id ? "secondary" : "default"}
+                        disabled={isLoadingSubscription || walletInfo.subscription?.level === tier.id}
+                        onClick={() => handleSubscribe(tier)}
+                      >
+                        {isLoadingSubscription ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : walletInfo.subscription?.level === tier.id ? (
+                          "Abonnement actuel"
+                        ) : (
+                          "Souscrire"
+                        )}
+                      </Button>
+                    </CardFooter>
                   </Card>
-                </TabsContent>
-                
-                <TabsContent value="purchases">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Achats de contenu</CardTitle>
-                      <CardDescription>Votre contenu premium acheté</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-12">
-                        <div className="mx-auto h-12 w-12 text-muted-foreground mb-4">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-medium">Aucun achat pour le moment</h3>
-                        <p className="text-muted-foreground mt-1 mb-6 max-w-md mx-auto">
-                          Explorez le contenu premium de vos créateurs préférés pour faire votre premier achat.
-                        </p>
-                        <Button variant="outline">Découvrir du contenu</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="wallet">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Informations du portefeuille</CardTitle>
-                      <CardDescription>Gérez votre portefeuille TRON</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <WalletConnect walletInfo={walletInfo} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-          </>
-        )}
-      </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="transactions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historique des transactions</CardTitle>
+              <CardDescription>Visualisez toutes vos transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex justify-between">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                  ))}
+                </div>
+              ) : walletInfo.transactions && walletInfo.transactions.length > 0 ? (
+                <TransactionList transactions={walletInfo.transactions} />
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">Aucune transaction à afficher</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       
-      <TokenPurchasePanel 
-        isOpen={isPurchasePanelOpen} 
-        onClose={() => setIsPurchasePanelOpen(false)}
-        onPurchase={handlePurchase}
-      />
+      <Dialog open={isWalletOpen} onOpenChange={setIsWalletOpen}>
+        <DialogContent className="sm:max-w-md">
+          <WalletConnect 
+            isOpen={isWalletOpen}
+            onClose={() => setIsWalletOpen(false)}
+            walletInfo={walletInfo}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

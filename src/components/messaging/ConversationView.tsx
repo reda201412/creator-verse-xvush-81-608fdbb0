@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -7,17 +8,15 @@ import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { 
   Lock, Image, Video, Phone, Loader2, ArrowUpCircle
 } from 'lucide-react';
-import { FirestoreMessageThread, FirestoreMessage } from '@/utils/create-conversation-utils'; 
+import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils'; 
 import { MonetizationTier } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import { decryptMessage } from '@/utils/encryption';
 import { Timestamp } from 'firebase/firestore'; 
 
-// Extend FirestoreMessageThread to include messages
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
-  messages: FirestoreMessage[];
-  readStatus?: Record<string, Timestamp>;
+  participants?: string[];
 }
 
 interface ConversationViewProps {
@@ -120,7 +119,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         <div className="flex items-center">
           <div className="relative mr-3">
             <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
-              <img src={otherParticipant.avatarUrl || `https://i.pravatar.cc/150?u=${thread.participantIds.find(pId => pId !== userId)}`} alt={otherParticipant.displayName} className="w-full h-full object-cover" />
+              <img 
+                src={otherParticipant.avatarUrl || `https://i.pravatar.cc/150?u=${thread.participantIds.find(pId => pId !== userId)}`} 
+                alt={otherParticipant.displayName} 
+                className="w-full h-full object-cover" 
+              />
             </div>
           </div>
           <div className="flex-1"><h3 className="font-medium text-gray-900 dark:text-gray-100">{otherParticipant.displayName}</h3></div>
