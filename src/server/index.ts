@@ -26,7 +26,10 @@ export async function createServer() {
 
 // Enable starting the server directly when this file is run
 // This is compatible with ESM syntax
-if (import.meta.url === import.meta.main) {
+const isMainModule = import.meta.url.endsWith('/server/index.ts') ||
+                     import.meta.url.endsWith('/server/index.js');
+                     
+if (isMainModule) {
   const PORT = process.env.PORT || 3000;
   createServer().then(app => {
     app.listen(PORT, () => {

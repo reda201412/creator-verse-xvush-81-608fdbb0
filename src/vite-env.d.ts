@@ -50,6 +50,7 @@ interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   name?: string;
   lastMessageCreatedAt?: any;
   lastMessageSenderId?: string;
+  lastVisibleDoc?: any;
 }
 
 interface FirestoreStory {
@@ -100,13 +101,13 @@ interface TrendingContentItem {
 interface CreatorProfileData {
   id: string;
   user_id: string; 
-  userId: string; // Adding userId as not optional
-  uid: string; // Adding uid as not optional
+  userId: string;
+  uid: string;
   username: string;
   name: string;
-  displayName: string; // Making displayName not optional
+  displayName: string;
   bio?: string;
-  avatarUrl: string; // Making avatarUrl not optional
+  avatarUrl: string;
   coverImageUrl?: string;
   isPremium?: boolean;
   metrics?: {
@@ -134,7 +135,7 @@ interface TronWalletHook {
   error?: string;
   getWalletInfo: () => void;
   createWallet: () => Promise<any>;
-  requestWithdrawal?: (amount: number) => Promise<any>;
-  checkContentAccess?: (contentId: string, requiredLevel: string) => Promise<boolean>;
-  verifyTransaction?: (txData: any) => Promise<any>;
+  requestWithdrawal: (amount: number | { amount: number; destinationAddress: string }) => Promise<any>;
+  checkContentAccess: (contentId: string, requiredLevel: string) => Promise<boolean>;
+  verifyTransaction: (txData: any) => Promise<any>;
 }

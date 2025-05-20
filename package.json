@@ -59,6 +59,7 @@
     "@vercel/blob": "^1.0.1",
     "@vercel/postgres": "^0.10.0",
     "@vitejs/plugin-react": "^4.4.1",
+    "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

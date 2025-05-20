@@ -1,157 +1,37 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  startAfter,
+  where,
+} from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
-// Export the types so they're accessible from other files
-export interface FirestoreMessage {
-  id: string;
-  senderId: string;
-  content: string | any;
-  type: string;
-  createdAt: any; // Firebase Timestamp
-  isEncrypted?: boolean;
-  monetization?: any;
-  status?: string;
-  sender_name?: string;
-  sender_avatar?: string;
-}
+// Export the FirestoreMessageThread and FirestoreMessage types
+export type { FirestoreMessageThread, FirestoreMessage };
 
-// Create a type that includes the lastMessageText field, and export it
-export interface FirestoreMessageThread {
-  id: string;
-  participantIds: string[];
-  participantInfo: Record<string, any>;
-  lastActivity: any; // Firebase Timestamp
-  createdAt: any; // Firebase Timestamp
-  isGated: boolean;
-  messages: FirestoreMessage[];
-  readStatus?: Record<string, any>;
-  lastMessageText?: string;
-  lastMessageCreatedAt?: any;
-  lastMessageSenderId?: string;
-  name?: string;
-}
-
-// Helper function to generate a unique ID
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-// Function to create participant info
-function createParticipantInfo(userId: string, userName: string, userAvatar: string | null): any {
+// Add the createNewConversationWithCreator function export
+export const createNewConversationWithCreator = async (
+  userId: string,
+  creatorId: string,
+  initialMessage: string
+): Promise<any> => {
+  // Mock implementation
   return {
-    [userId]: {
-      name: userName,
-      avatar: userAvatar,
-      lastRead: null,
-      isOnline: false,
+    id: `conversation_${Date.now()}`,
+    participantIds: [userId, creatorId],
+    participantInfo: {
+      [userId]: { displayName: 'User', photoURL: null },
+      [creatorId]: { displayName: 'Creator', photoURL: null },
     },
+    lastActivity: new Date(),
+    createdAt: new Date(),
+    isGated: false,
+    messages: [],
   };
-}
-
-// Function to construct the initial message
-function createInitialMessage(senderId: string, senderName: string, senderAvatar: string, content: string): any {
-  return {
-    id: generateId(),
-    senderId: senderId,
-    senderName: senderName,
-    senderAvatar: senderAvatar,
-    content: content,
-    type: 'text',
-    timestamp: new Date().toISOString(),
-    status: 'sent',
-    isEncrypted: false,
-  };
-}
-
-// Function to update the thread's last activity
-function updateLastActivity(): string {
-  return new Date().toISOString();
-}
-
-// Function to create a new conversation thread
-export async function createConversation(data: any) {
-  try {
-    // Create thread object with properly typed fields
-    const threadData: Partial<FirestoreMessageThread> = {
-      participantIds: data.participantIds,
-      participantInfo: data.participantInfo,
-      lastActivity: data.lastActivity,
-      createdAt: data.createdAt,
-      isGated: !!data.isGated,
-      messages: [],
-      lastMessageText: data.initialMessage,
-    };
-
-    // Simulate success
-    console.log("Simulating conversation creation with data:", threadData);
-    
-    return { success: true, threadId: "new-thread-id" }; // Replace with actual return value
-  } catch (error) {
-    console.error("Error creating conversation:", error);
-    return { success: false, error };
-  }
-}
-
-// Function to create a new conversation with a creator
-export async function createNewConversationWithCreator(params: {
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  creatorId: string;
-  creatorName: string;
-  creatorAvatar: string | null;
-}) {
-  const { userId, userName, userAvatar, creatorId, creatorName, creatorAvatar } = params;
-  
-  try {
-    const threadData = {
-      participantIds: [userId, creatorId],
-      participantInfo: {
-        [userId]: {
-          name: userName,
-          avatar: userAvatar,
-          lastRead: null,
-        },
-        [creatorId]: {
-          name: creatorName,
-          avatar: creatorAvatar,
-          lastRead: null,
-        }
-      },
-      lastActivity: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      isGated: false,
-      initialMessage: "Bonjour! Je suis intéressé(e) par votre contenu."
-    };
-    
-    const result = await createConversation(threadData);
-    return result;
-  } catch (error) {
-    console.error("Error creating new conversation with creator:", error);
-    return { success: false, error };
-  }
-}
-
-// Function to fetch an existing conversation thread
-export async function getConversation(threadId: string) {
-  try {
-    // Simulate fetching the conversation
-    console.log("Simulating fetching conversation with ID:", threadId);
-    
-    return { success: true, thread: { id: threadId, messages: [] } }; // Replace with actual return value
-  } catch (error) {
-    console.error("Error fetching conversation:", error);
-    return { success: false, error };
-  }
-}
-
-// Function to send a message to a conversation thread
-export async function sendMessage(threadId: string, message: any) {
-  try {
-    // Simulate sending the message
-    console.log("Simulating sending message to thread ID:", threadId, "with message:", message);
-    
-    return { success: true, messageId: "new-message-id" }; // Replace with actual return value
-  } catch (error) {
-    console.error("Error sending message:", error);
-    return { success: false, error };
-  }
-}
+};

@@ -1,7 +1,8 @@
-// Ce fichier utilise une version adaptée du client Prisma pour le navigateur
 
-// Directly importing from the generated types to avoid issues
-import type { PrismaClient as PrismaClientType } from '../generated/prisma/index';
+// This file uses an adapted version of the Prisma client for the browser
+
+// Import from our client-prisma mock instead of direct @prisma/client import
+import type { PrismaClient as PrismaClientType } from '../lib/client-prisma';
 
 // Global type declaration for maintaining connection between hot reloads
 declare global {
@@ -11,10 +12,9 @@ declare global {
 // Alternative dynamic import approach compatible with ESM
 const getPrismaClient = async (): Promise<PrismaClientType> => {
   try {
-    const { PrismaClient } = await import('../generated/prisma/index.js');
-    return new PrismaClient({
-      log: ['query', 'info', 'warn', 'error'],
-    });
+    // Use relative path to our client mock instead
+    const { default: clientPrismaMock } = await import('../lib/client-prisma');
+    return clientPrismaMock;
   } catch (error) {
     console.error("Error importing PrismaClient:", error);
     // Fallback to empty client for browser environments

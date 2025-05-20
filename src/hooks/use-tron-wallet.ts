@@ -7,10 +7,11 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 const functions = getFunctions();
 const callWalletFunction = httpsCallable(functions, 'walletFunctions');
 
-export function useTronWallet() {
+export function useTronWallet(): TronWalletHook {
   const { user } = useAuth();
   const [walletInfo, setWalletInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
 
   const getWalletInfo = useCallback(async () => {
     if (!user?.uid && !user?.id) {
@@ -39,6 +40,7 @@ export function useTronWallet() {
       setWalletInfo(mockWalletInfo);
     } catch (error) {
       console.error("Error fetching wallet info:", error);
+      setError("Impossible de récupérer les informations du portefeuille");
       toast.error("Impossible de récupérer les informations du portefeuille");
     } finally {
       setIsLoading(false);
@@ -70,6 +72,7 @@ export function useTronWallet() {
       return mockWalletInfo;
     } catch (error) {
       console.error("Error creating wallet:", error);
+      setError("Impossible de créer le portefeuille");
       toast.error("Impossible de créer le portefeuille");
       return null;
     } finally {
@@ -77,10 +80,19 @@ export function useTronWallet() {
     }
   };
   
-  const requestWithdrawal = async (amount: number) => {
+  const requestWithdrawal = async (amountData: number | { amount: number; destinationAddress: string }) => {
     if (!walletInfo?.wallet) {
       toast.error("Aucun portefeuille trouvé");
       return false;
+    }
+    
+    let amount: number;
+    
+    // Handle both old and new format
+    if (typeof amountData === 'number') {
+      amount = amountData;
+    } else {
+      amount = amountData.amount;
     }
     
     if (walletInfo.wallet.balance_usdt < amount) {
@@ -108,6 +120,7 @@ export function useTronWallet() {
       return true;
     } catch (error) {
       console.error("Error requesting withdrawal:", error);
+      setError("Impossible de traiter le retrait");
       toast.error("Impossible de traiter le retrait");
       return false;
     } finally {
@@ -153,6 +166,7 @@ export function useTronWallet() {
     walletInfo, 
     isLoading, 
     loading,
+    error,
     getWalletInfo, 
     createWallet,
     requestWithdrawal,
