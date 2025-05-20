@@ -1,13 +1,27 @@
 
 // Mock encryption utility for message encryption/decryption
 
+export interface EncryptedContent {
+  iv: string;
+  data: string;
+  sessionKeyId: string;
+}
+
+/**
+ * Generate a session key for encryption
+ * @returns A mock session key string
+ */
+export const generateSessionKey = (): string => {
+  return `session_key_${Date.now()}`;
+};
+
 /**
  * Encrypt a message using the provided session key
  * @param content - The content to encrypt
  * @param sessionKey - The session key to use for encryption
  * @returns Encrypted content
  */
-export const encryptMessage = async (content: string, sessionKey: string): Promise<any> => {
+export const encryptMessage = async (content: string, sessionKey: string): Promise<EncryptedContent | null> => {
   // This is a mock implementation
   if (!content) return null;
   
@@ -24,7 +38,7 @@ export const encryptMessage = async (content: string, sessionKey: string): Promi
  * @param sessionKey - The session key to use for decryption
  * @returns Decrypted content
  */
-export const decryptMessage = async (encryptedContent: any, sessionKey: string): Promise<string> => {
+export const decryptMessage = async (encryptedContent: EncryptedContent | any, sessionKey: string): Promise<string> => {
   // This is a mock implementation
   if (!encryptedContent || !encryptedContent.data) {
     return "Error: Invalid encrypted content";

@@ -1,194 +1,210 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/contexts/firebase-mock';
-import { toast } from 'sonner';
-import { FirestoreStory } from '@/vite-env';
+import { db, storage } from '@/contexts/firebase-mock';
 
-// Define Story type
-interface Story {
+export interface Story {
   id: string;
   creator_id: string;
   creator_name?: string;
   creator_avatar?: string;
   media_url: string;
   thumbnail_url?: string;
-  caption?: string;
-  filter_used?: string;
   format: '16:9' | '9:16' | '1:1';
-  duration: number;
+  caption?: string;
   created_at: string;
   expires_at: string;
-  view_count: number;
+  viewed: boolean;
   is_highlighted: boolean;
-  metadata?: any;
-  viewed?: boolean;
+  is_mine?: boolean;
 }
 
-const useStories = () => {
+interface UseStoriesHookReturn {
+  stories: Story[];
+  userStories: Story[];
+  isLoading: boolean;
+  error: string | null;
+  createStory: (file: File, caption?: string, format?: string) => Promise<boolean>;
+  deleteStory: (storyId: string) => Promise<boolean>;
+  markAsViewed: (storyId: string) => Promise<void>;
+  highlightStory: (storyId: string, highlight: boolean) => Promise<boolean>;
+  getStoryCreatorInfo: (creatorId: string) => Promise<{ name: string; avatar: string } | null>;
+}
+
+const useStories = (): UseStoriesHookReturn => {
   const { user } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
-  const [loadingStories, setLoadingStories] = useState(true);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Function to map Firestore stories to our app's Story format
-  const mapFirestoreToStory = (firestoreStory: FirestoreStory): Story => {
-    return {
-      id: firestoreStory.id,
-      creator_id: firestoreStory.creatorId,
-      media_url: firestoreStory.mediaUrl,
-      thumbnail_url: firestoreStory.thumbnailUrl,
-      caption: firestoreStory.caption,
-      filter_used: firestoreStory.filterUsed,
-      format: firestoreStory.format as '16:9' | '9:16' | '1:1',
-      duration: firestoreStory.duration,
-      created_at: firestoreStory.createdAt,
-      expires_at: firestoreStory.expiresAt,
-      view_count: firestoreStory.viewCount,
-      is_highlighted: firestoreStory.isHighlighted,
-      metadata: firestoreStory.metadata,
-      viewed: firestoreStory.viewed
-    };
-  };
+  const fetchStories = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
-  // Fetch stories from Firestore
-  const fetchStories = async () => {
-    setLoadingStories(true);
+    setIsLoading(true);
     setError(null);
 
     try {
-      // Mock data for now
-      const mockStoriesData: FirestoreStory[] = [
+      // Mock data for stories
+      const mockStories: Story[] = [
         {
           id: '1',
-          creatorId: 'creator1',
-          mediaUrl: 'https://example.com/video1.mp4',
-          thumbnailUrl: 'https://example.com/thumb1.jpg',
-          caption: 'My first story',
+          creator_id: 'creator1',
+          creator_name: 'Creator One',
+          creator_avatar: 'https://i.pravatar.cc/150?img=1',
+          media_url: 'https://example.com/story1.mp4',
+          thumbnail_url: 'https://example.com/thumbnail1.jpg',
           format: '9:16',
-          duration: 15,
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 86400000).toISOString(),
-          viewCount: 120,
-          isHighlighted: true,
+          caption: 'This is story 1',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+          viewed: false,
+          is_highlighted: false
         },
         {
           id: '2',
-          creatorId: 'creator2',
-          mediaUrl: 'https://example.com/video2.mp4',
-          format: '16:9',
-          duration: 20,
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 86400000).toISOString(),
-          viewCount: 85,
-          isHighlighted: false,
+          creator_id: 'creator2',
+          creator_name: 'Creator Two',
+          creator_avatar: 'https://i.pravatar.cc/150?img=2',
+          media_url: 'https://example.com/story2.mp4',
+          thumbnail_url: 'https://example.com/thumbnail2.jpg',
+          format: '9:16',
+          caption: 'This is story 2',
+          created_at: new Date(Date.now() - 7200000).toISOString(),
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+          viewed: true,
+          is_highlighted: true
         }
       ];
 
-      const mappedStories = mockStoriesData.map(mapFirestoreToStory);
-      setStories(mappedStories);
+      // Add a mock user story
+      const mockUserStories: Story[] = [
+        {
+          id: '3',
+          creator_id: user.uid || user.id || '',
+          creator_name: user.displayName || 'You',
+          creator_avatar: user.photoURL || 'https://i.pravatar.cc/150?img=3',
+          media_url: 'https://example.com/story3.mp4',
+          thumbnail_url: 'https://example.com/thumbnail3.jpg',
+          format: '9:16',
+          caption: 'Your story',
+          created_at: new Date(Date.now() - 1800000).toISOString(),
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+          viewed: false,
+          is_highlighted: false,
+          is_mine: true
+        }
+      ];
+
+      setStories(mockStories);
+      setUserStories(mockUserStories);
     } catch (err) {
       console.error('Error fetching stories:', err);
       setError('Failed to load stories');
-      toast.error('Failed to load stories');
     } finally {
-      setLoadingStories(false);
-    }
-  };
-
-  // Upload a new story
-  const uploadStory = async (file: File, caption?: string) => {
-    if (!user?.uid && !user?.id) {
-      toast.error('You must be logged in to upload a story');
-      return { success: false };
-    }
-
-    try {
-      // Mock story upload
-      const newStory: Story = {
-        id: `story_${Date.now()}`,
-        creator_id: user?.uid || user?.id || '',
-        media_url: URL.createObjectURL(file),
-        caption: caption || '',
-        format: '9:16',
-        duration: 15,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 86400000).toISOString(),
-        view_count: 0,
-        is_highlighted: false,
-      };
-
-      setStories(prev => [newStory, ...prev]);
-      toast.success('Story uploaded successfully');
-      return { success: true };
-    } catch (err) {
-      console.error('Error uploading story:', err);
-      toast.error('Failed to upload story');
-      return { success: false, error: err };
-    }
-  };
-
-  // Mark a story as viewed
-  const markStoryAsViewed = async (storyId: string) => {
-    try {
-      setStories(prev => 
-        prev.map(story => 
-          story.id === storyId 
-            ? { ...story, viewed: true, view_count: story.view_count + 1 } 
-            : story
-        )
-      );
-      
-      // If user is logged in, record their view
-      if (user?.uid || user?.id) {
-        console.log(`User ${user?.uid || user?.id} viewed story ${storyId}`);
-        // Mock API call to record view
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('Error marking story as viewed:', err);
-      return false;
-    }
-  };
-
-  // Highlight or unhighlight a story
-  const toggleHighlight = async (storyId: string) => {
-    try {
-      setStories(prev => 
-        prev.map(story => 
-          story.id === storyId 
-            ? { ...story, is_highlighted: !story.is_highlighted } 
-            : story
-        )
-      );
-      
-      const story = stories.find(s => s.id === storyId);
-      const action = story?.is_highlighted ? 'removed from' : 'added to';
-      toast.success(`Story ${action} highlights`);
-      return true;
-    } catch (err) {
-      console.error('Error toggling story highlight:', err);
-      toast.error('Failed to update highlights');
-      return false;
-    }
-  };
-
-  // Load stories on mount or when user changes
-  useEffect(() => {
-    if (user) {
-      fetchStories();
+      setIsLoading(false);
     }
   }, [user]);
 
+  useEffect(() => {
+    fetchStories();
+  }, [fetchStories]);
+
+  const createStory = async (file: File, caption = '', format = '9:16'): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Mock file upload
+      const mediaUrl = URL.createObjectURL(file);
+      const thumbnailUrl = mediaUrl; // In a real app, generate a thumbnail
+      
+      // Create a new story
+      const newStory: Story = {
+        id: `story_${Date.now()}`,
+        creator_id: user.uid || user.id || '',
+        creator_name: user.displayName || 'You',
+        creator_avatar: user.photoURL || 'https://i.pravatar.cc/150?img=3',
+        media_url: mediaUrl,
+        thumbnail_url: thumbnailUrl,
+        format: '9:16',
+        caption,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+        viewed: false,
+        is_highlighted: false,
+        is_mine: true
+      };
+      
+      // Add to user stories
+      setUserStories(prev => [newStory, ...prev]);
+      return true;
+    } catch (err) {
+      console.error('Error creating story:', err);
+      setError('Failed to create story');
+      return false;
+    }
+  };
+
+  const deleteStory = async (storyId: string): Promise<boolean> => {
+    try {
+      setUserStories(prev => prev.filter(story => story.id !== storyId));
+      return true;
+    } catch (err) {
+      console.error('Error deleting story:', err);
+      setError('Failed to delete story');
+      return false;
+    }
+  };
+
+  const markAsViewed = async (storyId: string): Promise<void> => {
+    setStories(prev => 
+      prev.map(story => 
+        story.id === storyId ? { ...story, viewed: true } : story
+      )
+    );
+  };
+
+  const highlightStory = async (storyId: string, highlight: boolean): Promise<boolean> => {
+    try {
+      setUserStories(prev => 
+        prev.map(story => 
+          story.id === storyId ? { ...story, is_highlighted: highlight } : story
+        )
+      );
+      return true;
+    } catch (err) {
+      console.error('Error highlighting story:', err);
+      setError('Failed to highlight story');
+      return false;
+    }
+  };
+
+  const getStoryCreatorInfo = async (creatorId: string): Promise<{ name: string; avatar: string } | null> => {
+    try {
+      // Mock creator info retrieval
+      return {
+        name: `Creator ${creatorId}`,
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
+      };
+    } catch (err) {
+      console.error('Error getting creator info:', err);
+      return null;
+    }
+  };
+
   return {
     stories,
-    loadingStories,
+    userStories,
+    isLoading,
     error,
-    uploadStory,
-    markStoryAsViewed,
-    toggleHighlight,
-    fetchStories,
+    createStory,
+    deleteStory,
+    markAsViewed,
+    highlightStory,
+    getStoryCreatorInfo
   };
 };
 

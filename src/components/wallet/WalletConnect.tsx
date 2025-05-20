@@ -125,4 +125,3 @@ export function WalletConnect({ isOpen, onOpenChange, onClose, walletInfo }: Wal
 }
 
 export default WalletConnect;
-export { WalletConnect };

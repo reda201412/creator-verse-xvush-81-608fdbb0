@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import CreatorCard from '@/components/creator/CreatorCard';
 import StoriesTimeline from '@/components/stories/StoriesTimeline';
 import StoryPublisher from '@/components/stories/StoryPublisher';
@@ -62,7 +62,7 @@ const CreatorsFeed: React.FC = () => {
       processedCreators = processedCreators.filter(
         creator => 
           creator.username.toLowerCase().includes(query) || 
-          (creator.displayName && creator.displayName.toLowerCase().includes(query)) ||
+          (creator.name && creator.name.toLowerCase().includes(query)) ||
           (creator.bio && creator.bio.toLowerCase().includes(query))
       );
     }
@@ -167,7 +167,7 @@ const CreatorsFeed: React.FC = () => {
               key={creator.id}
               id={creator.id}
               username={creator.username}
-              displayName={creator.displayName || creator.username}
+              displayName={creator.name || creator.username}
               avatarUrl={creator.avatarUrl || 'https://via.placeholder.com/150'}
               bio={creator.bio || 'Aucune bio disponible'}
               followersCount={followersCount[creator.id] || 0}

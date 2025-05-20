@@ -1,12 +1,13 @@
 
 // Types for messaging functionality
 
-export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip';
+export type MonetizationTier = 'free' | 'basic' | 'premium' | 'vip' | 'exclusive';
 
 export interface Message {
   id: string;
   senderId: string;
   senderName?: string;
+  senderAvatar?: string;
   content: string;
   timestamp: string | Date;
   status?: 'sent' | 'delivered' | 'read';
@@ -14,6 +15,7 @@ export interface Message {
   monetization?: {
     tier: MonetizationTier;
     price?: number;
+    currency?: string;
   };
   attachment?: {
     type: 'image' | 'video' | 'audio' | 'file';
@@ -31,6 +33,7 @@ export interface MessageThread {
   lastActivity: string | Date;
   messages: Message[];
   isEncrypted?: boolean;
+  isGated?: boolean;
   monetization?: {
     tier: MonetizationTier;
     price: number;

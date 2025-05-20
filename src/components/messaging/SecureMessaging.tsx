@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { db } from '@/contexts/firebase-mock';
 import { FirestoreMessage, FirestoreMessageThread } from '@/utils/create-conversation-utils';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 
 interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
   messages: FirestoreMessage[];
@@ -19,7 +20,13 @@ interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
 const getFunctions = () => ({});
 const httpsCallable = () => async () => ({ data: { messages: [], newLastVisibleDoc: null } });
 
-// Mock scroll listener hook
+interface ScrollListenerProps {
+  onLoadMore: () => void;
+  rootMargin?: string;
+  threshold?: number;
+}
+
+// Simple scroll listener hook implementation
 const useBottomScrollListener = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
   useEffect(() => {
     const element = ref.current;

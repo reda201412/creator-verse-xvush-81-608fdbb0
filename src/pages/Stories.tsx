@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useStories from '@/hooks/use-stories';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2, Plus } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import StoryPublisher from '@/components/stories/StoryPublisher';
+import StoriesViewer from '@/components/stories/StoriesViewer';
+import { useToast } from '@/hooks/use-toast';
 
 const Stories = () => {
   const { user } = useAuth();
@@ -12,6 +15,7 @@ const Stories = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
+  const [toast, setToast] = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
