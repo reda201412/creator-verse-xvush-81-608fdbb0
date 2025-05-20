@@ -1,4 +1,6 @@
+
 import { createHmac } from 'crypto';
+import { Request } from 'express';
 
 type MuxEvent = {
   type: string;
@@ -93,8 +95,24 @@ export function handleMuxWebhookEvent(event: MuxEvent) {
  * Processes a raw webhook request
  */
 export async function processWebhookRequest(request: Request): Promise<MuxEvent> {
-  const signature = request.headers.get('mux-signature');
-  const body = await request.text();
+  let body = '';
+  
+  // Get the raw body if it's a stream
+  if (typeof request.body === 'object') {
+    body = JSON.stringify(request.body);
+  } else if (typeof request.body === 'string') {
+    body = request.body;
+  } else {
+    // Read the body as a string
+    body = await new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      request.on('error', reject);
+    });
+  }
+  
+  const signature = request.headers['mux-signature'] as string;
   
   if (!verifyWebhookSignature(body, signature)) {
     throw new Error('Invalid webhook signature');

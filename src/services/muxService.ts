@@ -1,5 +1,6 @@
 
 import Mux from '@mux/mux-node';
+import { getAuthHeaders } from '@/server/middleware/auth';
 
 // Configuration de Mux
 const MUX_TOKEN_ID = import.meta.env.VITE_MUX_TOKEN_ID;
@@ -20,6 +21,8 @@ export interface VideoUploadResponse {
   url: string;
   assetId: string;
   status: string;
+  uploadId?: string;
+  playbackId?: string;
 }
 
 /**
@@ -43,7 +46,8 @@ export const createDirectUpload = async (): Promise<VideoUploadResponse> => {
       id: upload.id,
       url: upload.url || '',
       assetId: upload.asset_id || '',
-      status: upload.status || 'created'
+      status: upload.status || 'created',
+      uploadId: upload.id,
     };
   } catch (error) {
     console.error('Error creating Mux direct upload:', error);
@@ -73,10 +77,10 @@ export const getAsset = async (assetId: string) => {
  */
 export const uploadVideoToMux = async (file: File): Promise<VideoUploadResponse> => {
   // Étape 1: Obtenir une URL d'upload direct de Mux
-  const uploadResponse = await fetch('/api/videos/upload', {
+  const uploadResponse = await fetch('/api/mux/upload', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -102,6 +106,7 @@ export const uploadVideoToMux = async (file: File): Promise<VideoUploadResponse>
     url,
     assetId,
     status: 'upload_complete',
+    uploadId: id,
   };
 };
 
@@ -112,4 +117,18 @@ export const updateVideoStatus = async (assetId: string, status: string, metadat
   // Implementée côté serveur uniquement, ce stub est pour compatibilité
   console.log(`Mise à jour du statut pour ${assetId} vers ${status}`, metadata);
   return { success: true };
+};
+
+/**
+ * Upload thumbnail to Firebase Storage
+ */
+export const uploadThumbnail = async (file: File, userId: string): Promise<string> => {
+  try {
+    // Here we would typically upload to Firebase Storage
+    // For now, just return a mock URL
+    return URL.createObjectURL(file);
+  } catch (error) {
+    console.error('Error uploading thumbnail:', error);
+    throw error;
+  }
 };

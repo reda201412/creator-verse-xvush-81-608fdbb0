@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        // Remplace @prisma/client par notre implémentation côté client
+        // Replace @prisma/client with our client-side implementation
         '@prisma/client': path.resolve(__dirname, './src/lib/client-prisma.ts'),
       },
     },

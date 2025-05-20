@@ -2,7 +2,7 @@
 import express from 'express';
 import Mux from '@mux/mux-node';
 import { verifyFirebaseToken } from '../middleware/auth';
-import { processWebhookRequest } from '@/lib/mux-webhooks';
+import { processWebhookRequest } from '../../lib/mux-webhooks';
 
 const router = express.Router();
 
@@ -63,4 +63,4 @@ router.post('/webhooks', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

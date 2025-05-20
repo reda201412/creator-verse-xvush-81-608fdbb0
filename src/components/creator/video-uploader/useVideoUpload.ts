@@ -34,15 +34,7 @@ const videoFormSchema = z.object({
 
 export type VideoFormValues = z.infer<typeof videoFormSchema>;
 
-// Define a type for the MUX direct upload response
-interface MuxUploadResponse {
-  id: string;
-  url: string;
-  // Add other relevant fields from MUX API if needed
-}
-
 type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'processing_metadata' | 'generating_thumbnail' | 'complete' | 'error';
-
 
 const useVideoUpload = () => {
   const auth = useAuth();
@@ -204,7 +196,7 @@ const useVideoUpload = () => {
     try {
       // 1. Uploader la vidéo vers MUX avec support d'annulation
       setUploadStage('uploading');
-      const muxResponse = await uploadVideoToMux(videoFile, controller.signal);
+      const muxResponse = await uploadVideoToMux(videoFile);
       
       // Vérifier si la requête a été annulée
       if (controller.signal.aborted) {
@@ -218,7 +210,7 @@ const useVideoUpload = () => {
       let thumbnailUrl: string | undefined;
       if (thumbnailFile) {
         setUploadStage('generating_thumbnail');
-        thumbnailUrl = await uploadThumbnail(thumbnailFile, user?.uid || '', { signal: controller.signal });
+        thumbnailUrl = await uploadThumbnail(thumbnailFile, user?.uid || '');
         
         // Vérifier si la requête a été annulée après l'upload de la miniature
         if (controller.signal.aborted) {
@@ -238,7 +230,7 @@ const useVideoUpload = () => {
         title: values.title,
         description: values.description,
         assetId: muxResponse.assetId,
-        uploadId: muxResponse.uploadId,
+        uploadId: muxResponse.id,
         playbackId: muxResponse.playbackId,
         status: 'processing', // MUX mettra à jour ce statut via le webhook
         thumbnailUrl: thumbnailUrl,
@@ -327,4 +319,3 @@ const useVideoUpload = () => {
 };
 
 export default useVideoUpload;
-

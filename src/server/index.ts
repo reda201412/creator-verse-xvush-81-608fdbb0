@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Function to create and configure Express server with Vite middleware
-async function createServer() {
+export async function createServer() {
   const app = express();
   
   // Enable CORS
@@ -33,8 +33,8 @@ async function createServer() {
   app.use(vite.middlewares);
 
   // API routes
-  app.use('/api/videos', require('./routes/videos'));
-  app.use('/api/mux', require('./routes/mux'));
+  app.use('/api/videos', (await import('./routes/videos')).default);
+  app.use('/api/mux', (await import('./routes/mux')).default);
   
   // Serve the app - all other routes go to the SPA
   app.use('*', async (req, res, next) => {
@@ -70,18 +70,3 @@ async function createServer() {
 
   return app;
 }
-
-// Start the server if this file is run directly
-if (require.main === module) {
-  createServer().then(app => {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-    });
-  }).catch(err => {
-    console.error('Error starting server:', err);
-    process.exit(1);
-  });
-}
-
-export { createServer };
