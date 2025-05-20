@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Lock, Unlock, Shield, Eye, Download, Share, Heart } from 'lucide-react';

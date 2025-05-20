@@ -34,7 +34,7 @@ export interface VideoData {
   assetId?: string;
   uploadId?: string;
   playbackId?: string;
-  status?: string;
+  status?: "error" | "pending" | "processing" | "ready" | string; // Updated to allow both strict types and string
   thumbnailUrl?: string;
   thumbnail_url?: string; // Alternative property name
   isPremium?: boolean;

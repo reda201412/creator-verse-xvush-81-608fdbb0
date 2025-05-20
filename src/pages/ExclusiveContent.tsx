@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { ensureRequiredRestrictionProps } from '@/utils/exclusive-content-utils';
-// Import the correct ExclusiveContent component
-import { ExclusiveContent as ExclusiveContentViewer } from '@/components/exclusive/ExclusiveContentViewer';
+// Fix the import statement to import default export
+import ExclusiveContentViewer from '@/components/exclusive/ExclusiveContentViewer';
 
 const ExclusiveContent = () => {
   // Mock content data
@@ -120,17 +120,42 @@ const ExclusiveContent = () => {
   
   // Fix ExclusiveContentViewer props
   const renderContentViewer = (content: any) => {
+    const formattedContent = {
+      id: content.id,
+      title: content.title,
+      description: content.description,
+      type: content.type,
+      mediaUrl: content.contentUrl,
+      thumbnailUrl: content.thumbnailUrl,
+      creator: {
+        id: content.creatorId,
+        name: content.creatorName,
+        avatar: content.creatorAvatar
+      },
+      stats: {
+        likes: 0,
+        views: 0,
+        shares: 0,
+        comments: 0
+      },
+      restrictions: {
+        tier: content.restrictions.tier,
+        tokenPrice: content.restrictions.tokenPrice,
+        expiresAt: content.restrictions.expiresAt,
+        viewLimit: content.restrictions.viewLimit,
+        downloadsAllowed: content.restrictions.downloadsAllowed || false,
+        sharingAllowed: content.restrictions.sharingAllowed || false
+      }
+    };
+    
     return (
       <ExclusiveContentViewer
-        content={{
-          ...content,
-          restrictions: ensureRequiredRestrictionProps(content.restrictions || {})
-        }}
+        content={formattedContent}
+        userTier="free"
+        userTokenBalance={0}
         onUnlock={() => {}}
         onLike={() => {}}
         onComment={() => {}}
-        userTier="free" // Add missing required prop
-        userTokenBalance={0} // Add missing required prop
       />
     );
   };

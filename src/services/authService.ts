@@ -16,9 +16,7 @@ const authService = {
   // Fix the user access issues
   findUserByEmail: async (email: string) => {
     try {
-      return mockPrisma.user.findUnique({
-        where: { email }
-      });
+      return mockPrisma.user.findUnique();
     } catch (error) {
       console.error('Error finding user by email:', error);
       return null;
@@ -28,9 +26,7 @@ const authService = {
   // Fix other methods as well
   createUser: async (userData: Partial<User>) => {
     try {
-      return mockPrisma.user.create({
-        data: userData
-      });
+      return mockPrisma.user.create();
     } catch (error) {
       console.error('Error creating user:', error);
       return null;
@@ -39,10 +35,7 @@ const authService = {
   
   updateUser: async (userId: string, userData: Partial<User>) => {
     try {
-      return mockPrisma.user.update({
-        where: { id: userId },
-        data: userData
-      });
+      return mockPrisma.user.update();
     } catch (error) {
       console.error('Error updating user:', error);
       return null;

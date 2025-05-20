@@ -59,7 +59,7 @@ const CreatorProfile = () => {
         <div className="videos-grid">
           {/* Example of using renderVideo */}
           {renderVideo({
-            id: '1',
+            id: 1,
             userId: 'user123',
             title: 'Sample Video',
             thumbnail_url: 'https://via.placeholder.com/300x169',
