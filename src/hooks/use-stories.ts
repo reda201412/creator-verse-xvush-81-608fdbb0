@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db, storage } from '@/integrations/firebase/firebase';
 import { collection, query, where, getDocs, limit, orderBy, startAfter, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
@@ -104,8 +103,8 @@ export const useStories = (): UseStoriesHookReturn => {
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
         view_count: 0,
         is_highlighted: false,
-        creator_name: user.username || user.email || 'User', // Use username with fallback
-        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`, // Use profileImageUrl with fallback
+        creator_name: user.email || 'User', // Use email as fallback since username might be undefined
+        creator_avatar: `https://i.pravatar.cc/150?u=${user.email}`, // Use generated avatar as fallback
       };
 
       // Add to local stories array

@@ -22,7 +22,7 @@ const SecureMessaging = () => {
       <div className="user-info">
         <span>{user.displayName || user.email}</span>
         <img 
-          src={user.profileImageUrl || `https://via.placeholder.com/40`} 
+          src={user.profileImageUrl || `https://via.placeholder.com/40?text=${user.email?.charAt(0).toUpperCase() || 'U'}`} 
           alt="User" 
           onError={(e) => {
             // Fallback to placeholder if image fails to load

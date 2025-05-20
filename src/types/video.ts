@@ -60,9 +60,9 @@ export interface User {
   uid: string;
   id?: string; // Some components expect this
   email: string;
-  username: string; // Added as required field
+  username?: string; // Changed to optional for backward compatibility
   displayName?: string;
-  profileImageUrl: string; // Added as required field for SecureMessaging.tsx
+  profileImageUrl?: string; // Changed to optional for backward compatibility
 }
 
 // Add CreatorProfileData type
