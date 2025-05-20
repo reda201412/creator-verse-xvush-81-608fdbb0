@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types/video';
@@ -11,7 +10,10 @@ const SecureMessaging = () => {
   // Fix the error by removing parameter in generateSessionKey call
   const handleEncryption = () => {
     const key = generateSessionKey();
-    // ...rest of the encryption logic
+    // Rest of the encryption logic
+    // You might want to implement the actual encryption logic here
+    // For example:
+    // const encryptedData = encrypt(data, key);
     return key;
   };
   
@@ -23,7 +25,7 @@ const SecureMessaging = () => {
       <div className="user-info">
         <span>{user.displayName || user.email}</span>
         <img 
-          src={user.profileImageUrl ? user.profileImageUrl.toString() : `https://via.placeholder.com/40?text=${user.email?.charAt(0).toUpperCase() || 'U'}`} 
+          src={user.profileImageUrl ? String(user.profileImageUrl) : `https://via.placeholder.com/40?text=${user.email?.charAt(0).toUpperCase() || 'U'}`} 
           alt="User" 
           onError={(e) => {
             // Fallback to placeholder if image fails to load

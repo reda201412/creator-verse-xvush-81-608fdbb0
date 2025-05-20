@@ -62,7 +62,7 @@ export interface User {
   email: string;
   username?: string; // Changed to optional for backward compatibility
   displayName?: string;
-  profileImageUrl?: string; // Adding this property to fix the error
+  profileImageUrl?: string | null; // Adding this property with null as a possible value
 }
 
 // Add CreatorProfileData type
