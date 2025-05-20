@@ -24,10 +24,11 @@ export interface VideoMetadata {
   restrictions?: VideoRestrictions;
 }
 
-// Define VideoData in this file directly instead of importing from vite-env.d.ts
+// Define VideoData interface with flexible ID type that works with both services
 export interface VideoData {
   id: number | string;
-  userId: string;
+  userId?: string;
+  creator_id?: string; // For compatibility with creatorService
   title: string;
   description?: string;
   assetId?: string;
@@ -64,10 +65,10 @@ export interface User {
   profileImageUrl?: string;
 }
 
-// Add CreatorProfileData to fix the missing type errors
+// Add CreatorProfileData for this type
 export interface CreatorProfileData {
   id: string;
-  user_id?: string;
+  user_id?: string; 
   userId?: string;
   uid: string;
   username: string;
@@ -82,7 +83,7 @@ export interface CreatorProfileData {
   metrics?: {
     followers?: number;
     likes?: number;
-    rating?: number; // Changed from string to number to match expected type
+    rating?: number; 
   };
 }
 

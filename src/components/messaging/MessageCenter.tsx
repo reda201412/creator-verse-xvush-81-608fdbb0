@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 // Import encryption utilities directly with aliases to avoid conflict
 import { 
@@ -101,8 +102,8 @@ const MessageCenter = () => {
   };
   
   // Fix the issue with async generateSessionKey by making sure it's called correctly
-  const handleEncrypt = async (messageId: string) => {
-    // Generate a new session key for this message
+  const handleEncrypt = (messageId: string) => {
+    // Generate a new session key for this message - not async anymore
     const newKey = generateSessionKey();
     
     // Update encryption keys with the new key
@@ -122,7 +123,7 @@ const MessageCenter = () => {
     // Update encryption keys synchronously
     setEncryptionKeys(prev => ({
       ...prev,
-      [messageId]: await key
+      [messageId]: key
     }));
     
     // Return the encrypted content

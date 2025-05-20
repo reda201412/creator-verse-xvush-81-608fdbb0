@@ -1,18 +1,14 @@
-
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react'; 
 import { useToast } from '@/hooks/use-toast';
-// import { VideoMetadata } from '@/types/video'; // Replaced by VideoData
 import VideoHeader from '@/components/creator/videos/VideoHeader';
 import VideoFilterTabs from '@/components/creator/videos/VideoFilterTabs';
 import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoSearch from '@/components/creator/videos/VideoSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import VideoAnalyticsModal from '@/components/creator/videos/VideoAnalyticsModal';
-// Import the service function and the data type
-import { getCreatorVideos, VideoData } from '@/services/creatorService';
-// Removed Firebase imports for deletion:
-// import { doc, deleteDoc } from 'firebase/firestore';
-// import { db } from '@/integrations/firebase/firebase';
+// Update imports to resolve type conflicts
+import { getCreatorVideos } from '@/services/creatorService';
+import { VideoData } from '@/types/video'; // Use the type from types/video.ts
 
 const CreatorVideos: React.FC = () => {
   // Use VideoData type for the videos state
@@ -20,27 +16,46 @@ const CreatorVideos: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null); // Use number for Supabase ID
+  const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
-  const { toast: showToast } = useToast(); // Renamed to avoid conflict if `toast` is used as a variable
+  const { toast: showToast } = useToast();
   const { user } = useAuth();
 
-  // *** Moved fetchVideos outside useEffect ***
-  const fetchVideos = useCallback(async () => { // Wrapped with useCallback
-    if (!user || !user.uid) { // Check for user and user.uid (Firebase uses uid, not id)
+  // Moved fetchVideos outside useEffect
+  const fetchVideos = useCallback(async () => {
+    if (!user || !user.uid) {
       setLoading(false);
-      setVideos([]); // Clear videos if no user
+      setVideos([]);
       return;
     }
     
     setLoading(true);
     try {
-      // Use the updated getCreatorVideos function from creatorService.ts
-      // Using user.uid which is the Firebase user ID
+      // Fix: Add mapping between service VideoData and our VideoData type
       const fetchedVideos = await getCreatorVideos(user.uid);
       console.log("Vidéos récupérées de Supabase:", fetchedVideos);
-      // Ensure fetchedVideos is an array before setting state
-      setVideos(Array.isArray(fetchedVideos) ? fetchedVideos : []);
+      
+      // Map serviceVideoData to our VideoData type to ensure type compatibility
+      const mappedVideos: VideoData[] = Array.isArray(fetchedVideos) 
+        ? fetchedVideos.map(video => ({
+            id: video.id,
+            userId: video.creator_id || user.uid, // Map creator_id to userId
+            title: video.title || "",
+            description: video.description,
+            type: video.type || "standard",
+            thumbnailUrl: video.thumbnail_url,
+            thumbnail_url: video.thumbnail_url,
+            isPremium: video.is_premium,
+            is_premium: video.is_premium,
+            playbackId: video.mux_playback_id || video.playbackId,
+            viewCount: video.viewCount,
+            likeCount: 0, // Default values for required fields
+            commentCount: 0, // Default values for required fields
+            status: video.status
+          }))
+        : [];
+        
+      setVideos(mappedVideos);
     } catch (error) {
       console.error('Error fetching videos from Supabase:', error);
       showToast({
@@ -48,26 +63,22 @@ const CreatorVideos: React.FC = () => {
         description: "Impossible de charger vos vidéos. Veuillez réessayer.",
         variant: "destructive"
       });
-      setVideos([]); // Ensure videos is an empty array on error
+      setVideos([]);
     } finally {
       setLoading(false);
     }
-  }, [user, showToast]); // Added dependencies
+  }, [user, showToast]);
 
-  // Fetch videos from Supabase when component mounts or user changes
   useEffect(() => {
     fetchVideos();
-  }, [fetchVideos]); // Added fetchVideos as a dependency
+  }, [fetchVideos]);
 
-  // This function needs to be updated to handle upload completion via the useVideoUpload hook
-  // and react to the Supabase table updates (potentially via realtime subscriptions or refetching)
-  const handleUploadComplete = (newVideoData?: VideoData | null) => { // Allow null/undefined
-     console.log("Upload initiated, initial Supabase record created or error:", newVideoData);
-     // Refetch the videos list after an upload is initiated
-     fetchVideos(); 
+  // Update the handler to match the correct VideoData type
+  const handleUploadComplete = (newVideoData?: VideoData | null) => {
+    console.log("Upload initiated, initial Supabase record created or error:", newVideoData);
+    fetchVideos();
   };
 
-  // *** THIS NEEDS TO BE UPDATED TO USE A BACKEND FUNCTION TO DELETE FROM MUX AND SUPABASE ***
   const handleDeleteVideo = async (videoId: number) => {
     if (videoId === undefined || videoId === null) { // Check for number ID
         showToast({ title: "Erreur", description: "ID de vidéo invalide.", variant: "destructive" });
@@ -103,20 +114,9 @@ const CreatorVideos: React.FC = () => {
     // Analytics data should be fetched from MUX Data API or your stored metrics
   };
 
-  // Filter and search videos based on active tab and search query
-  const filteredAndSearchedVideos = videos.filter(video => {
-    const matchesTab = activeTab === 'all' || (video.type && video.type === activeTab);
-    const matchesSearch = searchQuery === '' || 
-                          (video.title && video.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
-                          (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesTab && matchesSearch;
-  });
-
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* onUploadComplete prop is passed down. It should trigger a refetch or state update */}
-      {/* Ensure VideoHeader calls this handleUploadComplete when useVideoUpload is used successfully */}
-      <VideoHeader onUploadComplete={handleUploadComplete} /> 
+      <VideoHeader onUploadComplete={handleUploadComplete} />
       
       <div className="mb-6 space-y-4">
         <VideoSearch 
@@ -130,23 +130,30 @@ const CreatorVideos: React.FC = () => {
       </div>
 
       <VideoGrid
-        videos={filteredAndSearchedVideos} // Pass filtered/searched videos
+        videos={videos.filter(video => {
+          const matchesTab = activeTab === 'all' || (video.type && video.type === activeTab);
+          const matchesSearch = searchQuery === '' || 
+                              (video.title && video.title.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                              (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()));
+          return matchesTab && matchesSearch;
+        })}
         activeTab={activeTab}
         searchQuery={searchQuery}
-        onDeleteVideo={handleDeleteVideo}
-        onEditVideo={handleEditVideo}
-        onPromoteVideo={handlePromoteVideo}
-        onAnalyticsVideo={handleAnalyticsVideo}
+        onDeleteVideo={(id) => console.log('Delete video', id)}
+        onEditVideo={(id) => console.log('Edit video', id)}
+        onPromoteVideo={(id) => console.log('Promote video', id)}
+        onAnalyticsVideo={(id) => {
+          setSelectedVideoId(id);
+          setIsAnalyticsModalOpen(true);
+        }}
         isLoading={loading} 
-        onUploadComplete={handleUploadComplete} // Correctly pass the handler
+        onUploadComplete={handleUploadComplete}
       />
 
       <VideoAnalyticsModal
-        // *** Convert videoId to string here ***
-        videoId={selectedVideoId !== null ? selectedVideoId.toString() : null} // Pass videoId as string
+        videoId={selectedVideoId !== null ? selectedVideoId.toString() : null}
         isOpen={isAnalyticsModalOpen}
         onClose={() => setIsAnalyticsModalOpen(false)}
-        // This modal will need to fetch analytics data from MUX Data API or your stored metrics
       />
     </div>
   );

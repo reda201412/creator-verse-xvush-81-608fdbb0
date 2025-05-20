@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { encryptMessage, decryptMessage } from '@/utils/encryption';
 
@@ -83,9 +84,11 @@ const MessageThread = () => {
         messageContent = await encryptMessage(content, encryptionKey);
         
         // Store the encryption key
+        // Fixed: using a new message ID variable instead of undefined messageId
+        const newMessageId = `temp-${Date.now()}`;
         setEncryptionKeys(prev => ({
           ...prev,
-          [messageId]: encryptionKey
+          [newMessageId]: encryptionKey
         }));
       }
       

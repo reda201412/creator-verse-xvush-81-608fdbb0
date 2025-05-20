@@ -14,23 +14,37 @@ const SecureMessaging = () => {
     return key;
   };
   
-  // Fix user property access issues
+  // Fix user property access issues by adding optional chaining
   const renderUserInfo = () => {
     if (!user) return null;
     
     return (
       <div className="user-info">
         <span>{user.displayName || user.email}</span>
-        <img src={user.profileImageUrl || `https://via.placeholder.com/40`} alt="User" />
+        <img 
+          src={user.profileImageUrl || `https://via.placeholder.com/40`} 
+          alt="User" 
+          onError={(e) => {
+            // Fallback to placeholder if image fails to load
+            (e.target as HTMLImageElement).src = `https://via.placeholder.com/40?text=${user.email?.charAt(0).toUpperCase() || 'U'}`;
+          }}
+        />
       </div>
     );
   };
   
   return (
     <div className="secure-messaging">
-      {/* ... keep existing code */}
+      <div className="header">
+        <h2>Secure Messaging</h2>
+      </div>
+      <div className="message-list">
+        {/* Render messages here */}
+      </div>
+      <div className="message-input">
+        {/* Input for sending messages */}
+      </div>
       {renderUserInfo()}
-      {/* ... keep existing code */}
     </div>
   );
 };

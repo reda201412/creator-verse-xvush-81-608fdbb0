@@ -3,14 +3,14 @@
 import { MockPrismaClient } from '@/lib/mock-prisma';
 import { User } from '@/types/video';
 
-// Create a mock prisma client with user property
+// Create a more complete mock prisma client
 const mockPrisma = {
   user: {
     findUnique: async () => null,
     create: async () => null,
     update: async () => null
   }
-} as any;
+};
 
 const authService = {
   // Fix the user access issues

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { VideoData } from '@/types/video';
 
@@ -14,7 +15,8 @@ const CreatorProfile = () => {
   
   // Fix VideoData property accesses
   const renderVideo = (video: VideoData) => {
-    const format = video.format || '16:9'; // Default to 16:9 if not defined
+    // Use video.format with safe fallback
+    const format = video.format || '16:9';
     
     return (
       <div className="video-item">
