@@ -104,8 +104,8 @@ export const useStories = (): UseStoriesHookReturn => {
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
         view_count: 0,
         is_highlighted: false,
-        creator_name: user.email || 'User', // Use email as fallback since username might not exist
-        creator_avatar: `https://i.pravatar.cc/150?u=${user.email}`, // Use generated avatar as fallback
+        creator_name: user.username || user.email || 'User', // Use username with fallback
+        creator_avatar: user.profileImageUrl || `https://i.pravatar.cc/150?u=${user.email}`, // Use profileImageUrl with fallback
       };
 
       // Add to local stories array

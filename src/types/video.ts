@@ -34,7 +34,7 @@ export interface VideoData {
   assetId?: string;
   uploadId?: string;
   playbackId?: string;
-  status?: "error" | "pending" | "processing" | "ready" | string; // Updated to allow both strict types and string
+  status?: "error" | "pending" | "processing" | "ready"; // Updated to match creatorService strict types
   thumbnailUrl?: string;
   thumbnail_url?: string; // Alternative property name
   isPremium?: boolean;
@@ -62,7 +62,7 @@ export interface User {
   email: string;
   username: string; // Added as required field
   displayName?: string;
-  profileImageUrl: string; // Added as required field
+  profileImageUrl: string; // Added as required field for SecureMessaging.tsx
 }
 
 // Add CreatorProfileData type

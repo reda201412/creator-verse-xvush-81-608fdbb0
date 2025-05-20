@@ -13,7 +13,7 @@ const mockPrisma = {
 };
 
 const authService = {
-  // Fix the user access issues
+  // Fix the user access issues by removing unnecessary parameters
   findUserByEmail: async (email: string) => {
     try {
       return mockPrisma.user.findUnique();
