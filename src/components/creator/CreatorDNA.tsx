@@ -5,9 +5,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Dna } from 'lucide-react';
 
+interface CreatorSkill {
+  name: string;
+  level: number;
+}
+
 interface CreatorDNAProps {
   creatorName: string;
-  creatorSkills: string[];
+  creatorSkills: CreatorSkill[];
   creatorStyle: string[];
   creatorAchievements: string[];
   className?: string;
@@ -65,7 +70,7 @@ const CreatorDNA = ({
             <div className="flex flex-wrap gap-2">
               {creatorSkills.map((skill, index) => (
                 <Badge key={index} variant="secondary" className="text-sm py-1">
-                  {skill}
+                  {skill.name} {skill.level && <span className="ml-1 text-xs opacity-70">{skill.level}%</span>}
                 </Badge>
               ))}
             </div>
