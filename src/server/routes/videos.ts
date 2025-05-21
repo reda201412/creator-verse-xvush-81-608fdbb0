@@ -41,20 +41,54 @@ router.post('/', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { title, description, assetId, uploadId } = req.body;
+    // Extract all required and optional fields from request body
+    const { 
+      title, 
+      description, 
+      assetId, 
+      uploadId,
+      playbackId,
+      status = 'processing',
+      duration,
+      aspectRatio,
+      thumbnailUrl,
+      videoUrl,
+      isPremium = false,
+      price,
+      isPublished = false,
+      type = 'standard'
+    } = req.body;
 
-    if (!title || !assetId || !uploadId) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!title) {
+      return res.status(400).json({ error: 'Missing required field: title' });
     }
 
+    // Create video record with all metadata
     const video = await prisma.video.create({
       data: {
+        userId,
         title,
         description: description || '',
-        status: 'processing',
+        status,
         assetId,
+        mux_asset_id: assetId,
         uploadId,
-        userId,
+        mux_upload_id: uploadId,
+        playbackId,
+        mux_playback_id: playbackId,
+        duration,
+        aspectRatio,
+        aspect_ratio: aspectRatio,
+        thumbnailUrl,
+        thumbnail_url: thumbnailUrl,
+        videoUrl,
+        video_url: videoUrl,
+        isPremium,
+        is_premium: isPremium,
+        price,
+        token_price: price,
+        isPublished,
+        type,
       },
     });
 

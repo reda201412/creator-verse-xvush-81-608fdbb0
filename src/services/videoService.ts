@@ -1,3 +1,4 @@
+
 // Types pour les métadonnées de la vidéo
 export type VideoStatus = 'pending' | 'processing' | 'ready' | 'error';
 
@@ -86,7 +87,8 @@ const API_BASE_URL = '/api/videos';
  */
 export const saveVideoMetadata = async (data: CreateVideoInput): Promise<VideoMetadata> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/metadata`, {
+    // Modifié: POST directement vers /api/videos au lieu de /api/videos/metadata
+    const response = await fetch(`${API_BASE_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
