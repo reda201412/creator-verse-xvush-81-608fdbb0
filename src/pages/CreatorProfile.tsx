@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
@@ -11,9 +10,22 @@ import TabNav from '@/components/TabNav';
 import ContentGrid from '@/components/ContentGrid';
 import { cn } from '@/lib/utils';
 import ProfileNav from '@/components/ProfileNav';
-import { MicroRewards } from '@/components/monetization/MicroRewards';
+import MicroRewards from '@/components/monetization/MicroRewards';
 import CreatorDNA from '@/components/creator/CreatorDNA';
 import CreatorJourney from '@/components/creator/CreatorJourney';
+
+interface CreatorSkill {
+  name: string;
+  level: number;
+}
+
+interface JourneyMilestone {
+  id: string;
+  year: number;
+  date: string;
+  title: string;
+  description: string;
+}
 
 const CreatorProfile = () => {
   const { username } = useParams();
@@ -72,7 +84,7 @@ const CreatorProfile = () => {
   ]);
   
   // Creator attributes for DNA component
-  const creatorSkills = [
+  const creatorSkills: CreatorSkill[] = [
     { name: "Photographie", level: 95 },
     { name: "Direction artistique", level: 88 },
     { name: "Édition vidéo", level: 75 },
@@ -93,24 +105,32 @@ const CreatorProfile = () => {
   ];
   
   // Journey milestones for timeline
-  const journeyMilestones = [
+  const journeyMilestones: JourneyMilestone[] = [
     {
+      id: "m1",
       year: 2018,
+      date: "2018-05-15",
       title: "Débuts artistiques",
       description: "Premières expositions et création de contenu digital"
     },
     {
+      id: "m2",
       year: 2020,
+      date: "2020-02-20",
       title: "Reconnaissance internationale",
       description: "Participation à des festivals d'art prestigieux"
     },
     {
+      id: "m3",
       year: 2022,
+      date: "2022-07-10",
       title: "Expansion multimédia",
       description: "Lancement de séries vidéo immersives"
     },
     {
+      id: "m4",
       year: 2023,
+      date: "2023-12-05",
       title: "Masterclass & mentorat",
       description: "Partage d'expertise avec la communauté créative"
     }
@@ -234,9 +254,8 @@ const CreatorProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-background/90">
       {/* Enable micro-rewards for this page */}
       <MicroRewards 
-        enable={true} 
-        rewardIntensity={70} 
-        triggerPoints={['like', 'view', 'comment', 'scroll']}
+        enabled={true} 
+        intensity={70} 
       />
       
       {/* Hero section with parallax effect */}
