@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -99,8 +100,7 @@ function App() {
                     <Route path="/creators" element={<CreatorsFeed />} />
                     <Route path="/creator/:username" element={<CreatorProfile />} />
                     <Route path="/trending" element={<TrendingContent />} />
-                    <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-
+                    
                     <Route path="/secure-messaging" element={<ProtectedRoute><SecureMessagingPage /></ProtectedRoute>} />
                     <Route path="/dashboard" element={<CreatorRoute><Dashboard /></CreatorRoute>} />
                     <Route path="/videos" element={<CreatorRoute><CreatorVideos /></CreatorRoute>} />
