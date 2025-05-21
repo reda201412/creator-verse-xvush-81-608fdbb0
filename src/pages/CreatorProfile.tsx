@@ -1,4 +1,179 @@
 
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { toast } from 'sonner';
+import { Book, Eye, Heart, MessageSquare, Star, Award, Video } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import CreatorHeader from '@/components/CreatorHeader';
+import TabNav from '@/components/TabNav';
+import ContentGrid from '@/components/ContentGrid';
+import { cn } from '@/lib/utils';
+import ProfileNav from '@/components/ProfileNav';
+import { MicroRewards } from '@/components/monetization/MicroRewards';
+import CreatorDNA from '@/components/creator/CreatorDNA';
+import CreatorJourney from '@/components/creator/CreatorJourney';
+
+const CreatorProfile = () => {
+  const { username } = useParams();
+  const navigate = useNavigate();
+  const { scrollY } = useScroll();
+  
+  // State for interaction tracking
+  const [interactions, setInteractions] = useState(0);
+  const [visibleSections, setVisibleSections] = useState({
+    header: true,
+    dna: false,
+    bio: false,
+    journey: false,
+    videos: false
+  });
+  
+  // Phase of the visit determines what content is shown
+  const [visitPhase, setVisitPhase] = useState<'discovery' | 'immersion'>('discovery');
+  
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState(false);
+  
+  // Creator Data (mock)
+  const creatorData = {
+    id: "c1",
+    name: "Laura Dubois",
+    username: username || "lauradubois",
+    profession: "Artiste Visuelle & Créatrice de Contenu",
+    location: "Paris, France",
+    avatar: "https://i.pravatar.cc/300?img=5",
+    coverImage: "https://picsum.photos/1920/1080?random=1",
+    bio: "Artiste visuelle et créatrice de contenu spécialisée dans l'art numérique et la photographie créative.",
+    premiumContent: true,
+    tier: "gold" as const,
+    metrics: {
+      followers: 24580,
+      following: 342,
+      superfans: 1250,
+      retentionRate: 94,
+      watchMinutes: 45720
+    },
+    isOnline: true
+  };
+  
+  // Animation controls for scroll-driven effects
+  const opacityHeader = useTransform(scrollY, [0, 300], [1, 0.2]);
+  const scaleIntro = useTransform(scrollY, [0, 300], [1, 0.9]);
+  
+  // Interaction points to trigger rewards
+  const [interactionPoints, setInteractionPoints] = useState([
+    { id: 'header', seen: false, reward: 'pulse' },
+    { id: 'dna', seen: false, reward: 'like' },
+    { id: 'bio', seen: false, reward: 'star' },
+    { id: 'journey', seen: false, reward: 'message' },
+    { id: 'videos', seen: false, reward: 'like' }
+  ]);
+  
+  // Creator attributes for DNA component
+  const creatorSkills = [
+    { name: "Photographie", level: 95 },
+    { name: "Direction artistique", level: 88 },
+    { name: "Édition vidéo", level: 75 },
+    { name: "Narration visuelle", level: 92 }
+  ];
+  
+  const creatorStyle = [
+    "Minimaliste",
+    "Contemporain",
+    "Artistique",
+    "Immersif"
+  ];
+  
+  const creatorAchievements = [
+    "Prix d'excellence artistique 2022",
+    "Exposition internationale à New York",
+    "Collaboration avec National Geographic"
+  ];
+  
+  // Journey milestones for timeline
+  const journeyMilestones = [
+    {
+      year: 2018,
+      title: "Débuts artistiques",
+      description: "Premières expositions et création de contenu digital"
+    },
+    {
+      year: 2020,
+      title: "Reconnaissance internationale",
+      description: "Participation à des festivals d'art prestigieux"
+    },
+    {
+      year: 2022,
+      title: "Expansion multimédia",
+      description: "Lancement de séries vidéo immersives"
+    },
+    {
+      year: 2023,
+      title: "Masterclass & mentorat",
+      description: "Partage d'expertise avec la communauté créative"
+    }
+  ];
+  
+  // Videos for content display
+  const videos = [
+    {
+      id: "v1",
+      title: "L'art de la composition minimaliste - Techniques avancées",
+      thumbnailUrl: "https://picsum.photos/640/360?random=10",
+      viewCount: 24150,
+      likeCount: 1872,
+      commentCount: 143,
+      isPremium: true
+    },
+    {
+      id: "v2",
+      title: "Narration visuelle à travers la photographie urbaine",
+      thumbnailUrl: "https://picsum.photos/640/360?random=11",
+      viewCount: 18720,
+      likeCount: 1435,
+      commentCount: 87,
+      isPremium: false
+    },
+    {
+      id: "v3",
+      title: "Couleurs et émotions - Comment évoquer des sentiments",
+      thumbnailUrl: "https://picsum.photos/640/360?random=12",
+      viewCount: 31205,
+      likeCount: 2541,
+      commentCount: 204,
+      isPremium: false
+    },
+    {
+      id: "v4",
+      title: "Secrets de post-production pour photos atmosphériques",
+      thumbnailUrl: "https://picsum.photos/640/360?random=13",
+      viewCount: 12840,
+      likeCount: 943,
+      commentCount: 68,
+      isPremium: true
+    }
+  ];
+  
+  // Simulate phase change based on interactions
+  useEffect(() => {
+    if (interactions >= 4) {
+      setVisitPhase('immersion');
+    }
+  }, [interactions]);
+  
+  // Handle back button
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
+  // Simulated function to trigger micro-rewards
+  const triggerMicroReward = (type: 'like' | 'star' | 'message' | 'pulse') => {
+    console.log(`Triggered micro-reward: ${type}`);
+    // This would connect to the MicroRewards component
+  };
+
   // Track interaction points to reward exploration
   const trackInteraction = (section: string) => {
     const updatedInteractions = interactions + 1;
@@ -17,7 +192,7 @@
       const updatedPoints = interactionPoints.map(point => 
         point.id === section ? { ...point, seen: true } : point
       );
-      interactionPoints.splice(0, interactionPoints.length, ...updatedPoints);
+      setInteractionPoints(updatedPoints);
       
       // Trigger appropriate reward
       if (interactionPoint.reward === 'like') {
