@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageSquare, Video, Star, Award, Book } from 'lucide-react';
+import { Heart, MessageSquare, Video, Star, Award, Book, Eye } from 'lucide-react';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import CreatorHeader from '@/components/CreatorHeader';
 import MicroRewards from '@/components/effects/MicroRewards';
