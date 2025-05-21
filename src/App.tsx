@@ -1,11 +1,10 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
 import BottomNavigation from '@/components/navigation/BottomNavigation';
-import Index from '@/pages/Index';
+import Home from '@/pages/Home';
 import Auth from '@/pages/Auth';
 import CreatorProfile from '@/pages/CreatorProfile';
 import CreatorsFeed from '@/pages/CreatorsFeed';
@@ -95,10 +94,10 @@ function App() {
                 <Header onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} />
                 <main className="flex-1 overflow-y-auto pb-20 md:pb-4 pt-2 md:pt-4 px-2 md:px-4 lg:px-6">
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<Home />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/creators" element={<CreatorsFeed />} />
-                    <Route path="/creator/:id?" element={<CreatorProfile />} />
+                    <Route path="/creator/:username" element={<CreatorProfile />} />
                     <Route path="/trending" element={<TrendingContent />} />
                     <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 

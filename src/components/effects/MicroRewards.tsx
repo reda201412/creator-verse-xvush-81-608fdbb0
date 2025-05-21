@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Star, Heart, MessageSquare, Award, ThumbsUp } from 'lucide-react';
+import { Star, Heart, MessageSquare, Award, ThumbsUp, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MicroRewardPosition {
