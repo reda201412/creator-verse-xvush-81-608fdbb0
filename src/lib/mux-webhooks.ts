@@ -1,20 +1,28 @@
-
 import { createHmac } from 'crypto';
 import { Request } from 'express';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 type MuxEvent = {
   type: string;
-  data: {
+  object: {
     id: string;
-    playback_ids?: Array<{id: string, policy: string}>;
+    type: string;
+    playback_ids?: {
+      id: string;
+      policy: string;
+    }[];
+    status?: 'ready' | 'errored' | 'preparing';
     duration?: number;
     aspect_ratio?: string;
     errors?: Array<{message: string, type: string}>;
-    asset_id?: string;
-    [key: string]: any;
   };
+  data?: Record<string, unknown>;
 };
+
+interface MuxWebhookPayload {
+  type: string;
+  data: MuxEvent;
+}
 
 const webhookSecret = process.env.MUX_WEBHOOK_SECRET || '';
 
@@ -69,15 +77,15 @@ export async function handleMuxWebhookEvent(event: MuxEvent) {
   try {
     switch (event.type) {
       case 'video.asset.ready': {
-        await handleAssetReady(event.data);
+        await handleAssetReady(event.object);
         break;
       }
       case 'video.asset.errored': {
-        await handleAssetError(event.data);
+        await handleAssetError(event.object);
         break;
       }
       case 'video.upload.asset_created': {
-        await handleUploadAssetCreated(event.data);
+        await handleUploadAssetCreated(event.object);
         break;
       }
       default:
@@ -91,7 +99,7 @@ export async function handleMuxWebhookEvent(event: MuxEvent) {
 /**
  * Handle video.asset.ready events
  */
-async function handleAssetReady(data: MuxEvent['data']) {
+async function handleAssetReady(data: MuxEvent['object']) {
   const assetId = data.id;
   console.log(`Processing asset ready for asset_id: ${assetId}`);
 
@@ -141,7 +149,7 @@ async function handleAssetReady(data: MuxEvent['data']) {
 /**
  * Handle video.asset.errored events
  */
-async function handleAssetError(data: MuxEvent['data']) {
+async function handleAssetError(data: MuxEvent['object']) {
   const assetId = data.id;
   console.log(`Processing asset error for asset_id: ${assetId}`);
 
@@ -171,9 +179,9 @@ async function handleAssetError(data: MuxEvent['data']) {
 /**
  * Handle video.upload.asset_created events
  */
-async function handleUploadAssetCreated(data: MuxEvent['data']) {
+async function handleUploadAssetCreated(data: MuxEvent['object']) {
   const uploadId = data.id;
-  const newAssetId = data.asset_id;
+  const newAssetId = data.id;
   
   if (!uploadId || !newAssetId) {
     console.error('Missing upload ID or asset ID in event data');

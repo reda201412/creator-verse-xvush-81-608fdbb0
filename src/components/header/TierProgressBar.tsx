@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import ProgressBar from '@/components/ProgressBar';
+import ProgressBar from '@/components/ui/ProgressBar';
 
 interface TierProgressBarProps {
   tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';

@@ -1,7 +1,16 @@
-
-import express from 'express';
-import { prisma } from '@/lib/prisma';
+import express, { Request } from 'express';
+import prisma from '@/lib/prisma';
 import { verifyFirebaseToken } from '../middleware/auth';
+
+// Import our extended Request type
+declare module 'express' {
+  interface Request {
+    user?: {
+      uid: string;
+      email?: string;
+    };
+  }
+}
 
 const router = express.Router();
 
@@ -9,7 +18,7 @@ const router = express.Router();
 router.use(verifyFirebaseToken);
 
 // Get all videos for the authenticated creator
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res) => {
   try {
     const userId = req.user?.uid;
     
@@ -33,7 +42,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a new video record
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res) => {
   try {
     const userId = req.user?.uid;
     

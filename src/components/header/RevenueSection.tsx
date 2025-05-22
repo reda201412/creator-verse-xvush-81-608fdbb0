@@ -3,8 +3,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Crown } from 'lucide-react';
-import RevenueChart from '@/components/RevenueChart';
-import UpcomingEvent from '@/components/UpcomingEvent';
+import RevenueChart from '@/components/viewer/RevenueChart';
+import UpcomingEvent from '@/components/viewer/UpcomingEvent';
 
 interface RevenueSectionProps {
   isCreator?: boolean;

@@ -11,6 +11,7 @@ import { CreatorProfileData } from '@/types/video';
 import StoryPublisher from '@/components/stories/StoryPublisher';
 
 const CreatorsFeed = () => {
+  console.log('Rendu de CreatorsFeed');
   const [creators, setCreators] = useState<CreatorProfileData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,7 +119,7 @@ const CreatorsFeed = () => {
     };
     
     fetchCreators();
-  }, []);
+  }, [toast]);
   
   const filterCreators = useCallback((creators: CreatorProfileData[]) => {
     if (!searchTerm) return creators;

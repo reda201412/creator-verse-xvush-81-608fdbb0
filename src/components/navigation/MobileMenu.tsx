@@ -20,7 +20,7 @@ import {
   DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ProfileAvatar from "@/components/ProfileAvatar";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";

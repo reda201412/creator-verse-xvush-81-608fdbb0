@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import ContentGrid from "@/components/ContentGrid";
+import ContentGrid from "@/components/shared/ContentGrid";
 import { Button } from "@/components/ui/button";
 import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useUserBehavior, InteractionType } from "@/hooks/use-user-behavior";
@@ -16,7 +16,7 @@ import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
-import XDoseLogo from "@/components/XDoseLogo";
+import XDoseLogo from "@/components/ui/XDoseLogo";
 import { cn } from "@/lib/utils";
 // import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client'; // Ancienne importation
 import { 

@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 import { useModals } from '@/hooks/use-modals';
 import { fileUploadService } from '@/services/file-upload.service';
-import ProfileAvatar from '@/components/ProfileAvatar';
+import ProfileAvatar from '@/components/shared/ProfileAvatar';
 import WalletModal from '@/components/modals/WalletModal';
 import { Spinner } from '@/components/ui/spinner';
 

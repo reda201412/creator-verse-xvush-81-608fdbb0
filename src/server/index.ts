@@ -1,27 +1,29 @@
-
 import express from 'express';
 import cors from 'cors';
-import videosRouter from './routes/videos.js';
-import muxRouter from './routes/mux.js';
+// import videosRouter from './routes/videos.js';
+// import muxRouter from './routes/mux.js';
 
 export async function createServer() {
-  const app = express();
+  try {
+    const app = express();
 
-  // Middleware
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+    // Middleware
+    app.use(cors());
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-  // Routes
-  app.use('/api/videos', videosRouter);
-  app.use('/api/mux', muxRouter);
+    console.log('Registering health check route only');
+    
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
 
-  // Health check endpoint
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  return app;
+    return app;
+  } catch (err) {
+    console.error('Error during server creation:', err);
+    throw err;
+  }
 }
 
 // Enable starting the server directly when this file is run

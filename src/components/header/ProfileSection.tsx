@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import ProfileAvatar from '@/components/ProfileAvatar';
-import CreatorPulse from '@/components/CreatorPulse';
+import ProfileAvatar from '@/components/shared/ProfileAvatar';
+import CreatorPulse from '@/components/viewer/CreatorPulse';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface ProfileSectionProps {

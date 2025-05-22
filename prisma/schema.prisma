@@ -47,6 +47,8 @@ model User {
   videoViews      VideoView[]
   followers       Follower[] @relation("following")
   following       Follower[] @relation("follower")
+  conversations   Participant[]
+  sentMessages    Message[] @relation("sentMessages")
   
   @@index([email], name: "idx_user_email")
   @@index([username], name: "idx_user_username")
@@ -176,4 +178,64 @@ model VideoView {
   @@index([videoId], name: "idx_videoview_video_id")
   @@index([createdAt], name: "idx_videoview_created_at")
   @@map("video_views")
+}
+
+model Conversation {
+  id          String       @id @default(uuid()) @db.Text
+  title       String?     @db.Text
+  isGroup     Boolean     @default(false)
+  isGated     Boolean     @default(false)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  participants Participant[]
+  messages     Message[]
+  
+  @@index([updatedAt], name: "idx_conversation_updated_at")
+  @@map("conversations")
+}
+
+model Participant {
+  id             String       @id @default(uuid()) @db.Text
+  userId         String      @map("user_id") @db.Text
+  conversationId String      @map("conversation_id") @db.Text
+  lastReadAt     DateTime?   @map("last_read_at") @db.Timestamptz
+  isActive       Boolean     @default(true)
+  isAdmin        Boolean     @default(false)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, conversationId], name: "uq_participant_user_conversation")
+  @@index([userId], name: "idx_participant_user_id")
+  @@index([conversationId], name: "idx_participant_conversation_id")
+  @@map("participants")
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Text
+  content        String      @db.Text
+  conversationId String      @map("conversation_id") @db.Text
+  senderId       String      @map("sender_id") @db.Text
+  type           String      @default("text") // text, image, video, etc.
+  metadata       Json?       // Pour stocker des métadonnées supplémentaires
+  isEdited       Boolean     @default(false) @map("is_edited")
+  isDeleted      Boolean     @default(false) @map("is_deleted")
+  deletedAt      DateTime?   @map("deleted_at") @db.Timestamptz
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  conversation  Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User         @relation("sentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([conversationId], name: "idx_message_conversation_id")
+  @@index([senderId], name: "idx_message_sender_id")
+  @@index([createdAt], name: "idx_message_created_at")
+  @@map("messages")
 }

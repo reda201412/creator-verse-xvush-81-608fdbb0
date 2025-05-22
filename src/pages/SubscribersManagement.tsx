@@ -5,7 +5,7 @@ import {
   ChevronDown, ArrowUpDown, MoreHorizontal, MessageSquare
 } from 'lucide-react';
 
-import ProfileNav from '@/components/ProfileNav';
+import ProfileNav from '@/components/layout/ProfileNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,7 +47,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import SubscriberStats from '@/components/subscribers/SubscriberStats';
 import SubscriberFilters from '@/components/subscribers/SubscriberFilters';
-import ProfileAvatar from '@/components/ProfileAvatar';
+import ProfileAvatar from '@/components/shared/ProfileAvatar';
 
 // Types for the subscriber data
 type SubscriptionTier = 'standard' | 'premium' | 'vip';

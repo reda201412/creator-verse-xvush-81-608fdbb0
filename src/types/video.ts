@@ -25,6 +25,8 @@ export interface VideoMetadata {
 }
 
 // Define VideoData interface with consistent ID type that works with both services
+export type VideoType = 'standard' | 'teaser' | 'premium' | 'vip' | 'tutorial' | 'vlog' | 'review';
+
 export interface VideoData {
   id: number;
   userId?: string;
@@ -34,25 +36,32 @@ export interface VideoData {
   assetId?: string;
   uploadId?: string;
   playbackId?: string;
-  status?: "error" | "pending" | "processing" | "ready"; // Updated to match creatorService strict types
+  status?: "error" | "pending" | "processing" | "ready";
   thumbnailUrl?: string;
   thumbnail_url?: string; // Alternative property name
   isPremium?: boolean;
   is_premium?: boolean; // Alternative property name
   price?: number;
-  duration?: number;
+  duration?: string | number;
   aspectRatio?: string;
   videoUrl?: string;
   video_url?: string; // Alternative property name
-  format?: '16:9' | '9:16' | '1:1';
-  type: 'standard' | 'teaser' | 'premium' | 'vip';
+  format?: '16:9' | '9:16' | '1:1' | string;
+  type: VideoType;
   isPublished?: boolean;
   viewCount?: number;
   likeCount?: number;
   commentCount?: number;
+  uploadDate?: string;
+  category?: string;
   createdAt?: string;
   updatedAt?: string;
   mux_playback_id?: string;
+  mux_asset_id?: string;
+  mux_upload_id?: string;
+  error?: string;
+  status_message?: string;
+  restrictions?: VideoRestrictions;
 }
 
 // Define User type here directly with necessary fields
@@ -87,10 +96,16 @@ export interface CreatorProfileData {
   };
 }
 
+// Type for partial video data that might come from different sources
+type PartialVideoData = Partial<VideoData> & {
+  id: string | number;
+  [key: string]: unknown;
+};
+
 // Function to normalize video data across different sources
-export function ensureVideoDataCompatibility(videoData: any): VideoData {
+export function ensureVideoDataCompatibility(videoData: PartialVideoData): VideoData {
   return {
     ...videoData,
     id: typeof videoData.id === 'string' ? parseInt(videoData.id, 10) : videoData.id,
-  };
+  } as VideoData;
 }

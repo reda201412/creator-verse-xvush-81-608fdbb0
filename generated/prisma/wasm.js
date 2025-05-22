@@ -207,6 +207,40 @@ exports.Prisma.VideoViewScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ConversationScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  isGroup: 'isGroup',
+  isGated: 'isGated',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ParticipantScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  conversationId: 'conversationId',
+  lastReadAt: 'lastReadAt',
+  isActive: 'isActive',
+  isAdmin: 'isAdmin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MessageScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  conversationId: 'conversationId',
+  senderId: 'senderId',
+  type: 'type',
+  metadata: 'metadata',
+  isEdited: 'isEdited',
+  isDeleted: 'isDeleted',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -241,7 +275,10 @@ exports.Prisma.ModelName = {
   VideoMetadata: 'VideoMetadata',
   Comment: 'Comment',
   Like: 'Like',
-  VideoView: 'VideoView'
+  VideoView: 'VideoView',
+  Conversation: 'Conversation',
+  Participant: 'Participant',
+  Message: 'Message'
 };
 
 /**

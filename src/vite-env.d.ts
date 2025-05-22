@@ -1,4 +1,14 @@
-/// <reference types="vite/client" />
+﻿/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_MUX_TOKEN_ID: string;
+  readonly VITE_MUX_TOKEN_SECRET: string;
+  // Ajoutez d'autres variables d'environnement ici au besoin
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
 
 interface User {
   id?: string;
@@ -21,11 +31,24 @@ interface UserProfile {
 interface FirestoreMessage {
   id: string;
   senderId: string;
-  content: string | any;
-  type: string;
-  createdAt: any; // Firebase Timestamp
+  content: string | {
+    text?: string;
+    mediaUrl?: string;
+    type: 'text' | 'image' | 'video' | 'audio' | 'file';
+    metadata?: Record<string, unknown>;
+  };
+  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'system';
+  createdAt: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
   isEncrypted?: boolean;
-  monetization?: any;
+  monetization?: {
+    type: 'premium' | 'pay_per_view' | 'subscription';
+    price?: number;
+    currency?: string;
+    isPaid?: boolean;
+  };
   status?: string;
   sender_name?: string;
   sender_avatar?: string;
@@ -34,26 +57,60 @@ interface FirestoreMessage {
 interface FirestoreMessageThread {
   id: string;
   participantIds: string[];
-  participantInfo: Record<string, any>;
-  lastActivity: any; // Firebase Timestamp
-  createdAt: any; // Firebase Timestamp
+  participantInfo: Record<string, {
+    username: string;
+    avatarUrl?: string;
+    isOnline?: boolean;
+  }>;
+  lastActivity: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
+  createdAt: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
   isGated: boolean;
   messages?: FirestoreMessage[];
-  readStatus?: Record<string, any>;
+  readStatus?: Record<string, {
+    lastRead: {
+      seconds: number;
+      nanoseconds: number;
+    } | Date;
+  }>;
   lastMessageText?: string;
-  lastMessageCreatedAt?: any;
+  lastMessageCreatedAt?: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
   lastMessageSenderId?: string;
   name?: string;
 }
 
-interface ExtendedFirestoreMessageThread extends FirestoreMessageThread {
+interface ExtendedFirestoreMessageThread extends Omit<FirestoreMessageThread, 'readStatus' | 'lastMessageCreatedAt'> {
   messages: FirestoreMessage[];
-  readStatus?: Record<string, any>;
+  readStatus?: Record<string, {
+    read: boolean;
+    lastRead: {
+      seconds: number;
+      nanoseconds: number;
+    } | Date;
+  }>;
   name?: string;
   participants?: string[]; // Added for compatibility with ConversationView
-  lastMessageCreatedAt?: any;
+  lastMessageCreatedAt?: {
+    seconds: number;
+    nanoseconds: number;
+  } | Date;
   lastMessageSenderId?: string;
-  lastVisibleDoc?: any;
+  lastVisibleDoc?: {
+    id: string;
+    [key: string]: unknown;
+  };
+  lastVisible?: {
+    id: string;
+    [key: string]: unknown;
+  };
 }
 
 interface FirestoreStory {
@@ -69,7 +126,7 @@ interface FirestoreStory {
   expiresAt: string;
   viewCount: number;
   isHighlighted: boolean;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   viewed?: boolean;
 }
 
@@ -87,7 +144,7 @@ type StoryMapper = {
   expires_at: string;
   view_count: number;
   is_highlighted: boolean;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   viewed?: boolean;
 };
 
@@ -164,13 +221,25 @@ interface WalletResponse {
     is_verified: boolean;
   };
   error?: string;
-  transactions?: Array<any>;
+  transactions?: Array<{
+    id: string;
+    type: string;
+    amount: number;
+    status: string;
+    timestamp: Date | string;
+    metadata?: Record<string, unknown>;
+  }>;
   subscription?: {
     status: string;
     expiry: string;
     expires_at?: string;
     level: string;
-    subscription_tiers?: any[];
+    subscription_tiers?: Array<{
+      id: string;
+      name: string;
+      price: number;
+      benefits: string[];
+    }>;
   };
 }
 
@@ -181,8 +250,50 @@ interface TronWalletHook {
   loading: boolean; // Added for backward compatibility
   error?: string;
   getWalletInfo: () => void;
-  createWallet: () => Promise<any>;
-  requestWithdrawal: (amount: number | { amount: number; destinationAddress: string }) => Promise<any>;
-  checkContentAccess: (contentId: string, requiredLevel: string) => Promise<boolean>;
-  verifyTransaction: (txData: any) => Promise<any>;
+  createWallet: () => Promise<{
+    success: boolean;
+    wallet?: {
+      tron_address: string;
+      mnemonic: string[];
+      privateKey: string;
+    };
+    error?: string;
+  }>;
+  requestWithdrawal: (amount: number | { amount: number; destinationAddress: string }) => Promise<{
+    success: boolean;
+    transaction?: {
+      txID: string;
+      raw_data: Record<string, unknown>;
+    };
+    error?: string;
+  }>;
+  checkContentAccess: (contentId: string, requiredLevel: string) => Promise<{
+    hasAccess: boolean;
+    message?: string;
+    requiredPayment?: number;
+    requiredLevel?: string;
+    currentLevel?: string;
+  }>;
+  verifyTransaction: (txData: {
+    txID: string;
+    raw_data: {
+      contract: {
+        parameter: {
+          value: {
+            amount: number;
+            owner_address: string;
+            to_address: string;
+          };
+        };
+      }[];
+    };
+  }) => Promise<{
+    success: boolean;
+    transaction?: {
+      txID: string;
+      raw_data: Record<string, unknown>;
+    };
+    error?: string;
+  }>;
 }
+

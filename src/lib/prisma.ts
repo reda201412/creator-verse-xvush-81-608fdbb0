@@ -1,38 +1,45 @@
+// This file provides a Prisma client instance that works in both server and browser environments
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
+import clientPrisma from './client-prisma';
 
-// This file uses an adapted version of the Prisma client for the browser
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
-// Import from our client-prisma mock instead of direct @prisma/client import
-import type { PrismaClient as PrismaClientType } from '../lib/client-prisma';
-
-// Global type declaration for maintaining connection between hot reloads
-declare global {
-  var prisma: PrismaClientType | undefined;
-}
-
-// Alternative dynamic import approach compatible with ESM
-const getPrismaClient = async (): Promise<PrismaClientType> => {
-  try {
-    // Use relative path to our client mock instead
-    const { default: clientPrismaMock } = await import('../lib/client-prisma');
-    return clientPrismaMock;
-  } catch (error) {
-    console.error("Error importing PrismaClient:", error);
-    // Fallback to empty client for browser environments
-    return {} as PrismaClientType;
+// Use a function to handle async initialization
+const initPrisma = async (): Promise<PrismaClientType> => {
+  if (isBrowser) {
+    // In browser, use our mock client
+    return clientPrisma as unknown as PrismaClientType;
   }
+  
+  // In Node.js, use the real Prisma client
+  const { PrismaClient } = await import('@prisma/client');
+  
+  // Use a singleton pattern to prevent multiple instances
+  const globalForPrisma = global as unknown as {
+    prisma: PrismaClientType | undefined;
+  };
+
+  const client = globalForPrisma.prisma ?? new PrismaClient();
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = client;
+  }
+
+  // Clean up on exit (server-side only)
+  process.on('beforeExit', async () => {
+    if (client) {
+      await client.$disconnect();
+    }
+  });
+
+  return client;
 };
 
-// Lazy-initialize the client
-let prismaClientInstance: PrismaClientType | undefined = globalThis.prisma;
+// Initialize prisma and export a promise that resolves to the client
+const prismaPromise = initPrisma();
 
-export const prisma: PrismaClientType = prismaClientInstance || (async () => {
-  const client = await getPrismaClient();
-  // In development, keep the client in the global object for connection reuse
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis.prisma = client;
-  }
-  prismaClientInstance = client;
-  return client;
-})() as unknown as PrismaClientType;
+// For backward compatibility, export the promise directly
+export const prisma = prismaPromise;
 
-export type { PrismaClientType as PrismaClient };
+export default prisma;
