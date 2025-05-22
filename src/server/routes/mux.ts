@@ -14,6 +14,17 @@ const muxClient = new Mux({
 
 // Create a direct upload URL
 router.post('/upload', verifyFirebaseToken, async (req, res) => {
+  // Log CORS headers for debugging
+  console.log('CORS Headers:', {
+    origin: req.headers.origin,
+    'access-control-request-method': req.headers['access-control-request-method'],
+    'access-control-request-headers': req.headers['access-control-request-headers']
+  });
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   try {
     const userId = req.user?.uid;
     
@@ -39,9 +50,11 @@ router.post('/upload', verifyFirebaseToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating MUX upload:', error);
+    console.error('Upload error:', error);
     return res.status(500).json({ 
       error: 'Failed to create upload',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      code: 'UPLOAD_ERROR'
     });
   }
 });
