@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import * as z from 'zod';
@@ -164,7 +163,6 @@ const useVideoUpload = () => {
         uploadId,
         isPremium: formValues.isPremium,
         price: formValues.tokenPrice,
-        type: formValues.type,
       });
       
       setUploadStage('Finalisation...');

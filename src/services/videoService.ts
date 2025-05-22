@@ -1,4 +1,3 @@
-
 // Types pour les métadonnées de la vidéo
 export type VideoStatus = 'pending' | 'processing' | 'ready' | 'error';
 
@@ -62,6 +61,7 @@ export interface CreateVideoInput {
   isPublished?: boolean;
   isPremium?: boolean;
   price?: number;
+  type?: string; // Add type for video categorization
 }
 
 export interface UpdateVideoInput {

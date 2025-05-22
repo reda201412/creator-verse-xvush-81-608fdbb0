@@ -8,19 +8,28 @@ import { FiLock, FiCreditCard, FiCheck } from 'react-icons/fi';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProgressBar from '@/components/ui/ProgressBar';
+import { ContentPrice } from '@/types/monetization';
 
 interface ContentPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  video: VideoData;
+  video?: VideoData;
   onPurchaseComplete: () => void;
+  contentTitle?: string;
+  contentThumbnail?: string;
+  pricing?: ContentPrice;
+  userTokenBalance?: number;
 }
 
 const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   isOpen,
   onClose,
   video,
-  onPurchaseComplete
+  onPurchaseComplete,
+  contentTitle,
+  contentThumbnail,
+  pricing,
+  userTokenBalance = 0
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchaseStep, setPurchaseStep] = useState<'info' | 'processing' | 'complete'>('info');
@@ -28,11 +37,14 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Mock token balance for the user
-  const userTokens = 100;
+  // Calculate video price based on what's available
+  const videoPrice = video?.price || video?.tokenPrice || (pricing?.tokenPrice ?? 5);
   
-  // Calculate video price or set default
-  const videoPrice = video.price || video.tokenPrice || 5;
+  // Use the provided content title or fallback to video title
+  const title = contentTitle || video?.title || "Premium Content";
+  
+  // Use the provided content thumbnail or fallback to video thumbnail
+  const thumbnailUrl = contentThumbnail || video?.thumbnail_url || video?.thumbnailUrl || 'https://via.placeholder.com/120x68';
   
   const handleLoginRedirect = () => {
     onClose();
@@ -41,7 +53,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   
   const handlePurchase = async () => {
     // Check if user has enough tokens
-    if (userTokens < videoPrice) {
+    if (userTokenBalance < videoPrice) {
       // Would redirect to token purchase page
       return;
     }
@@ -87,13 +99,13 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
                 <img 
-                  src={video.thumbnail_url || video.thumbnailUrl || 'https://via.placeholder.com/120x68'} 
-                  alt={video.title}
+                  src={thumbnailUrl} 
+                  alt={title}
                   className="w-24 h-16 object-cover rounded"
                 />
                 <div>
-                  <h3 className="font-medium">{video.title}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">{video.description}</p>
+                  <h3 className="font-medium">{title}</h3>
+                  <p className="text-sm text-gray-500 line-clamp-2">{video?.description}</p>
                 </div>
               </div>
               
@@ -104,7 +116,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Votre solde</span>
-                  <span className="font-bold">{userTokens} tokens</span>
+                  <span className="font-bold">{userTokenBalance} tokens</span>
                 </div>
               </div>
               
@@ -112,10 +124,10 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
                 <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-lg text-sm">
                   <p className="font-medium">Connectez-vous pour acheter ce contenu</p>
                 </div>
-              ) : userTokens < videoPrice ? (
+              ) : userTokenBalance < videoPrice ? (
                 <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-sm">
                   <p className="font-medium">Solde insuffisant</p>
-                  <p className="mt-1">Vous avez besoin de {videoPrice - userTokens} tokens supplémentaires.</p>
+                  <p className="mt-1">Vous avez besoin de {videoPrice - userTokenBalance} tokens supplémentaires.</p>
                 </div>
               ) : null}
             </div>
@@ -161,7 +173,7 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
               ) : (
                 <Button 
                   onClick={handlePurchase} 
-                  disabled={isProcessing || userTokens < videoPrice}
+                  disabled={isProcessing || userTokenBalance < videoPrice}
                   className="w-full sm:w-auto"
                 >
                   <FiCreditCard className="mr-2 h-4 w-4" />

@@ -20,6 +20,78 @@ interface UseVideoUploadToMuxReturn {
   reset: () => void;
 }
 
+export class MuxUploadManager {
+  async init(filename: string, userId: string): Promise<{ uploadId: string; assetId: string }> {
+    const uploadResponse = await fetch('/api/mux/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json();
+      throw new Error(errorData.error || 'Failed to create upload');
+    }
+
+    const { url, id, assetId } = await uploadResponse.json();
+    
+    return { uploadId: id, assetId };
+  }
+
+  async start(file: File, uploadId: string, progressCallback: (progress: number) => void): Promise<void> {
+    // Create a custom XMLHttpRequest for progress tracking
+    const xhr = new XMLHttpRequest();
+    
+    // Set up the upload promise
+    return new Promise<void>((resolve, reject) => {
+      // Track progress
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          progressCallback(progress);
+        }
+      };
+      
+      // Handle completion
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      };
+      
+      // Handle errors
+      xhr.onerror = () => {
+        reject(new Error('Network error during upload'));
+      };
+      
+      // Handle abort
+      xhr.onabort = () => {
+        reject(new Error('Upload aborted'));
+      };
+      
+      // Open the request
+      xhr.open('PUT', `/api/mux/upload/${uploadId}`, true);
+      
+      // Set the Content-Type header
+      xhr.setRequestHeader('Content-Type', file.type);
+      
+      // Send the file
+      xhr.send(file);
+    });
+  }
+}
+
+// Create a progress tracking function
+export const onProgress = (callback: (progress: number) => void) => {
+  return (progress: number) => {
+    callback(progress);
+  };
+};
+
 export const useVideoUploadToMux = (): UseVideoUploadToMuxReturn => {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -48,6 +120,9 @@ export const useVideoUploadToMux = (): UseVideoUploadToMuxReturn => {
     setUploadState('preparing');
 
     try {
+      // Create a new MuxUploadManager instance
+      const manager = new MuxUploadManager();
+      
       // Step 1: Get a direct upload URL from our API
       const uploadResponse = await fetch('/api/mux/upload', {
         method: 'POST',
