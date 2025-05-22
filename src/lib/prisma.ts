@@ -1,16 +1,11 @@
 
 // This file provides a Prisma client instance that works in both server and browser environments
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import clientPrisma from './client-prisma';
 
 // For TypeScript type safety, create a type for PrismaClient
 interface CustomPrismaClient {
-  video: {
-    findMany: (args: any) => Promise<any[]>;
-    create: (args: any) => Promise<any>;
-    update: (args: any) => Promise<any>;
-    delete: (args: any) => Promise<any>;
-    findUnique: (args: any) => Promise<any>;
-  };
+  video?: any;
   user?: any;
   profile?: any;
   [key: string]: any;
@@ -19,23 +14,54 @@ interface CustomPrismaClient {
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Create a mock Prisma client for browser environments
-const mockPrismaClient: CustomPrismaClient = {
-  video: {
-    findMany: async (args: any) => [],
-    create: async (args: any) => ({ id: 1, ...args.data }),
-    update: async (args: any) => ({ id: 1, ...args.data }),
-    delete: async (args: any) => ({ id: 1 }),
-    findUnique: async (args: any) => null
-  },
-  user: {},
-  profile: {}
+// Use a function to handle async initialization
+const initPrisma = async (): Promise<CustomPrismaClient> => {
+  if (isBrowser) {
+    // In browser, use our mock client
+    return clientPrisma as unknown as CustomPrismaClient;
+  }
+  
+  try {
+    // In Node.js, try to use the real Prisma client
+    // We use dynamic import to prevent webpack from trying to bundle this
+    const { default: prismaModule } = await import('@prisma/client');
+    
+    // Use a singleton pattern to prevent multiple instances
+    const globalForPrisma = global as unknown as {
+      prisma: CustomPrismaClient | undefined;
+    };
+
+    // If PrismaClient is available, use it
+    if (prismaModule?.PrismaClient) {
+      const client = globalForPrisma.prisma ?? new prismaModule.PrismaClient();
+
+      if (process.env.NODE_ENV !== 'production') {
+        globalForPrisma.prisma = client;
+      }
+
+      // Clean up on exit (server-side only)
+      process.on('beforeExit', async () => {
+        if (client.$disconnect) {
+          await client.$disconnect();
+        }
+      });
+
+      return client;
+    }
+    
+    // If PrismaClient is not available, fallback to mock
+    return clientPrisma as unknown as CustomPrismaClient;
+  } catch (error) {
+    console.error('Failed to initialize Prisma client:', error);
+    // Fallback to mock client if real PrismaClient fails to load
+    return clientPrisma as unknown as CustomPrismaClient;
+  }
 };
 
-// Export a concrete prisma client directly to avoid Promise-related issues
-export const prisma = isBrowser 
-  ? clientPrisma as unknown as CustomPrismaClient
-  : mockPrismaClient;
+// Initialize prisma and export a promise that resolves to the client
+const prismaPromise = initPrisma();
 
-// For backward compatibility
+// For backward compatibility, export the promise directly
+export const prisma = prismaPromise;
+
 export default prisma;

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CreatorProfileData } from '@/types/video';
 
@@ -13,7 +12,7 @@ export interface TrendingContentItem {
   format?: string;
   isPremium?: boolean;
   is_premium?: boolean;
-  userId?: string;
+  userId?: string; // Added to fix missing property error
 }
 
 const TrendingContent = () => {

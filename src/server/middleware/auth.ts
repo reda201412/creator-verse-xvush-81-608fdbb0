@@ -1,56 +1,59 @@
-
 import { Request, Response, NextFunction } from 'express';
+import { getAuth } from 'firebase-admin/auth';
 
-// Define our own interface extending Request rather than augmenting Express
-interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    email?: string;
-  };
-  headers: {
-    authorization?: string;
-    [key: string]: string | string[] | undefined;
-  };
+declare module 'express' {
+  interface Request {
+    user?: {
+      uid: string;
+      email?: string;
+    };
+  }
 }
 
-// Helper function to get auth headers for API requests
-export const getAuthHeaders = () => {
-  // This is a mock implementation
-  return {
-    'Authorization': 'Bearer mock-token'
-  };
-};
-
-// Firebase admin verification middleware
-export const verifyFirebaseToken = async (
-  req: AuthenticatedRequest, 
-  res: Response, 
-  next: NextFunction
-) => {
+// Middleware to verify Firebase token
+export const verifyFirebaseToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Example token verification logic
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized - No token provided' });
+      return res.status(401).json({ error: 'Unauthorized: No token provided' });
     }
     
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split('Bearer ')[1];
     
-    // In production, verify the token with Firebase Admin SDK
-    // For development, we'll use a mock verification
-    if (token === 'mock-token' || token === 'development-token') {
-      req.user = {
-        uid: 'mock-user-id',
-        email: 'mock@example.com'
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token format' });
+    }
+
+    // Verify token with Firebase Admin
+    try {
+      const auth = getAuth();
+      const decodedToken = await auth.verifyIdToken(token);
+      req.user = { 
+        uid: decodedToken.uid, 
+        email: decodedToken.email 
       };
-      return next();
+      next();
+    } catch (error) {
+      console.error('Firebase token verification error:', error);
+      return res.status(401).json({ 
+        error: 'Unauthorized: Invalid token',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-    
-    // Mock token verification failure
-    return res.status(401).json({ error: 'Unauthorized - Invalid token' });
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    return res.status(500).json({ error: 'Internal server error during authentication' });
+    console.error('Authentication middleware error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
+};
+
+// Export a simpler function for client-side use
+export const getAuthHeaders = () => {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
+  };
 };

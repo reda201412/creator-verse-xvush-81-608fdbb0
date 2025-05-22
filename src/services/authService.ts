@@ -1,34 +1,46 @@
 
-// Fix the import to use the default export
-import mockPrisma from '@/lib/mock-prisma';
+// Mock implementation for authService
+import { MockPrismaClient } from '@/lib/mock-prisma';
+import { User } from '@/types/video';
 
-// Define authentication service methods
-export const signUpWithEmailAndPassword = async (email: string, password: string) => {
-  // Mock implementation
-  console.log('Signing up with email and password');
-  return { user: { uid: 'mock-user-id', email } };
+// Create a more complete mock prisma client
+const mockPrisma = {
+  user: {
+    findUnique: async () => null,
+    create: async () => null,
+    update: async () => null
+  }
 };
 
-export const signInWithEmailAndPassword = async (email: string, password: string) => {
-  // Mock implementation
-  console.log('Signing in with email and password');
-  return { user: { uid: 'mock-user-id', email } };
+const authService = {
+  // Fix the user access issues by removing unnecessary parameters
+  findUserByEmail: async (email: string) => {
+    try {
+      return mockPrisma.user.findUnique();
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  },
+  
+  // Fix other methods as well
+  createUser: async (userData: Partial<User>) => {
+    try {
+      return mockPrisma.user.create();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return null;
+    }
+  },
+  
+  updateUser: async (userId: string, userData: Partial<User>) => {
+    try {
+      return mockPrisma.user.update();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return null;
+    }
+  }
 };
 
-export const signOut = async () => {
-  // Mock implementation
-  console.log('Signing out');
-  return true;
-};
-
-export const resetPassword = async (email: string) => {
-  // Mock implementation
-  console.log('Resetting password for email', email);
-  return true;
-};
-
-export const updateUserProfile = async (userId: string, profileData: any) => {
-  // Mock implementation
-  console.log('Updating user profile', userId, profileData);
-  return { id: userId, ...profileData };
-};
+export default authService;

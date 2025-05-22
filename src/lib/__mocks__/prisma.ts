@@ -1,25 +1,12 @@
+import { PrismaClient } from '@prisma/client';
 
-// Mock implementation of Prisma client for testing
-
-// Create a type-safe mock without direct PrismaClient import
+// Create a type-safe mock of the Prisma Client
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-type MockPrismaClient = {
+type MockPrismaClient = DeepPartial<PrismaClient> & {
   $reset: () => void;
-  $connect: () => Promise<void>;
-  $disconnect: () => Promise<void>;
-  $on: (event: string, callback: () => void) => void;
-  $use: (middleware: any) => void;
-  $transaction: <T>(fn: (prisma: MockPrismaClient) => Promise<T>) => Promise<T>;
-  $queryRaw: (query: string, ...args: any[]) => Promise<any[]>;
-  $executeRaw: (query: string, ...args: any[]) => Promise<number>;
-  user: any;
-  video: any;
-  conversation: any;
-  message: any;
-  [key: string]: any;
 };
 
 // Create a mock implementation of Prisma Client

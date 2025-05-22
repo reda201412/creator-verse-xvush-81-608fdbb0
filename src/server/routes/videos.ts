@@ -1,26 +1,24 @@
-
-import express from 'express';
+import express, { Request } from 'express';
 import prisma from '@/lib/prisma';
+import { verifyFirebaseToken } from '../middleware/auth';
 
-// Define our own interface for authenticated request
-interface AuthRequest extends express.Request {
-  user?: {
-    uid: string;
-    email?: string;
-  };
-  body: any; // Add the body property
+// Import our extended Request type
+declare module 'express' {
+  interface Request {
+    user?: {
+      uid: string;
+      email?: string;
+    };
+  }
 }
 
 const router = express.Router();
-
-// Import middleware (we'll assume this is fixed)
-import { verifyFirebaseToken } from '../middleware/auth';
 
 // Middleware to verify authentication
 router.use(verifyFirebaseToken);
 
 // Get all videos for the authenticated creator
-router.get('/', async (req: AuthRequest, res: express.Response) => {
+router.get('/', async (req: Request, res) => {
   try {
     const userId = req.user?.uid;
     
@@ -28,14 +26,10 @@ router.get('/', async (req: AuthRequest, res: express.Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const prismaClient = await prisma;
-    
-    // Use the mock video client for browser environments
-    // We'll handle the missing 'video' property using a custom mock implementation
-    const videos = await prismaClient.video?.findMany?.({
+    const videos = await prisma.video.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-    }) || [];
+    });
 
     return res.json(videos);
   } catch (error) {
@@ -48,7 +42,7 @@ router.get('/', async (req: AuthRequest, res: express.Response) => {
 });
 
 // Create a new video record
-router.post('/', async (req: AuthRequest, res: express.Response) => {
+router.post('/', async (req: Request, res) => {
   try {
     const userId = req.user?.uid;
     
@@ -78,11 +72,8 @@ router.post('/', async (req: AuthRequest, res: express.Response) => {
       return res.status(400).json({ error: 'Missing required field: title' });
     }
 
-    const prismaClient = await prisma;
-    
     // Create video record with all metadata
-    // We'll handle the missing 'video' property using a custom mock implementation
-    const video = await prismaClient.video?.create?.({
+    const video = await prisma.video.create({
       data: {
         userId,
         title,
@@ -108,7 +99,7 @@ router.post('/', async (req: AuthRequest, res: express.Response) => {
         isPublished,
         type,
       },
-    }) || { id: 'mock-id', title };
+    });
 
     return res.status(201).json(video);
   } catch (error) {

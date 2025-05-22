@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { Video } from 'lucide-react';
 import VideoCard from './VideoCard';
+// Import the VideoData type from our types folder
 import { VideoData } from '@/types/video';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface VideoGridProps {
+  // Use the VideoData type from our types folder
   videos: VideoData[];
   activeTab: string;
   searchQuery: string;
@@ -14,6 +15,7 @@ interface VideoGridProps {
   onEditVideo: (videoId: number) => void;
   onPromoteVideo: (videoId: number) => void;
   onAnalyticsVideo: (videoId: number) => void;
+  // onUploadComplete callback with VideoData type
   onUploadComplete: (metadata?: VideoData | null) => void;
   isLoading?: boolean;
 }
@@ -29,6 +31,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   onUploadComplete,
   isLoading = false
 }) => {
+  // getTypeLabel function remains the same, it works with string types
   const getTypeLabel = (type?: string | null) => {
      if (!type) return 'Standard';
     switch (type) {
@@ -43,12 +46,12 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   const getFilteredVideos = () => {
     let filteredVideos = videos;
 
-    // Filter by tab
+    // Filter by tab (video.type should exist in VideoData)
     if (activeTab !== 'all') {
       filteredVideos = filteredVideos.filter(video => video.type === activeTab);
     }
 
-    // Filter by search query
+    // Filter by search query (video.title, video.description should exist)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filteredVideos = filteredVideos.filter(video => 
@@ -86,7 +89,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             <VideoCard
               key={video.id}
               video={video}
-              onDelete={onDeleteVideo} 
+              onDelete={onDeleteVideo}
               onEdit={onEditVideo}
               onPromote={onPromoteVideo}
               onAnalytics={onAnalyticsVideo}

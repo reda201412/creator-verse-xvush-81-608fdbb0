@@ -1,167 +1,242 @@
+import { createHmac } from 'crypto';
+import { Request } from 'express';
+import prisma from '@/lib/prisma';
 
-import { prisma } from './prisma';
-
-// Handler for when a video upload is created in Mux
-export const handleVideoCreated = async (data: any) => {
-  try {
-    const { id, upload_id, status, created_at, aspect_ratio } = data;
-    
-    console.log(`Handling video created webhook for asset ID: ${id}`);
-    
-    // Find the video by upload ID
-    const video = await prisma.video.findUnique({
-      where: { uploadId: upload_id }
-    });
-    
-    if (!video) {
-      console.error(`No video found with upload ID: ${upload_id}`);
-      return { success: false, message: 'Video not found' };
-    }
-    
-    // Update the video with the Mux asset ID and status
-    const updatedVideo = await prisma.video.update({
-      where: { id: video.id },
-      data: {
-        assetId: id,
-        status: status,
-        createdAt: created_at,
-        aspectRatio: aspect_ratio
-      }
-    });
-    
-    console.log(`Updated video ${video.id} with asset ID: ${id}`);
-    
-    return {
-      success: true,
-      video: updatedVideo
-    };
-  } catch (error) {
-    console.error('Error handling video created webhook:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
+type MuxEvent = {
+  type: string;
+  object: {
+    id: string;
+    type: string;
+    playback_ids?: {
+      id: string;
+      policy: string;
+    }[];
+    status?: 'ready' | 'errored' | 'preparing';
+    duration?: number;
+    aspect_ratio?: string;
+    errors?: Array<{message: string, type: string}>;
+  };
+  data?: Record<string, unknown>;
 };
 
-// Handler for when a video asset is ready for playback in Mux
-export const handleAssetReady = async (data: any) => {
-  try {
-    const { id, playback_ids, status, duration, aspect_ratio } = data;
-    
-    console.log(`Handling asset ready webhook for asset ID: ${id}`);
-    
-    // Find the video by Mux asset ID
-    const video = await prisma.video.findUnique({
-      where: { assetId: id }
-    });
-    
-    if (!video) {
-      console.error(`No video found with asset ID: ${id}`);
-      return { success: false, message: 'Video not found' };
-    }
-    
-    // Get the playback ID (we'll just use the first one)
-    const playbackId = playback_ids && playback_ids.length > 0 ? playback_ids[0].id : null;
-    
-    if (!playbackId) {
-      console.error('No playback ID found in webhook data');
-      return { success: false, message: 'No playback ID found' };
-    }
-    
-    // Update the video with playback details
-    const updatedVideo = await prisma.video.update({
-      where: { id: video.id },
-      data: {
-        playbackId,
-        status,
-        duration,
-        aspectRatio: aspect_ratio,
-        isPublished: true
-      }
-    });
-    
-    console.log(`Updated video ${video.id} with playback ID: ${playbackId}`);
-    
-    return {
-      success: true,
-      video: updatedVideo
-    };
-  } catch (error) {
-    console.error('Error handling asset ready webhook:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
+interface MuxWebhookPayload {
+  type: string;
+  data: MuxEvent;
+}
 
-// Handler for when an asset is deleted from Mux
-export const handleAssetDeleted = async (data: any) => {
-  try {
-    const { id } = data;
-    
-    console.log(`Handling asset deleted webhook for asset ID: ${id}`);
-    
-    // Find the video by Mux asset ID
-    const video = await prisma.video.findUnique({
-      where: { assetId: id }
-    });
-    
-    if (!video) {
-      console.error(`No video found with asset ID: ${id}`);
-      return { success: false, message: 'Video not found' };
-    }
-    
-    // Update the video to reflect deletion
-    const updatedVideo = await prisma.video.update({
-      where: { id: video.id },
-      data: {
-        status: 'deleted',
-        isPublished: false
-      }
-    });
-    
-    console.log(`Marked video ${video.id} as deleted`);
-    
-    return {
-      success: true,
-      video: updatedVideo
-    };
-  } catch (error) {
-    console.error('Error handling asset deleted webhook:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
+const webhookSecret = process.env.MUX_WEBHOOK_SECRET || '';
 
-// Add the missing processWebhookRequest function
-export const processWebhookRequest = async (req: any) => {
+if (!webhookSecret) {
+  console.warn('MUX_WEBHOOK_SECRET is not set. Webhook verification will be disabled.');
+}
+
+/**
+ * Verifies the Mux webhook signature using HMAC-SHA256
+ */
+export function verifyWebhookSignature(body: string, signature: string | null): boolean {
+  if (!signature || !webhookSecret) {
+    console.warn('Webhook verification skipped: Missing signature or secret');
+    return process.env.NODE_ENV !== 'production'; // Only verify in production
+  }
+
   try {
-    // Get the webhook data from the request body
-    const { type, data } = req.body;
+    // The Mux signature is in the format: t=timestamp,v1=signature
+    const timestamp = signature.split(',')[0].split('=')[1];
+    const signatureHash = signature.split(',')[1].split('=')[1];
     
-    console.log(`Processing webhook: ${type}`);
+    if (!timestamp || !signatureHash) {
+      console.error('Invalid signature format');
+      return false;
+    }
+
+    // Create the signed payload
+    const signedPayload = `${timestamp}.${body}`;
     
-    // Handle different webhook types
-    switch (type) {
-      case 'video.asset.created':
-        return await handleVideoCreated(data);
-      
-      case 'video.asset.ready':
-        return await handleAssetReady(data);
-      
-      case 'video.asset.deleted':
-        return await handleAssetDeleted(data);
-      
+    // Create the HMAC
+    const expectedSignature = createHmac('sha256', webhookSecret)
+      .update(signedPayload)
+      .digest('hex');
+
+    // Compare the signatures
+    return signatureHash === expectedSignature;
+  } catch (error) {
+    console.error('Error verifying webhook signature:', error);
+    return false;
+  }
+}
+
+/**
+ * Handles Mux webhook events
+ */
+export async function handleMuxWebhookEvent(event: MuxEvent) {
+  if (!event || !event.type) {
+    console.error('Invalid Mux webhook event:', event);
+    return;
+  }
+
+  try {
+    switch (event.type) {
+      case 'video.asset.ready': {
+        await handleAssetReady(event.object);
+        break;
+      }
+      case 'video.asset.errored': {
+        await handleAssetError(event.object);
+        break;
+      }
+      case 'video.upload.asset_created': {
+        await handleUploadAssetCreated(event.object);
+        break;
+      }
       default:
-        console.log(`Unhandled webhook type: ${type}`);
-        return { success: true, message: 'Webhook received but not processed' };
+        console.log('Unhandled Mux event type:', event.type);
     }
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    throw new Error(`Failed to process webhook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(`Error processing Mux event ${event.type}:`, error);
   }
-};
+}
+
+/**
+ * Handle video.asset.ready events
+ */
+async function handleAssetReady(data: MuxEvent['object']) {
+  const assetId = data.id;
+  console.log(`Processing asset ready for asset_id: ${assetId}`);
+
+  if (!assetId) {
+    console.error('Missing asset ID in event data');
+    return;
+  }
+
+  const playbackId = data.playback_ids?.[0]?.id;
+  if (!playbackId) {
+    console.error(`No playback ID found for asset_id: ${assetId}`);
+    return;
+  }
+
+  // Generate a thumbnail URL using Mux's Image API
+  const thumbnailUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg`;
+
+  try {
+    // Update the video record in the database
+    const updatedVideo = await prisma.video.update({
+      where: {
+        mux_asset_id: assetId,
+      },
+      data: {
+        status: 'ready',
+        mux_playback_id: playbackId,
+        playbackId: playbackId, // Update both formats for compatibility
+        duration: data.duration || null,
+        aspect_ratio: data.aspect_ratio || null,
+        aspectRatio: data.aspect_ratio || null, // Update both formats
+        // Only set thumbnail if not already set
+        thumbnailUrl: {
+          set: thumbnailUrl,
+        },
+        thumbnail_url: {
+          set: thumbnailUrl, 
+        },
+      },
+    });
+
+    console.log(`Video record updated for asset_id: ${assetId}`, updatedVideo);
+  } catch (error) {
+    console.error(`Error updating video record for asset_id: ${assetId}:`, error);
+  }
+}
+
+/**
+ * Handle video.asset.errored events
+ */
+async function handleAssetError(data: MuxEvent['object']) {
+  const assetId = data.id;
+  console.log(`Processing asset error for asset_id: ${assetId}`);
+
+  if (!assetId) {
+    console.error('Missing asset ID in event data');
+    return;
+  }
+
+  try {
+    // Update the video record to indicate an error
+    const updatedVideo = await prisma.video.update({
+      where: {
+        mux_asset_id: assetId,
+      },
+      data: {
+        status: 'error',
+        error_details: data.errors ? JSON.stringify(data.errors) : null,
+      },
+    });
+
+    console.log(`Video error status updated for asset_id: ${assetId}`);
+  } catch (error) {
+    console.error(`Error updating error status for asset_id: ${assetId}:`, error);
+  }
+}
+
+/**
+ * Handle video.upload.asset_created events
+ */
+async function handleUploadAssetCreated(data: MuxEvent['object']) {
+  const uploadId = data.id;
+  const newAssetId = data.id;
+  
+  if (!uploadId || !newAssetId) {
+    console.error('Missing upload ID or asset ID in event data');
+    return;
+  }
+
+  console.log(`Processing upload.asset_created: uploadId=${uploadId}, assetId=${newAssetId}`);
+
+  try {
+    // Link the upload ID to the new asset ID
+    const updatedVideo = await prisma.video.update({
+      where: {
+        mux_upload_id: uploadId,
+      },
+      data: {
+        mux_asset_id: newAssetId,
+        assetId: newAssetId, // Update both formats
+      },
+    });
+
+    console.log(`Linked upload_id ${uploadId} to asset_id ${newAssetId}`);
+  } catch (error) {
+    console.error(`Error linking upload_id ${uploadId} to asset_id ${newAssetId}:`, error);
+  }
+}
+
+/**
+ * Processes a raw webhook request
+ */
+export async function processWebhookRequest(request: Request): Promise<MuxEvent> {
+  let body = '';
+  
+  // Get the raw body if it's a stream
+  if (typeof request.body === 'object') {
+    body = JSON.stringify(request.body);
+  } else if (typeof request.body === 'string') {
+    body = request.body;
+  } else {
+    // Read the body as a string
+    body = await new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      request.on('error', reject);
+    });
+  }
+  
+  const signature = request.headers['mux-signature'] as string;
+  
+  if (!verifyWebhookSignature(body, signature)) {
+    throw new Error('Invalid webhook signature');
+  }
+  
+  const event = JSON.parse(body) as MuxEvent;
+  await handleMuxWebhookEvent(event);
+  
+  return event;
+}
