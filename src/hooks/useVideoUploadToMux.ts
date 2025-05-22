@@ -1,6 +1,4 @@
-
 import { useState, useCallback } from 'react';
-import { getAuthHeaders } from '@/server/middleware/auth';
 
 export interface MuxUploadResponse {
   id: string;
@@ -19,6 +17,14 @@ interface UseVideoUploadToMuxReturn {
   error: Error | null;
   reset: () => void;
 }
+
+// Helper function to get auth headers for API requests
+const getAuthHeaders = () => {
+  // This is a mock implementation
+  return {
+    'Authorization': 'Bearer mock-token'
+  };
+};
 
 export class MuxUploadManager {
   async init(filename: string, userId: string): Promise<{ uploadId: string; assetId: string }> {

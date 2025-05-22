@@ -4,7 +4,13 @@ import clientPrisma from './client-prisma';
 
 // For TypeScript type safety, create a type for PrismaClient
 interface CustomPrismaClient {
-  video?: any;
+  video?: {
+    findMany?: (args: any) => Promise<any[]>;
+    create?: (args: any) => Promise<any>;
+    update?: (args: any) => Promise<any>;
+    delete?: (args: any) => Promise<any>;
+    findUnique?: (args: any) => Promise<any>;
+  };
   user?: any;
   profile?: any;
   [key: string]: any;
@@ -24,9 +30,7 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
     // In Node.js, try to use the real Prisma client
     // We use dynamic import to prevent webpack from trying to bundle this
     // Note: This is a workaround since we can't directly import PrismaClient
-    // We're using the default export instead of named exports
     const prismaModule = await import('@prisma/client');
-    const PrismaClient = prismaModule.default?.PrismaClient;
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {
@@ -34,26 +38,30 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
     };
 
     // If PrismaClient is available, use it
-    if (PrismaClient) {
-      const client = globalForPrisma.prisma ?? new PrismaClient();
+    if (prismaModule.default) {
+      const PrismaClient = prismaModule.default?.PrismaClient;
+      if (PrismaClient) {
+        const client = globalForPrisma.prisma ?? new PrismaClient();
 
-      if (import.meta.env.MODE !== 'production') {
-        globalForPrisma.prisma = client;
+        if (import.meta.env.MODE !== 'production') {
+          globalForPrisma.prisma = client;
+        }
+
+        // Clean up on exit (server-side only)
+        if (typeof process !== 'undefined' && typeof process.on === 'function') {
+          process.on('beforeExit', async () => {
+            if (client.$disconnect) {
+              await client.$disconnect();
+            }
+          });
+        }
+
+        return client;
       }
-
-      // Clean up on exit (server-side only)
-      if (typeof process !== 'undefined' && typeof process.on === 'function') {
-        process.on('beforeExit', async () => {
-          if (client.$disconnect) {
-            await client.$disconnect();
-          }
-        });
-      }
-
-      return client;
     }
     
     // If PrismaClient is not available, fallback to mock
+    console.warn('PrismaClient not available, using mock client');
     return clientPrisma as unknown as CustomPrismaClient;
   } catch (error) {
     console.error('Failed to initialize Prisma client:', error);

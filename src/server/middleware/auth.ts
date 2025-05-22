@@ -7,7 +7,19 @@ interface AuthenticatedRequest extends Request {
     uid: string;
     email?: string;
   };
+  headers: {
+    authorization?: string;
+    [key: string]: string | string[] | undefined;
+  };
 }
+
+// Helper function to get auth headers for API requests
+export const getAuthHeaders = () => {
+  // This is a mock implementation
+  return {
+    'Authorization': 'Bearer mock-token'
+  };
+};
 
 // Firebase admin verification middleware
 export const verifyFirebaseToken = async (

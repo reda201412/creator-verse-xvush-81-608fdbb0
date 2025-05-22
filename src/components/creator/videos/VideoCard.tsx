@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Play, Eye, MessageSquare, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
@@ -5,12 +6,23 @@ import { VideoData } from '@/types/video';
 
 interface VideoCardProps {
   video: VideoData;
-  onPlay: (videoId: string) => void;
+  onDelete?: (videoId: number) => void;
+  onEdit?: (videoId: number) => void;
+  onPromote?: (videoId: number) => void;
+  onAnalytics?: (videoId: number) => void;
+  onPlay?: (videoId: string) => void;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ video, onPlay }) => {
+const VideoCard: React.FC<VideoCardProps> = ({ 
+  video, 
+  onPlay,
+  onDelete,
+  onEdit,
+  onPromote,
+  onAnalytics
+}) => {
   const handlePlay = () => {
-    if (video.id) {
+    if (onPlay && video.id) {
       onPlay(String(video.id));
     }
   };
@@ -37,7 +49,7 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onPlay }) => {
           <span className="text-xs">En attente...</span>
         </div>
       );
-    } else if (video.status === "error") {
+    } else if (video.status === "error" || video.status === "failed") {
       return (
         <div className="flex items-center text-red-500">
           <AlertCircle className="h-3 w-3 mr-1" />
@@ -83,9 +95,9 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onPlay }) => {
         </div>
         
         {/* Error Message */}
-        {video.status === "error" && (
+        {(video.status === "error" || video.status === "failed") && (
           <div className="mt-2 p-2 bg-red-50 text-red-800 text-xs rounded-md">
-            <strong>Erreur:</strong> {video.error || "Une erreur est survenue lors du traitement de la vidéo."}
+            <strong>Erreur:</strong> {video.errorMessage || "Une erreur est survenue lors du traitement de la vidéo."}
           </div>
         )}
       </CardContent>
