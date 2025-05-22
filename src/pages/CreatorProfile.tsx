@@ -6,12 +6,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileVideo, Play, BarChart } from 'lucide-react';
+import { FileVideo, Play, BarChart, Users, Star, Heart, MessageSquare } from 'lucide-react';
 import { getVideosByUserId } from '@/services/videoService';
 import ContentPricing from '@/components/creator/ContentPricing';
 import { VideoData } from '@/types/video';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
+import CreatorDNA from '@/components/creator/CreatorDNA';
+import ProfileSection from '@/components/header/ProfileSection';
+import HeaderInfo from '@/components/header/HeaderInfo';
+import CreatorMetrics from '@/components/header/CreatorMetrics';
+import RevenueSection from '@/components/header/RevenueSection';
+import ContentGrid from '@/components/shared/ContentGrid';
 
 interface CreatorData {
   id: string;
@@ -21,6 +28,10 @@ interface CreatorData {
   bio: string;
   followers?: number;
   isPremium?: boolean;
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+  skills?: string[];
+  style?: string[];
+  achievements?: string[];
 }
 
 const CreatorProfile = () => {
@@ -28,6 +39,7 @@ const CreatorProfile = () => {
   const [creator, setCreator] = useState<CreatorData | null>(null);
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('videos');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -41,9 +53,13 @@ const CreatorProfile = () => {
           displayName: username || "Creative Creator",
           username: username || "creator",
           avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + username,
-          bio: "Créateur de contenu passionné",
+          bio: "Créateur de contenu passionné qui explore les frontières de l'art digital et de l'expression créative. Je partage mon monde avec vous, à travers des expériences uniques et immersives.",
           followers: 1250,
           isPremium: true,
+          tier: 'gold' as const,
+          skills: ['Photographie', 'Montage vidéo', 'Direction artistique', 'Motion design', 'Narration visuelle'],
+          style: ['Minimaliste', 'Contemporain', 'Avant-garde', 'Expérimental', 'Immersif'],
+          achievements: ['1M vues', 'Collaboration internationale', 'Prix d\'excellence', 'Artiste émergent']
         };
         setCreator(mockCreator);
         
@@ -118,124 +134,209 @@ const CreatorProfile = () => {
     );
   }
 
+  // Convert videos to a format compatible with ContentGrid
+  const contentItems = videos.map(video => ({
+    id: video.id.toString(),
+    title: video.title,
+    thumbnailUrl: video.thumbnailUrl || '/placeholder-video.jpg',
+    type: video.type,
+    format: video.format || '16:9',
+    isPremium: video.isPremium,
+    metrics: {
+      views: Math.floor(Math.random() * 10000),
+      likes: Math.floor(Math.random() * 500),
+      comments: Math.floor(Math.random() * 100)
+    }
+  }));
+
+  const heroSectionVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Creator Info Section */}
-        <div className="w-full lg:w-1/3 space-y-6">
-          {/* Avatar and basic info */}
-          <div className="text-center">
-            <Avatar className="h-40 w-40 mx-auto border-4 border-primary">
-              <AvatarImage src={creator.avatarUrl} alt={creator.displayName} />
-              <AvatarFallback>{creator.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            
-            <h1 className="text-3xl font-bold mt-4 relative inline-flex items-center gap-2">
-              {creator.displayName}
-              {creator.isPremium && (
-                <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600">
-                  Premium
-                </Badge>
-              )}
-            </h1>
-            
-            <p className="text-muted-foreground">@{creator.username}</p>
-            
-            {creator.followers && (
-              <p className="mt-2 font-medium">{creator.followers.toLocaleString()} abonnés</p>
-            )}
-            
-            <div className="flex justify-center gap-2 mt-4">
-              {user && user.uid !== creator.id && (
-                <button className="px-6 py-2 bg-primary text-white rounded-full font-medium">
-                  S'abonner
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Bio */}
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2">À propos</h3>
-              <p className="text-muted-foreground">{creator.bio}</p>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="container mx-auto px-4 py-6">
+      <motion.div 
+        className="bg-gradient-to-br from-background to-background/80 rounded-2xl mb-8 p-8 overflow-hidden border border-primary/20 shadow-lg relative"
+        initial="hidden"
+        animate="visible"
+        variants={heroSectionVariants}
+      >
+        {/* Background gradients */}
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-xvush-purple/10 rounded-full blur-3xl"></div>
         
-        {/* Content Section */}
-        <div className="w-full lg:w-2/3">
-          <Tabs defaultValue="videos">
-            <TabsList className="mb-6">
-              <TabsTrigger value="videos" className="flex items-center gap-2">
-                <FileVideo className="w-4 h-4" />
-                Vidéos
-              </TabsTrigger>
-              <TabsTrigger value="livestreams" className="flex items-center gap-2">
-                <Play className="w-4 h-4" />
-                Directs
-              </TabsTrigger>
-              <TabsTrigger value="stats" className="flex items-center gap-2">
-                <BarChart className="w-4 h-4" />
-                Stats
-              </TabsTrigger>
-            </TabsList>
+        <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+          {/* Creator Profile Section */}
+          <motion.div variants={itemVariants} className="w-full lg:w-1/3">
+            <ProfileSection 
+              avatar={creator.avatarUrl}
+              isOnline={true}
+              pulseStatus="creating"
+              className="mb-6"
+            />
             
-            <TabsContent value="videos">
-              {videos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {videos.map(video => (
-                    <div key={video.id}>
-                      <ContentPricing
-                        contentId={String(video.id)}
-                        title={video.title}
-                        pricing={{
-                          type: video.isPremium ? 'token' : 'free',
-                          tokenPrice: video.price || 0,
-                        }}
-                        thumbnailUrl={video.thumbnailUrl || '/placeholder-video.jpg'}
-                        onPurchase={() => console.log("Video purchased")}
-                        onSubscribe={() => console.log("User subscribed")}
-                        className="h-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <FileVideo className="w-16 h-16 mx-auto text-muted-foreground" />
-                  <h3 className="text-xl font-medium mt-4">Aucune vidéo</h3>
-                  <p className="text-muted-foreground mt-2">
-                    {user && user.uid === creator.id 
-                      ? "Vous n'avez pas encore de vidéos. Commencez à en télécharger!"
-                      : "Ce créateur n'a pas encore publié de vidéos."}
-                  </p>
-                </div>
-              )}
-            </TabsContent>
+            <RevenueSection 
+              isCreator={true}
+              isOwner={user?.uid === creator.id}
+              revenue={1250}
+              growthRate={12}
+              upcomingEvent={{
+                title: "Live de maquillage",
+                time: "Demain 18:00",
+                type: "live",
+                countdown: "22:15:30"
+              }}
+              className="mt-6"
+            />
+          </motion.div>
+          
+          {/* Creator Info Section */}
+          <motion.div variants={itemVariants} className="w-full lg:w-2/3 space-y-6">
+            <HeaderInfo 
+              name={creator.displayName}
+              username={creator.username}
+              bio={creator.bio}
+              tier={creator.tier || 'bronze'}
+            />
             
-            <TabsContent value="livestreams">
-              <div className="text-center py-16">
-                <Play className="w-16 h-16 mx-auto text-muted-foreground" />
-                <h3 className="text-xl font-medium mt-4">Aucun direct programmé</h3>
-                <p className="text-muted-foreground mt-2">
-                  Revenez plus tard pour les diffusions en direct de ce créateur.
-                </p>
-              </div>
-            </TabsContent>
+            <CreatorMetrics 
+              metrics={{
+                followers: creator.followers || 0,
+                following: 128,
+                retentionRate: 76,
+                superfans: 45,
+                watchMinutes: 36500
+              }}
+            />
             
-            <TabsContent value="stats">
-              <div className="text-center py-16">
-                <BarChart className="w-16 h-16 mx-auto text-muted-foreground" />
-                <h3 className="text-xl font-medium mt-4">Statistiques privées</h3>
-                <p className="text-muted-foreground mt-2">
-                  Les statistiques détaillées ne sont visibles que par le créateur lui-même.
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+            <CreatorDNA 
+              creatorName={creator.displayName}
+              creatorSkills={creator.skills || []}
+              creatorStyle={creator.style || []}
+              creatorAchievements={creator.achievements || []}
+            />
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
+      
+      {/* Content Tabs Section */}
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mt-8">
+        <TabsList className="mb-6 bg-background/80 backdrop-blur-sm border border-border/30 p-1 overflow-x-auto flex-nowrap w-full justify-start">
+          <TabsTrigger value="videos" className="flex items-center gap-2">
+            <FileVideo className="w-4 h-4" />
+            Vidéos
+            <Badge className="ml-1 bg-primary/15 text-primary">{videos.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="livestreams" className="flex items-center gap-2">
+            <Play className="w-4 h-4" />
+            Directs
+          </TabsTrigger>
+          <TabsTrigger value="stats" className="flex items-center gap-2">
+            <BarChart className="w-4 h-4" />
+            Stats
+          </TabsTrigger>
+          <TabsTrigger value="community" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Communauté
+          </TabsTrigger>
+          <TabsTrigger value="reviews" className="flex items-center gap-2">
+            <Star className="w-4 h-4" />
+            Avis
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="videos" className="focus-visible:outline-none">
+          {videos.length > 0 ? (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-medium">Vidéos récentes</h3>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">
+                    Populaires
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">
+                    Récentes
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">
+                    Premium
+                  </Badge>
+                </div>
+              </div>
+              <ContentGrid 
+                contents={contentItems}
+                layout="masonry" 
+                isCreator={false}
+                onItemClick={(id) => console.log("Video clicked:", id)}
+              />
+            </>
+          ) : (
+            <div className="text-center py-16 bg-muted/20 rounded-lg border border-border/50">
+              <FileVideo className="w-16 h-16 mx-auto text-muted-foreground" />
+              <h3 className="text-xl font-medium mt-4">Aucune vidéo</h3>
+              <p className="text-muted-foreground mt-2">
+                {user && user.uid === creator.id 
+                  ? "Vous n'avez pas encore de vidéos. Commencez à en télécharger!"
+                  : "Ce créateur n'a pas encore publié de vidéos."}
+              </p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="livestreams">
+          <div className="text-center py-16 bg-muted/20 rounded-lg border border-border/50">
+            <Play className="w-16 h-16 mx-auto text-muted-foreground" />
+            <h3 className="text-xl font-medium mt-4">Aucun direct programmé</h3>
+            <p className="text-muted-foreground mt-2">
+              Revenez plus tard pour les diffusions en direct de ce créateur.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="stats">
+          <div className="text-center py-16 bg-muted/20 rounded-lg border border-border/50">
+            <BarChart className="w-16 h-16 mx-auto text-muted-foreground" />
+            <h3 className="text-xl font-medium mt-4">Statistiques privées</h3>
+            <p className="text-muted-foreground mt-2">
+              Les statistiques détaillées ne sont visibles que par le créateur lui-même.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="community">
+          <div className="text-center py-16 bg-muted/20 rounded-lg border border-border/50">
+            <Users className="w-16 h-16 mx-auto text-muted-foreground" />
+            <h3 className="text-xl font-medium mt-4">Rejoignez la communauté</h3>
+            <p className="text-muted-foreground mt-2">
+              Abonnez-vous pour participer aux discussions et événements exclusifs.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <div className="text-center py-16 bg-muted/20 rounded-lg border border-border/50">
+            <Star className="w-16 h-16 mx-auto text-muted-foreground" />
+            <h3 className="text-xl font-medium mt-4">Évaluations</h3>
+            <p className="text-muted-foreground mt-2">
+              Les évaluations seront bientôt disponibles.
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

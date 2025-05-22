@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import ContentCard from './ContentCard';
 import { cn } from '@/lib/utils';
 import { useMobile } from '@/hooks/useMobile';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
+import { motion } from 'framer-motion';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 export interface ContentGridProps {
   contents: Array<any>;
@@ -11,6 +13,7 @@ export interface ContentGridProps {
   className?: string;
   onItemClick?: (id: string) => void;
   isCreator?: boolean;
+  showAnimations?: boolean;
 }
 
 const ContentGrid: React.FC<ContentGridProps> = ({
@@ -18,13 +21,40 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   layout = 'grid',
   className = '',
   onItemClick,
-  isCreator = false
+  isCreator = false,
+  showAnimations = true
 }) => {
   const { isMobile } = useMobile();
   const { withHapticFeedback } = useHapticFeedback();
+  const { triggerMicroReward } = useNeuroAesthetic();
+  
+  // Animation configuration
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { type: "spring", stiffness: 70 }
+    }
+  };
   
   if (!contents || contents.length === 0) {
-    return <div className="text-center p-8 text-muted-foreground">Aucun contenu à afficher</div>;
+    return (
+      <div className="text-center p-8 text-muted-foreground bg-muted/20 rounded-lg border border-border/40">
+        Aucun contenu à afficher
+      </div>
+    );
   }
 
   // Mobile-optimized grid classes
@@ -64,36 +94,71 @@ const ContentGrid: React.FC<ContentGridProps> = ({
 
   const handleItemClick = (id: string) => {
     if (onItemClick) {
-      // Utiliser le hook de retour haptique pour ajouter une vibration
+      // Use haptic feedback for enhanced interaction
       if ('vibrate' in navigator) {
-        navigator.vibrate(15); // Vibration moyenne pour clic sur contenu
+        navigator.vibrate(15); // Medium vibration for content click
       }
+      triggerMicroReward('interest');
       onItemClick(id);
     }
   };
 
+  // Conditional rendering based on animations preference
+  if (!showAnimations) {
+    return (
+      <div className={gridClassName}>
+        {contents.map((item) => (
+          <ContentCard
+            key={item.id}
+            imageUrl={item.imageUrl || item.thumbnailUrl}
+            title={item.title}
+            type={item.type}
+            format={item.format}
+            duration={item.duration}
+            metrics={item.metrics}
+            isCreator={isCreator}
+            className={cn(
+              layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : "",
+              isMobile ? "touch-manipulation haptic-feedback" : "" // Improve touch responsiveness with haptic feedback
+            )}
+            isTrending={item.isTrending}
+            collectionName={item.collectionName}
+            onClick={() => handleItemClick(item.id)}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className={gridClassName}>
+    <motion.div
+      className={gridClassName}
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {contents.map((item) => (
-        <ContentCard
-          key={item.id}
-          imageUrl={item.imageUrl || item.thumbnailUrl}
-          title={item.title}
-          type={item.type}
-          format={item.format}
-          duration={item.duration}
-          metrics={item.metrics}
-          isCreator={isCreator}
-          className={cn(
-            layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : "",
-            isMobile ? "touch-manipulation haptic-feedback" : "" // Improve touch responsiveness with haptic feedback
-          )}
-          isTrending={item.isTrending}
-          collectionName={item.collectionName}
-          onClick={() => handleItemClick(item.id)}
-        />
+        <motion.div key={item.id} variants={itemVariants}>
+          <ContentCard
+            imageUrl={item.imageUrl || item.thumbnailUrl}
+            title={item.title}
+            type={item.type}
+            format={item.format}
+            duration={item.duration}
+            metrics={item.metrics}
+            isCreator={isCreator}
+            className={cn(
+              layout === 'featured' && item.isFeatured ? "col-span-2 row-span-2" : "",
+              isMobile ? "touch-manipulation haptic-feedback" : "",
+              "hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+            )}
+            isTrending={item.isTrending}
+            collectionName={item.collectionName}
+            onClick={() => handleItemClick(item.id)}
+          />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 };
 
