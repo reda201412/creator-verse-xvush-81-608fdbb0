@@ -1,5 +1,4 @@
 
-// import { supabase } from '@/integrations/supabase/client'; // Supprimé
 import { db } from '@/integrations/firebase/firebase'; // Ajout Firebase db
 import { 
   collection, 
@@ -39,7 +38,7 @@ export interface FirestoreStory {
   mediaUrl: string;
   thumbnailUrl?: string;
   caption?: string;
-  filterUsed?: StoryFilter; // filter_used dans Supabase
+  filterUsed?: StoryFilter; // filter_used in the database
   duration?: number; // en secondes
   createdAt: Timestamp; // serverTimestamp()
   expiresAt: Timestamp;

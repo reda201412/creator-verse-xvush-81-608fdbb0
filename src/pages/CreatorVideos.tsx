@@ -33,7 +33,7 @@ const CreatorVideos: React.FC = () => {
     try {
       // Fix: Add mapping between service VideoData and our VideoData type
       const fetchedVideos = await getCreatorVideos(user.uid);
-      console.log("Vidéos récupérées de Supabase:", fetchedVideos);
+      console.log("Vidéos récupérées:", fetchedVideos);
       
       // Map serviceVideoData to our VideoData type to ensure type compatibility
       const mappedVideos: VideoData[] = Array.isArray(fetchedVideos) 
@@ -57,7 +57,7 @@ const CreatorVideos: React.FC = () => {
         
       setVideos(mappedVideos);
     } catch (error) {
-      console.error('Error fetching videos from Supabase:', error);
+      console.error('Error fetching videos:', error);
       showToast({
         title: "Erreur",
         description: "Impossible de charger vos vidéos. Veuillez réessayer.",
@@ -75,7 +75,7 @@ const CreatorVideos: React.FC = () => {
 
   // Update the handler to match the correct VideoData type
   const handleUploadComplete = (newVideoData?: VideoData | null) => {
-    console.log("Upload initiated, initial Supabase record created or error:", newVideoData);
+    console.log("Upload initiated, initial record created or error:", newVideoData);
     fetchVideos();
   };
 
@@ -84,7 +84,7 @@ const CreatorVideos: React.FC = () => {
         showToast({ title: "Erreur", description: "ID de vidéo invalide.", variant: "destructive" });
         return;
     }
-    console.warn("Video deletion needs a backend function to delete from MUX and Supabase.");
+    console.warn("Video deletion needs a backend function to delete from MUX and database.");
     showToast({
         title: "Fonctionnalité à implémenter",
         description: "La suppression de vidéo nécessite une fonction backend sécurisée.",

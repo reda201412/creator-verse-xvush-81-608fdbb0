@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import bodyParser from 'body-parser';
 
 // Load environment variables
 dotenv.config();
@@ -21,6 +22,8 @@ const app = express();
 const server = createServer(app);
 
 // Middleware
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json());
 
 // CORS Configuration
@@ -59,8 +62,8 @@ app.options('*', cors(corsOptions));
 
 // Apply routers with CORS
 app.use(healthRouter);
-app.use('/api/videos', cors(corsOptions), videosRouter);
-app.use('/api/mux', cors(corsOptions), muxRouter);
+app.use('/api/videos', videosRouter);
+app.use('/api/mux', muxRouter);
 
 // Serve static files from dist directory
 app.use(express.static(path.join(__dirname, 'dist')));

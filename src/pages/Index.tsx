@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 import XDoseLogo from "@/components/ui/XDoseLogo";
 import { cn } from "@/lib/utils";
-// import { checkUserFollowStatus, followCreator, unfollowCreator, getUserFollows } from '@/integrations/supabase/client'; // Ancienne importation
+// Using Prisma with Neon Database for user follows
 import { 
   followCreator, 
   unfollowCreator, 

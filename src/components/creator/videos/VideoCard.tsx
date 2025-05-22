@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// Use the Supabase data type
+// Video data type
 import { VideoData } from '@/services/creatorService';
 import { 
   MoreVertical, 
@@ -37,7 +37,7 @@ import { useMicroRewards } from '@/hooks/use-microrewards';
 import { useToast } from '@/hooks/use-toast'; // Import useToast hook
 
 interface VideoCardProps {
-  // Use the Supabase data type
+  // Video data type
   video: VideoData;
   onDelete: (videoId: number) => void; // Updated to use number ID
   onEdit: (videoId: number) => void; // Updated to use number ID
@@ -136,7 +136,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           }
         }}
       >
-        {/* Thumbnail - use thumbnail_url from Supabase schema */}
+        {/* Thumbnail - use thumbnail_url from database schema */}
         {video.thumbnail_url ? (
           <img 
             src={video.thumbnail_url} 
@@ -216,7 +216,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </p>
         )}
         
-        {/* Use is_premium and token_price from Supabase schema */}
+        {/* Use is_premium and token_price from database schema */}
         {video.is_premium && video.token_price !== undefined && video.token_price !== null && (
           <div className="text-sm font-medium text-primary">
             {video.token_price} tokens
