@@ -206,15 +206,17 @@ const useVideoUpload = () => {
       // Mettre à jour la progression
       setUploadProgress(100);
       
-      // 2. Uploader la miniature si elle existe
-      let thumbnailUrl: string | undefined;
+      // 2. Uploader la miniature si elle existe (optionnel)
+      let thumbnailUrl = '';
       if (thumbnailFile) {
-        setUploadStage('generating_thumbnail');
-        thumbnailUrl = await uploadThumbnail(thumbnailFile, user?.uid || '');
-        
-        // Vérifier si la requête a été annulée après l'upload de la miniature
-        if (controller.signal.aborted) {
-          return null;
+        try {
+          const thumbnailResponse = await uploadThumbnail(thumbnailFile);
+          thumbnailUrl = thumbnailResponse.url;
+          toast.success('Miniature téléversée avec succès');
+        } catch (error) {
+          console.warn('Avertissement - Échec du téléversement de la miniature :', error);
+          toast.warning('La vidéo a été téléversée mais la miniature n\'a pas pu être sauvegardée');
+          // On continue même si l'upload de la miniature échoue
         }
       }
       
