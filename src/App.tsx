@@ -10,6 +10,7 @@ const Home = lazy(() => import('@/pages/Index'));
 const Auth = lazy(() => import('@/pages/Auth'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const CreatorProfile = lazy(() => import('@/pages/CreatorProfile'));
+const CreatorVideos = lazy(() => import('@/pages/CreatorVideos'));
 const CreatorRevenueDashboard = lazy(() => import('@/pages/CreatorRevenueDashboard'));
 const Feed = lazy(() => import('@/pages/Feed'));
 const Trending = lazy(() => import('@/pages/TrendingContent'));
@@ -30,6 +31,7 @@ function App() {
               <Route path="/creator/:id" element={<CreatorProfile />} />
               <Route path="/creator/profile" element={<CreatorProfile />} />
               <Route path="/creator/revenue" element={<CreatorRevenueDashboard />} />
+              <Route path="/videos" element={<CreatorVideos />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/trending" element={<Trending />} />
               <Route path="/creators" element={<Creators />} />

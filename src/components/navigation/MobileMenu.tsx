@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,8 +20,6 @@ import {
   DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,15 +32,8 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
-  const { triggerMicroReward } = useNeuroAesthetic();
-  
-  const handleClick = () => {
-    triggerMicroReward("tab");
-    if (onClick) onClick();
-  };
-  
   return (
-    <Link to={to} onClick={handleClick}>
+    <Link to={to} onClick={onClick}>
       <div
         className={cn(
           "relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200",
@@ -69,7 +61,6 @@ export const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { triggerMicroReward } = useNeuroAesthetic();
   const { user, profile, isCreator, signOut } = useAuth();
   const { toast } = useToast();
 
@@ -98,7 +89,6 @@ export const HamburgerMenu = () => {
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
-    triggerMicroReward("action");
   };
   
   const closeMenu = () => {
@@ -111,15 +101,10 @@ export const HamburgerMenu = () => {
       closeMenu();
       
       // Sign out the user
-      const { error } = await signOut();
-      
-      if (error) throw new Error(error);
+      await signOut();
       
       // Navigate to home page
       navigate('/');
-      
-      // Trigger micro reward
-      triggerMicroReward('action');
       
       toast({
         title: "Déconnexion réussie",
@@ -138,7 +123,6 @@ export const HamburgerMenu = () => {
   const handleQuickUpload = () => {
     navigate('/videos');
     closeMenu();
-    triggerMicroReward('navigate');
   };
 
   const displayName = profile?.displayName || profile?.username || "Utilisateur";
@@ -170,22 +154,19 @@ export const HamburgerMenu = () => {
             
             {/* Menu panel */}
             <motion.div
-              className="fixed top-0 right-0 h-screen w-[80%] max-w-[300px] bg-background z-40 overflow-y-auto shadow-xl flex flex-col"
-              initial={{ x: "100%" }}
+              className="fixed top-0 left-0 h-screen w-[80%] max-w-[300px] bg-background z-40 overflow-y-auto shadow-xl flex flex-col"
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
             >
               <div className="flex flex-col overflow-y-auto flex-1 p-4">
                 <div className="flex items-center justify-between py-4 px-2">
                   <Link to="/" onClick={closeMenu}>
                     <div className="flex items-center gap-2">
-                      <img 
-                        src="/lovable-uploads/0038954d-233c-440e-91b6-639b6b22bd82.png" 
-                        alt="XDose Logo" 
-                        className="w-8 h-8" 
-                      />
-                      <span className="text-lg font-semibold text-primary">XDose</span>
+                      <span className="text-2xl font-bold">
+                        <span className="text-xvush-pink">X</span>Dose
+                      </span>
                     </div>
                   </Link>
                   <Button variant="ghost" size="icon" onClick={closeMenu}>
@@ -204,9 +185,9 @@ export const HamburgerMenu = () => {
                 )}
                 
                 <div className="mt-4 space-y-1">
-                  {navItems.map((item) => (
+                  {navItems.map((item, index) => (
                     <NavItem
-                      key={item.to}
+                      key={index}
                       to={item.to}
                       icon={item.icon}
                       label={item.label}
@@ -235,15 +216,27 @@ export const HamburgerMenu = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t">
-                  <div className="flex items-center p-3">
-                    <ProfileAvatar src={profile?.avatarUrl || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium">{displayName}</p>
-                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                {user && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center p-3">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        {profile?.avatarUrl ? (
+                          <img 
+                            src={profile.avatarUrl} 
+                            alt={displayName} 
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User size={20} />
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground">{userRole}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </>

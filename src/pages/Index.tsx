@@ -1,15 +1,13 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ArrowRight, UserPlus, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { HamburgerMenu } from '@/components/navigation/MobileMenu';
+import BottomNavigation from '@/components/navigation/BottomNavigation';
 
 const Index = () => {
-  const { user } = useAuth();
-
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-blue-100">
       {/* Top Navigation Bar */}
@@ -28,7 +26,7 @@ const Index = () => {
           </div>
         </div>
         <div className="flex items-center">
-          {/* Placeholder for user avatar or additional icons */}
+          {/* Placeholder for additional icons */}
         </div>
       </header>
 
@@ -128,6 +126,8 @@ const Index = () => {
           </Link>
         </div>
       </nav>
+      
+      <BottomNavigation />
     </div>
   );
 };

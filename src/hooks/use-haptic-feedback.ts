@@ -1,37 +1,47 @@
 
 import { useCallback } from 'react';
 
-export type HapticIntensity = 'light' | 'medium' | 'strong';
+type HapticFeedbackPattern = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error';
 
-export const useHapticFeedback = () => {
-  // Fonction pour déclencher un retour haptique en fonction de l'intensité
-  const triggerHaptic = useCallback((intensity: HapticIntensity = 'light') => {
-    if (!('vibrate' in navigator)) return;
-    
-    switch (intensity) {
-      case 'light':
-        navigator.vibrate(10);
-        break;
-      case 'medium':
-        navigator.vibrate(20);
-        break;
-      case 'strong':
-        navigator.vibrate([30, 10, 30]);
-        break;
+const useHapticFeedback = () => {
+  // Check if the device supports vibration
+  const supportsVibration = typeof navigator !== 'undefined' && 'vibrate' in navigator;
+
+  // Define vibration patterns for different feedback types
+  const patterns: Record<HapticFeedbackPattern, number[]> = {
+    light: [10],
+    medium: [15],
+    heavy: [30],
+    success: [10, 50, 30],
+    warning: [30, 50, 30],
+    error: [50, 100, 50],
+  };
+
+  // Function to trigger haptic feedback
+  const triggerHaptic = useCallback((pattern: HapticFeedbackPattern = 'light') => {
+    if (supportsVibration) {
+      navigator.vibrate(patterns[pattern]);
     }
-  }, []);
+  }, [supportsVibration]);
 
-  // Fonction pour déclencher un retour haptique sur un événement de clic
-  const withHapticFeedback = useCallback((callback?: Function, intensity: HapticIntensity = 'light') => {
-    return (event: React.MouseEvent | React.TouchEvent) => {
-      triggerHaptic(intensity);
-      if (callback) callback(event);
-    };
-  }, [triggerHaptic]);
+  // Wrap callback functions with haptic feedback
+  const withHapticFeedback = useCallback(
+    <T extends (...args: any[]) => any>(
+      callback: T,
+      pattern: HapticFeedbackPattern = 'light'
+    ) => {
+      return ((...args: Parameters<T>) => {
+        triggerHaptic(pattern);
+        return callback(...args);
+      }) as T;
+    },
+    [triggerHaptic]
+  );
 
   return {
     triggerHaptic,
-    withHapticFeedback
+    withHapticFeedback,
+    supportsVibration,
   };
 };
 
