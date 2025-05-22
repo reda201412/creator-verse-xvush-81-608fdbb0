@@ -26,11 +26,14 @@ const initPrisma = async (): Promise<any> => {
       if ('PrismaClient' in prismaModule && typeof prismaModule.PrismaClient === 'function') {
         PrismaClient = prismaModule.PrismaClient;
       } 
-      // Then check if it's in the default export
-      else if (prismaModule.default && 
-              typeof prismaModule.default === 'object' && 
-              'PrismaClient' in prismaModule.default &&
-              typeof prismaModule.default.PrismaClient === 'function') {
+      // Then check if it's in the default export (safely access with type checking)
+      else if (
+        'default' in prismaModule && 
+        prismaModule.default && 
+        typeof prismaModule.default === 'object' && 
+        'PrismaClient' in prismaModule.default &&
+        typeof prismaModule.default.PrismaClient === 'function'
+      ) {
         PrismaClient = prismaModule.default.PrismaClient;
       }
       // Just use any available constructor function as a last resort
