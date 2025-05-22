@@ -15,11 +15,11 @@ const ProfileSection = ({
   username 
 }: ProfileSectionProps) => {
   const { user } = useAuth();
-
+  
   // Use provided props or fall back to user data
-  const avatar = avatarUrl || user?.profileImageUrl || '/placeholder.svg';
+  const avatar = avatarUrl || user?.photoURL || user?.avatarUrl || '/placeholder.svg';
   const name = displayName || user?.displayName || 'Creator';
-  const handle = username || user?.username || '@creator';
+  const handle = username || user?.email?.split('@')[0] || '@creator';
 
   return (
     <div className="flex items-center space-x-3">

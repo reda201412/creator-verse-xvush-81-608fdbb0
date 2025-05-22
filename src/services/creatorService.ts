@@ -30,10 +30,77 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoDataType
       status: video.status || "processing",
       viewCount: video.viewCount || 0,
       likeCount: video.likeCount || 0,
-      commentCount: video.commentCount || 0
+      commentCount: video.commentCount || 0,
+      tokenPrice: video.price || video.tokenPrice || 0,
     }));
   } catch (error) {
     console.error("Error fetching creator videos:", error);
     return [];
+  }
+};
+
+// Helper methods for following creators
+export const followCreator = async (creatorId: string): Promise<boolean> => {
+  try {
+    // Mock implementation - in a real app, this would call an API
+    console.log(`Following creator: ${creatorId}`);
+    return true;
+  } catch (error) {
+    console.error("Error following creator:", error);
+    return false;
+  }
+};
+
+export const unfollowCreator = async (creatorId: string): Promise<boolean> => {
+  try {
+    // Mock implementation - in a real app, this would call an API
+    console.log(`Unfollowing creator: ${creatorId}`);
+    return true;
+  } catch (error) {
+    console.error("Error unfollowing creator:", error);
+    return false;
+  }
+};
+
+export const checkUserFollowsCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+  try {
+    // Mock implementation - in a real app, this would check a database
+    return Math.random() > 0.5; // Randomly return true or false for demo purposes
+  } catch (error) {
+    console.error("Error checking follow status:", error);
+    return false;
+  }
+};
+
+// Get a single video by ID
+export const getVideoById = async (videoId: number | string): Promise<VideoDataType | null> => {
+  try {
+    // Mock implementation for now
+    const response = await fetch(`/api/videos/${videoId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch video');
+    }
+    
+    const video = await response.json();
+    return {
+      id: video.id,
+      creator_id: video.userId || video.user_id,
+      title: video.title || "Untitled",
+      description: video.description || "",
+      type: video.type || "standard",
+      thumbnail_url: video.thumbnailUrl || video.thumbnail_url,
+      is_premium: video.isPremium || video.is_premium || false,
+      price: video.price || 0,
+      mux_playback_id: video.playbackId || video.mux_playback_id,
+      status: video.status || "processing",
+      viewCount: video.viewCount || 0,
+      likeCount: video.likeCount || 0,
+      commentCount: video.commentCount || 0,
+      tokenPrice: video.price || 0,
+    };
+  } catch (error) {
+    console.error("Error fetching video:", error);
+    return null;
   }
 };

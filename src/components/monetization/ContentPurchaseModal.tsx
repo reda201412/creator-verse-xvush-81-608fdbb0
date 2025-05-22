@@ -1,185 +1,189 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { VideoData } from '@/types/video';
-import { useAuth } from '@/contexts/AuthContext';
-import { FiLock, FiCreditCard, FiCheck } from 'react-icons/fi';
-import { Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import ProgressBar from '@/components/ui/ProgressBar';
-import { ContentPrice } from '@/types/monetization';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface ContentPrice {
+  price: number;
+  currency: 'tokens' | 'usd';
+}
 
 interface ContentPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  video?: VideoData;
   onPurchaseComplete: () => void;
-  contentTitle?: string;
-  contentThumbnail?: string;
-  pricing?: ContentPrice;
-  userTokenBalance?: number;
+  contentTitle: string;
+  contentThumbnail: string;
+  pricing: ContentPrice;
+  userTokenBalance: number;
+  contentId?: string;
 }
 
 const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   isOpen,
   onClose,
-  video,
   onPurchaseComplete,
   contentTitle,
   contentThumbnail,
   pricing,
-  userTokenBalance = 0
+  userTokenBalance,
+  contentId
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [purchaseStep, setPurchaseStep] = useState<'info' | 'processing' | 'complete'>('info');
-  const [progress, setProgress] = useState(0);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  
-  // Calculate video price based on what's available
-  const videoPrice = video?.price || video?.tokenPrice || (pricing?.tokenPrice ?? 5);
-  
-  // Use the provided content title or fallback to video title
-  const title = contentTitle || video?.title || "Premium Content";
-  
-  // Use the provided content thumbnail or fallback to video thumbnail
-  const thumbnailUrl = contentThumbnail || video?.thumbnail_url || video?.thumbnailUrl || 'https://via.placeholder.com/120x68';
-  
-  const handleLoginRedirect = () => {
-    onClose();
-    navigate('/auth');
-  };
+  const [purchaseState, setPurchaseState] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const hasEnoughTokens = userTokenBalance >= pricing.price;
   
   const handlePurchase = async () => {
-    // Check if user has enough tokens
-    if (userTokenBalance < videoPrice) {
-      // Would redirect to token purchase page
+    if (!hasEnoughTokens) {
+      toast.error('Solde de tokens insuffisant');
       return;
     }
     
-    // Process the purchase
-    setIsProcessing(true);
-    setPurchaseStep('processing');
+    setPurchaseState('processing');
     
-    // Simulate purchase progress
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 10;
-      setProgress(currentProgress);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setPurchaseStep('complete');
-        
-        // Wait a moment before completing
+      if (Math.random() > 0.1) { // 90% success rate for demo
+        setPurchaseState('success');
         setTimeout(() => {
-          setIsProcessing(false);
           onPurchaseComplete();
+          setPurchaseState('idle');
         }, 1000);
+      } else {
+        setPurchaseState('error');
       }
-    }, 300);
+    } catch (error) {
+      console.error('Purchase error:', error);
+      setPurchaseState('error');
+    }
+  };
+  
+  const handleRetry = () => {
+    setPurchaseState('idle');
+  };
+  
+  const handleCancel = () => {
+    setPurchaseState('idle');
+    onClose();
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={purchaseState === 'idle' ? onClose : undefined}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <FiLock className="mr-2 text-yellow-500" />
-            Contenu Premium
+          <DialogTitle className="text-center">
+            {purchaseState === 'idle' && 'Acheter ce contenu'}
+            {purchaseState === 'processing' && 'Traitement de votre achat...'}
+            {purchaseState === 'success' && 'Achat réussi!'}
+            {purchaseState === 'error' && 'Échec de l\'achat'}
           </DialogTitle>
-          <DialogDescription>
-            Ce contenu nécessite un achat pour être visionné.
-          </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4">
-          {purchaseStep === 'info' && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <img 
-                  src={thumbnailUrl} 
-                  alt={title}
-                  className="w-24 h-16 object-cover rounded"
-                />
-                <div>
-                  <h3 className="font-medium">{title}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">{video?.description}</p>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Prix</span>
-                  <span className="font-bold text-yellow-600">{videoPrice} tokens</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Votre solde</span>
-                  <span className="font-bold">{userTokenBalance} tokens</span>
-                </div>
-              </div>
-              
-              {!user ? (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-lg text-sm">
-                  <p className="font-medium">Connectez-vous pour acheter ce contenu</p>
-                </div>
-              ) : userTokenBalance < videoPrice ? (
-                <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-sm">
-                  <p className="font-medium">Solde insuffisant</p>
-                  <p className="mt-1">Vous avez besoin de {videoPrice - userTokenBalance} tokens supplémentaires.</p>
-                </div>
-              ) : null}
-            </div>
-          )}
-          
-          {purchaseStep === 'processing' && (
-            <div className="text-center py-4 space-y-4">
-              <Loader2 className="animate-spin h-8 w-8 mx-auto text-indigo-600" />
-              <p>Traitement de votre achat...</p>
-              <ProgressBar 
-                value={progress} 
-                max={100} 
-                color="bg-indigo-600" 
-                height="h-2" 
-                showPercentage 
+        {purchaseState === 'idle' && (
+          <div className="space-y-4">
+            <div className="aspect-video rounded-md overflow-hidden">
+              <img 
+                src={contentThumbnail || '/placeholder.svg'} 
+                alt={contentTitle} 
+                className="w-full h-full object-cover"
               />
             </div>
-          )}
-          
-          {purchaseStep === 'complete' && (
-            <div className="text-center py-6">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <FiCheck className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="mt-3 text-lg font-medium">Achat réussi !</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Vous avez maintenant accès à ce contenu premium.
+            
+            <div className="text-center">
+              <h3 className="font-semibold text-lg">{contentTitle}</h3>
+              <p className="text-sm text-muted-foreground">
+                ID: {contentId || 'N/A'}
               </p>
             </div>
-          )}
-        </div>
+            
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <span>Prix:</span>
+                <span className="font-semibold">{pricing.price} tokens</span>
+              </div>
+              
+              <div className="flex justify-between items-center mt-2">
+                <span>Votre solde:</span>
+                <span className={`font-semibold ${hasEnoughTokens ? 'text-green-500' : 'text-red-500'}`}>
+                  {userTokenBalance} tokens
+                </span>
+              </div>
+              
+              {!hasEnoughTokens && (
+                <div className="mt-2 text-sm text-red-500">
+                  Solde insuffisant. Veuillez recharger votre compte.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {purchaseState === 'processing' && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-center text-muted-foreground">
+              Traitement de votre paiement...
+            </p>
+          </div>
+        )}
+        
+        {purchaseState === 'success' && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <CheckCircle className="h-12 w-12 text-green-500" />
+            <p className="mt-4 text-center">
+              Votre achat a été effectué avec succès!
+            </p>
+          </div>
+        )}
+        
+        {purchaseState === 'error' && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <AlertCircle className="h-12 w-12 text-red-500" />
+            <p className="mt-4 text-center">
+              Une erreur est survenue lors du traitement de votre paiement.
+            </p>
+          </div>
+        )}
         
         <DialogFooter>
-          {purchaseStep === 'info' && (
+          {purchaseState === 'idle' && (
             <>
               <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                 Annuler
               </Button>
-              {!user ? (
-                <Button onClick={handleLoginRedirect} className="w-full sm:w-auto">
-                  Se connecter
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handlePurchase} 
-                  disabled={isProcessing || userTokenBalance < videoPrice}
-                  className="w-full sm:w-auto"
-                >
-                  <FiCreditCard className="mr-2 h-4 w-4" />
-                  Acheter pour {videoPrice} tokens
-                </Button>
-              )}
+              <Button 
+                onClick={handlePurchase} 
+                disabled={!hasEnoughTokens}
+                className="w-full sm:w-auto"
+              >
+                Acheter maintenant
+              </Button>
+            </>
+          )}
+          
+          {purchaseState === 'processing' && (
+            <Button variant="outline" onClick={handleCancel} className="w-full">
+              Annuler
+            </Button>
+          )}
+          
+          {purchaseState === 'success' && (
+            <Button onClick={onClose} className="w-full">
+              Fermer
+            </Button>
+          )}
+          
+          {purchaseState === 'error' && (
+            <>
+              <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
+                Annuler
+              </Button>
+              <Button onClick={handleRetry} className="w-full sm:w-auto">
+                Réessayer
+              </Button>
             </>
           )}
         </DialogFooter>
