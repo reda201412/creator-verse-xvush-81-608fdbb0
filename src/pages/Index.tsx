@@ -3,155 +3,131 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { FiUser, FiVideo, FiHome, FiGrid, FiChevronRight } from 'react-icons/fi';
+import { Input } from '@/components/ui/input';
+import { ArrowRight, UserPlus, Search } from 'lucide-react';
+import { HamburgerMenu } from '@/components/navigation/MobileMenu';
 
 const Index = () => {
-  const { user, isCreator } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-xvush-purple to-xvush-pink py-20 text-white">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
-            Partagez. Créez. Connectez.
-          </h1>
-          <p className="text-lg sm:text-xl max-w-3xl mx-auto mb-8 text-gray-100">
-            Une plateforme où les créateurs peuvent partager du contenu exclusif et où les fans peuvent découvrir et soutenir leurs créateurs préférés.
-          </p>
-          {user ? (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isCreator ? (
-                <Button asChild size="lg" className="bg-white text-xvush-purple hover:bg-gray-100">
-                  <Link to="/creator/profile">
-                    <FiVideo className="mr-2" />
-                    Gérer mon contenu
-                  </Link>
-                </Button>
-              ) : (
-                <Button asChild size="lg" className="bg-white text-xvush-purple hover:bg-gray-100">
-                  <Link to="/feed">
-                    <FiGrid className="mr-2" />
-                    Explorer le contenu
-                  </Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-white text-xvush-purple hover:bg-gray-100">
-                <Link to="/auth">
-                  <FiUser className="mr-2" />
-                  Commencer
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
-                <Link to="/feed">
-                  <FiGrid className="mr-2" />
-                  Explorer
-                </Link>
-              </Button>
-            </div>
-          )}
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-blue-100">
+      {/* Top Navigation Bar */}
+      <header className="w-full bg-background/80 backdrop-blur-sm p-4 flex items-center justify-between border-b">
+        <div className="flex items-center">
+          <HamburgerMenu />
         </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Fonctionnalités principales</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4 text-indigo-600">
-                <FiVideo />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Contenu Premium</h3>
-              <p className="text-gray-600">Accédez à du contenu exclusif directement de vos créateurs préférés.</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center mb-4 text-pink-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Monétisation Directe</h3>
-              <p className="text-gray-600">Les créateurs peuvent monétiser leur contenu et recevoir le soutien de leurs fans.</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4 text-green-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Plateforme Sécurisée</h3>
-              <p className="text-gray-600">Une communauté sécurisée pour partager et consommer du contenu en toute sérénité.</p>
-            </div>
+        <div className="w-full max-w-md px-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input 
+              type="search" 
+              placeholder="Rechercher..." 
+              className="w-full pl-10 rounded-full bg-background border-muted-foreground/20"
+            />
           </div>
         </div>
-      </section>
+        <div className="flex items-center">
+          {/* Placeholder for user avatar or additional icons */}
+        </div>
+      </header>
 
-      {/* CTA */}
-      <section className="bg-indigo-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Prêt à commencer?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Rejoignez notre communauté de créateurs et de fans dès aujourd'hui.
-          </p>
-          <Button asChild size="lg" className="bg-white text-indigo-600 hover:bg-gray-100">
-            <Link to={user ? "/feed" : "/auth"}>
-              {user ? "Explorer le contenu" : "S'inscrire maintenant"}
-              <FiChevronRight className="ml-2" />
+      {/* Main Content */}
+      <main className="flex-1 px-4 py-6 flex flex-col">
+        {/* Logo and Title Section */}
+        <div className="text-center mb-12 mt-8">
+          <div className="flex flex-col items-center">
+            <div className="bg-amber-100 rounded-full p-3 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
+                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
+                <path d="M9 18h6"></path>
+                <path d="M10 22h4"></path>
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">Insight!</p>
+          </div>
+          <h1 className="text-5xl font-bold">
+            <span className="text-xvush-pink">X</span>
+            <span className="text-slate-700">Dose</span>
+          </h1>
+          <div className="w-32 h-1 bg-xvush-pink mx-auto mt-3 mb-8"></div>
+        </div>
+
+        {/* Authentication Buttons */}
+        <div className="flex flex-col items-center gap-4 mb-16">
+          <Button asChild size="lg" className="w-full max-w-xs bg-xvush-pink hover:bg-xvush-pink-dark rounded-full">
+            <Link to="/auth" className="flex items-center justify-center">
+              <ArrowRight className="mr-2 h-5 w-5" />
+              Se connecter
+            </Link>
+          </Button>
+          
+          <Button asChild variant="outline" size="lg" className="w-full max-w-xs rounded-full border-2 bg-transparent text-gray-700">
+            <Link to="/auth?register=true" className="flex items-center justify-center">
+              <UserPlus className="mr-2 h-5 w-5" />
+              Créer un compte
             </Link>
           </Button>
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-8 md:mb-0">
-              <h3 className="text-2xl font-bold mb-4">XDose</h3>
-              <p className="text-gray-400 max-w-sm">
-                Une plateforme de contenu premium pour créateurs et fans.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h4 className="font-semibold mb-4">Platforme</h4>
-                <ul className="space-y-2 text-gray-400">
-                  <li><a href="#" className="hover:text-white">À propos</a></li>
-                  <li><a href="#" className="hover:text-white">Fonctionnalités</a></li>
-                  <li><a href="#" className="hover:text-white">Tarifs</a></li>
-                </ul>
+        {/* Trending Content Section */}
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-3xl font-bold text-slate-700">Trending Content</h2>
+            <Link to="/trending" className="text-xvush-pink flex items-center font-medium">
+              Voir tout <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* Trending Content Preview */}
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg">
+            <div className="relative">
+              <div className="absolute top-3 left-3 bg-amber-400 rounded-full px-4 py-1 text-white font-semibold z-10">
+                Premium
               </div>
-              <div>
-                <h4 className="font-semibold mb-4">Ressources</h4>
-                <ul className="space-y-2 text-gray-400">
-                  <li><a href="#" className="hover:text-white">Documentation</a></li>
-                  <li><a href="#" className="hover:text-white">Guide des créateurs</a></li>
-                  <li><a href="#" className="hover:text-white">Support</a></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4">Légal</h4>
-                <ul className="space-y-2 text-gray-400">
-                  <li><a href="#" className="hover:text-white">Conditions d'utilisation</a></li>
-                  <li><a href="#" className="hover:text-white">Confidentialité</a></li>
-                  <li><a href="#" className="hover:text-white">Cookies</a></li>
-                </ul>
+              <img 
+                src="https://source.unsplash.com/random/800x450?fitness" 
+                alt="Trending content" 
+                className="w-full h-72 object-cover"
+              />
+              <div className="absolute bottom-2 right-2 bg-black/70 text-white rounded px-2 py-1 text-sm">
+                5:45
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-10 pt-6">
-            <p className="text-gray-400 text-sm text-center">
-              © {new Date().getFullYear()} XDose. Tous droits réservés.
-            </p>
-          </div>
+        </section>
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="border-t bg-white p-2">
+        <div className="flex justify-around items-center">
+          <Link to="/" className="flex flex-col items-center text-xvush-pink">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span className="text-xs mt-1">Accueil</span>
+          </Link>
+          
+          <Link to="/trending" className="flex flex-col items-center text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+              <polyline points="16 7 22 7 22 13"></polyline>
+            </svg>
+            <span className="text-xs mt-1">Tendances</span>
+          </Link>
+          
+          <Link to="/creators" className="flex flex-col items-center text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span className="text-xs mt-1">Créateurs</span>
+          </Link>
         </div>
-      </footer>
+      </nav>
     </div>
   );
 };
