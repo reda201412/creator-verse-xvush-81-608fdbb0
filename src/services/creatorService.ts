@@ -35,6 +35,7 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoDataType
       likeCount: video.likeCount || 0,
       commentCount: video.commentCount || 0,
       tokenPrice: video.price || video.tokenPrice || 0,
+      price: video.price || video.tokenPrice || 0, // Add price property
       // Add creator_id for backward compatibility
       creator_id: video.userId || video.user_id || creatorId
     }));
@@ -91,18 +92,22 @@ export const getVideoById = async (videoId: number | string): Promise<VideoDataT
     return {
       id: video.id,
       creator_id: video.userId || video.user_id,
+      creatorId: video.userId || video.user_id,
       title: video.title || "Untitled",
       description: video.description || "",
       type: video.type || "standard",
+      thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
       thumbnail_url: video.thumbnailUrl || video.thumbnail_url,
+      isPremium: video.isPremium || video.is_premium || false,
       is_premium: video.isPremium || video.is_premium || false,
-      price: video.price || 0,
+      tokenPrice: video.price || video.tokenPrice || 0,
+      price: video.price || video.tokenPrice || 0,
+      playbackId: video.playbackId || video.mux_playback_id,
       mux_playback_id: video.playbackId || video.mux_playback_id,
       status: video.status || "processing",
       viewCount: video.viewCount || 0,
       likeCount: video.likeCount || 0,
-      commentCount: video.commentCount || 0,
-      tokenPrice: video.price || 0,
+      commentCount: video.commentCount || 0
     };
   } catch (error) {
     console.error("Error fetching video:", error);

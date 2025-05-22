@@ -4,12 +4,12 @@ import clientPrisma from './client-prisma';
 
 // For TypeScript type safety, create a type for PrismaClient
 interface CustomPrismaClient {
-  video?: {
-    findMany?: (args: any) => Promise<any[]>;
-    create?: (args: any) => Promise<any>;
-    update?: (args: any) => Promise<any>;
-    delete?: (args: any) => Promise<any>;
-    findUnique?: (args: any) => Promise<any>;
+  video: {
+    findMany: (args: any) => Promise<any[]>;
+    create: (args: any) => Promise<any>;
+    update: (args: any) => Promise<any>;
+    delete: (args: any) => Promise<any>;
+    findUnique: (args: any) => Promise<any>;
   };
   user?: any;
   profile?: any;

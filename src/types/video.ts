@@ -27,6 +27,8 @@ export interface VideoData extends VideoMetadata {
   playbackId?: string;
   userId?: string; // Creator ID
   creatorId?: string; // Alias for userId
+  price?: number; // Added price property
+  
   // Adding backward compatibility fields for snake_case props
   thumbnail_url?: string;
   is_premium?: boolean;
