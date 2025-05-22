@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react'; 
 import { useToast } from '@/hooks/use-toast';
 import VideoHeader from '@/components/creator/videos/VideoHeader';
@@ -39,13 +40,13 @@ const CreatorVideos: React.FC = () => {
       const mappedVideos: VideoData[] = Array.isArray(fetchedVideos) 
         ? fetchedVideos.map(video => ({
             id: video.id,
-            userId: video.creatorId || video.userId || user.uid, // Using camelCase properties
+            userId: video.userId || user.uid, // Using camelCase properties
             title: video.title || "",
             description: video.description,
             type: video.type || "standard",
             thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
             isPremium: video.isPremium || video.is_premium,
-            playbackId: video.playbackId || video.mux_playback_id,
+            playbackId: video.playbackId,
             viewCount: video.viewCount,
             likeCount: 0, // Default values for required fields
             commentCount: 0, // Default values for required fields

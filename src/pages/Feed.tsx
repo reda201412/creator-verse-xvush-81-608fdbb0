@@ -83,7 +83,7 @@ const Feed = () => {
                       </div>
                     ) : (
                       <VideoPlayer 
-                        playbackId={selectedVideo.playbackId || selectedVideo.mux_playback_id} 
+                        playbackId={selectedVideo.playbackId || ''} 
                         title={selectedVideo.title} 
                       />
                     )}
@@ -98,7 +98,7 @@ const Feed = () => {
                         variant="ghost" 
                         size="sm"
                         className="text-muted-foreground"
-                        onClick={() => navigate(`/creator/${selectedVideo.userId || selectedVideo.creator_id}`)}
+                        onClick={() => navigate(`/creator/${selectedVideo.userId}`)}
                       >
                         Voir le créateur
                       </Button>
@@ -174,7 +174,7 @@ const Feed = () => {
           contentTitle={selectedVideo.title}
           contentThumbnail={selectedVideo.thumbnailUrl || selectedVideo.thumbnail_url || ''}
           pricing={{
-            price: selectedVideo.tokenPrice || 0,
+            price: selectedVideo.price || selectedVideo.tokenPrice || 0,
             currency: 'tokens'
           }}
           userTokenBalance={1000}

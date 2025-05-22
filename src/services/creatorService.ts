@@ -1,3 +1,4 @@
+
 import { VideoData } from '../types/video';
 
 // Re-export the VideoData type for compatibility
@@ -104,19 +105,15 @@ export const getVideoById = async (videoId: number | string): Promise<VideoData 
     const video = await response.json();
     return {
       id: video.id,
-      creator_id: video.userId || video.user_id,
-      creatorId: video.userId || video.user_id,
+      userId: video.userId || video.user_id,
       title: video.title || "Untitled",
       description: video.description || "",
       type: video.type || "standard",
       thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
-      thumbnail_url: video.thumbnailUrl || video.thumbnail_url,
       isPremium: video.isPremium || video.is_premium || false,
-      is_premium: video.isPremium || video.is_premium || false,
-      tokenPrice: video.price || video.tokenPrice || 0,
       price: video.price || video.tokenPrice || 0,
+      tokenPrice: video.price || video.tokenPrice || 0,
       playbackId: video.playbackId || video.mux_playback_id,
-      mux_playback_id: video.playbackId || video.mux_playback_id,
       status: video.status || "processing",
       viewCount: video.viewCount || 0,
       likeCount: video.likeCount || 0,
