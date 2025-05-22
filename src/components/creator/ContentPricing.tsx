@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -276,6 +277,7 @@ const ContentPricing: React.FC<ContentPricingProps> = ({
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
         onPurchaseComplete={handlePurchaseComplete}
+        contentId={contentId}
         contentTitle={title}
         contentThumbnail={thumbnailUrl}
         pricing={pricing}

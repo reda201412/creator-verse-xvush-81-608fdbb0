@@ -1,197 +1,310 @@
-import { useState, useRef, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import * as z from 'zod';
-import { MuxUploadManager, onProgress } from '@/hooks/useVideoUploadToMux';
-import { saveVideoMetadata, VideoMetadata } from '@/services/videoService';
 
-// Updated schema to include isPremium and tokenPrice fields
-export const videoSchema = z.object({
-  title: z.string().min(3, "Le titre doit contenir au moins 3 caractères"),
+import { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { uploadVideoToMux, uploadThumbnail } from '@/services/muxService';
+import { 
+  saveVideoMetadata, 
+  type VideoMetadata, 
+  type CreateVideoInput,
+  VideoStatus 
+} from '@/services/videoService';
+
+// Type pour l'utilisateur Firebase
+type FirebaseUser = {
+  uid: string;
+  // Ajoutez d'autres propriétés utilisateur si nécessaire
+};
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska', 'video/x-msvideo', 'video/mpeg']; // MKV, AVI, MPEG
+
+// Define Zod schema for form validation
+const videoFormSchema = z.object({
+  title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères.'),
   description: z.string().optional(),
-  type: z.enum(["standard", "premium", "teaser", "vip"]).default("standard"),
+  type: z.enum(['standard', 'teaser', 'premium', 'vip']),
   isPremium: z.boolean().default(false),
-  tokenPrice: z.number().min(0).optional()
+  tokenPrice: z.number().min(0, 'Le prix doit être positif.').optional(),
+  // Add other fields as needed based on VideoMetadata
 });
 
-export type VideoFormValues = z.infer<typeof videoSchema>;
+export type VideoFormValues = z.infer<typeof videoFormSchema>;
+
+type UploadStage = 'idle' | 'creating_upload' | 'uploading' | 'processing_metadata' | 'generating_thumbnail' | 'complete' | 'error';
 
 const useVideoUpload = () => {
+  const auth = useAuth();
+  const user = auth?.user as unknown as FirebaseUser | undefined;
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
-  const [videoFormat, setVideoFormat] = useState<'16:9' | '9:16' | '1:1' | 'other'>('16:9');
+  const videoFormat = useRef<'16:9' | '9:16' | '1:1' | 'other'>('other');
+  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadStage, setUploadStage] = useState<string>('');
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { user } = useAuth();
+  const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
 
-  // Handle video file selection
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setVideoFile(file);
-      
-      const videoUrl = URL.createObjectURL(file);
-      setVideoPreviewUrl(videoUrl);
-      
-      // Reset thumbnail when new video is selected
-      if (thumbnailPreviewUrl) {
-        URL.revokeObjectURL(thumbnailPreviewUrl);
-        setThumbnailPreviewUrl(null);
-      }
-      setThumbnailFile(null);
-      
-      // Detect video format when loaded
-      const video = document.createElement('video');
-      video.onloadedmetadata = () => {
-        const aspectRatio = video.videoWidth / video.videoHeight;
-        
-        if (Math.abs(aspectRatio - 16/9) < 0.1) {
-          setVideoFormat('16:9');
-        } else if (Math.abs(aspectRatio - 9/16) < 0.1) {
-          setVideoFormat('9:16');
-        } else if (Math.abs(aspectRatio - 1) < 0.1) {
-          setVideoFormat('1:1');
-        } else {
-          setVideoFormat('other');
+  // Référence pour annuler l'upload si nécessaire
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const form = useForm<VideoFormValues>({
+    resolver: zodResolver(videoFormSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      type: 'standard',
+      isPremium: false,
+      tokenPrice: 0,
+    },
+  });
+
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'type') {
+        form.setValue('isPremium', value.type === 'premium' || value.type === 'vip');
+        if (value.type !== 'premium' && value.type !== 'vip') {
+          form.setValue('tokenPrice', 0); // Reset token price if not premium/vip
         }
-        
-        videoRef.current = video;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+
+  const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setUploadError(`La taille du fichier dépasse la limite de ${MAX_FILE_SIZE / (1024*1024)}MB.`);
+        toast.error("Fichier trop volumineux", { description: `La taille du fichier dépasse la limite de ${MAX_FILE_SIZE / (1024*1024)}MB.`});
+        setVideoFile(null);
+        setVideoPreviewUrl(null);
+        return;
+      }
+      if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+        setUploadError("Type de fichier vidéo non supporté.");
+        toast.error("Format non supporté", { description: "Veuillez choisir un fichier MP4, MOV, WebM, MKV, AVI ou MPEG."});
+        setVideoFile(null);
+        setVideoPreviewUrl(null);
+        return;
+      }
+
+      setVideoFile(file);
+      const url = URL.createObjectURL(file);
+      setVideoPreviewUrl(url);
+      setUploadError(null);
+
+      // Detect video format (aspect ratio)
+      const videoElement = document.createElement('video');
+      videoElement.src = url;
+      videoElement.onloadedmetadata = () => {
+        const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+        if (Math.abs(aspectRatio - 16/9) < 0.1) videoFormat.current = '16:9';
+        else if (Math.abs(aspectRatio - 9/16) < 0.1) videoFormat.current = '9:16';
+        else if (Math.abs(aspectRatio - 1/1) < 0.1) videoFormat.current = '1:1';
+        else videoFormat.current = 'other';
       };
-      
-      video.src = videoUrl;
     }
   };
 
-  // Handle thumbnail file selection
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
+  const handleThumbnailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
       setThumbnailFile(file);
-      
-      // Revoke previous URL to avoid memory leaks
-      if (thumbnailPreviewUrl) {
-        URL.revokeObjectURL(thumbnailPreviewUrl);
-      }
-      
       setThumbnailPreviewUrl(URL.createObjectURL(file));
     }
   };
 
-  // Generate a thumbnail from the video
-  const generateThumbnail = useCallback(() => {
-    if (videoRef.current && videoPreviewUrl) {
-      const video = videoRef.current;
-      video.currentTime = 2; // Skip to 2 seconds
-      
-      // Use a canvas to capture a frame
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Convert canvas to blob
+  const generateThumbnail = async () => {
+    if (!videoFile || !videoPreviewUrl) return;
+    setUploadStage('generating_thumbnail');
+    const video = document.createElement('video');
+    video.src = videoPreviewUrl;
+    video.currentTime = 1; // Capture frame at 1 second
+
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(blob => {
           if (blob) {
-            const file = new File([blob], "thumbnail.png", { type: "image/png" });
-            setThumbnailFile(file);
-            
-            // Revoke previous URL to avoid memory leaks
-            if (thumbnailPreviewUrl) {
-              URL.revokeObjectURL(thumbnailPreviewUrl);
-            }
-            
-            setThumbnailPreviewUrl(URL.createObjectURL(file));
+            const thumbFile = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
+            setThumbnailFile(thumbFile);
+            setThumbnailPreviewUrl(URL.createObjectURL(thumbFile));
+            toast.success("Miniature générée avec succès!");
           }
-        }, 'image/png');
-      };
+          setUploadStage('idle'); 
+        }, 'image/jpeg');
+      } else {
+        setUploadStage('error');
+        setUploadError("Impossible de générer la miniature (erreur canvas).");
+      }
+    };
+    video.onerror = () => {
+      setUploadStage('error');
+      setUploadError("Erreur lors du chargement de la vidéo pour la miniature.");
+      toast.error("Erreur de miniature", { description: "Impossible de charger la vidéo pour générer la miniature."});
     }
-  }, [videoPreviewUrl, thumbnailPreviewUrl, videoRef]);
-
-  // Reset the form
-  const resetForm = () => {
-    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-    if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
-    
-    setVideoFile(null);
-    setThumbnailFile(null);
-    setVideoPreviewUrl(null);
-    setThumbnailPreviewUrl(null);
-    setVideoFormat('16:9');
-    setUploadProgress(0);
-    setUploadError(null);
-    setIsUploading(false);
-    setUploadStage('');
   };
 
-  // Upload video to MUX and save metadata
-  const uploadVideoAndSaveMetadata = async (formValues: VideoFormValues): Promise<VideoMetadata> => {
-    if (!videoFile || !user) {
-      throw new Error('Fichier vidéo manquant ou utilisateur non connecté');
+  const resetForm = () => {
+    setVideoFile(null);
+    setThumbnailFile(null);
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    setVideoPreviewUrl(null);
+    setThumbnailPreviewUrl(null);
+    form.reset();
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadError(null);
+    videoFormat.current = 'other';
+    
+    // Annuler tout upload en cours
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
     
-    setIsUploading(true);
-    setUploadStage('Préparation du téléchargement...');
+    setUploadStage('idle');
+  };
+
+  const uploadVideoAndSaveMetadata = async (values: VideoFormValues): Promise<VideoMetadata | null> => {
+    if (!videoFile || !user) {
+      setUploadError("Fichier vidéo ou utilisateur manquant.");
+      return null;
+    }
+
+    // Créer un nouvel AbortController pour cette requête
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploadStage('creating_upload');
+
     try {
-      // Get upload URL from our backend
-      const uploadManager = new MuxUploadManager();
+      // 1. Uploader la vidéo vers MUX avec support d'annulation
+      setUploadStage('uploading');
+      const muxResponse = await uploadVideoToMux(videoFile);
       
-      setUploadStage('Initialisation du téléchargement...');
-      
-      const { uploadId, assetId } = await uploadManager.init(videoFile.name, user.uid);
-      
-      setUploadStage('Téléchargement en cours...');
-      
-      // Start upload with progress tracking
-      await uploadManager.start(videoFile, uploadId, onProgress(setUploadProgress));
-      
-      setUploadStage('Traitement de la vidéo...');
-      
-      // Save video metadata
-      const metadata = await saveVideoMetadata({
-        userId: user.uid,
-        title: formValues.title,
-        description: formValues.description || '',
-        assetId,
-        uploadId,
-        isPremium: formValues.isPremium,
-        price: formValues.tokenPrice,
-      });
-      
-      setUploadStage('Finalisation...');
-      
-      // Add thumbnail if available
-      if (thumbnailFile) {
-        // Here you would upload the thumbnail to your storage
-        // And then update the video metadata with the thumbnail URL
-        // This functionality would be implemented elsewhere
+      // Vérifier si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
       }
       
-      return metadata;
+      // Mettre à jour la progression
+      setUploadProgress(100);
       
-    } catch (error) {
-      console.error("Upload error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Une erreur s'est produite lors du téléchargement";
-      setUploadError(errorMessage);
-      throw error;
+      // 2. Uploader la miniature si elle existe
+      let thumbnailUrl: string | undefined;
+      if (thumbnailFile) {
+        setUploadStage('generating_thumbnail');
+        thumbnailUrl = await uploadThumbnail(thumbnailFile, user?.uid || '');
+        
+        // Vérifier si la requête a été annulée après l'upload de la miniature
+        if (controller.signal.aborted) {
+          return null;
+        }
+      }
+      
+      // Vérifier à nouveau si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
+      }
+      
+      // 3. Sauvegarder les métadonnées dans Neon DB
+      setUploadStage('processing_metadata');
+      const videoMetadata: CreateVideoInput = {
+        userId: user?.uid || '',
+        title: values.title,
+        description: values.description,
+        assetId: muxResponse.assetId,
+        uploadId: muxResponse.id,
+        playbackId: muxResponse.playbackId,
+        status: 'processing', // MUX mettra à jour ce statut via le webhook
+        thumbnailUrl: thumbnailUrl,
+        isPremium: values.isPremium,
+        price: values.isPremium ? values.tokenPrice : undefined,
+        // Les champs suivants seront remplis par le serveur
+        duration: undefined,
+        aspectRatio: undefined,
+        videoUrl: undefined,
+        isPublished: false
+      };
+      
+      const savedMetadata = await saveVideoMetadata(videoMetadata);
+      
+      // Vérifier une dernière fois si la requête a été annulée
+      if (controller.signal.aborted) {
+        return null;
+      }
+      
+      setUploadStage('complete');
+      toast.success("Vidéo téléversée avec succès !", {
+        description: "Votre vidéo est en cours de traitement et sera bientôt disponible."
+      });
+      
+      return savedMetadata;
+      
+    } catch (error: unknown) {
+      // Ne pas afficher d'erreur si la requête a été annulée
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('Upload annulé par l\'utilisateur');
+          return null;
+        }
+        
+        console.error('Erreur lors du téléversement de la vidéo:', error);
+        setUploadError(error.message || "Une erreur est survenue lors du téléversement de la vidéo.");
+        setUploadStage('error');
+        toast.error("Erreur de téléversement", { 
+          description: error.message || "Une erreur est survenue lors du téléversement de la vidéo." 
+        });
+      } else {
+        console.error('Erreur inconnue lors du téléversement de la vidéo:', error);
+        setUploadError("Une erreur inconnue est survenue lors du téléversement de la vidéo.");
+        setUploadStage('error');
+        toast.error("Erreur de téléversement", { 
+          description: "Une erreur inconnue est survenue lors du téléversement de la vidéo." 
+        });
+      }
+      return null;
     } finally {
+      // Nettoyer l'AbortController
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setIsUploading(false);
     }
   };
 
+
+  // Nettoyer les URLs d'objets blob lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+      if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    };
+  }, [videoPreviewUrl, thumbnailPreviewUrl]);
+
   return {
+    form,
     videoFile,
     thumbnailFile,
     videoPreviewUrl,
     thumbnailPreviewUrl,
-    videoFormat,
+    videoFormat: videoFormat.current,
     isUploading,
     uploadProgress,
     uploadError,

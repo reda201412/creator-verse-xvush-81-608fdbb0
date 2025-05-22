@@ -1,143 +1,126 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import ProfileSection from '@/components/layout/header/ProfileSection';
-import HeaderInfo from '@/components/layout/header/HeaderInfo';
-import CreatorMetrics from '@/components/layout/header/CreatorMetrics';
-import TierProgressBar from '@/components/layout/header/TierProgressBar';
-import RevenueSection from '@/components/layout/header/RevenueSection';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import ProfileSection from './header/ProfileSection';
+import HeaderInfo from './header/HeaderInfo';
+import CreatorMetrics from './header/CreatorMetrics';
+import TierProgressBar from './header/TierProgressBar';
+import RevenueSection from './header/RevenueSection';
+import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
+import { MessageSquare } from 'lucide-react';
+import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
 
 interface CreatorHeaderProps {
-  creator: {
-    id: string;
-    username?: string;
-    displayName?: string;
-    bio?: string;
-    avatarUrl?: string;
-    coverImageUrl?: string;
-    joinDate?: string;
-    location?: string;
-    tags?: string[];
-    isCurrentUser?: boolean;
-    metrics?: {
-      followers?: number;
-      videos?: number;
-      likes?: number;
-      views?: number;
-    };
-    revenue?: {
-      total?: number;
-      tokens?: number;
-      percentChange?: number;
-    };
-    tier?: {
-      current: string;
-      next: string;
-      currentPoints: number;
-      nextTierPoints: number;
-    };
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+  metrics: {
+    followers: number;
+    following?: number;
+    revenue?: number;
+    growthRate?: number;
+    nextTierProgress?: number;
+    retentionRate?: number;
+    superfans?: number;
+    watchMinutes?: number;
   };
+  isCreator?: boolean;
+  isOwner?: boolean;
+  isOnline?: boolean;
+  className?: string;
 }
 
-const CreatorHeader: React.FC<CreatorHeaderProps> = ({ creator }) => {
-  const {
-    username,
-    displayName,
-    avatarUrl,
-    coverImageUrl,
-    bio,
-    joinDate,
-    location,
-    tags,
-    isCurrentUser,
-    metrics,
-    revenue,
-    tier
-  } = creator;
+const CreatorHeader = ({
+  name,
+  username,
+  avatar,
+  bio,
+  tier,
+  metrics,
+  isCreator = false,
+  isOwner = false,
+  isOnline = false,
+  className,
+}: CreatorHeaderProps) => {
+  const { triggerMicroReward } = useNeuroAesthetic();
   
+  // Mock data for upcoming event
+  const upcomingEvent = {
+    title: "Session photo spéciale abonnés",
+    time: "Demain, 20:00",
+    type: 'live' as const,
+    countdown: "23h 45m"
+  };
+
+  const handleEventSubscribe = () => {
+    console.log("Reminder set for upcoming event");
+  };
+  
+  const handleMessageClick = () => {
+    triggerMicroReward('navigate');
+  };
+
   return (
-    <div className="w-full space-y-4">
-      {/* Cover Image */}
-      <div 
-        className="h-40 md:h-60 w-full rounded-lg bg-gradient-to-r from-gray-700 to-gray-900 relative"
-        style={coverImageUrl ? { backgroundImage: `url(${coverImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-      >
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-      
-      {/* Profile Information */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              {/* Top Section: Avatar and Name */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <ProfileSection 
-                  avatarUrl={avatarUrl} 
-                  displayName={displayName} 
-                  username={username}
-                />
+    <div className={cn("glass-card rounded-2xl p-6", className)}>
+      <div className="flex flex-col md:flex-row md:items-start gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <ProfileSection avatar={avatar} isOnline={isOnline} />
+          
+          {/* Message button that links to the messages page with creator username in state */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full flex items-center gap-2"
+            asChild
+            onClick={handleMessageClick}
+          >
+            <Link to={`/messages?username=${username}`}>
+              <MessageSquare size={16} />
+              Envoyer un message
+            </Link>
+          </Button>
+        </div>
+
+        <div className="flex-grow space-y-4">
+          <HeaderInfo 
+            name={name} 
+            username={username} 
+            bio={bio} 
+            tier={tier} 
+          />
+
+          <Separator className="my-3" />
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <div className="space-y-4">
+                <CreatorMetrics metrics={metrics} />
                 
-                {isCurrentUser ? (
-                  <Button variant="outline" size="sm">
-                    Modifier le profil
-                  </Button>
-                ) : (
-                  <Button variant="default" size="sm">
-                    S'abonner
-                  </Button>
+                {metrics.nextTierProgress !== undefined && tier !== 'diamond' && (
+                  <TierProgressBar 
+                    tier={tier} 
+                    progress={metrics.nextTierProgress} 
+                  />
                 )}
               </div>
-              
-              {/* Bio */}
-              {bio && (
-                <p className="text-sm text-muted-foreground">{bio}</p>
-              )}
-              
-              {/* Info & Tags */}
-              <HeaderInfo 
-                joinDate={joinDate} 
-                location={location} 
-                tags={tags}
-              />
-              
-              {/* Creator Metrics */}
-              <div className="pt-2">
-                <CreatorMetrics 
-                  followers={metrics?.followers} 
-                  videos={metrics?.videos}
-                  likes={metrics?.likes} 
-                  views={metrics?.views}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Right Column - Only visible for current user */}
-        {isCurrentUser && (
-          <div className="w-full md:w-80 space-y-4">
-            <RevenueSection 
-              totalRevenue={revenue?.total}
-              tokenBalance={revenue?.tokens}
-              percentChange={revenue?.percentChange}
-            />
+            </div>
             
-            {tier && (
-              <Card>
-                <CardContent className="p-4">
-                  <TierProgressBar 
-                    currentPoints={tier.currentPoints}
-                    nextTierPoints={tier.nextTierPoints}
-                    currentTier={tier.current}
-                    nextTier={tier.next}
-                  />
-                </CardContent>
-              </Card>
-            )}
+            <div className="col-span-1">
+              <RevenueSection 
+                isCreator={isCreator}
+                isOwner={isOwner}
+                revenue={metrics.revenue}
+                growthRate={metrics.growthRate}
+                upcomingEvent={upcomingEvent}
+                onSubscribe={handleEventSubscribe}
+              />
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
