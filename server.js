@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 // Load environment variables
 dotenv.config();
@@ -22,10 +23,43 @@ const server = createServer(app);
 // Middleware
 app.use(express.json());
 
-// Apply routers
+// CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow all origins in development
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // In production, only allow specific domains
+    const allowedOrigins = [
+      'https://xdose.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3003'
+    ];
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Enable CORS
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// Apply routers with CORS
 app.use(healthRouter);
-app.use('/api/videos', videosRouter);
-app.use('/api/mux', muxRouter);
+app.use('/api/videos', cors(corsOptions), videosRouter);
+app.use('/api/mux', cors(corsOptions), muxRouter);
 
 // Serve static files from dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
