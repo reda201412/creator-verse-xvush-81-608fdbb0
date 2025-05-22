@@ -1,23 +1,67 @@
 
 import { useState, useEffect } from 'react';
 
-export const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(false);
+export type OrientationType = 'portrait' | 'landscape';
+
+export interface MobileDetectionResult {
+  isMobile: boolean;
+  isTouch: boolean;
+  orientation: OrientationType;
+}
+
+export const useIsMobile = (): boolean | MobileDetectionResult => {
+  const [state, setState] = useState<MobileDetectionResult>({
+    isMobile: false,
+    isTouch: false,
+    orientation: 'portrait',
+  });
   
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkDevice = () => {
+      // Check for mobile based on screen width (common breakpoint)
+      const mobile = window.innerWidth < 768;
+      
+      // Check for touch capability
+      const touch = 'ontouchstart' in window || 
+                   navigator.maxTouchPoints > 0 || 
+                   (navigator as any).msMaxTouchPoints > 0;
+      
+      // Determine orientation
+      const orientation: OrientationType = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+      
+      setState({
+        isMobile: mobile,
+        isTouch: touch,
+        orientation: orientation
+      });
     };
     
     // Initial check
-    checkMobile();
+    checkDevice();
     
-    // Add event listener for resize
-    window.addEventListener('resize', checkMobile);
+    // Add event listeners
+    window.addEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
     
     // Clean up
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+    };
   }, []);
   
-  return isMobile;
+  // For backward compatibility - return just the isMobile boolean if accessed directly
+  // This ensures existing code that uses useIsMobile() as a boolean still works
+  const isMobileProxy = new Proxy(state, {
+    get(target, prop) {
+      if (prop === 'valueOf' || prop === 'toString' || prop === Symbol.toPrimitive) {
+        return () => target.isMobile;
+      }
+      return (target as any)[prop];
+    }
+  });
+  
+  return isMobileProxy as any;
 };
+
+export default useIsMobile;

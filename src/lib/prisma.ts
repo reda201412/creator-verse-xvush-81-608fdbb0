@@ -1,3 +1,4 @@
+
 // This file provides a Prisma client instance that works in both server and browser environments
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import clientPrisma from './client-prisma';
@@ -12,28 +13,35 @@ const initPrisma = async (): Promise<PrismaClientType> => {
     return clientPrisma as unknown as PrismaClientType;
   }
   
-  // In Node.js, use the real Prisma client
-  const { PrismaClient } = await import('@prisma/client');
-  
-  // Use a singleton pattern to prevent multiple instances
-  const globalForPrisma = global as unknown as {
-    prisma: PrismaClientType | undefined;
-  };
+  try {
+    // In Node.js, use the real Prisma client
+    // Use dynamic import to avoid client-side bundling of the full Prisma client
+    const { PrismaClient } = await import('@prisma/client');
+    
+    // Use a singleton pattern to prevent multiple instances
+    const globalForPrisma = global as unknown as {
+      prisma: PrismaClientType | undefined;
+    };
 
-  const client = globalForPrisma.prisma ?? new PrismaClient();
+    const client = globalForPrisma.prisma ?? new PrismaClient();
 
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = client;
-  }
-
-  // Clean up on exit (server-side only)
-  process.on('beforeExit', async () => {
-    if (client) {
-      await client.$disconnect();
+    if (process.env.NODE_ENV !== 'production') {
+      globalForPrisma.prisma = client;
     }
-  });
 
-  return client;
+    // Clean up on exit (server-side only)
+    process.on('beforeExit', async () => {
+      if (client) {
+        await client.$disconnect();
+      }
+    });
+
+    return client;
+  } catch (error) {
+    console.error("Error initializing Prisma client:", error);
+    // Fall back to client prisma if there's an error loading the server version
+    return clientPrisma as unknown as PrismaClientType;
+  }
 };
 
 // Initialize prisma and export a promise that resolves to the client
