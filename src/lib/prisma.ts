@@ -19,7 +19,7 @@ interface CustomPrismaClient {
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Instead of using a Promise<CustomPrismaClient>, we'll create an actual CustomPrismaClient
+// Create a mock Prisma client for browser environments
 const mockPrismaClient: CustomPrismaClient = {
   video: {
     findMany: async (args: any) => [],
@@ -32,7 +32,7 @@ const mockPrismaClient: CustomPrismaClient = {
   profile: {}
 };
 
-// Initialize and export a concrete prisma client directly
+// Export a concrete prisma client directly to avoid Promise-related issues
 export const prisma = isBrowser 
   ? clientPrisma as unknown as CustomPrismaClient
   : mockPrismaClient;

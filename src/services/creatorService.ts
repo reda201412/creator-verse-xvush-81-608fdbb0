@@ -1,48 +1,61 @@
-
-import { VideoData as VideoDataType } from '@/types/video';
+import { VideoData } from '../types/video';
 
 // Re-export the VideoData type for compatibility
-export type { VideoData } from '@/types/video';
+export type { VideoData } from '../types/video';
 
 // Create a mock service that returns videos for development
-export const getCreatorVideos = async (creatorId: string): Promise<VideoDataType[]> => {
-  try {
-    // Make API request to get creator videos
-    const response = await fetch(`/api/videos?userId=${creatorId}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch creator videos');
+export const getCreatorVideos = async (userId: string): Promise<VideoData[]> => {
+  // Mock implementation for demonstration
+  console.log(`Fetching videos for creator ${userId}`);
+  
+  // Simulating API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  return [
+    {
+      id: '1',
+      userId,
+      title: 'Introduction to XDose',
+      description: 'Learn about the platform and how to get started',
+      thumbnailUrl: 'https://source.unsplash.com/random/800x450?fitness',
+      isPremium: false,
+      type: 'standard',
+      viewCount: 1250,
+      likeCount: 87,
+      commentCount: 14,
+      isPublished: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: '2',
+      userId,
+      title: 'Premium Content Demo',
+      description: 'This is a premium video available to subscribers only',
+      thumbnailUrl: 'https://source.unsplash.com/random/800x450?workout',
+      isPremium: true,
+      price: 5.99,
+      type: 'premium',
+      viewCount: 420,
+      likeCount: 38,
+      commentCount: 7,
+      isPublished: true,
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+      id: '3',
+      userId,
+      title: 'Coming Soon: Advanced Techniques',
+      description: 'A preview of upcoming premium content',
+      thumbnailUrl: 'https://source.unsplash.com/random/800x450?trainer',
+      isPremium: false,
+      type: 'teaser',
+      viewCount: 650,
+      likeCount: 42,
+      commentCount: 9,
+      isPublished: true,
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
     }
-    
-    const videos = await response.json();
-    
-    // Map the API response to the VideoData format with normalized property names
-    return videos.map((video: any) => ({
-      id: video.id,
-      userId: video.userId || video.user_id || creatorId,
-      creatorId: video.userId || video.user_id || creatorId, // Add camelCase variant
-      title: video.title || "Untitled",
-      description: video.description || "",
-      type: video.type || "standard",
-      thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
-      thumbnail_url: video.thumbnailUrl || video.thumbnail_url, // Add snake_case variant
-      isPremium: video.isPremium || video.is_premium || false,
-      is_premium: video.isPremium || video.is_premium || false, // Add snake_case variant
-      playbackId: video.playbackId || video.mux_playback_id,
-      mux_playback_id: video.playbackId || video.mux_playback_id, // Add snake_case variant
-      status: video.status || "processing",
-      viewCount: video.viewCount || 0,
-      likeCount: video.likeCount || 0,
-      commentCount: video.commentCount || 0,
-      tokenPrice: video.price || video.tokenPrice || 0,
-      price: video.price || video.tokenPrice || 0, // Add price property
-      // Add creator_id for backward compatibility
-      creator_id: video.userId || video.user_id || creatorId
-    }));
-  } catch (error) {
-    console.error("Error fetching creator videos:", error);
-    return [];
-  }
+  ];
 };
 
 // Helper methods for following creators
@@ -79,7 +92,7 @@ export const checkUserFollowsCreator = async (userId: string): Promise<boolean> 
 };
 
 // Get a single video by ID
-export const getVideoById = async (videoId: number | string): Promise<VideoDataType | null> => {
+export const getVideoById = async (videoId: number | string): Promise<VideoData | null> => {
   try {
     // Mock implementation for now
     const response = await fetch(`/api/videos/${videoId}`);
@@ -113,4 +126,30 @@ export const getVideoById = async (videoId: number | string): Promise<VideoDataT
     console.error("Error fetching video:", error);
     return null;
   }
+};
+
+export const uploadVideo = async (videoData: Partial<VideoData>): Promise<VideoData> => {
+  console.log('Uploading video:', videoData);
+  
+  // Simulating API delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Create a new video with the provided data
+  const newVideo: VideoData = {
+    id: `video-${Date.now()}`,
+    userId: videoData.userId || 'default-user',
+    title: videoData.title || 'Untitled Video',
+    description: videoData.description || '',
+    thumbnailUrl: videoData.thumbnailUrl || 'https://source.unsplash.com/random/800x450?fitness',
+    isPremium: videoData.isPremium || false,
+    price: videoData.price || 0,
+    type: videoData.type || 'standard',
+    isPublished: false,
+    viewCount: 0,
+    likeCount: 0,
+    commentCount: 0,
+    createdAt: new Date().toISOString()
+  };
+  
+  return newVideo;
 };
