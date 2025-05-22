@@ -44,7 +44,7 @@ router.get('/', async (req: RequestWithUser, res: express.Response) => {
 });
 
 // Create a new video record
-router.post('/', async (req: RequestWithUser, res: express.Response) => {
+router.post('/', async (req: RequestWithUser & { body: any }, res: express.Response) => {
   try {
     const userId = req.user?.uid;
     

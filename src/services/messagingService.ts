@@ -1,5 +1,5 @@
 
-// Import the client's typings without directly importing the PrismaClient class
+// Import types instead of trying to import from @prisma/client directly
 import type { Message, Conversation, User } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma';
 const mockConversations = [];
 const mockMessages = [];
 
+// Export the messaging service functions
 export const getConversationsForUser = async (userId: string) => {
   try {
     const prismaClient = await prisma;
@@ -139,3 +140,22 @@ export const markConversationAsRead = async (
     return null;
   }
 };
+
+// Create a messaging service object to export as named constant
+export const messagingService = {
+  getUserConversations: getConversationsForUser,
+  getConversationMessages: getMessagesForConversation,
+  sendMessage: createMessage,
+  createConversation,
+  markAsRead: markConversationAsRead,
+  addParticipant: async (conversationId: string, userId: string, currentUserId: string) => {
+    // Mock implementation for now
+    return { success: true };
+  },
+  removeParticipant: async (conversationId: string, userId: string, currentUserId: string) => {
+    // Mock implementation for now
+    return { success: true };
+  }
+};
+
+export default messagingService;

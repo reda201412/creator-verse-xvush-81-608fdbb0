@@ -151,6 +151,9 @@ const clientPrismaMock: MockPrismaClient = {
 // Create a singleton instance
 const prisma = clientPrismaMock;
 
+// Export for tests
+export const prismaMock = clientPrismaMock;
+
 // Export the singleton instance
 export default prisma;
 

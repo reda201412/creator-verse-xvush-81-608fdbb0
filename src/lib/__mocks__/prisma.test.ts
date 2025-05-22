@@ -1,9 +1,10 @@
-import { prismaMock } from './prisma';
+
+import prisma, { prismaMock } from './prisma';
 
 describe('Prisma Mock', () => {
   beforeEach(() => {
     // Reset all mocks before each test
-    prismaMock.$reset();
+    jest.clearAllMocks();
   });
 
   it('should connect to the database', async () => {

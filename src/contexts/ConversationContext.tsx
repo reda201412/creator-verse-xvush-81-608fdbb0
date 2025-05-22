@@ -1,6 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { messagingService } from '@/services/messagingService';
+import * as messagingServiceModule from '@/services/messagingService';
+const { messagingService } = messagingServiceModule;
 import { useToast } from '@/components/ui/use-toast';
 import {
   ExtendedUser,

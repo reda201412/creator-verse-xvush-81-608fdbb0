@@ -17,7 +17,7 @@ export const getAuthHeaders = (): { Authorization?: string } => {
 };
 
 export const verifyFirebaseToken = async (
-  req: RequestWithUser & Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -35,7 +35,7 @@ export const verifyFirebaseToken = async (
 
     // For development/testing, allow a mock token
     if (process.env.NODE_ENV !== 'production' && token === 'mock-token') {
-      req.user = {
+      (req as RequestWithUser).user = {
         uid: 'mock-user-id',
         email: 'mock@example.com',
       };
@@ -51,7 +51,7 @@ export const verifyFirebaseToken = async (
       // };
 
       // Mock verification for development
-      req.user = {
+      (req as RequestWithUser).user = {
         uid: 'firebase-user-123',
         email: 'user@example.com',
       };
