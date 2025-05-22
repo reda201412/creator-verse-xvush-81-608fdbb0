@@ -1,8 +1,20 @@
 
-import express from 'express';
+import express, { Request } from 'express';
 import Mux from '@mux/mux-node';
 import { verifyFirebaseToken } from '../middleware/auth';
 import { processWebhookRequest } from '../../lib/mux-webhooks';
+
+// Extend the Express Request type to include the user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        uid: string;
+        [key: string]: any;
+      };
+    }
+  }
+}
 
 const router = express.Router();
 
