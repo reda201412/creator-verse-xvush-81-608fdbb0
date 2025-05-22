@@ -1,156 +1,102 @@
 
-/**
- * This file provides a mock Prisma client for browser environments
- * It's a simplified implementation that mimics Prisma's API structure,
- * but actually just uses localStorage for persistence.
- */
+// Mock implementation of Prisma client for browser environments
 
-// Mock PrismaClient for client-side use
+// Create types similar to what Prisma would generate
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  // Add other fields as needed
+}
+
+export interface Video {
+  id: number;
+  title: string;
+  description?: string;
+  thumbnailUrl?: string;
+  status?: string;
+  // Add other fields as needed
+}
+
+// Create a mock client
 const clientPrisma = {
-  // Video operations
-  video: {
-    findUnique: async ({ where }) => {
-      try {
-        const videos = JSON.parse(localStorage.getItem('mock_videos') || '[]');
-        return videos.find(v => v.id === where.id) || null;
-      } catch (error) {
-        console.error('Error in mock findUnique:', error);
-        return null;
-      }
-    },
-    findMany: async ({ where, orderBy } = {}) => {
-      try {
-        let videos = JSON.parse(localStorage.getItem('mock_videos') || '[]');
-        
-        // Apply filters if where is provided
-        if (where) {
-          if (where.userId) {
-            videos = videos.filter(v => v.userId === where.userId);
-          }
-          if (where.status) {
-            videos = videos.filter(v => v.status === where.status);
-          }
-        }
-        
-        // Apply sorting if orderBy is provided
-        if (orderBy) {
-          const [field, direction] = Object.entries(orderBy)[0];
-          videos.sort((a, b) => {
-            if (direction === 'asc') {
-              return a[field] > b[field] ? 1 : -1;
-            } else {
-              return a[field] < b[field] ? 1 : -1;
-            }
-          });
-        }
-        
-        return videos;
-      } catch (error) {
-        console.error('Error in mock findMany:', error);
-        return [];
-      }
-    },
-    create: async ({ data }) => {
-      try {
-        const videos = JSON.parse(localStorage.getItem('mock_videos') || '[]');
-        const newId = Math.max(0, ...videos.map(v => v.id)) + 1;
-        
-        const newVideo = {
-          id: newId,
-          ...data,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        
-        videos.push(newVideo);
-        localStorage.setItem('mock_videos', JSON.stringify(videos));
-        
-        return newVideo;
-      } catch (error) {
-        console.error('Error in mock create:', error);
-        throw error;
-      }
-    },
-    update: async ({ where, data }) => {
-      try {
-        const videos = JSON.parse(localStorage.getItem('mock_videos') || '[]');
-        const index = videos.findIndex(v => v.id === where.id);
-        
-        if (index === -1) throw new Error('Video not found');
-        
-        const updatedVideo = {
-          ...videos[index],
-          ...data,
-          updatedAt: new Date().toISOString(),
-        };
-        
-        videos[index] = updatedVideo;
-        localStorage.setItem('mock_videos', JSON.stringify(videos));
-        
-        return updatedVideo;
-      } catch (error) {
-        console.error('Error in mock update:', error);
-        throw error;
-      }
-    },
-    delete: async ({ where }) => {
-      try {
-        const videos = JSON.parse(localStorage.getItem('mock_videos') || '[]');
-        const index = videos.findIndex(v => v.id === where.id);
-        
-        if (index === -1) throw new Error('Video not found');
-        
-        const deletedVideo = videos[index];
-        videos.splice(index, 1);
-        localStorage.setItem('mock_videos', JSON.stringify(videos));
-        
-        return deletedVideo;
-      } catch (error) {
-        console.error('Error in mock delete:', error);
-        throw error;
-      }
-    },
-  },
-
-  // User operations
   user: {
-    findUnique: async ({ where }) => {
-      try {
-        const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
-        return users.find(u => u.id === where.id || u.email === where.email) || null;
-      } catch (error) {
-        console.error('Error in mock user findUnique:', error);
-        return null;
-      }
+    findUnique: async ({ where }: { where: any }) => {
+      console.log('Mock findUnique user:', where);
+      return null;
     },
-    update: async ({ where, data }) => {
-      try {
-        const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
-        const index = users.findIndex(u => u.id === where.id || u.email === where.email);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        const updatedUser = {
-          ...users[index],
-          ...data,
-          updatedAt: new Date().toISOString(),
-        };
-        
-        users[index] = updatedUser;
-        localStorage.setItem('mock_users', JSON.stringify(users));
-        
-        return updatedUser;
-      } catch (error) {
-        console.error('Error in mock user update:', error);
-        throw error;
-      }
+    findMany: async ({ where, orderBy }: { where?: any; orderBy?: any }) => {
+      console.log('Mock findMany users:', { where, orderBy });
+      return [];
+    },
+    create: async ({ data }: { data: any }) => {
+      console.log('Mock create user:', data);
+      return { id: 'mock-id', ...data };
+    },
+    update: async ({ where, data }: { where: any; data: any }) => {
+      console.log('Mock update user:', { where, data });
+      return { id: where.id, ...data };
+    },
+    delete: async ({ where }: { where: any }) => {
+      console.log('Mock delete user:', where);
+      return { id: where.id };
+    },
+    count: async ({ where }: { where?: any }) => {
+      return 0;
     },
   },
   
-  // Helper function to close connection (no-op for mock)
-  $disconnect: async () => {
-    return Promise.resolve();
+  video: {
+    findUnique: async ({ where }: { where: any }) => {
+      console.log('Mock findUnique video:', where);
+      return null;
+    },
+    findMany: async ({ where, orderBy }: { where?: any; orderBy?: any }) => {
+      console.log('Mock findMany videos:', { where, orderBy });
+      return [];
+    },
+    create: async ({ data }: { data: any }) => {
+      console.log('Mock create video:', data);
+      return { id: 1, ...data };
+    },
+    update: async ({ where, data }: { where: any; data: any }) => {
+      console.log('Mock update video:', { where, data });
+      return { id: where.id, ...data };
+    },
+    delete: async ({ where }: { where: any }) => {
+      console.log('Mock delete video:', where);
+      return { id: where.id };
+    },
+    count: async ({ where }: { where?: any }) => {
+      return 0;
+    },
   },
+  
+  profile: {
+    findUnique: async ({ where }: { where: any }) => {
+      console.log('Mock findUnique profile:', where);
+      return null;
+    },
+    findMany: async ({ where, orderBy }: { where?: any; orderBy?: any }) => {
+      console.log('Mock findMany profiles:', { where, orderBy });
+      return [];
+    },
+    create: async ({ data }: { data: any }) => {
+      console.log('Mock create profile:', data);
+      return { id: 'mock-profile-id', ...data };
+    },
+    update: async ({ where, data }: { where: any; data: any }) => {
+      console.log('Mock update profile:', { where, data });
+      return { id: where.id, ...data };
+    },
+  },
+  
+  // Additional models can be added here as needed
+  
+  // Connection utilities (mock implementations)
+  $connect: async () => {},
+  $disconnect: async () => {},
+  $transaction: async (fn: any) => fn(clientPrisma),
 };
 
 export default clientPrisma;

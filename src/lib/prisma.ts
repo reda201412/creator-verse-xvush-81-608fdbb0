@@ -1,6 +1,5 @@
 
 // This file provides a Prisma client instance that works in both server and browser environments
-import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import clientPrisma from './client-prisma';
 
 // For TypeScript type safety, create a type for PrismaClient
@@ -24,7 +23,10 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
   try {
     // In Node.js, try to use the real Prisma client
     // We use dynamic import to prevent webpack from trying to bundle this
-    const { PrismaClient } = await import('@prisma/client');
+    // Note: This is a workaround since we can't directly import PrismaClient
+    // We're using the default export instead of named exports
+    const prismaModule = await import('@prisma/client');
+    const PrismaClient = prismaModule.default?.PrismaClient;
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
@@ -45,7 +44,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
       navigate('/auth');
       return;
     }
-    if (user?.uid === creator.userId || user?.uid === creator.userId) {
+    if (user?.uid === creator.userId) {
       toast.info("Vous ne pouvez pas vous suivre vous-même.");
       return;
     }
@@ -55,7 +54,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
     try {
       if (isFollowing) {
         // Unfollow
-        const success = await unfollowCreator(user?.uid || '', creator.userId);
+        const success = await unfollowCreator(user?.uid || '');
         if (success) {
           setIsFollowing(false);
           toast.success(`Vous ne suivez plus ${creator.name}`);
@@ -64,7 +63,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
         }
       } else {
         // Follow
-        const success = await followCreator(user?.uid || '', creator.userId);
+        const success = await followCreator(user?.uid || '');
         if (success) {
           setIsFollowing(true);
           toast.success(`Vous suivez maintenant ${creator.name}`, {
@@ -95,10 +94,7 @@ const ContentCreatorCard = ({ creator, className, onClick }: ContentCreatorCardP
 
       setIsLoading(true);
       try {
-        const currentlyFollowing = await checkUserFollowsCreator(
-          user?.uid || '', 
-          creator.userId
-        );
+        const currentlyFollowing = await checkUserFollowsCreator(user?.uid || '');
         setIsFollowing(currentlyFollowing);
       } catch (error) {
         console.error('Error checking follow status:', error);

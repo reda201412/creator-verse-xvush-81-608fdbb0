@@ -4,7 +4,7 @@ import { VideoMetadata } from '@/types/video';
 // Mock video data
 export const initialVideos: VideoMetadata[] = [
   {
-    id: 'video-1',
+    id: 1, // Changed from string to number
     title: 'Morning Routine - Behind the scenes',
     description: 'Découvrez ma routine matinale et mes secrets pour bien commencer la journée.',
     type: 'premium',
@@ -20,7 +20,7 @@ export const initialVideos: VideoMetadata[] = [
     }
   },
   {
-    id: 'video-2',
+    id: 2, // Changed from string to number
     title: 'Xtease - Spring Collection Preview',
     description: 'Un aperçu exclusif de ma collection de printemps.',
     type: 'teaser',
@@ -36,7 +36,7 @@ export const initialVideos: VideoMetadata[] = [
     }
   },
   {
-    id: 'video-3',
+    id: 3, // Changed from string to number
     title: 'Mountain Hike - Full Experience',
     description: 'Accompagnez-moi pour une randonnée complète dans les montagnes.',
     type: 'standard',
@@ -46,7 +46,7 @@ export const initialVideos: VideoMetadata[] = [
     isPremium: false
   },
   {
-    id: 'video-4',
+    id: 4, // Changed from string to number
     title: 'Boulangerie Tour Paris - Exclusive',
     description: 'Découvrez les meilleures boulangeries de Paris dans cette visite exclusive.',
     type: 'vip',

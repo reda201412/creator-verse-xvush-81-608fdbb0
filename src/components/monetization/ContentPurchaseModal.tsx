@@ -12,11 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Coins, AlertTriangle } from 'lucide-react';
-
-export interface ContentPrice {
-  price: number;
-  currency: string;
-}
+import { ContentPrice } from '@/types/monetization';
 
 export interface ContentPurchaseModalProps {
   isOpen: boolean;
@@ -24,7 +20,10 @@ export interface ContentPurchaseModalProps {
   onPurchaseComplete: () => void;
   contentTitle: string;
   contentThumbnail: string;
-  pricing: ContentPrice;
+  pricing: {
+    price: number;
+    currency: string;
+  };
   userTokenBalance: number;
 }
 

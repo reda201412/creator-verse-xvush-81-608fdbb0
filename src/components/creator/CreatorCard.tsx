@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
       if (!user) return;
       
       try {
-        const status = await checkUserFollowsCreator(user.uid || '', id);
+        const status = await checkUserFollowsCreator(user.uid || '');
         setIsFollowing(status);
       } catch (error) {
         console.error("Error checking follow status:", error);
@@ -64,7 +63,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
     
     try {
       if (isFollowing) {
-        const success = await unfollowCreator(user.uid || '', id);
+        const success = await unfollowCreator(user.uid || '');
         if (success) {
           setIsFollowing(false);
           setLocalFollowersCount(prev => prev - 1);
@@ -74,7 +73,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
           });
         }
       } else {
-        const success = await followCreator(user.uid || '', id);
+        const success = await followCreator(user.uid || '');
         if (success) {
           setIsFollowing(true);
           setLocalFollowersCount(prev => prev + 1);

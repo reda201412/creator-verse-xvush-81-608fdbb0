@@ -1,4 +1,3 @@
-
 import { VideoData as VideoDataType } from '@/types/video';
 
 // Re-export the VideoData type for compatibility
@@ -40,34 +39,34 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoDataType
 };
 
 // Helper methods for following creators
-export const followCreator = async (creatorId: string): Promise<boolean> => {
+export const followCreator = async (userId: string): Promise<boolean> => {
   try {
     // Mock implementation - in a real app, this would call an API
-    console.log(`Following creator: ${creatorId}`);
+    console.log(`User ${userId} followed a creator`);
     return true;
   } catch (error) {
-    console.error("Error following creator:", error);
+    console.error('Error following creator:', error);
     return false;
   }
 };
 
-export const unfollowCreator = async (creatorId: string): Promise<boolean> => {
+export const unfollowCreator = async (userId: string): Promise<boolean> => {
   try {
     // Mock implementation - in a real app, this would call an API
-    console.log(`Unfollowing creator: ${creatorId}`);
+    console.log(`User ${userId} unfollowed a creator`);
     return true;
   } catch (error) {
-    console.error("Error unfollowing creator:", error);
+    console.error('Error unfollowing creator:', error);
     return false;
   }
 };
 
-export const checkUserFollowsCreator = async (userId: string, creatorId: string): Promise<boolean> => {
+export const checkUserFollowsCreator = async (userId: string): Promise<boolean> => {
   try {
     // Mock implementation - in a real app, this would check a database
     return Math.random() > 0.5; // Randomly return true or false for demo purposes
   } catch (error) {
-    console.error("Error checking follow status:", error);
+    console.error('Error checking follow status:', error);
     return false;
   }
 };
