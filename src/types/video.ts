@@ -28,6 +28,8 @@ export interface VideoData extends VideoMetadata {
   userId?: string; // Creator ID
   creatorId?: string; // Alias for userId
   price?: number; // Added price property
+  likeCount?: number; // Added likeCount property
+  commentCount?: number; // Add commentCount for consistency
   
   // Adding backward compatibility fields for snake_case props
   thumbnail_url?: string;

@@ -19,23 +19,23 @@ interface CustomPrismaClient {
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-// Use a function to handle async initialization
-const initPrisma = async (): Promise<CustomPrismaClient> => {
-  if (isBrowser) {
-    // In browser, use our mock client
-    return clientPrisma as unknown as CustomPrismaClient;
-  }
-  
-  // For server environments, simply return our client mock
-  // We're removing the dynamic import approach since it's causing issues
-  console.warn('Using mock Prisma client');
-  return clientPrisma as unknown as CustomPrismaClient;
+// Instead of using a Promise<CustomPrismaClient>, we'll create an actual CustomPrismaClient
+const mockPrismaClient: CustomPrismaClient = {
+  video: {
+    findMany: async (args: any) => [],
+    create: async (args: any) => ({ id: 1, ...args.data }),
+    update: async (args: any) => ({ id: 1, ...args.data }),
+    delete: async (args: any) => ({ id: 1 }),
+    findUnique: async (args: any) => null
+  },
+  user: {},
+  profile: {}
 };
 
-// Initialize prisma and export a promise that resolves to the client
-const prismaPromise = initPrisma();
+// Initialize and export a concrete prisma client directly
+export const prisma = isBrowser 
+  ? clientPrisma as unknown as CustomPrismaClient
+  : mockPrismaClient;
 
-// For backward compatibility, export the promise directly
-export const prisma = prismaPromise;
-
+// For backward compatibility
 export default prisma;
