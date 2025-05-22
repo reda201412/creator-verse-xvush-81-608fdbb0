@@ -16,7 +16,14 @@ const initPrisma = async (): Promise<any> => {
   try {
     // In Node.js, use the real Prisma client
     // Use dynamic import to avoid client-side bundling of the full Prisma client
-    const { PrismaClient } = await import('@prisma/client');
+    const prismaModule = await import('@prisma/client');
+    
+    // Handle different exports formats (both ESM and CommonJS)
+    const PrismaClient = prismaModule.PrismaClient || prismaModule.default?.PrismaClient;
+    
+    if (!PrismaClient) {
+      throw new Error('Could not find PrismaClient in the imported module');
+    }
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {

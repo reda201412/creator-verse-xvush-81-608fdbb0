@@ -1,12 +1,39 @@
 
 // Import types from the generated Prisma client
-import type { Message, Conversation, User } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
-// Define types explicitly if needed
-type PrismaMessage = Message;
-type PrismaConversation = Conversation;
-type PrismaUser = User;
+// Define types for Prisma models
+interface PrismaMessage {
+  id: string;
+  content: string;
+  conversationId: string;
+  senderId: string;
+  type?: string;
+  metadata?: any;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  sender: PrismaUser;
+}
+
+interface PrismaConversation {
+  id: string;
+  title?: string | null;
+  isGroup: boolean;
+  messages: PrismaMessage[];
+  participants: any[];
+  creator: PrismaUser;
+  user: PrismaUser;
+}
+
+interface PrismaUser {
+  id: string;
+  username?: string | null;
+  profileImageUrl?: string | null;
+}
 
 // Mock data
 const mockConversations = [];
