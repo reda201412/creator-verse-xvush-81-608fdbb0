@@ -1,12 +1,12 @@
 
-// Import types instead of trying to import from @prisma/client directly
-import type { Message as PrismaMessage, Conversation as PrismaConversation, User as PrismaUser } from '@prisma/client';
+// Import types from the generated Prisma client
+import type { Message, Conversation, User } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 // Define types explicitly if needed
-type Message = PrismaMessage;
-type Conversation = PrismaConversation;
-type User = PrismaUser;
+type PrismaMessage = Message;
+type PrismaConversation = Conversation;
+type PrismaUser = User;
 
 // Mock data
 const mockConversations = [];
