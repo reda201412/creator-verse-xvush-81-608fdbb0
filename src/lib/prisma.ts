@@ -1,6 +1,5 @@
 
 // This file provides a Prisma client instance that works in both server and browser environments
-import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import clientPrisma from './client-prisma';
 
 // Check if we're in a browser environment
@@ -10,7 +9,7 @@ const isBrowser = typeof window !== 'undefined';
 const initPrisma = async (): Promise<any> => {
   if (isBrowser) {
     // In browser, use our mock client
-    return clientPrisma as unknown as PrismaClientType;
+    return clientPrisma as any;
   }
   
   try {
@@ -18,16 +17,19 @@ const initPrisma = async (): Promise<any> => {
     // Use dynamic import to avoid client-side bundling of the full Prisma client
     const prismaModule = await import('@prisma/client');
     
-    // Handle different exports formats (both ESM and CommonJS)
-    const PrismaClient = prismaModule.PrismaClient || prismaModule.default?.PrismaClient;
-    
-    if (!PrismaClient) {
+    // Access the PrismaClient constructor, handle both default and named export cases
+    let PrismaClient;
+    if ('PrismaClient' in prismaModule) {
+      PrismaClient = prismaModule.PrismaClient;
+    } else if (prismaModule.default && 'PrismaClient' in prismaModule.default) {
+      PrismaClient = prismaModule.default.PrismaClient;
+    } else {
       throw new Error('Could not find PrismaClient in the imported module');
     }
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {
-      prisma: PrismaClientType | undefined;
+      prisma: any | undefined;
     };
 
     const client = globalForPrisma.prisma ?? new PrismaClient();
@@ -47,7 +49,7 @@ const initPrisma = async (): Promise<any> => {
   } catch (error) {
     console.error("Error initializing Prisma client:", error);
     // Fall back to client prisma if there's an error loading the server version
-    return clientPrisma as unknown as PrismaClientType;
+    return clientPrisma as any;
   }
 };
 

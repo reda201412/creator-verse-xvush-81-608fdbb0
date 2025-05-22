@@ -1,6 +1,4 @@
-
 // Import types from the generated Prisma client
-import type { PrismaClient } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 // Define types for Prisma models
