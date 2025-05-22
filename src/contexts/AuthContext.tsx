@@ -8,7 +8,9 @@ import {
   sendPasswordResetEmail,
   updateProfile as updateFirebaseProfile,
   sendEmailVerification,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -42,6 +44,7 @@ interface AuthContextType {
   updateUserProfile: (updates: Partial<Omit<UserProfile, 'id' | 'createdAt'>>) => Promise<{ error: string | null }>;
   becomeCreator: () => Promise<{ error: string | null }>;
   uploadAvatar: (file: File) => Promise<{ url: string; error: string | null }>;
+  signInWithGoogle: () => Promise<{ user: FirebaseUser | null; profile: UserProfile | null; error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -302,6 +305,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+      
+      // Create or update user profile
+      let userProfile = await fetchOrCreateUserProfile(user);
+      
+      return { 
+        user, 
+        profile: userProfile, 
+        error: null 
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error("Error signing in with Google:", errorMessage);
+      return { 
+        user: null, 
+        profile: null, 
+        error: errorMessage 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Context value
   const value = {
     user,
@@ -315,7 +347,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshProfile,
     updateUserProfile,
     becomeCreator,
-    uploadAvatar
+    uploadAvatar,
+    signInWithGoogle
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

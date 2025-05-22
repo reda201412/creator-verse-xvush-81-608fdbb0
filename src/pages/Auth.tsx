@@ -1,16 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { auth, db } from '@/integrations/firebase/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-
+import { FcGoogle } from "react-icons/fc";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
@@ -24,10 +22,9 @@ const Auth = () => {
   const [userRole, setUserRole] = useState<'fan' | 'creator'>('fan');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth(); // Get current user from context
+  const { user: currentUser, signIn, signUp, signInWithGoogle } = useAuth();
 
   useEffect(() => {
-    // Redirect if the user is already logged in (via context)
     if (currentUser) {
       navigate('/');
     }
@@ -43,35 +40,18 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Create user profile in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        username: username,
-        email: email,
-        role: userRole,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      console.log("Inscription réussie et utilisateur créé:", user);
+      const { error } = await signUp(email, password, username);
+      
+      if (error) {
+        throw new Error(error);
+      }
+      
       toast.success("Inscription réussie ! Redirection...");
-      // Redirection handled by AuthContext listener
       
     } catch (error: any) {
-      console.error("Erreur d'inscription Firebase:", error);
       let errorMessage = "Une erreur est survenue lors de l'inscription.";
       
-      // Map Firebase errors to user-friendly messages
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "Cette adresse e-mail est déjà utilisée.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "L'adresse e-mail n'est pas valide.";
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
       }
       
@@ -91,23 +71,42 @@ const Auth = () => {
     
     setLoading(true);
     try {
-      // Sign in with Firebase Auth
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        throw new Error(error);
+      }
+      
       toast.success("Connexion réussie ! Redirection...");
-      // Redirection handled by AuthContext listener
       
     } catch (error: any) {
-      console.error("Erreur de connexion Firebase:", error);
       let errorMessage = "Identifiants incorrects ou erreur de connexion.";
       
-      // Map Firebase errors to user-friendly messages
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = "Adresse e-mail ou mot de passe incorrect.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Trop de tentatives de connexion. Veuillez réessayer plus tard.";
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = "Ce compte a été désactivé.";
-      } else if (error.message) {
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      
+      if (error) {
+        throw new Error(error);
+      }
+      
+      toast.success("Connexion Google réussie ! Redirection...");
+      
+    } catch (error: any) {
+      let errorMessage = "Erreur lors de la connexion avec Google.";
+      
+      if (error.message) {
         errorMessage = error.message;
       }
       
@@ -182,6 +181,28 @@ const Auth = () => {
                     disabled={loading}
                   >
                     {loading ? "Connexion en cours..." : "Se connecter"}
+                  </Button>
+                  
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-muted-foreground/30" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background/80 px-2 text-muted-foreground">
+                        Ou continuez avec
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                  >
+                    <FcGoogle className="w-5 h-5" />
+                    <span>Google</span>
                   </Button>
                 </form>
               </TabsContent>
@@ -274,6 +295,28 @@ const Auth = () => {
                     disabled={loading}
                   >
                     {loading ? "Inscription en cours..." : "S'inscrire"}
+                  </Button>
+                  
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-muted-foreground/30" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background/80 px-2 text-muted-foreground">
+                        Ou inscrivez-vous avec
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                  >
+                    <FcGoogle className="w-5 h-5" />
+                    <span>Google</span>
                   </Button>
                 </form>
               </TabsContent>
