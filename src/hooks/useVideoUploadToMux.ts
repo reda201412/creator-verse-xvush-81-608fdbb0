@@ -1,6 +1,5 @@
 
 import { useState, useCallback } from 'react';
-import { getAuthHeaders } from '@/server/middleware/auth';
 
 export interface MuxUploadResponse {
   id: string;
@@ -19,6 +18,13 @@ interface UseVideoUploadToMuxReturn {
   error: Error | null;
   reset: () => void;
 }
+
+// Simple helper to get auth headers
+const getAuthHeaders = (): { Authorization?: string } => {
+  // For client-side usage
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 export const useVideoUploadToMux = (): UseVideoUploadToMuxReturn => {
   const [uploadState, setUploadState] = useState<UploadState>('idle');

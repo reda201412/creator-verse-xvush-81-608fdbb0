@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 const router = express.Router();
 
-// Define custom user type
+// Define custom user type (extending Express Request properly)
 interface RequestWithUser extends express.Request {
   user?: {
     uid: string;

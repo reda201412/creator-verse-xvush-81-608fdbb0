@@ -1,3 +1,4 @@
+
 // Mock Prisma Client for testing
 
 // Create a type-safe mock of the Prisma Client
@@ -110,11 +111,13 @@ export function createMockPrismaClient(): MockPrismaClient {
     $disconnect: async () => {},
     $on: () => {},
     $use: () => {},
-    $transaction: async (fn) => {
+    // Fix the transaction type to always return T
+    $transaction: async <T>(fn: (prisma: MockPrismaClient) => Promise<T>): Promise<T> => {
       if (typeof fn === 'function') {
         return fn(mockPrisma);
       }
-      return Promise.all(fn as any);
+      // Type assertion to handle array case (rarely used)
+      return Promise.resolve([] as unknown as T);
     },
     $queryRaw: async () => [],
     $executeRaw: async () => 0,

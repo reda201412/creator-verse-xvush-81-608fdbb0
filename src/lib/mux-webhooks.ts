@@ -1,3 +1,4 @@
+
 import { createHmac } from 'crypto';
 import { Request } from 'express';
 import prisma from '@/lib/prisma';
@@ -119,7 +120,8 @@ async function handleAssetReady(data: MuxEvent['object']) {
 
   try {
     // Update the video record in the database
-    const updatedVideo = await prisma.video.update({
+    const prismaClient = await prisma;
+    const updatedVideo = await prismaClient.video.update({
       where: {
         mux_asset_id: assetId,
       },
@@ -160,7 +162,8 @@ async function handleAssetError(data: MuxEvent['object']) {
 
   try {
     // Update the video record to indicate an error
-    const updatedVideo = await prisma.video.update({
+    const prismaClient = await prisma;
+    const updatedVideo = await prismaClient.video.update({
       where: {
         mux_asset_id: assetId,
       },
@@ -192,7 +195,8 @@ async function handleUploadAssetCreated(data: MuxEvent['object']) {
 
   try {
     // Link the upload ID to the new asset ID
-    const updatedVideo = await prisma.video.update({
+    const prismaClient = await prisma;
+    const updatedVideo = await prismaClient.video.update({
       where: {
         mux_upload_id: uploadId,
       },

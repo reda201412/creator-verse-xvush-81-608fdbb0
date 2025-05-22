@@ -1,4 +1,3 @@
-
 import { db } from '@/integrations/firebase/firebase';
 import mockPrismaClient from '@/lib/mock-prisma';
 import { VideoType } from '@/types/video';
@@ -7,7 +6,7 @@ export interface VideoData {
   id: number;
   title?: string;
   description?: string;
-  type?: VideoType; // Updated to use VideoType from @/types/video
+  type?: VideoType; // Using VideoType from @/types/video
   thumbnail_url?: string;
   is_premium?: boolean;
   token_price?: number;
@@ -20,7 +19,7 @@ export interface VideoData {
   updated_at?: string | Date;
   viewCount?: number;
   playbackId?: string;
-  duration?: number;
+  duration?: string | number; // Updated to accept string | number like in VideoData from types/video
 }
 
 export interface CreatorProfileData {

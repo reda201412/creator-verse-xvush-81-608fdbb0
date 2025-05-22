@@ -9,8 +9,15 @@ interface RequestWithUser extends Request {
   };
 }
 
+// Helper function to get auth headers for client-side API calls
+export const getAuthHeaders = (): { Authorization?: string } => {
+  // For client-side usage
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const verifyFirebaseToken = async (
-  req: RequestWithUser,
+  req: RequestWithUser & Request,
   res: Response,
   next: NextFunction
 ) => {
