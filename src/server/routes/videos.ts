@@ -1,24 +1,25 @@
-import express, { Request } from 'express';
-import prisma from '@/lib/prisma';
-import { verifyFirebaseToken } from '../middleware/auth';
 
-// Import our extended Request type
-declare module 'express' {
-  interface Request {
-    user?: {
-      uid: string;
-      email?: string;
-    };
-  }
-}
+import express from 'express';
+import prisma from '@/lib/prisma';
 
 const router = express.Router();
+
+// Define custom user type
+interface RequestWithUser extends express.Request {
+  user?: {
+    uid: string;
+    email?: string;
+  };
+}
+
+// Import middleware
+import { verifyFirebaseToken } from '../middleware/auth';
 
 // Middleware to verify authentication
 router.use(verifyFirebaseToken);
 
 // Get all videos for the authenticated creator
-router.get('/', async (req: Request, res) => {
+router.get('/', async (req: RequestWithUser, res: express.Response) => {
   try {
     const userId = req.user?.uid;
     
@@ -26,7 +27,8 @@ router.get('/', async (req: Request, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const videos = await prisma.video.findMany({
+    const prismaInstance = await prisma;
+    const videos = await prismaInstance.video.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
@@ -42,7 +44,7 @@ router.get('/', async (req: Request, res) => {
 });
 
 // Create a new video record
-router.post('/', async (req: Request, res) => {
+router.post('/', async (req: RequestWithUser, res: express.Response) => {
   try {
     const userId = req.user?.uid;
     
@@ -72,8 +74,10 @@ router.post('/', async (req: Request, res) => {
       return res.status(400).json({ error: 'Missing required field: title' });
     }
 
+    const prismaInstance = await prisma;
+    
     // Create video record with all metadata
-    const video = await prisma.video.create({
+    const video = await prismaInstance.video.create({
       data: {
         userId,
         title,

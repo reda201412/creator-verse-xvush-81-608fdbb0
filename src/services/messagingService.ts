@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prismaMock from '@/lib/mock-prisma';
 import type { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,7 +10,7 @@ interface MockPrismaClient extends Partial<PrismaClient> {
 }
 
 // Initialize db based on environment
-const db: PrismaClient | MockPrismaClient = prisma;
+const db: PrismaClient | MockPrismaClient = prismaMock;
 
 // Base types
 interface UserInfo {

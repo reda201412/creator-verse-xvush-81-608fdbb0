@@ -7,7 +7,7 @@ import clientPrisma from './client-prisma';
 const isBrowser = typeof window !== 'undefined';
 
 // Use a function to handle async initialization
-const initPrisma = async (): Promise<PrismaClientType> => {
+const initPrisma = async (): Promise<any> => {
   if (isBrowser) {
     // In browser, use our mock client
     return clientPrisma as unknown as PrismaClientType;
@@ -16,7 +16,7 @@ const initPrisma = async (): Promise<PrismaClientType> => {
   try {
     // In Node.js, use the real Prisma client
     // Use dynamic import to avoid client-side bundling of the full Prisma client
-    const { PrismaClient } = await import('@prisma/client');
+    const { default: { PrismaClient } } = await import('@prisma/client');
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {

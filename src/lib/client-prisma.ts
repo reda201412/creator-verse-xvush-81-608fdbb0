@@ -149,9 +149,11 @@ const clientPrismaMock: MockPrismaClient = {
 // Create a singleton instance
 const prisma = clientPrismaMock;
 
-// Export the singleton instance and types
+// Export the singleton instance
 export default prisma;
-export type { PrismaClient } from '@prisma/client';
+
+// Export a type for PrismaClient
+export type PrismaClient = typeof prisma;
 
 // This is a workaround for Next.js to avoid server-side code in the browser
 if (typeof window !== 'undefined') {

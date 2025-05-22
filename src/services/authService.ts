@@ -1,7 +1,6 @@
-
 // Mock implementation for authService
-import { MockPrismaClient } from '@/lib/mock-prisma';
-import { User } from '@/types/video';
+import { db } from '@/firebase/config';
+import prismaMock, { MockPrismaClient } from '@/lib/mock-prisma';
 
 // Create a more complete mock prisma client
 const mockPrisma = {

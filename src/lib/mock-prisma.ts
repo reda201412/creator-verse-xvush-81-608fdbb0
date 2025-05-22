@@ -1,5 +1,4 @@
 // Mock Prisma Client for testing
-import { PrismaClient } from '@prisma/client';
 
 // Create a type-safe mock of the Prisma Client
 type DeepPartial<T> = {
@@ -42,9 +41,37 @@ type UpdateInput<T> = {
   data: Partial<T>;
 };
 
-type MockPrismaClient = DeepPartial<PrismaClient> & {
+export interface MockPrismaClient {
   $reset: () => void;
-};
+  $connect: () => Promise<void>;
+  $disconnect: () => Promise<void>;
+  $on: (event: string, callback: (e: unknown) => void) => void;
+  $use: (fn: unknown) => void;
+  $transaction: <T>(fn: (prisma: MockPrismaClient) => Promise<T>) => Promise<T>;
+  $queryRaw: () => Promise<unknown[]>;
+  $executeRaw: () => Promise<number>;
+  
+  user: {
+    findUnique: (args: { where: { id: string } }) => Promise<User | null>;
+    findMany: () => Promise<User[]>;
+    create: (args: { data: Partial<User> }) => Promise<User>;
+    update: (args: { where: { id: string }; data: Partial<User> }) => Promise<User>;
+    delete: (args: { where: { id: string } }) => Promise<User>;
+    count: () => Promise<number>;
+  };
+  
+  video: {
+    findUnique: (args: { where: { id: string } }) => Promise<Video | null>;
+    findMany: () => Promise<Video[]>;
+    create: (args: { data: Omit<Partial<Video>, 'id'> }) => Promise<Video>;
+    update: (args: { where: { id: string }; data: Partial<Video> }) => Promise<Video>;
+    delete: (args: { where: { id: string } }) => Promise<Video>;
+    count: () => Promise<number>;
+  };
+  
+  // Other models
+  [key: string]: unknown;
+}
 
 // Mock data
 const mockUser: User = {
@@ -87,7 +114,7 @@ export function createMockPrismaClient(): MockPrismaClient {
       if (typeof fn === 'function') {
         return fn(mockPrisma);
       }
-      return Promise.all(fn);
+      return Promise.all(fn as any);
     },
     $queryRaw: async () => [],
     $executeRaw: async () => 0,
