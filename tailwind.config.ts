@@ -1,5 +1,6 @@
 
 import { defineConfig } from "tailwindcss";
+// Import tailwindcss-animate correctly
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default defineConfig({
