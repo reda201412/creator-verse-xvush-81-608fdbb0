@@ -1,3 +1,4 @@
+
 /**
  * Configuration de la base de données
  * 
@@ -10,12 +11,12 @@ export const dbConfig = {
   // URL de connexion à la base de données PostgreSQL (Neon)
   // Utilise la variable d'environnement DATABASE_URL si elle est définie,
   // sinon utilise une valeur par défaut pour le développement local
-  url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/creators_verse',
+  url: import.meta.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/creators_verse',
   
   // Options de connexion
   options: {
     // Active le mode SSL pour les connexions sécurisées (requis pour Neon)
-    ssl: process.env.NODE_ENV === 'production' ? {
+    ssl: import.meta.env.MODE === 'production' ? {
       rejectUnauthorized: false, // Nécessaire pour certaines configurations SSL
     } : false,
     
@@ -30,7 +31,7 @@ export const dbConfig = {
     // Configuration supplémentaire pour Prisma
     prisma: {
       // Active les logs de requêtes en mode développement
-      log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+      log: import.meta.env.MODE === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
     },
   },
 };

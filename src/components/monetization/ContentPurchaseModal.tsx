@@ -1,16 +1,24 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Coins, AlertTriangle } from 'lucide-react';
 
-interface ContentPrice {
+export interface ContentPrice {
   price: number;
-  currency: 'tokens' | 'usd';
+  currency: string;
 }
 
-interface ContentPurchaseModalProps {
+export interface ContentPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPurchaseComplete: () => void;
@@ -18,7 +26,6 @@ interface ContentPurchaseModalProps {
   contentThumbnail: string;
   pricing: ContentPrice;
   userTokenBalance: number;
-  contentId?: string;
 }
 
 const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
@@ -29,162 +36,104 @@ const ContentPurchaseModal: React.FC<ContentPurchaseModalProps> = ({
   contentThumbnail,
   pricing,
   userTokenBalance,
-  contentId
 }) => {
-  const [purchaseState, setPurchaseState] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
-  const hasEnoughTokens = userTokenBalance >= pricing.price;
+  const [isPurchasing, setIsPurchasing] = useState(false);
   
   const handlePurchase = async () => {
-    if (!hasEnoughTokens) {
-      toast.error('Solde de tokens insuffisant');
-      return;
-    }
-    
-    setPurchaseState('processing');
-    
     try {
+      setIsPurchasing(true);
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (Math.random() > 0.1) { // 90% success rate for demo
-        setPurchaseState('success');
-        setTimeout(() => {
-          onPurchaseComplete();
-          setPurchaseState('idle');
-        }, 1000);
-      } else {
-        setPurchaseState('error');
-      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onPurchaseComplete();
+      onClose();
     } catch (error) {
-      console.error('Purchase error:', error);
-      setPurchaseState('error');
+      console.error('Error purchasing content:', error);
+    } finally {
+      setIsPurchasing(false);
     }
   };
   
-  const handleRetry = () => {
-    setPurchaseState('idle');
-  };
-  
-  const handleCancel = () => {
-    setPurchaseState('idle');
-    onClose();
-  };
+  const hasSufficientBalance = userTokenBalance >= pricing.price;
   
   return (
-    <Dialog open={isOpen} onOpenChange={purchaseState === 'idle' ? onClose : undefined}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-center">
-            {purchaseState === 'idle' && 'Acheter ce contenu'}
-            {purchaseState === 'processing' && 'Traitement de votre achat...'}
-            {purchaseState === 'success' && 'Achat réussi!'}
-            {purchaseState === 'error' && 'Échec de l\'achat'}
-          </DialogTitle>
+          <DialogTitle>Accéder au contenu premium</DialogTitle>
+          <DialogDescription>
+            Déverrouillez ce contenu premium pour y accéder immédiatement.
+          </DialogDescription>
         </DialogHeader>
         
-        {purchaseState === 'idle' && (
-          <div className="space-y-4">
-            <div className="aspect-video rounded-md overflow-hidden">
+        <div className="space-y-4 py-4">
+          {/* Content preview */}
+          <div className="flex items-start space-x-4">
+            <div className="rounded-md overflow-hidden w-20 h-20">
               <img 
                 src={contentThumbnail || '/placeholder.svg'} 
                 alt={contentTitle} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover" 
               />
             </div>
             
-            <div className="text-center">
-              <h3 className="font-semibold text-lg">{contentTitle}</h3>
-              <p className="text-sm text-muted-foreground">
-                ID: {contentId || 'N/A'}
+            <div>
+              <h3 className="font-medium">{contentTitle}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Contenu premium
               </p>
             </div>
-            
-            <div className="border rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span>Prix:</span>
-                <span className="font-semibold">{pricing.price} tokens</span>
-              </div>
-              
-              <div className="flex justify-between items-center mt-2">
-                <span>Votre solde:</span>
-                <span className={`font-semibold ${hasEnoughTokens ? 'text-green-500' : 'text-red-500'}`}>
-                  {userTokenBalance} tokens
-                </span>
-              </div>
-              
-              {!hasEnoughTokens && (
-                <div className="mt-2 text-sm text-red-500">
-                  Solde insuffisant. Veuillez recharger votre compte.
-                </div>
-              )}
+          </div>
+          
+          <Separator />
+          
+          {/* Pricing info */}
+          <div className="flex items-center justify-between">
+            <div className="font-medium">Prix:</div>
+            <div className="flex items-center">
+              <Coins className="h-4 w-4 mr-1 text-amber-500" />
+              <span>{pricing.price} tokens</span>
             </div>
           </div>
-        )}
-        
-        {purchaseState === 'processing' && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-center text-muted-foreground">
-              Traitement de votre paiement...
-            </p>
-          </div>
-        )}
-        
-        {purchaseState === 'success' && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <CheckCircle className="h-12 w-12 text-green-500" />
-            <p className="mt-4 text-center">
-              Votre achat a été effectué avec succès!
-            </p>
-          </div>
-        )}
-        
-        {purchaseState === 'error' && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <AlertCircle className="h-12 w-12 text-red-500" />
-            <p className="mt-4 text-center">
-              Une erreur est survenue lors du traitement de votre paiement.
-            </p>
-          </div>
-        )}
-        
-        <DialogFooter>
-          {purchaseState === 'idle' && (
-            <>
-              <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-                Annuler
-              </Button>
-              <Button 
-                onClick={handlePurchase} 
-                disabled={!hasEnoughTokens}
-                className="w-full sm:w-auto"
-              >
-                Acheter maintenant
-              </Button>
-            </>
-          )}
           
-          {purchaseState === 'processing' && (
-            <Button variant="outline" onClick={handleCancel} className="w-full">
-              Annuler
+          <div className="flex items-center justify-between">
+            <div className="font-medium">Votre solde:</div>
+            <div className="flex items-center">
+              <Coins className="h-4 w-4 mr-1 text-amber-500" />
+              <span>{userTokenBalance} tokens</span>
+            </div>
+          </div>
+          
+          {!hasSufficientBalance && (
+            <div className="bg-destructive/10 p-3 rounded-md flex items-start space-x-2">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-destructive">Solde insuffisant</p>
+                <p className="text-muted-foreground">Rechargez votre compte pour continuer.</p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isPurchasing}
+          >
+            Annuler
+          </Button>
+          
+          {hasSufficientBalance ? (
+            <Button 
+              onClick={handlePurchase} 
+              disabled={isPurchasing || !hasSufficientBalance}
+            >
+              {isPurchasing ? "En cours..." : "Acheter maintenant"}
             </Button>
-          )}
-          
-          {purchaseState === 'success' && (
-            <Button onClick={onClose} className="w-full">
-              Fermer
+          ) : (
+            <Button variant="default">
+              Recharger des tokens
             </Button>
-          )}
-          
-          {purchaseState === 'error' && (
-            <>
-              <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
-                Annuler
-              </Button>
-              <Button onClick={handleRetry} className="w-full sm:w-auto">
-                Réessayer
-              </Button>
-            </>
           )}
         </DialogFooter>
       </DialogContent>

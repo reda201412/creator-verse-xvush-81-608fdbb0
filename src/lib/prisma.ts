@@ -24,7 +24,7 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
   try {
     // In Node.js, try to use the real Prisma client
     // We use dynamic import to prevent webpack from trying to bundle this
-    const { default: prismaModule } = await import('@prisma/client');
+    const { PrismaClient } = await import('@prisma/client');
     
     // Use a singleton pattern to prevent multiple instances
     const globalForPrisma = global as unknown as {
@@ -32,19 +32,21 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
     };
 
     // If PrismaClient is available, use it
-    if (prismaModule?.PrismaClient) {
-      const client = globalForPrisma.prisma ?? new prismaModule.PrismaClient();
+    if (PrismaClient) {
+      const client = globalForPrisma.prisma ?? new PrismaClient();
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (import.meta.env.MODE !== 'production') {
         globalForPrisma.prisma = client;
       }
 
       // Clean up on exit (server-side only)
-      process.on('beforeExit', async () => {
-        if (client.$disconnect) {
-          await client.$disconnect();
-        }
-      });
+      if (typeof process !== 'undefined' && typeof process.on === 'function') {
+        process.on('beforeExit', async () => {
+          if (client.$disconnect) {
+            await client.$disconnect();
+          }
+        });
+      }
 
       return client;
     }

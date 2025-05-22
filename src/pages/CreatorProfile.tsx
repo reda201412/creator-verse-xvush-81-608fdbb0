@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +11,16 @@ import VideoGrid from '@/components/creator/videos/VideoGrid';
 import VideoUploader from '@/components/creator/VideoUploader';
 import { getCreatorProfile } from '@/services/profileService';
 import { getCreatorVideos } from '@/services/creatorService';
-import { CreatorProfileData, VideoData, VideoMetadata, convertMetadataToVideoData, convertVideoDataToMetadata } from '@/types/video';
+import { UserProfile } from '@/types/user';
+import { VideoData } from '@/types/video';
+
+// Define the CreatorProfileData type to match what we're using
+interface CreatorProfileData extends UserProfile {
+  uid?: string;
+  userId?: string;
+  name?: string;
+  profileImageUrl?: string;
+}
 
 const CreatorProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +33,7 @@ const CreatorProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
   const [activeTab, setActiveTab] = useState('videos');
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   
   // Determine if the current user is the creator
@@ -44,7 +55,13 @@ const CreatorProfile = () => {
         return;
       }
       
-      setCreatorProfile(profile);
+      // Add the uid property to the profile to make it compatible with CreatorProfileData
+      const enhancedProfile: CreatorProfileData = {
+        ...profile,
+        uid: profile.id
+      };
+      
+      setCreatorProfile(enhancedProfile);
     } catch (error) {
       console.error("Error fetching creator profile:", error);
       setError("Impossible de charger le profil du créateur.");
@@ -189,6 +206,8 @@ const CreatorProfile = () => {
         <TabsContent value="videos" className="space-y-6">
           <VideoGrid
             videos={videos}
+            activeTab="all"
+            searchQuery=""
             isLoading={isLoadingVideos}
             onDeleteVideo={(id) => console.log('Delete video', id)}
             onEditVideo={(id) => console.log('Edit video', id)}

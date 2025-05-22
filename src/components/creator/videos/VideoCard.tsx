@@ -1,189 +1,194 @@
+
 import React, { useState } from 'react';
-// Use the Supabase data type
-import { VideoData } from '@/services/creatorService';
+import { 
+  Card, 
+  CardContent, 
+  CardFooter 
+} from '@/components/ui/card';
 import { 
   MoreVertical, 
   Play, 
-  Trash2, 
-  Edit, 
-  BarChart3, 
-  Share,
-  Loader2, // Added Loader icon
-  AlertCircle // Added Alert icon
+  Eye, 
+  ThumbsUp, 
+  MessageCircle,
+  Trash2,
+  Edit,
+  Share2,
+  ChartBar,
+  AlertTriangle,
+  RefreshCcw
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'; // Corrected import if installed
-
-import EnhancedVideoPlayer from '@/components/video/EnhancedVideoPlayer';
-import { MediaCacheService } from '@/services/media-cache.service';
-import { useMicroRewards } from '@/hooks/use-microrewards';
-import { useToast } from '@/hooks/use-toast'; // Import useToast hook
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { VideoData } from '@/types/video';
+import { useToast } from '@/hooks/use-toast';
 
 interface VideoCardProps {
-  // Use the Supabase data type
   video: VideoData;
-  onDelete: (videoId: number) => void; // Updated to use number ID
-  onEdit: (videoId: number) => void; // Updated to use number ID
-  onPromote: (videoId: number) => void; // Updated to use number ID
-  onAnalytics: (videoId: number) => void; // Updated to use number ID
+  onDelete: (id: number) => void;
+  onEdit: (id: number) => void;
+  onPromote: (id: number) => void;
+  onAnalytics: (id: number) => void;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({
-  video,
-  onDelete,
-  onEdit,
-  onPromote,
-  onAnalytics
-}) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const { triggerMediaReward } = useMicroRewards();
-  const { toast } = useToast(); // Call the useToast hook
+const VideoTypeLabel = ({ type }: { type?: string }) => {
+  if (!type || type === 'standard') return null;
 
-  const getTypeLabel = (type?: string | null) => {
-     if (!type) return 'Standard'; // Default label if type is null/undefined
-    switch (type) {
-      case 'standard': return 'Gratuit';
-      case 'teaser': return 'Xtease';
-      case 'premium': return 'Premium';
-      case 'vip': return 'VIP';
-      default: return type;
-    }
-  };
+  let label = type;
+  let variant: "default" | "secondary" | "destructive" | "outline" = "default";
 
-  // Determine the video URL based on MUX playback ID and status
-  const getPlaybackUrl = () => {
-    if (video.status === 'ready' && video.mux_playback_id) {
-      return `https://stream.mux.com/${video.mux_playback_id}.m3u8`; // Mux HLS streaming URL
-    }
-    return null; // Return null if not ready or no playback ID
-  };
-
-   // Get the current video status message
-   const getStatusMessage = () => {
-       switch (video.status) {
-           case 'pending': // Fallthrough
-           case 'processing':
-               return 'Vidéo en cours de traitement...';
-           case 'error':
-               return 'Erreur lors du traitement de la vidéo.';
-           case 'ready':
-               return 'Vidéo prête.';
-           default:
-               // If status is null/undefined but no playback ID (which getPlaybackUrl handles)
-               if (video.playbackId) return 'Vidéo prête.';
-               return 'Vidéo non disponible.'; // General fallback
-       }
-   };
-
-  // Preload video when hover (only if status is ready)
-  const handleHover = async () => {
-    const playbackUrl = getPlaybackUrl();
-    if (playbackUrl && MediaCacheService.isCacheAvailable()) {
-      try {
-        await fetch(playbackUrl, { method: 'HEAD' });
-      } catch (error) {
-        console.error('Error preloading video:', error);
-      }
-    }
-  };
-
-  // Log metadata for debugging
-  // console.log("Video metadata dans VideoCard:", video);
-  // console.log("Playback URL used:", getPlaybackUrl());
-  // console.log("Video status:", video.status);
-
-   const playbackUrl = getPlaybackUrl();
-   const isVideoReady = !!playbackUrl; // Check if we have a valid playback URL
+  switch (type) {
+    case 'premium':
+      label = 'Premium';
+      variant = "default";
+      break;
+    case 'teaser':
+      label = 'Teaser';
+      variant = "secondary";
+      break;
+    case 'vip':
+      label = 'VIP';
+      variant = "destructive";
+      break;
+    default:
+      label = type;
+      variant = "outline";
+  }
 
   return (
-    <div 
-      className="bg-card rounded-lg overflow-hidden shadow transition-all hover:shadow-md"
-      onMouseEnter={handleHover}
-    >
+    <Badge variant={variant} className="absolute top-2 right-2">
+      {label}
+    </Badge>
+  );
+};
+
+const VideoCard: React.FC<VideoCardProps> = ({ 
+  video, 
+  onDelete, 
+  onEdit, 
+  onPromote, 
+  onAnalytics 
+}) => {
+  const { toast } = useToast();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleDelete = () => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?')) {
+      onDelete(video.id);
+    }
+  };
+
+  const handleRetry = () => {
+    toast({
+      title: "Traitement redémarré",
+      description: "Le traitement de votre vidéo a été relancé.",
+    });
+  };
+
+  const isProcessing = video.status === 'processing';
+  const isFailed = video.status === 'failed';
+  const isReady = video.status === 'ready';
+
+  const formatCountValue = (value?: number) => {
+    if (value === undefined || value === null) return '0';
+    if (value < 1000) return value.toString();
+    if (value < 1000000) return `${(value / 1000).toFixed(1)}K`;
+    return `${(value / 1000000).toFixed(1)}M`;
+  };
+  
+  const formatVideoPrice = () => {
+    if (!video.is_premium) return null;
+    
+    // Use the tokenPrice property instead of token_price
+    if (video.tokenPrice) {
+      return `${video.tokenPrice} tokens`;
+    }
+    
+    return "Premium";
+  };
+
+  return (
+    <Card className="overflow-hidden flex flex-col h-full">
       {/* Video Thumbnail */}
-      <div 
-        className="relative aspect-video bg-muted cursor-pointer"
-        onClick={() => {
-          // Only open the dialog if the video is ready for playback
-          if (isVideoReady) {
-             setVideoDialogOpen(true);
-             triggerMediaReward(); // Trigger reward on play
-          } else {
-             // Show a toast with the status message
-              toast({
-                  title: "Statut de la vidéo",
-                  description: getStatusMessage(),
-                  variant: video.status === 'error' ? 'destructive' : 'default',
-              });
-          }
-        }}
-      >
-        {/* Thumbnail - use thumbnail_url from Supabase schema */}
-        {video.thumbnail_url ? (
-          <img 
-            src={video.thumbnail_url} 
-            alt={video.title || 'Video thumbnail'} 
-            className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-primary/10">
-            {/* Show loading/error icon based on status if no thumbnail */}
-             {!isVideoReady && video.status === 'processing' && <Loader2 className="h-12 w-12 text-primary opacity-50 animate-spin" />} 
-             {!isVideoReady && video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive opacity-50" />} 
-             {/* Default icon if status is not processing/error and video not ready */}
-             {!isVideoReady && video.status !== 'processing' && video.status !== 'error' && <Play className="h-12 w-12 text-primary opacity-50" />}
-             {isVideoReady && <Play className="h-12 w-12 text-primary opacity-50" />} {/* Show play icon if ready and no thumbnail */}
+      <div className="aspect-video relative overflow-hidden bg-black">
+        {/* Processing Overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-10">
+            <div className="text-center p-4">
+              <RefreshCcw className="mx-auto h-6 w-6 animate-spin text-primary mb-2" />
+              <p className="text-sm font-medium text-white">Traitement en cours...</p>
+            </div>
           </div>
         )}
 
-        {/* Overlay with Play button / Status Indicator */}
-        <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-           {isVideoReady ? (
-              <Play className="h-12 w-12 text-white" />
-           ) : (
-              <div className="text-white text-center p-2">
-                 {video.status === 'processing' && <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />}
-                 {video.status === 'error' && <AlertCircle className="h-8 w-8 mx-auto mb-2" />}
-                 <p className="text-sm font-medium">{getStatusMessage()}</p>
-              </div>
-           )}
-        </div>
-        
-        {/* Video Type Badge */}
-        <div className="absolute top-2 left-2 px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded">
-          {getTypeLabel(video.type)}
-        </div>
+        {/* Error Overlay */}
+        {isFailed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-10">
+            <div className="text-center p-4">
+              <AlertTriangle className="mx-auto h-6 w-6 text-destructive mb-2" />
+              <p className="text-sm font-medium text-white">Échec du traitement</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {video.error_message || "Une erreur est survenue lors du traitement de la vidéo."}
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={handleRetry}
+              >
+                Réessayer
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Thumbnail */}
+        <img 
+          src={video.thumbnail_url || '/placeholder.svg'} 
+          alt={video.title} 
+          className="w-full h-full object-cover"
+        />
+
+        {/* Type Badge */}
+        <VideoTypeLabel type={video.type} />
+
+        {/* Price Badge (if premium) */}
+        {video.is_premium && (
+          <Badge variant="secondary" className="absolute bottom-2 right-2">
+            {formatVideoPrice()}
+          </Badge>
+        )}
+
+        {/* Play Button Overlay */}
+        {isReady && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
+            <Button size="icon" variant="ghost" className="rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30">
+              <Play className="h-6 w-6 text-white" />
+            </Button>
+          </div>
+        )}
       </div>
-      
-      {/* Video Details */}
-      <div className="p-4 space-y-2"> {/* Corrected class from space-space-y-2 */}
-        <div className="flex items-start justify-between">
-          <h3 className="font-medium line-clamp-1">{video.title}</h3>
-          
-          <DropdownMenu>
+
+      {/* Video Info */}
+      <CardContent className="p-4 flex-grow">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-semibold line-clamp-1">{video.title}</h3>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {video.description}
+            </p>
+          </div>
+
+          <DropdownMenu onOpenChange={setIsMenuOpen} open={isMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="-mr-2">
                 <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Options</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -192,15 +197,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
                 Modifier
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onPromote(video.id)}>
-                <Share className="mr-2 h-4 w-4" />
+                <Share2 className="mr-2 h-4 w-4" />
                 Promouvoir
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onAnalytics(video.id)}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Statistiques
+                <ChartBar className="mr-2 h-4 w-4" />
+                Analytiques
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={handleDelete}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -209,76 +214,30 @@ const VideoCard: React.FC<VideoCardProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        
-        {video.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {video.description}
-          </p>
-        )}
-        
-        {/* Use is_premium and token_price from Supabase schema */}
-        {video.is_premium && video.token_price !== undefined && video.token_price !== null && (
-          <div className="text-sm font-medium text-primary">
-            {video.token_price} tokens
+      </CardContent>
+
+      {/* Video Stats */}
+      <CardFooter className="px-4 py-3 border-t flex justify-between text-xs text-muted-foreground">
+        <div className="flex space-x-4">
+          <div className="flex items-center">
+            <Eye className="h-3 w-3 mr-1" />
+            <span>{formatCountValue(video.viewCount)}</span>
           </div>
-        )}
-      </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette vidéo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La vidéo sera définitivement supprimée. (Le fichier Mux devra également être supprimé via une action backend).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDelete(video.id)} // Pass the number ID
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Video Playback Dialog */}
-      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        {/* Added accessible title for DialogContent as per console warning */}
-         <DialogTitle className="sr-only"><VisuallyHidden>Video Playback</VisuallyHidden></DialogTitle>
-         <DialogDescription className="sr-only"><VisuallyHidden>Dialog for video playback</VisuallyHidden></DialogDescription>
-
-        <DialogContent className="sm:max-w-3xl p-0">
-          {/* Render player only if video is ready and playbackUrl exists */}
-          {isVideoReady && playbackUrl ? ( // Ensure playbackUrl is also checked
-            <EnhancedVideoPlayer
-              src={playbackUrl} // playbackUrl is guaranteed to be a string here
-              thumbnailUrl={video.thumbnail_url || undefined} // Use thumbnail_url
-              title={video.title || undefined}
-              autoPlay={true}
-              onPlay={() => {
-                triggerMediaReward();
-              }}
-            />
-          ) : (
-             // Display status message if video is not ready
-            <div className="aspect-video bg-black rounded-md overflow-hidden flex items-center justify-center">
-              <div className="text-white text-center p-4">
-                 {video.status === 'processing' && <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />}
-                 {video.status === 'error' && <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />}
-                 <p className="text-lg font-medium">{getStatusMessage()}</p>
-                 {video.status === 'error' && video.error_details && (
-                    <p className="text-sm text-muted-foreground mt-2">Détails: {typeof video.error_details === 'string' ? video.error_details : JSON.stringify(video.error_details)}</p>
-                 )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+          <div className="flex items-center">
+            <ThumbsUp className="h-3 w-3 mr-1" />
+            <span>{formatCountValue(video.likeCount)}</span>
+          </div>
+          <div className="flex items-center">
+            <MessageCircle className="h-3 w-3 mr-1" />
+            <span>{formatCountValue(video.commentCount)}</span>
+          </div>
+        </div>
+        
+        <div>
+          {new Date(video.createdAt || Date.now()).toLocaleDateString()}
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
