@@ -1,20 +1,21 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+import Auth from './pages/Auth';
+import Feed from './pages/Feed';
+import CreatorProfile from './pages/CreatorProfile';
+import CreatorRevenueDashboard from './pages/CreatorRevenueDashboard';
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DesktopSidebar as Sidebar } from '@/components/navigation/Sidebar';
 import Header from '@/components/navigation/Header';
 import BottomNavigation from '@/components/navigation/BottomNavigation';
 import Index from '@/pages/Index';
-import Auth from '@/pages/Auth';
-import CreatorProfile from '@/pages/CreatorProfile';
-import CreatorsFeed from '@/pages/CreatorsFeed';
-import Dashboard from '@/pages/Dashboard';
 import Messages from '@/pages/Messages';
 import CreatorVideos from '@/pages/CreatorVideos';
 import ExclusiveContent from '@/pages/ExclusiveContent';
 import TokensPage from '@/pages/TokensPage';
-import CreatorRevenueDashboard from '@/pages/CreatorRevenueDashboard';
 import SubscribersManagement from '@/pages/SubscribersManagement';
 import CalendarView from '@/pages/CalendarView';
 import ProfileSettings from '@/pages/ProfileSettings';
@@ -24,7 +25,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
-import './App.css';
 import { Spinner } from '@/components/ui/spinner';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -97,8 +97,9 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
-                    <Route path="/creators" element={<CreatorsFeed />} />
-                    <Route path="/creator/:id?" element={<CreatorProfile />} />
+                    <Route path="/feed" element={<Feed />} />
+                    <Route path="/creator/:username" element={<CreatorProfile />} />
+                    <Route path="/creator/revenue" element={<CreatorRevenueDashboard />} />
                     <Route path="/trending" element={<TrendingContent />} />
                     <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 

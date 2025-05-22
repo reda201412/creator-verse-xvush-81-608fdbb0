@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Google } from 'lucide-react';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +25,7 @@ const Auth = () => {
   const [userRole, setUserRole] = useState<'fan' | 'creator'>('fan');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth(); // Get current user from context
+  const { user: currentUser, signInWithGoogle } = useAuth(); // Get current user from context
 
   useEffect(() => {
     // Redirect if the user is already logged in (via context)
@@ -117,6 +118,24 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { user, error } = await signInWithGoogle();
+      
+      if (error) {
+        toast.error(error);
+      } else if (user) {
+        toast.success("Connexion réussie ! Redirection...");
+      }
+    } catch (error: any) {
+      toast.error("Une erreur est survenue lors de la connexion avec Google.");
+      console.error("Google sign-in error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <GoldenRatioGrid visible={true} opacity={0.05} />
@@ -176,13 +195,35 @@ const Auth = () => {
                     />
                   </div>
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-xvush-pink hover:bg-xvush-pink-dark"
-                    disabled={loading}
-                  >
-                    {loading ? "Connexion en cours..." : "Se connecter"}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-xvush-pink hover:bg-xvush-pink-dark"
+                      disabled={loading}
+                    >
+                      {loading ? "Connexion en cours..." : "Se connecter"}
+                    </Button>
+                    
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-muted-foreground/30"></span>
+                      </div>
+                      <div className="relative flex justify-center text-xs">
+                        <span className="bg-background/80 px-2 text-muted-foreground">ou</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleGoogleSignIn}
+                      disabled={loading}
+                    >
+                      <Google className="h-4 w-4 mr-2" />
+                      Se connecter avec Google
+                    </Button>
+                  </div>
                 </form>
               </TabsContent>
               
@@ -274,6 +315,26 @@ const Auth = () => {
                     disabled={loading}
                   >
                     {loading ? "Inscription en cours..." : "S'inscrire"}
+                  </Button>
+                  
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-muted-foreground/30"></span>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-background/80 px-2 text-muted-foreground">ou</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                  >
+                    <Google className="h-4 w-4 mr-2" />
+                    S'inscrire avec Google
                   </Button>
                 </form>
               </TabsContent>

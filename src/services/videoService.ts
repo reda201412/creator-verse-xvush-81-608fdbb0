@@ -62,6 +62,8 @@ export interface CreateVideoInput {
   isPublished?: boolean;
   isPremium?: boolean;
   price?: number;
+  type?: string;
+  tokenPrice?: number;
 }
 
 export interface UpdateVideoInput {
@@ -93,7 +95,13 @@ export const saveVideoMetadata = async (data: CreateVideoInput): Promise<VideoMe
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        // Ensure we pass these premium fields
+        isPremium: data.isPremium || false,
+        price: data.price || data.tokenPrice || 0,
+        type: data.type || 'standard'
+      }),
     });
 
     if (!response.ok) {

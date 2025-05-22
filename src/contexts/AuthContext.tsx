@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { 
   User as FirebaseUser,
@@ -8,7 +9,9 @@ import {
   sendPasswordResetEmail,
   updateProfile as updateFirebaseProfile,
   sendEmailVerification,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -35,6 +38,7 @@ interface AuthContextType {
   isLoading: boolean;
   isCreator: boolean;
   signIn: (email: string, password: string) => Promise<{ user: FirebaseUser | null; profile: UserProfile | null; error: string | null }>;
+  signInWithGoogle: () => Promise<{ user: FirebaseUser | null; profile: UserProfile | null; error: string | null }>;
   signUp: (email: string, password: string, username: string) => Promise<{ user: FirebaseUser | null; profile: UserProfile | null; error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -116,6 +120,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubscribe();
     };
   }, [fetchOrCreateUserProfile]);
+
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+      const userProfile = await fetchOrCreateUserProfile(user);
+      
+      return { 
+        user, 
+        profile: userProfile, 
+        error: null 
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error("Error signing in with Google:", errorMessage);
+      return { 
+        user: null, 
+        profile: null, 
+        error: errorMessage 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
@@ -309,6 +340,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     isCreator,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     resetPassword,
