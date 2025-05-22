@@ -86,7 +86,7 @@ const ProfileAvatar = ({
       )}
       {renderStatus()}
       
-      {/* Si onClick est défini, afficher un indicateur visuel au survol */}
+      {/* Visual indicator for clickable avatars */}
       {onClick && (
         <div className="absolute inset-0 rounded-full bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
           <div className="text-white bg-black/30 p-1 rounded-full">
