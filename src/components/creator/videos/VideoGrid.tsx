@@ -86,7 +86,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             <VideoCard
               key={video.id}
               video={video}
-              onDelete={onDeleteVideo}
+              onDelete={onDeleteVideo} 
               onEdit={onEditVideo}
               onPromote={onPromoteVideo}
               onAnalytics={onAnalyticsVideo}

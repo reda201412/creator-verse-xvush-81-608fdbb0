@@ -39,15 +39,13 @@ const CreatorVideos: React.FC = () => {
       const mappedVideos: VideoData[] = Array.isArray(fetchedVideos) 
         ? fetchedVideos.map(video => ({
             id: video.id,
-            userId: video.creator_id || user.uid, // Map creator_id to userId
+            userId: video.creatorId || video.userId || user.uid, // Using camelCase properties
             title: video.title || "",
             description: video.description,
             type: video.type || "standard",
-            thumbnailUrl: video.thumbnail_url,
-            thumbnail_url: video.thumbnail_url,
-            isPremium: video.is_premium,
-            is_premium: video.is_premium,
-            playbackId: video.mux_playback_id || video.playbackId,
+            thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+            isPremium: video.isPremium || video.is_premium,
+            playbackId: video.playbackId || video.mux_playback_id,
             viewCount: video.viewCount,
             likeCount: 0, // Default values for required fields
             commentCount: 0, // Default values for required fields

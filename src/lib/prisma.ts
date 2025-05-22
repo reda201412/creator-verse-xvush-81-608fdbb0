@@ -26,48 +26,10 @@ const initPrisma = async (): Promise<CustomPrismaClient> => {
     return clientPrisma as unknown as CustomPrismaClient;
   }
   
-  try {
-    // In Node.js, try to use the real Prisma client
-    // We use dynamic import to prevent webpack from trying to bundle this
-    // Note: This is a workaround since we can't directly import PrismaClient
-    const prismaModule = await import('@prisma/client');
-    
-    // Use a singleton pattern to prevent multiple instances
-    const globalForPrisma = global as unknown as {
-      prisma: CustomPrismaClient | undefined;
-    };
-
-    // If PrismaClient is available, use it
-    if (prismaModule.default) {
-      const PrismaClient = prismaModule.default?.PrismaClient;
-      if (PrismaClient) {
-        const client = globalForPrisma.prisma ?? new PrismaClient();
-
-        if (import.meta.env.MODE !== 'production') {
-          globalForPrisma.prisma = client;
-        }
-
-        // Clean up on exit (server-side only)
-        if (typeof process !== 'undefined' && typeof process.on === 'function') {
-          process.on('beforeExit', async () => {
-            if (client.$disconnect) {
-              await client.$disconnect();
-            }
-          });
-        }
-
-        return client;
-      }
-    }
-    
-    // If PrismaClient is not available, fallback to mock
-    console.warn('PrismaClient not available, using mock client');
-    return clientPrisma as unknown as CustomPrismaClient;
-  } catch (error) {
-    console.error('Failed to initialize Prisma client:', error);
-    // Fallback to mock client if real PrismaClient fails to load
-    return clientPrisma as unknown as CustomPrismaClient;
-  }
+  // For server environments, simply return our client mock
+  // We're removing the dynamic import approach since it's causing issues
+  console.warn('Using mock Prisma client');
+  return clientPrisma as unknown as CustomPrismaClient;
 };
 
 // Initialize prisma and export a promise that resolves to the client

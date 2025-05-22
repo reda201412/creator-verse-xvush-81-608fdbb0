@@ -38,7 +38,7 @@ const Feed = () => {
   }, []);
 
   const handleVideoSelect = (video: VideoData) => {
-    if (video.is_premium) {
+    if (video.isPremium || video.is_premium) {
       setSelectedVideo(video);
       setIsPurchaseModalOpen(true);
     } else {
@@ -71,7 +71,7 @@ const Feed = () => {
               {selectedVideo && (
                 <div className="rounded-lg overflow-hidden bg-card">
                   <div className="aspect-video">
-                    {selectedVideo.is_premium ? (
+                    {(selectedVideo.isPremium || selectedVideo.is_premium) ? (
                       <div className="h-full flex items-center justify-center bg-muted">
                         <Button 
                           onClick={() => setIsPurchaseModalOpen(true)}
@@ -83,7 +83,7 @@ const Feed = () => {
                       </div>
                     ) : (
                       <VideoPlayer 
-                        playbackId={selectedVideo.mux_playback_id} 
+                        playbackId={selectedVideo.playbackId || selectedVideo.mux_playback_id} 
                         title={selectedVideo.title} 
                       />
                     )}
@@ -98,7 +98,7 @@ const Feed = () => {
                         variant="ghost" 
                         size="sm"
                         className="text-muted-foreground"
-                        onClick={() => navigate(`/creator/${selectedVideo.creator_id}`)}
+                        onClick={() => navigate(`/creator/${selectedVideo.userId || selectedVideo.creator_id}`)}
                       >
                         Voir le créateur
                       </Button>
@@ -130,11 +130,11 @@ const Feed = () => {
                   >
                     <div className="aspect-video bg-muted relative">
                       <img 
-                        src={video.thumbnail_url || '/placeholder.svg'} 
+                        src={video.thumbnailUrl || video.thumbnail_url || '/placeholder.svg'} 
                         alt={video.title} 
                         className="w-full h-full object-cover"
                       />
-                      {video.is_premium && (
+                      {(video.isPremium || video.is_premium) && (
                         <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
                           Premium
                         </div>
@@ -172,7 +172,7 @@ const Feed = () => {
           onClose={() => setIsPurchaseModalOpen(false)}
           onPurchaseComplete={handleVideoPurchase}
           contentTitle={selectedVideo.title}
-          contentThumbnail={selectedVideo.thumbnail_url || ''}
+          contentThumbnail={selectedVideo.thumbnailUrl || selectedVideo.thumbnail_url || ''}
           pricing={{
             price: selectedVideo.tokenPrice || 0,
             currency: 'tokens'

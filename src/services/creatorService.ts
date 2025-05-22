@@ -1,3 +1,4 @@
+
 import { VideoData as VideoDataType } from '@/types/video';
 
 // Re-export the VideoData type for compatibility
@@ -15,22 +16,27 @@ export const getCreatorVideos = async (creatorId: string): Promise<VideoDataType
     
     const videos = await response.json();
     
-    // Map the API response to the VideoData format
+    // Map the API response to the VideoData format with normalized property names
     return videos.map((video: any) => ({
       id: video.id,
-      creator_id: video.userId || video.user_id || creatorId,
+      userId: video.userId || video.user_id || creatorId,
+      creatorId: video.userId || video.user_id || creatorId, // Add camelCase variant
       title: video.title || "Untitled",
       description: video.description || "",
       type: video.type || "standard",
-      thumbnail_url: video.thumbnailUrl || video.thumbnail_url,
-      is_premium: video.isPremium || video.is_premium || false,
-      price: video.price || video.tokenPrice || 0,
-      mux_playback_id: video.playbackId || video.mux_playback_id,
+      thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+      thumbnail_url: video.thumbnailUrl || video.thumbnail_url, // Add snake_case variant
+      isPremium: video.isPremium || video.is_premium || false,
+      is_premium: video.isPremium || video.is_premium || false, // Add snake_case variant
+      playbackId: video.playbackId || video.mux_playback_id,
+      mux_playback_id: video.playbackId || video.mux_playback_id, // Add snake_case variant
       status: video.status || "processing",
       viewCount: video.viewCount || 0,
       likeCount: video.likeCount || 0,
       commentCount: video.commentCount || 0,
       tokenPrice: video.price || video.tokenPrice || 0,
+      // Add creator_id for backward compatibility
+      creator_id: video.userId || video.user_id || creatorId
     }));
   } catch (error) {
     console.error("Error fetching creator videos:", error);

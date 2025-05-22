@@ -32,3 +32,11 @@ export const sendMessage = async (conversationId: string, senderId: string, cont
     createdAt: new Date().toISOString() 
   };
 };
+
+// Add the missing messagingService export to fix the ConversationContext import error
+export const messagingService = {
+  getConversations,
+  getConversation,
+  createConversation,
+  sendMessage
+};
