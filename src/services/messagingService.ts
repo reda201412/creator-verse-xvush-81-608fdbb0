@@ -1,7 +1,12 @@
 
 // Import types instead of trying to import from @prisma/client directly
-import type { Message, Conversation, User } from '@prisma/client';
+import type { Message as PrismaMessage, Conversation as PrismaConversation, User as PrismaUser } from '@prisma/client';
 import prisma from '@/lib/prisma';
+
+// Define types explicitly if needed
+type Message = PrismaMessage;
+type Conversation = PrismaConversation;
+type User = PrismaUser;
 
 // Mock data
 const mockConversations = [];
@@ -35,29 +40,61 @@ export const getConversationsForUser = async (userId: string) => {
   }
 };
 
-export const getMessagesForConversation = async (conversationId: string) => {
+export const getMessagesForConversation = async (
+  conversationId: string,
+  userId?: string,
+  page: number = 1,
+  limit: number = 20
+) => {
   try {
     const prismaClient = await prisma;
-    return await prismaClient.message.findMany({
+    const skip = (page - 1) * limit;
+    
+    const messages = await prismaClient.message.findMany({
       where: {
         conversationId
       },
       orderBy: {
         createdAt: 'asc'
+      },
+      skip,
+      take: limit,
+      include: {
+        sender: true
       }
     });
+    
+    // Determine if there are more messages
+    const totalCount = await prismaClient.message.count({
+      where: { conversationId }
+    });
+    
+    const hasMore = skip + messages.length < totalCount;
+    
+    return { 
+      messages, 
+      hasMore 
+    };
   } catch (error) {
     console.error('Error getting messages:', error);
-    return mockMessages;
+    return { 
+      messages: mockMessages, 
+      hasMore: false 
+    };
   }
 };
 
 export const createMessage = async (
-  conversationId: string,
-  senderId: string,
-  content: string,
-  type: string = 'text'
+  data: {
+    conversationId: string,
+    senderId: string,
+    content: string,
+    metadata?: any,
+    type?: string
+  }
 ) => {
+  const { conversationId, senderId, content, metadata, type = 'text' } = data;
+  
   try {
     const prismaClient = await prisma;
     return await prismaClient.message.create({
@@ -65,7 +102,11 @@ export const createMessage = async (
         conversationId,
         senderId,
         content,
+        metadata,
         type,
+      },
+      include: {
+        sender: true
       }
     });
   } catch (error) {
@@ -75,28 +116,58 @@ export const createMessage = async (
 };
 
 export const createConversation = async (
-  userId: string,
-  creatorId: string,
-  initialMessage?: string
+  data: {
+    participantIds: string[],
+    title?: string,
+    isGroup?: boolean,
+    initialMessage?: string
+  }
 ) => {
   try {
     const prismaClient = await prisma;
+    const { participantIds, title, isGroup = false, initialMessage } = data;
+    
+    // We need at least two participants
+    if (participantIds.length < 2) {
+      throw new Error("At least two participants are required");
+    }
+    
+    const creatorId = participantIds[0];
+    const userId = participantIds[1];
+    
     const conversation = await prismaClient.conversation.create({
       data: {
+        title,
+        isGroup,
         userId,
         creatorId,
         messages: initialMessage ? {
           create: [
             {
               content: initialMessage,
-              senderId: userId,
+              senderId: creatorId,
               type: 'text'
             }
           ]
-        } : undefined
+        } : undefined,
+        participants: {
+          create: participantIds.map(userId => ({
+            userId,
+            isAdmin: userId === creatorId
+          }))
+        }
       },
       include: {
-        messages: true,
+        messages: {
+          include: {
+            sender: true
+          }
+        },
+        participants: {
+          include: {
+            user: true
+          }
+        },
         creator: true,
         user: true
       }

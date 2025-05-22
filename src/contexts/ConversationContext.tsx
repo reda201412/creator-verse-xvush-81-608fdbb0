@@ -123,12 +123,22 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       setMessagesLoading(true);
       try {
+        // Fix the arguments to match messagingService.getConversationMessages
+        const currentPage = loadMore ? page + 1 : 1;
+        
         const { messages: apiMessages, hasMore } = await messagingService.getConversationMessages(
           conversationId,
           user.uid,
-          loadMore ? Math.ceil(messages.length / 20) + 1 : 1,
-          20
+          currentPage,
+          limit
         );
+        
+        // Update the page state if loading more
+        if (loadMore) {
+          setPage(currentPage);
+        } else {
+          setPage(1);
+        }
 
         // Map API messages to our local Message type
         const mappedMessages = apiMessages.map(msg => ({
@@ -163,7 +173,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setMessagesLoading(false);
       }
     },
-    [messages.length, messagesLoading, user, toast]
+    [messages.length, messagesLoading, user, toast, page, limit]
   );
 
   // Charger plus de messages (pagination)
@@ -180,11 +190,12 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       try {
+        // Fix: Update to use the updated interface that takes a single object
         const newMessage = await messagingService.sendMessage({
           content,
           conversationId: selectedConversation.id,
           senderId: user.uid,
-          metadata,
+          metadata
         });
 
         // Create a complete message object that matches our Message interface
@@ -254,10 +265,11 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (participantIds.length < 1) throw new Error('Au moins un participant est requis');
 
     try {
+      // Fix: Update to use the updated interface that takes a single object
       const newConversation = await messagingService.createConversation({
         participantIds: [...participantIds, user.uid],
         title,
-        isGroup: participantIds.length > 1 || !!title,
+        isGroup: participantIds.length > 1 || !!title
       });
 
       // Map the API response to our local Conversation type
