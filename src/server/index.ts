@@ -1,19 +1,29 @@
 import express from 'express';
 import cors from 'cors';
-// import videosRouter from './routes/videos.js';
-// import muxRouter from './routes/mux.js';
+import muxRouter from './routes/mux';
 
 export async function createServer() {
   try {
     const app = express();
 
     // Middleware
-    app.use(cors());
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-
-    console.log('Registering health check route only');
+    app.use(cors({
+      origin: process.env.NODE_ENV === 'production' 
+        ? ['https://xdose.vercel.app', 'https://*.xdose.vercel.app']
+        : '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true
+    }));
     
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+    console.log('Registering routes...');
+    
+    // Routes
+    app.use('/api/mux', muxRouter);
+
     // Health check endpoint
     app.get('/api/health', (req, res) => {
       res.json({ status: 'ok', timestamp: new Date().toISOString() });
