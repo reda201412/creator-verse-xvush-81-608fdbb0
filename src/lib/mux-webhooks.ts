@@ -136,3 +136,32 @@ export const handleAssetDeleted = async (data: any) => {
     };
   }
 };
+
+// Add the missing processWebhookRequest function
+export const processWebhookRequest = async (req: any) => {
+  try {
+    // Get the webhook data from the request body
+    const { type, data } = req.body;
+    
+    console.log(`Processing webhook: ${type}`);
+    
+    // Handle different webhook types
+    switch (type) {
+      case 'video.asset.created':
+        return await handleVideoCreated(data);
+      
+      case 'video.asset.ready':
+        return await handleAssetReady(data);
+      
+      case 'video.asset.deleted':
+        return await handleAssetDeleted(data);
+      
+      default:
+        console.log(`Unhandled webhook type: ${type}`);
+        return { success: true, message: 'Webhook received but not processed' };
+    }
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    throw new Error(`Failed to process webhook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
