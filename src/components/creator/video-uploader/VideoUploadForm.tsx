@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Form, FormProvider } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { VideoFileUpload } from './VideoFileUpload';
@@ -83,7 +83,7 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
   };
 
   return (
-    <FormProvider {...form}>
+    <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 py-4">
         {uploadError && (
           <Alert variant="destructive">
@@ -129,6 +129,6 @@ export const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
           videoFile={videoFile}
         />
       </form>
-    </FormProvider>
+    </Form>
   );
 };

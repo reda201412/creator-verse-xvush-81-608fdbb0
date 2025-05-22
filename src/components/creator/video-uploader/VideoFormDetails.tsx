@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useWatch } from 'react-hook-form';
+import { useWatch, useFormContext } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { BadgeDollarSign, Coins } from 'lucide-react';
 
-// Remove the form prop from the component as it's already available via useFormContext
 const VideoFormDetails = () => {
-  // Get the form context directly, no need to pass it as a prop
+  // Get the form context directly
+  const formContext = useFormContext();
+  
   const isPremium = useWatch({
     name: "isPremium",
     defaultValue: false
@@ -63,11 +64,11 @@ const VideoFormDetails = () => {
               onValueChange={(value) => {
                 field.onChange(value);
                 if (value === "premium" || value === "vip") {
-                  // Use setValue from form context directly
-                  field.form?.setValue("isPremium", true);
+                  // Use formContext instead of accessing field.form
+                  formContext.setValue("isPremium", true);
                 } else {
-                  field.form?.setValue("isPremium", false);
-                  field.form?.setValue("tokenPrice", 0);
+                  formContext.setValue("isPremium", false);
+                  formContext.setValue("tokenPrice", 0);
                 }
               }}
               defaultValue={field.value}
@@ -110,9 +111,10 @@ const VideoFormDetails = () => {
                   onCheckedChange={(checked) => {
                     field.onChange(checked);
                     if (!checked) {
-                      field.form?.setValue("tokenPrice", 0);
+                      // Use formContext instead of accessing field.form
+                      formContext.setValue("tokenPrice", 0);
                       if (videoType === "premium" || videoType === "vip") {
-                        field.form?.setValue("type", "standard");
+                        formContext.setValue("type", "standard");
                       }
                     }
                   }}
