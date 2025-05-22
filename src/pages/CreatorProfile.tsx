@@ -49,8 +49,27 @@ const CreatorProfile = () => {
         
         if (mockCreator.id) {
           // Fetch videos for this creator
-          const creatorVideos = await getVideosByUserId(mockCreator.id);
-          setVideos(creatorVideos);
+          try {
+            const creatorVideos = await getVideosByUserId(mockCreator.id);
+            
+            // Convert VideoMetadata to VideoData
+            const formattedVideos: VideoData[] = creatorVideos.map(video => ({
+              id: typeof video.id === 'string' ? parseInt(video.id, 10) : video.id as number,
+              userId: video.userId || video.user_id,
+              title: video.title,
+              description: video.description || '',
+              type: (video.type as VideoData['type']) || 'standard',
+              thumbnailUrl: video.thumbnailUrl || video.thumbnail_url,
+              isPremium: video.isPremium || video.is_premium || false,
+              price: video.price || video.token_price || 0,
+              status: video.status
+            }));
+            
+            setVideos(formattedVideos);
+          } catch (error) {
+            console.error('Error converting video data:', error);
+            setVideos([]);
+          }
         }
       } catch (error) {
         console.error('Error fetching creator data:', error);

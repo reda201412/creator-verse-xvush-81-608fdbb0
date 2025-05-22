@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Search, FileVideo, Play, Sparkles, Trending, BadgeDollarSign } from 'lucide-react';
+import { Search, FileVideo, Play, Sparkles, TrendingUp, BadgeDollarSign } from 'lucide-react';
 import { VideoData } from '@/types/video';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -248,7 +247,7 @@ const Feed = () => {
               <span className="hidden sm:inline">Nouveautés</span>
             </TabsTrigger>
             <TabsTrigger value="trending" className="flex items-center gap-1">
-              <Trending className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Tendances</span>
             </TabsTrigger>
             <TabsTrigger value="premium" className="flex items-center gap-1">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -27,6 +27,7 @@ import XvushDesignSystem from '@/components/XvushDesignSystem';
 import SecureMessagingPage from '@/pages/SecureMessaging';
 import { Spinner } from '@/components/ui/spinner';
 import { useState, useEffect, useCallback } from 'react';
+import Dashboard from '@/pages/Dashboard';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, profile } = useAuth();

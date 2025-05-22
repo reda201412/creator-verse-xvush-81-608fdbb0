@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Google } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import GoldenRatioGrid from '@/components/neuro-aesthetic/GoldenRatioGrid';
 import AdaptiveMoodLighting from '@/components/neuro-aesthetic/AdaptiveMoodLighting';
 import { useAuth } from '@/contexts/AuthContext';
@@ -220,7 +220,7 @@ const Auth = () => {
                       onClick={handleGoogleSignIn}
                       disabled={loading}
                     >
-                      <Google className="h-4 w-4 mr-2" />
+                      <Mail className="h-4 w-4 mr-2" />
                       Se connecter avec Google
                     </Button>
                   </div>
@@ -333,7 +333,7 @@ const Auth = () => {
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                   >
-                    <Google className="h-4 w-4 mr-2" />
+                    <Mail className="h-4 w-4 mr-2" />
                     S'inscrire avec Google
                   </Button>
                 </form>

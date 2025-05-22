@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,16 +9,15 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { BadgeDollarSign, Coins } from 'lucide-react';
 
+// Remove the form prop from the component as it's already available via useFormContext
 const VideoFormDetails = () => {
-  const form = useFormContext();
+  // Get the form context directly, no need to pass it as a prop
   const isPremium = useWatch({
-    control: form.control,
     name: "isPremium",
     defaultValue: false
   });
   
   const videoType = useWatch({
-    control: form.control,
     name: "type",
     defaultValue: "standard"
   });
@@ -26,7 +25,6 @@ const VideoFormDetails = () => {
   return (
     <div className="space-y-4">
       <FormField
-        control={form.control}
         name="title"
         render={({ field }) => (
           <FormItem>
@@ -40,7 +38,6 @@ const VideoFormDetails = () => {
       />
       
       <FormField
-        control={form.control}
         name="description"
         render={({ field }) => (
           <FormItem>
@@ -58,7 +55,6 @@ const VideoFormDetails = () => {
       />
       
       <FormField
-        control={form.control}
         name="type"
         render={({ field }) => (
           <FormItem>
@@ -67,10 +63,11 @@ const VideoFormDetails = () => {
               onValueChange={(value) => {
                 field.onChange(value);
                 if (value === "premium" || value === "vip") {
-                  form.setValue("isPremium", true);
+                  // Use setValue from form context directly
+                  field.form?.setValue("isPremium", true);
                 } else {
-                  form.setValue("isPremium", false);
-                  form.setValue("tokenPrice", 0);
+                  field.form?.setValue("isPremium", false);
+                  field.form?.setValue("tokenPrice", 0);
                 }
               }}
               defaultValue={field.value}
@@ -104,7 +101,6 @@ const VideoFormDetails = () => {
         </div>
         
         <FormField
-          control={form.control}
           name="isPremium"
           render={({ field }) => (
             <FormItem>
@@ -114,9 +110,9 @@ const VideoFormDetails = () => {
                   onCheckedChange={(checked) => {
                     field.onChange(checked);
                     if (!checked) {
-                      form.setValue("tokenPrice", 0);
+                      field.form?.setValue("tokenPrice", 0);
                       if (videoType === "premium" || videoType === "vip") {
-                        form.setValue("type", "standard");
+                        field.form?.setValue("type", "standard");
                       }
                     }
                   }}
@@ -129,7 +125,6 @@ const VideoFormDetails = () => {
       
       {isPremium && (
         <FormField
-          control={form.control}
           name="tokenPrice"
           render={({ field }) => (
             <FormItem>
