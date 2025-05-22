@@ -1,0 +1,83 @@
+# CreatorVerse - Plateforme de Contenu Vidéo
+
+## 1. Vue d'ensemble
+Plateforme permettant aux créateurs de contenu de télécharger, gérer et monétiser leurs vidéos, avec un système de découverte pour les utilisateurs.
+
+## 2. Objectifs
+- Permettre aux créateurs de publier et monétiser leur contenu
+- Offrir une expérience utilisateur fluide pour la découverte de contenu
+- Fournir des outils d'analyse pour les créateurs
+- Faciliter les interactions entre créateurs et audience
+
+## 3. Fonctionnalités Principales
+
+### 3.1 Authentification et Profils
+- Inscription/Connexion (email, réseaux sociaux)
+- Profils personnalisables pour créateurs et utilisateurs
+- Vérification des comptes créateurs
+
+### 3.2 Gestion de Contenu
+- Téléchargement de vidéos avec métadonnées
+- Gestion de bibliothèque de contenu
+- Planification de publication
+- Gestion des droits et licences
+
+### 3.3 Découverte de Contenu
+- Flux personnalisé basé sur les intérêts
+- Recherche avancée avec filtres
+- Catégorisation des contenus
+- Système de recommandations
+
+### 3.4 Engagement
+- Commentaires et réactions
+- Partage sur réseaux sociaux
+- Abonnements aux créateurs
+- Listes de lecture et favoris
+
+### 3.5 Monétisation
+- Abonnements payants
+- Contenu premium à l'unité
+- Pourboires
+- Publicités
+
+### 3.6 Tableau de Bord Créateur
+- Analyses de performance
+- Gestion des revenus
+- Statistiques d'audience
+- Gestion des abonnés
+
+## 4. Architecture Technique
+- Frontend: React avec TypeScript
+- Backend: Node.js avec Express
+- Base de données: PostgreSQL avec Prisma ORM
+- Stockage: AWS S3 pour les médias
+- Streaming: Mux pour la diffusion vidéo
+- Authentification: Firebase Auth
+- Paiements: Stripe Connect
+
+## 5. Flux Utilisateur Principaux
+
+### 5.1 Créateur
+1. Inscription et configuration du profil
+2. Téléchargement de contenu
+3. Configuration des options de monétisation
+4. Suivi des performances et revenus
+
+### 5.2 Utilisateur
+1. Inscription rapide
+2. Découverte de contenu personnalisé
+3. Interaction avec les créateurs
+4. Gestion des abonnements et achats
+
+## 6. Métriques de Succès
+- Nombre de créateurs actifs
+- Nombre d'utilisateurs actifs
+- Taux de rétention
+- Revenus générés
+- Temps de visionnage moyen
+- Taux d'engagement
+
+## 7. Calendrier
+- MVP: 3 mois
+- Version complète: 6 mois
+- Fonctionnalités avancées: 12 mois

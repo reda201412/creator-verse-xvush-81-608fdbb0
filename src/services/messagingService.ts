@@ -8,7 +8,7 @@ interface PrismaMessage {
   conversationId: string;
   senderId: string;
   type?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   isEdited?: boolean;
   isDeleted?: boolean;
   deletedAt?: Date | null;
@@ -22,7 +22,7 @@ interface PrismaConversation {
   title?: string | null;
   isGroup: boolean;
   messages: PrismaMessage[];
-  participants: any[];
+  participants: PrismaUser[];
   creator: PrismaUser;
   user: PrismaUser;
 }
@@ -114,7 +114,7 @@ export const createMessage = async (
     conversationId: string,
     senderId: string,
     content: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
     type?: string
   }
 ) => {

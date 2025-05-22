@@ -31,7 +31,7 @@ import Dashboard from '@/pages/Dashboard';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, profile } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
@@ -44,13 +44,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading, isCreator } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
@@ -67,17 +67,17 @@ const CreatorRoute = ({ children }: { children: React.ReactNode }) => {
   if (!profile) {
     return <Navigate to="/" replace />;
   }
-  
+
   if (!isCreator) {
     return <Navigate to="/" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  
+
   // Close sidebar on small screens when route changes
   const handleRouteChange = useCallback(() => {
     if (window.innerWidth < 768) {
@@ -91,8 +91,13 @@ function App() {
         <Router>
           <XvushDesignSystem>
             <div className="flex h-screen w-full overflow-hidden bg-background">
-              <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} />
-              <div className={`flex flex-col flex-1 h-full transition-all duration-300 ${sidebarExpanded ? 'md:ml-64' : ''}`}>
+              <Sidebar
+                expanded={sidebarExpanded}
+                onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+              />
+              <div
+                className={`flex flex-col flex-1 h-full transition-all duration-300 ${sidebarExpanded ? 'md:ml-64' : ''}`}
+              >
                 <Header onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} />
                 <main className="flex-1 overflow-y-auto pb-20 md:pb-4 pt-2 md:pt-4 px-2 md:px-4 lg:px-6">
                   <Routes>
@@ -102,18 +107,95 @@ function App() {
                     <Route path="/creator/:username" element={<CreatorProfile />} />
                     <Route path="/creator/revenue" element={<CreatorRevenueDashboard />} />
                     <Route path="/trending" element={<TrendingContent />} />
-                    <Route path="/stories" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                    <Route
+                      path="/stories"
+                      element={
+                        <ProtectedRoute>
+                          <Index />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                    <Route path="/secure-messaging" element={<ProtectedRoute><SecureMessagingPage /></ProtectedRoute>} />
-                    <Route path="/dashboard" element={<CreatorRoute><Dashboard /></CreatorRoute>} />
-                    <Route path="/videos" element={<CreatorRoute><CreatorVideos /></CreatorRoute>} />
-                    <Route path="/subscribers" element={<CreatorRoute><SubscribersManagement /></CreatorRoute>} />
-                    <Route path="/calendar" element={<CreatorRoute><CalendarView /></CreatorRoute>} />
-                    <Route path="/exclusive" element={<CreatorRoute><ExclusiveContent /></CreatorRoute>} />
-                    <Route path="/revenue" element={<CreatorRoute><CreatorRevenueDashboard /></CreatorRoute>} />
-                    <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-                    <Route path="/tokens" element={<ProtectedRoute><TokensPage /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+                    <Route
+                      path="/secure-messaging"
+                      element={
+                        <ProtectedRoute>
+                          <SecureMessagingPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <CreatorRoute>
+                          <Dashboard />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/videos"
+                      element={
+                        <CreatorRoute>
+                          <CreatorVideos />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/subscribers"
+                      element={
+                        <CreatorRoute>
+                          <SubscribersManagement />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <CreatorRoute>
+                          <CalendarView />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/exclusive"
+                      element={
+                        <CreatorRoute>
+                          <ExclusiveContent />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/revenue"
+                      element={
+                        <CreatorRoute>
+                          <CreatorRevenueDashboard />
+                        </CreatorRoute>
+                      }
+                    />
+                    <Route
+                      path="/messages"
+                      element={
+                        <ProtectedRoute>
+                          <Messages />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/tokens"
+                      element={
+                        <ProtectedRoute>
+                          <TokensPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <ProtectedRoute>
+                          <ProfileSettings />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

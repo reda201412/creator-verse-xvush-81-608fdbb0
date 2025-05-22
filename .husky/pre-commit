@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+set -e
+
+echo "🚀 Préparation du commit..."
+
+# Obtenir uniquement les fichiers modifiés et ajoutés
+FILES=$(git diff --cached --name-only --diff-filter=ACM "*.{js,jsx,ts,tsx}" | tr '\n' ' ' | sed 's/ *$//')
+
+if [ -z "$FILES" ]; then
+    echo "ℹ️  Aucun fichier JavaScript/TypeScript à vérifier."
+    exit 0
+fi
+
+echo "🔍 Vérification du code avec ESLint..."
+npx eslint --max-warnings=0 --config .eslintrc.json $FILES
+
+echo "🎨 Formatage du code avec Prettier..."
+npx prettier --write $FILES
+
+# Ajouter les fichiers formatés au staging area
+git add $FILES
+
+echo "✅ Vérifications terminées avec succès !"
+exit 0

@@ -173,7 +173,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setMessagesLoading(false);
       }
     },
-    [messages.length, messagesLoading, user, toast, page, limit]
+    [messagesLoading, user, toast, page, limit]
   );
 
   // Charger plus de messages (pagination)

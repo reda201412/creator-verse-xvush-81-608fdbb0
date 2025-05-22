@@ -42,7 +42,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = 3002;
+const PORT = process.env.PORT || 3003;
 server.on('error', (err) => {
   console.error('Server error:', err);
   if (err.code === 'EADDRINUSE') {
