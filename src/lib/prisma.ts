@@ -17,13 +17,34 @@ const initPrisma = async (): Promise<any> => {
     // Use dynamic import to avoid client-side bundling of the full Prisma client
     const prismaModule = await import('@prisma/client');
     
-    // Access the PrismaClient constructor, handle both default and named export cases
-    let PrismaClient;
-    if ('PrismaClient' in prismaModule) {
-      PrismaClient = prismaModule.PrismaClient;
-    } else if (prismaModule.default && 'PrismaClient' in prismaModule.default) {
-      PrismaClient = prismaModule.default.PrismaClient;
-    } else {
+    // Extract the PrismaClient constructor using different approaches
+    let PrismaClient: any;
+    
+    // Try different ways of accessing PrismaClient based on how it might be exported
+    if (prismaModule && typeof prismaModule === 'object') {
+      // First check if it's directly exported
+      if ('PrismaClient' in prismaModule && typeof prismaModule.PrismaClient === 'function') {
+        PrismaClient = prismaModule.PrismaClient;
+      } 
+      // Then check if it's in the default export
+      else if (prismaModule.default && 
+              typeof prismaModule.default === 'object' && 
+              'PrismaClient' in prismaModule.default &&
+              typeof prismaModule.default.PrismaClient === 'function') {
+        PrismaClient = prismaModule.default.PrismaClient;
+      }
+      // Just use any available constructor function as a last resort
+      else {
+        const possibleClient = Object.values(prismaModule).find(
+          (val: any) => typeof val === 'function' && val.name === 'PrismaClient'
+        );
+        if (possibleClient) {
+          PrismaClient = possibleClient;
+        }
+      }
+    }
+    
+    if (!PrismaClient) {
       throw new Error('Could not find PrismaClient in the imported module');
     }
     
