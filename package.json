@@ -19,7 +19,8 @@
     "server": "node dist/server/index.js",
     "db:init": "tsx scripts/init-db.ts",
     "db:migrate": "tsx scripts/run-migrations.ts",
-    "db:status": "tsx scripts/check-migrations.ts"
+    "db:status": "tsx scripts/check-migrations.ts",
+    "taskmaster": "node scripts/taskmaster.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -72,6 +73,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "commander": "^14.0.0",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
