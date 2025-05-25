@@ -11,7 +11,7 @@ import { getVideosByUserId } from '@/services/videoService';
 import ContentPricing from '@/components/creator/ContentPricing';
 import { VideoData } from '@/types/video';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { motion } from 'framer-motion';
 import CreatorDNA from '@/components/creator/CreatorDNA';
 import ProfileSection from '@/components/header/ProfileSection';

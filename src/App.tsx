@@ -12,28 +12,10 @@ import CreatorVideos from "./pages/CreatorVideos";
 import Messages from "./pages/Messages";
 import Dashboard from "./pages/Dashboard";
 import Creators from "./pages/Creators";
+import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
-
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <SupabaseAuthForm />;
-  }
-
-  return <>{children}</>;
-};
 
 // App Routes component
 const AppRoutes = () => {
@@ -56,10 +38,12 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/creators" element={<Creators />} />
       <Route path="/creator-profile" element={<CreatorProfile />} />
+      <Route path="/creator-profile/:username" element={<CreatorProfile />} />
       <Route path="/creator-videos" element={<CreatorVideos />} />
       <Route path="/messages" element={<Messages />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
