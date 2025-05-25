@@ -11,6 +11,7 @@ import CreatorProfile from "./pages/CreatorProfile";
 import CreatorVideos from "./pages/CreatorVideos";
 import Messages from "./pages/Messages";
 import Dashboard from "./pages/Dashboard";
+import Creators from "./pages/Creators";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/creators" element={<Creators />} />
       <Route path="/creator-profile" element={<CreatorProfile />} />
       <Route path="/creator-videos" element={<CreatorVideos />} />
       <Route path="/messages" element={<Messages />} />
