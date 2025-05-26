@@ -74,9 +74,14 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1000,
     },
 
-    // Configuration pour TypeScript
+    // Configuration pour TypeScript - Fixed to resolve TS5094 error
     esbuild: {
       target: 'es2020',
+      tsconfigRaw: {
+        compilerOptions: {
+          noEmit: false,
+        },
+      },
     },
 
     // Configuration pour le préchargement des modules
