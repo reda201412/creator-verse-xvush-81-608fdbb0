@@ -73,6 +73,12 @@ export default defineConfig(({ mode }) => {
       },
       chunkSizeWarningLimit: 1000,
     },
+
+    // Configuration for TypeScript to avoid conflicts
+    esbuild: {
+      target: 'es2020',
+    },
+
     // Configuration pour le préchargement des modules
     preview: {
       port: 8080,
