@@ -7,7 +7,7 @@
     "build:dev": "vite build --mode development",
     "prepare": "husky install",
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -p tsconfig.prod.json && vite build",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "preview": "vite preview",
