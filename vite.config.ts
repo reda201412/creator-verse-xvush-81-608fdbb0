@@ -74,9 +74,30 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1000,
     },
 
-    // Configuration for TypeScript to avoid conflicts
+    // Configuration for TypeScript - remove conflicting options
     esbuild: {
       target: 'es2020',
+      tsconfigRaw: {
+        compilerOptions: {
+          jsx: 'react-jsx',
+          target: 'es2020',
+          useDefineForClassFields: true,
+          lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+          allowJs: false,
+          skipLibCheck: true,
+          esModuleInterop: false,
+          allowSyntheticDefaultImports: true,
+          strict: true,
+          forceConsistentCasingInFileNames: true,
+          module: 'ESNext',
+          moduleResolution: 'bundler',
+          resolveJsonModule: true,
+          isolatedModules: true,
+          noEmit: false,
+          declaration: false,
+          declarationMap: false
+        }
+      }
     },
 
     // Configuration pour le préchargement des modules
