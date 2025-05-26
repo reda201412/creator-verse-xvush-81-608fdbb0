@@ -14,7 +14,7 @@ import AdaptiveMoodLighting from "@/components/neuro-aesthetic/AdaptiveMoodLight
 import GoldenRatioGrid from "@/components/neuro-aesthetic/GoldenRatioGrid";
 import MicroRewardsEnhanced from "@/components/effects/MicroRewardsEnhanced";
 import { Eye, Heart, ArrowRight, Crown, LogIn, UserPlus, Upload, Settings } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import CognitiveProfilePanel from "@/components/settings/CognitiveProfilePanel";
 import XDoseLogo from "@/components/ui/XDoseLogo";
 import { cn } from "@/lib/utils";
@@ -153,20 +153,23 @@ const Index = () => {
   } = useUserBehavior();
   const [showGoldenRatio, setShowGoldenRatio] = useState(false);
   const [showCognitivePanel, setShowCognitivePanel] = useState(false);
-  const { user, profile, isCreator } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [creatorFollowStates, setCreatorFollowStates] = useState<Record<string, boolean>>({});
   const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({});
+
+  // Determine if user is a creator - since we're using Supabase auth, we'll need to check user metadata or profile
+  const isCreator = user?.user_metadata?.role === 'creator' || false;
 
   useEffect(() => {
     trackInteraction('view', { page: 'index' });
     
     const loadInitialFollowStatus = async () => {
-      if (!user || !user.uid) return;
+      if (!user || !user.id) return;
       
       try {
         // Utiliser getUserFollowedCreatorIds qui retourne string[]
-        const followedCreatorIds = await getUserFollowedCreatorIds(user.uid);
+        const followedCreatorIds = await getUserFollowedCreatorIds(user.id);
         const newFollowStates: Record<string, boolean> = {};
         recommendedCreators.forEach(creator => {
           // `creator.id` ici est l'identifiant du créateur dans la liste mockée.
@@ -195,13 +198,13 @@ const Index = () => {
   };
   
   const handleFollowToggle = async (creatorToToggle: RecommendedCreator) => {
-    if (!user || !user.uid) {
+    if (!user || !user.id) {
       navigate('/auth');
       trackInteraction('navigate', { to: 'auth', reason: 'follow' });
       return;
     }
 
-    if (user.uid === creatorToToggle.userId) {
+    if (user.id === creatorToToggle.userId) {
       toast.info("Vous ne pouvez pas vous suivre vous-même.");
       return;
     }
@@ -213,13 +216,13 @@ const Index = () => {
       let success = false;
 
       if (isCurrentlyFollowing) {
-        success = await unfollowCreator(user.uid, creatorToToggle.userId);
+        success = await unfollowCreator(user.id, creatorToToggle.userId);
         if (success) {
           setCreatorFollowStates(prev => ({ ...prev, [creatorToToggle.userId]: false }));
           toast.success(`Vous ne suivez plus ${creatorToToggle.name}`);
         }
       } else {
-        success = await followCreator(user.uid, creatorToToggle.userId);
+        success = await followCreator(user.id, creatorToToggle.userId);
         if (success) {
           setCreatorFollowStates(prev => ({ ...prev, [creatorToToggle.userId]: true }));
           toast.success(`Vous suivez maintenant ${creatorToToggle.name}`, {
@@ -242,6 +245,10 @@ const Index = () => {
       setFollowLoading(prev => ({ ...prev, [creatorToToggle.userId]: false }));
     }
   };
+
+  // Get display name from Supabase user
+  const displayName = user?.user_metadata?.display_name || user?.email || "Utilisateur";
+  const userRole = isCreator ? "Créateur" : "Fan";
 
   return (
     <div className="relative z-10">
@@ -337,7 +344,7 @@ const Index = () => {
                     <span>{creator.metrics?.content || 'N/A'} contenus</span>
                   </div>
                 </div>
-                {user && user.uid !== creator.userId && (
+                {user && user.id !== creator.userId && (
                   <Button 
                     className={cn(
                       "w-full mt-3", 
