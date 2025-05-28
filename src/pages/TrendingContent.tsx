@@ -1,119 +1,429 @@
-import React from 'react';
-import { CreatorProfileData } from '@/types/video';
 
-export interface TrendingContentItem {
-  id?: string;
-  title?: string;
-  thumbnailUrl?: string;
-  thumbnail_url?: string;
-  videoUrl?: string;
-  video_url?: string;
-  type?: string;
-  format?: string;
-  isPremium?: boolean;
-  is_premium?: boolean;
-  userId?: string; // Added to fix missing property error
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Flame, 
+  Eye, 
+  Heart, 
+  MessageSquare, 
+  Search, 
+  Filter,
+  Star,
+  Crown,
+  Zap,
+  Users,
+  Play
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import ContentCreatorCard from '@/components/viewer/ContentCreatorCard';
+import ContentGrid from '@/components/shared/ContentGrid';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface TrendingVideo {
+  id: string;
+  title: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+  type: 'premium' | 'vip' | 'standard';
+  format: 'video' | 'image';
+  duration?: number;
+  creator: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    isVerified: boolean;
+  };
+  metrics: {
+    views: number;
+    likes: number;
+    comments: number;
+    trendingScore: number;
+    growthRate: number;
+  };
+  tags: string[];
+  isLive?: boolean;
+  isPremium: boolean;
+}
+
+interface TrendingCreator {
+  id: string;
+  userId: string;
+  username: string;
+  name: string;
+  avatar: string;
+  bio: string;
+  isPremium: boolean;
+  isVerified: boolean;
+  metrics: {
+    followers: number;
+    likes: number;
+    rating: number;
+    growthRate: number;
+  };
+  specialties: string[];
 }
 
 const TrendingContent = () => {
-  const [trendingItems, setTrendingItems] = React.useState<TrendingContentItem[]>([
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('24h');
+
+  // Mock data for trending videos
+  const [trendingVideos] = useState<TrendingVideo[]>([
     {
       id: '1',
-      title: 'Top Music Video',
-      thumbnailUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      type: 'music',
-      format: '16:9',
-      isPremium: false,
-      userId: 'user-1'
+      title: 'Expérience VIP Exclusive',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400',
+      videoUrl: '#',
+      type: 'vip',
+      format: 'video',
+      duration: 180,
+      creator: {
+        id: '1',
+        name: 'Luna Star',
+        username: 'luna_star',
+        avatar: 'https://i.pravatar.cc/100?u=luna',
+        isVerified: true
+      },
+      metrics: {
+        views: 125000,
+        likes: 8900,
+        comments: 234,
+        trendingScore: 95,
+        growthRate: 340
+      },
+      tags: ['vip', 'exclusive', 'trending'],
+      isPremium: true
     },
     {
       id: '2',
-      title: 'Best Cooking Recipe',
-      thumbnailUrl: 'https://img.buzzfeed.com/video-api-prod/assets/b4749959444943398ca190e28c36a44c/BFV13333_Square1.jpg',
-      videoUrl: 'https://www.buzzfeed.com/video/alisonroman/one-pot-pasta',
-      type: 'cooking',
-      format: '1:1',
-      isPremium: true,
-      userId: 'user-2'
+      title: 'Session Premium Intime',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400',
+      videoUrl: '#',
+      type: 'premium',
+      format: 'video',
+      duration: 240,
+      creator: {
+        id: '2',
+        name: 'Aria Divine',
+        username: 'aria_divine',
+        avatar: 'https://i.pravatar.cc/100?u=aria',
+        isVerified: true
+      },
+      metrics: {
+        views: 89000,
+        likes: 5600,
+        comments: 189,
+        trendingScore: 88,
+        growthRate: 220
+      },
+      tags: ['premium', 'intimate', 'popular'],
+      isLive: true,
+      isPremium: true
     }
   ]);
 
-  const [creators, setCreators] = React.useState<CreatorProfileData[]>([
+  // Mock data for trending creators
+  const [trendingCreators] = useState<TrendingCreator[]>([
     {
       id: '1',
-      uid: 'creator-1',
-      username: 'john_doe',
-      displayName: 'John Doe',
-      bio: 'Making awesome videos',
-      avatarUrl: 'https://i.pravatar.cc/150?u=john',
+      userId: 'creator-1',
+      username: 'luna_star',
+      name: 'Luna Star',
+      avatar: 'https://i.pravatar.cc/150?u=luna',
+      bio: 'Créatrice de contenu premium et expériences VIP exclusives',
       isPremium: true,
-      isOnline: true,
+      isVerified: true,
       metrics: {
-        followers: 12000,
-        likes: 30000,
-        rating: 4.5
-      }
+        followers: 45000,
+        likes: 230000,
+        rating: 4.9,
+        growthRate: 340
+      },
+      specialties: ['VIP', 'Premium', 'Live']
     },
     {
       id: '2',
-      uid: 'creator-2',
-      username: 'jane_smith',
-      displayName: 'Jane Smith',
-      bio: 'Sharing my life with you',
-      avatarUrl: 'https://i.pravatar.cc/150?u=jane',
-      isPremium: false,
-      isOnline: false,
+      userId: 'creator-2',
+      username: 'aria_divine',
+      name: 'Aria Divine',
+      avatar: 'https://i.pravatar.cc/150?u=aria',
+      bio: 'Sessions intimes et contenu personnalisé',
+      isPremium: true,
+      isVerified: true,
       metrics: {
-        followers: 8000,
-        likes: 20000,
-        rating: 4.2
-      }
+        followers: 32000,
+        likes: 180000,
+        rating: 4.8,
+        growthRate: 220
+      },
+      specialties: ['Premium', 'Personnalisé', 'Chat']
     }
   ]);
-  
-  // Fix property access for TrendingContentItem
-  const renderItem = (item: TrendingContentItem) => {
-    return (
-      <div className="trending-item">
-        <img 
-          src={item.thumbnail_url || item.thumbnailUrl || 'https://via.placeholder.com/300x169'} 
-          alt={item.title} 
-        />
-        <div className="item-info">
-          <h3>{item.title}</h3>
-          <span>{item.is_premium || item.isPremium ? 'Premium' : 'Free'}</span>
+
+  const categories = [
+    { id: 'all', label: 'Tout', icon: Flame },
+    { id: 'vip', label: 'VIP', icon: Crown },
+    { id: 'premium', label: 'Premium', icon: Star },
+    { id: 'live', label: 'En Direct', icon: Zap },
+    { id: 'rising', label: 'Émergent', icon: TrendingUp }
+  ];
+
+  const timeFilters = [
+    { id: '1h', label: '1 heure' },
+    { id: '24h', label: '24 heures' },
+    { id: '7d', label: '7 jours' },
+    { id: '30d', label: '30 jours' }
+  ];
+
+  const filteredVideos = trendingVideos.filter(video => {
+    const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         video.creator.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || 
+                           video.type === selectedCategory || 
+                           (selectedCategory === 'live' && video.isLive) ||
+                           (selectedCategory === 'rising' && video.metrics.growthRate > 200);
+    return matchesSearch && matchesCategory;
+  });
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Header Section */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ec4899" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+        
+        <div className="relative container mx-auto px-4 py-8">
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent mb-4">
+                Tendances
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Découvrez le contenu le plus populaire et les créateurs qui font sensation
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Rechercher du contenu ou des créateurs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-background/50 backdrop-blur-sm border-white/20"
+              />
+            </div>
+            
+            <div className="flex gap-2 overflow-x-auto scrollbar-none">
+              {timeFilters.map((filter) => (
+                <Button
+                  key={filter.id}
+                  variant={timeFilter === filter.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTimeFilter(filter.id)}
+                  className="whitespace-nowrap"
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Category Filters */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-4">
+            {categories.map((category) => {
+              const IconComponent = category.icon;
+              return (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="whitespace-nowrap bg-background/50 backdrop-blur-sm border-white/20"
+                >
+                  <IconComponent className="h-4 w-4 mr-2" />
+                  {category.label}
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    );
-  };
-  
-  // Fix creator profile access
-  const renderCreator = (creator: CreatorProfileData) => {
-    return (
-      <div className="creator-card">
-        <img 
-          src={creator.avatarUrl || creator.profileImageUrl || 'https://via.placeholder.com/40'} 
-          alt={creator.displayName} 
-        />
-        <h4>{creator.displayName}</h4>
-      </div>
-    );
-  };
-  
-  return (
-    <div className="trending-content">
-      <h2>Trending Videos</h2>
-      <div className="trending-list">
-        {trendingItems.map(item => (
-          <div key={item.id}>{renderItem(item)}</div>
-        ))}
-      </div>
-      <h2>Top Creators</h2>
-      <div className="creators-list">
-        {creators.map(creator => (
-          <div key={creator.id}>{renderCreator(creator)}</div>
-        ))}
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[400px] mx-auto bg-background/50 backdrop-blur-sm">
+            <TabsTrigger value="all">Tout</TabsTrigger>
+            <TabsTrigger value="videos">Vidéos</TabsTrigger>
+            <TabsTrigger value="creators">Créateurs</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-8">
+            {/* Hot Content Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Flame className="h-6 w-6 text-orange-500" />
+                <h2 className="text-2xl font-bold">Contenu Brûlant</h2>
+                <Badge variant="destructive" className="animate-pulse">
+                  LIVE
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredVideos.slice(0, 4).map((video) => (
+                  <motion.div
+                    key={video.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 bg-background/50 backdrop-blur-sm border-white/20">
+                      <div className="relative aspect-video overflow-hidden">
+                        <img
+                          src={video.thumbnailUrl}
+                          alt={video.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        
+                        {video.isLive && (
+                          <Badge className="absolute top-2 left-2 bg-red-500 animate-pulse">
+                            <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
+                            LIVE
+                          </Badge>
+                        )}
+                        
+                        {video.type !== 'standard' && (
+                          <Badge className={cn(
+                            "absolute top-2 right-2",
+                            video.type === 'vip' ? "bg-gradient-to-r from-purple-600 to-indigo-400" : 
+                            video.type === 'premium' ? "bg-gradient-to-r from-amber-500 to-amber-300" : ""
+                          )}>
+                            {video.type === 'vip' ? 'VIP' : 'Premium'}
+                          </Badge>
+                        )}
+                        
+                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {Math.floor(video.duration! / 60)}:{(video.duration! % 60).toString().padStart(2, '0')}
+                        </div>
+                        
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="h-12 w-12 text-white" />
+                        </div>
+                      </div>
+                      
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <img
+                            src={video.creator.avatar}
+                            alt={video.creator.name}
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <span className="text-sm text-muted-foreground">{video.creator.name}</span>
+                          {video.creator.isVerified && (
+                            <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {formatNumber(video.metrics.views)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Heart className="h-3 w-3" />
+                              {formatNumber(video.metrics.likes)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-green-500">
+                            <TrendingUp className="h-3 w-3" />
+                            +{video.metrics.growthRate}%
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Top Creators Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Crown className="h-6 w-6 text-amber-500" />
+                <h2 className="text-2xl font-bold">Créateurs Tendance</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trendingCreators.map((creator) => (
+                  <ContentCreatorCard
+                    key={creator.id}
+                    creator={creator}
+                    className="hover:scale-105 transition-transform duration-300"
+                  />
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="videos" className="space-y-6">
+            <ContentGrid
+              contents={filteredVideos.map(video => ({
+                id: video.id,
+                imageUrl: video.thumbnailUrl,
+                title: video.title,
+                type: video.type,
+                format: video.format,
+                duration: video.duration,
+                metrics: video.metrics,
+                isTrending: video.metrics.trendingScore > 90
+              }))}
+              layout="masonry"
+              showAnimations={true}
+            />
+          </TabsContent>
+
+          <TabsContent value="creators" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingCreators.map((creator) => (
+                <ContentCreatorCard
+                  key={creator.id}
+                  creator={creator}
+                  className="hover:scale-105 transition-transform duration-300"
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
