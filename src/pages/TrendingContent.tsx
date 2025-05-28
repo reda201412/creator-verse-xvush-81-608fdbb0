@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import ContentCreatorCard from '@/components/viewer/ContentCreatorCard';
 import ContentGrid from '@/components/shared/ContentGrid';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useResponsive } from '@/hooks/use-responsive';
 
 interface TrendingVideo {
   id: string;
@@ -72,6 +73,7 @@ interface TrendingCreator {
 }
 
 const TrendingContent = () => {
+  const { isMobile, isTablet } = useResponsive();
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -179,10 +181,10 @@ const TrendingContent = () => {
   ];
 
   const timeFilters = [
-    { id: '1h', label: '1 heure' },
-    { id: '24h', label: '24 heures' },
-    { id: '7d', label: '7 jours' },
-    { id: '30d', label: '30 jours' }
+    { id: '1h', label: '1h' },
+    { id: '24h', label: '24h' },
+    { id: '7d', label: '7j' },
+    { id: '30d', label: '30j' }
   ];
 
   const filteredVideos = trendingVideos.filter(video => {
@@ -203,7 +205,7 @@ const TrendingContent = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Header Section */}
+      {/* Header Section - Mobile First */}
       <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
         <div 
           className="absolute inset-0 opacity-30"
@@ -212,91 +214,93 @@ const TrendingContent = () => {
           }}
         ></div>
         
-        <div className="relative container mx-auto px-4 py-8">
-          <div className="text-center mb-8">
+        <div className="relative px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+          <div className="text-center mb-4 sm:mb-6 md:mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent mb-4">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent mb-2 sm:mb-4">
                 Tendances
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-xl lg:max-w-2xl mx-auto px-4">
                 Découvrez le contenu le plus populaire et les créateurs qui font sensation
               </p>
             </motion.div>
           </div>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+          {/* Search and Filters - Mobile First */}
+          <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+            {/* Search Input */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Rechercher du contenu ou des créateurs..."
+                placeholder="Rechercher..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-background/50 backdrop-blur-sm border-white/20"
+                className="pl-10 bg-background/50 backdrop-blur-sm border-white/20 text-sm"
               />
             </div>
             
-            <div className="flex gap-2 overflow-x-auto scrollbar-none">
+            {/* Time Filters */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
               {timeFilters.map((filter) => (
                 <Button
                   key={filter.id}
                   variant={timeFilter === filter.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => setTimeFilter(filter.id)}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap text-xs px-3 py-1.5 h-auto"
                 >
                   {filter.label}
                 </Button>
               ))}
             </div>
-          </div>
 
-          {/* Category Filters */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-4">
-            {categories.map((category) => {
-              const IconComponent = category.icon;
-              return (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="whitespace-nowrap bg-background/50 backdrop-blur-sm border-white/20"
-                >
-                  <IconComponent className="h-4 w-4 mr-2" />
-                  {category.label}
-                </Button>
-              );
-            })}
+            {/* Category Filters */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+              {categories.map((category) => {
+                const IconComponent = category.icon;
+                return (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="whitespace-nowrap bg-background/50 backdrop-blur-sm border-white/20 text-xs px-3 py-1.5 h-auto"
+                  >
+                    <IconComponent className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className={cn(isMobile ? "text-xs" : "text-sm")}>{category.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px] mx-auto bg-background/50 backdrop-blur-sm">
-            <TabsTrigger value="all">Tout</TabsTrigger>
-            <TabsTrigger value="videos">Vidéos</TabsTrigger>
-            <TabsTrigger value="creators">Créateurs</TabsTrigger>
+      {/* Main Content - Mobile First */}
+      <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6 md:space-y-8">
+          <TabsList className="grid w-full grid-cols-3 bg-background/50 backdrop-blur-sm h-9 sm:h-10">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">Tout</TabsTrigger>
+            <TabsTrigger value="videos" className="text-xs sm:text-sm">Vidéos</TabsTrigger>
+            <TabsTrigger value="creators" className="text-xs sm:text-sm">Créateurs</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-8">
+          <TabsContent value="all" className="space-y-6 sm:space-y-8">
             {/* Hot Content Section */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Flame className="h-6 w-6 text-orange-500" />
-                <h2 className="text-2xl font-bold">Contenu Brûlant</h2>
-                <Badge variant="destructive" className="animate-pulse">
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Contenu Brûlant</h2>
+                <Badge variant="destructive" className="animate-pulse text-xs">
                   LIVE
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                 {filteredVideos.slice(0, 4).map((video) => (
                   <motion.div
                     key={video.id}
@@ -313,15 +317,15 @@ const TrendingContent = () => {
                         />
                         
                         {video.isLive && (
-                          <Badge className="absolute top-2 left-2 bg-red-500 animate-pulse">
-                            <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
+                          <Badge className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-red-500 animate-pulse text-xs">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1"></div>
                             LIVE
                           </Badge>
                         )}
                         
                         {video.type !== 'standard' && (
                           <Badge className={cn(
-                            "absolute top-2 right-2",
+                            "absolute top-1.5 right-1.5 sm:top-2 sm:right-2 text-xs",
                             video.type === 'vip' ? "bg-gradient-to-r from-purple-600 to-indigo-400" : 
                             video.type === 'premium' ? "bg-gradient-to-r from-amber-500 to-amber-300" : ""
                           )}>
@@ -329,33 +333,33 @@ const TrendingContent = () => {
                           </Badge>
                         )}
                         
-                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
                           {Math.floor(video.duration! / 60)}:{(video.duration! % 60).toString().padStart(2, '0')}
                         </div>
                         
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Play className="h-12 w-12 text-white" />
+                          <Play className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                         </div>
                       </div>
                       
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
+                      <CardContent className="p-3 sm:p-4">
+                        <h3 className="font-semibold mb-2 line-clamp-2 text-sm sm:text-base">{video.title}</h3>
                         
                         <div className="flex items-center gap-2 mb-3">
                           <img
                             src={video.creator.avatar}
                             alt={video.creator.name}
-                            className="w-6 h-6 rounded-full"
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
                           />
-                          <span className="text-sm text-muted-foreground">{video.creator.name}</span>
+                          <span className="text-xs sm:text-sm text-muted-foreground truncate">{video.creator.name}</span>
                           {video.creator.isVerified && (
-                            <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                              <div className="w-2 h-2 bg-white rounded-full"></div>
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full"></div>
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
                           <div className="flex items-center gap-3">
                             <span className="flex items-center gap-1">
                               <Eye className="h-3 w-3" />
@@ -369,7 +373,7 @@ const TrendingContent = () => {
                           
                           <div className="flex items-center gap-1 text-green-500">
                             <TrendingUp className="h-3 w-3" />
-                            +{video.metrics.growthRate}%
+                            <span className="text-xs">+{video.metrics.growthRate}%</span>
                           </div>
                         </div>
                       </CardContent>
@@ -383,12 +387,12 @@ const TrendingContent = () => {
 
             {/* Top Creators Section */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <h2 className="text-2xl font-bold">Créateurs Tendance</h2>
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Créateurs Tendance</h2>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                 {trendingCreators.map((creator) => (
                   <ContentCreatorCard
                     key={creator.id}
@@ -400,7 +404,7 @@ const TrendingContent = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="videos" className="space-y-6">
+          <TabsContent value="videos" className="space-y-4 sm:space-y-6">
             <ContentGrid
               contents={filteredVideos.map(video => ({
                 id: video.id,
@@ -414,11 +418,12 @@ const TrendingContent = () => {
               }))}
               layout="masonry"
               showAnimations={true}
+              className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             />
           </TabsContent>
 
-          <TabsContent value="creators" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="creators" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {trendingCreators.map((creator) => (
                 <ContentCreatorCard
                   key={creator.id}
