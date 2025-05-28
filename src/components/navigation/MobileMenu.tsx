@@ -21,8 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import { useNeuroAesthetic } from "@/hooks/use-neuro-aesthetic";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface NavItemProps {
@@ -34,10 +33,7 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isActive, onClick }: NavItemProps) => {
-  const { triggerMicroReward } = useNeuroAesthetic();
-  
   const handleClick = () => {
-    triggerMicroReward("tab");
     if (onClick) onClick();
   };
   
@@ -70,16 +66,17 @@ export const HamburgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { triggerMicroReward } = useNeuroAesthetic();
-  const { user, profile, isCreator, signOut } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  // Determine if user is a creator
+  const isCreator = user?.user_metadata?.role === 'creator' || false;
 
   // Common navigation items for all users
   let navItems = [
     { to: "/", icon: <Home size={22} />, label: "Accueil", role: "all" },
     { to: "/creators", icon: <Users size={22} />, label: "Créateurs", role: "all" },
-    { to: "/creator", icon: <User size={22} />, label: "Profil créateur", role: "all" },
-    { to: "/tokens", icon: <Coins size={22} />, label: "Tokens", role: "all" },
+    { to: "/trending", icon: <BarChart2 size={22} />, label: "Tendances", role: "all" },
     { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages", role: "all" },
   ];
 
@@ -87,9 +84,7 @@ export const HamburgerMenu = () => {
   const creatorNavItems = [
     { to: "/dashboard", icon: <BarChart2 size={22} />, label: "Tableau de bord", role: "creator" },
     { to: "/calendar", icon: <Calendar size={22} />, label: "Calendrier", role: "creator" },
-    { to: "/subscribers", icon: <Users size={22} />, label: "Abonnés", role: "creator" },
     { to: "/videos", icon: <Video size={22} />, label: "Mes Vidéos", role: "creator" },
-    { to: "/revenue", icon: <DollarSign size={22} />, label: "Revenus", role: "creator" },
   ];
 
   // Combine navigation items based on user role
@@ -99,51 +94,18 @@ export const HamburgerMenu = () => {
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
-    triggerMicroReward("action");
   };
   
   const closeMenu = () => {
     setIsOpen(false);
   };
 
-  const handleLogout = async () => {
-    try {
-      // Close the menu first
-      closeMenu();
-      
-      // Sign out the user
-      const { error } = await signOut();
-      
-      if (error) throw new Error(error);
-      
-      // Navigate to home page
-      navigate('/');
-      
-      // Trigger micro reward
-      triggerMicroReward('action');
-      
-      toast({
-        title: "Déconnexion réussie",
-        description: "Vous avez été déconnecté avec succès."
-      });
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      toast({
-        title: "Erreur de déconnexion",
-        description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la déconnexion.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleQuickUpload = () => {
     navigate('/videos');
     closeMenu();
-    triggerMicroReward('navigate');
   };
 
-  const displayName = profile?.displayName || profile?.username || "Utilisateur";
-  const userRole = isCreator ? "Créateur" : "Fan";
+  const displayName = user?.user_metadata?.display_name || user?.email || "Utilisateur";
 
   return (
     <>
@@ -151,7 +113,7 @@ export const HamburgerMenu = () => {
         variant="ghost"
         size="icon"
         onClick={toggleMenu}
-        className="relative z-50"
+        className="relative z-50 md:hidden"
         aria-label="Menu"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
@@ -197,7 +159,7 @@ export const HamburgerMenu = () => {
                 {isCreator && (
                   <Button 
                     onClick={handleQuickUpload}
-                    className="mb-4 bg-xvush-pink hover:bg-xvush-pink-dark flex items-center gap-2"
+                    className="mb-4 bg-primary hover:bg-primary/90 flex items-center gap-2"
                   >
                     <Upload size={16} />
                     Créer du contenu
@@ -225,26 +187,23 @@ export const HamburgerMenu = () => {
                     isActive={location.pathname === "/settings"}
                     onClick={closeMenu}
                   />
-                  <div
-                    className="relative flex items-center group rounded-lg py-3 px-3 my-1 transition-all duration-200 text-muted-foreground hover:bg-primary/5 hover:text-foreground cursor-pointer"
-                    onClick={handleLogout}
-                  >
-                    <div className="flex items-center">
-                      <span className="text-xl"><LogOut size={22} /></span>
-                      <span className="ml-3 font-medium text-sm">Déconnexion</span>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t">
-                  <div className="flex items-center p-3">
-                    <ProfileAvatar src={profile?.avatarUrl || "https://avatars.githubusercontent.com/u/124599?v=4"} size="sm" status="online" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium">{displayName}</p>
-                      <p className="text-xs text-muted-foreground">{userRole}</p>
+                {user && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center p-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-primary font-semibold">
+                          {displayName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground">{isCreator ? "Créateur" : "Fan"}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </>
