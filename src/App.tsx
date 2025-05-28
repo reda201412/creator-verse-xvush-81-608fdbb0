@@ -71,7 +71,6 @@ const App = () => (
     <SupabaseAuthProvider>
       <TooltipProvider>
         <BrowserRouter>
-          <AppSidebar />
           <AppRoutes />
           <Toaster />
           <Sonner />
