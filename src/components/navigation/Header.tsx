@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
       "sticky top-0 z-40 w-full bg-background/95 backdrop-blur-sm border-b",
       className
     )}>
-      <div className="container flex items-center gap-2 py-2 px-4">
+      <div className="flex items-center gap-2 py-2 px-2 sm:px-4">
         {/* Desktop sidebar trigger */}
         {!isMobile && <SidebarTrigger />}
         
@@ -26,7 +26,14 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
         {isMobile && <HamburgerMenu />}
         
         <div className="flex-1">
-          <Input type="search" placeholder="Rechercher..." className="md:max-w-[300px]" />
+          <Input 
+            type="search" 
+            placeholder="Rechercher..." 
+            className={cn(
+              "w-full",
+              !isMobile && "md:max-w-[300px]"
+            )} 
+          />
         </div>
       </div>
     </div>

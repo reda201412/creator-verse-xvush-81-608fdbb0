@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import CreatorProfile from "./pages/CreatorProfile";
 import CreatorVideos from "./pages/CreatorVideos";
 import Messages from "./pages/Messages";
+import SecureMessaging from "./pages/SecureMessaging";
 import Dashboard from "./pages/Dashboard";
 import Creators from "./pages/Creators";
 import TrendingContent from "./pages/TrendingContent";
@@ -44,7 +45,7 @@ const AppRoutes = () => {
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           <Header />
-          <main className="flex-1 p-4">
+          <main className="flex-1 p-2 sm:p-4">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/trending" element={<TrendingContent />} />
@@ -54,6 +55,7 @@ const AppRoutes = () => {
               <Route path="/creator-videos" element={<CreatorVideos />} />
               <Route path="/videos" element={<CreatorVideos />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/secure-messaging" element={<SecureMessaging />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth" element={<SupabaseAuthForm />} />
               <Route path="/404" element={<NotFound />} />
