@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, UserPlus, UserMinus, Bell, Heart, Star } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { followCreator, unfollowCreator, checkUserFollowsCreator } from '@/services/creatorService';
 import { useToast } from '@/components/ui/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';

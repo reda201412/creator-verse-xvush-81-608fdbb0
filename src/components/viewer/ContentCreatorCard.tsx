@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { checkUserFollowsCreator, followCreator, unfollowCreator } from '@/services/creatorService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from '@/components/ui/sonner';
 import useHapticFeedback from '@/hooks/use-haptic-feedback';
 import { useNeuroAesthetic } from '@/hooks/use-neuro-aesthetic';
